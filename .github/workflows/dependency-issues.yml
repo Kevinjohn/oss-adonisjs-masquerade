@@ -1,0 +1,32 @@
+name: dependency-issues
+
+# Dependabot opens pull requests for patch updates only. This opens one issue per minor or
+# major update, with the reason it needs a hand review.
+on:
+  schedule:
+    - cron: '0 5 * * 1'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  issues:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    permissions:
+      contents: read
+      issues: write
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+      - uses: pnpm/action-setup@v6
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 24
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm dependency:issues
+        env:
+          GH_TOKEN: ${{ github.token }}
