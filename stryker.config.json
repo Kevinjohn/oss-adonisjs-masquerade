@@ -3,6 +3,7 @@
   "testRunner": "command",
   "commandRunner": { "command": "pnpm quick:test" },
   "mutate": ["src/**/*.ts"],
+  "disableTypeChecks": "src/**/*.ts",
   "inPlace": true,
   "coverageAnalysis": "off",
   "reporters": ["clear-text", "progress", "html", "json"],
