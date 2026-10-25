@@ -54,7 +54,7 @@ jobs:
         run: pnpm test:account-kit --profile=all --database=${{ matrix.database == 'pg' && 'pg' || 'sqlite' }} --strategy=all --session-management=all
       - name: Upload Account Kit consumer evidence
         if: always()
-        uses: actions/upload-artifact@v6
+        uses: actions/upload-artifact@v7
         with:
           name: account-kit-${{ matrix.database }}
           path: |

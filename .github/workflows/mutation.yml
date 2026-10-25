@@ -24,7 +24,7 @@ jobs:
       - run: pnpm test:mutation
       - name: Upload mutation report
         if: always()
-        uses: actions/upload-artifact@v6
+        uses: actions/upload-artifact@v7
         with:
           name: mutation-report-${{ github.run_id }}
           path: reports/mutation/
