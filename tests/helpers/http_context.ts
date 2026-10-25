@@ -1,27 +1,29 @@
 import { admission } from '../../src/request_admission.js'
 import type { RequestAdmission } from '../../src/request_admission.js'
 import type { MasqueradeService } from '../../src/types.js'
+import type { RouteGuardSelection } from '../../integration/route_guard_selection.js'
 import type { fixture } from './core.js'
 
-export function requestContext(
-  f: ReturnType<typeof fixture>,
-  options: {
-    method?: string
-    body?: Record<string, unknown>
-    raw?: string | null
-    hasBody?: boolean
-    contentType?: string
-    contentLength?: string | null
-    header?: string
-    routeMiddleware?: unknown[]
-    groupMiddleware?: unknown[]
-    defaultGuard?: string
-    admit?: (
-      request: object,
-      fallback: () => Promise<RequestAdmission<unknown>>
-    ) => Promise<RequestAdmission<unknown>>
-  }
-) {
+type RequestContextOptions = {
+  method?: string
+  body?: Record<string, unknown>
+  raw?: string | null
+  hasBody?: boolean
+  contentType?: string
+  contentLength?: string | null
+  header?: string
+  route?: unknown
+  selectGuard?: (ctx: object) => RouteGuardSelection
+  routeMiddleware?: unknown[]
+  groupMiddleware?: unknown[]
+  defaultGuard?: string
+  admit?: (
+    request: object,
+    fallback: () => Promise<RequestAdmission<unknown>>
+  ) => Promise<RequestAdmission<unknown>>
+}
+
+export function requestContext(f: ReturnType<typeof fixture>, options: RequestContextOptions) {
   const responseState: {
     status?: number
     json?: unknown
@@ -39,7 +41,7 @@ export function requestContext(
   const ctx: Record<string, any> = {
     actorId: 'a',
     auth: { defaultGuard: options.defaultGuard ?? 'web_effective' },
-    route: {
+    route: options.route ?? {
       name: 'business.test',
       pattern: '/business',
       middleware: {
@@ -94,6 +96,7 @@ export function requestContext(
         config: f.config,
         effectiveGuardName: 'web_effective',
         effectiveGuardNames: ['web_effective', 'web_alias'],
+        ...(options.selectGuard ? { selectGuard: options.selectGuard } : {}),
         admit: async (request: object) => {
           const service = await f.create()
           const fallback = () =>
@@ -108,4 +111,17 @@ export function requestContext(
     },
   }
   return { ctx: ctx as never, responseState, warnings }
+}
+
+/** Give controller tests the same raw-guard selection required of mounted control routes. */
+export function controlRequestContext(
+  f: ReturnType<typeof fixture>,
+  options: RequestContextOptions = {}
+) {
+  return requestContext(f, {
+    ...options,
+    routeMiddleware: options.routeMiddleware ?? [{ name: 'auth', args: [{ guards: ['web'] }] }],
+    defaultGuard: options.defaultGuard ?? 'web',
+    selectGuard: options.selectGuard ?? (() => ({ kind: 'raw', raw: 'web' })),
+  })
 }

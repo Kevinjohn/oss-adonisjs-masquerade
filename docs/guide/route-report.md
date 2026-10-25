@@ -28,7 +28,9 @@ Account Kit; the remaining registered routes stay covered by the blocker. A host
 
 - `CONTROL` means the report positively recognized a Masquerade controller handler. Check that the
   route is mounted on the intended raw session guard and has the host protections required for that
-  endpoint.
+  endpoint. A package control route behind an effective guard is flagged with a reminder to use the
+  raw guard. The controller also fails closed with `E_MASQUERADE_UNAVAILABLE` if the selected guard
+  is not raw.
 - `POSSIBLE CONTROL (name-inferred; review handler)` means the host assigned an exact recognized
   route name such as `logout`, `auth.logout`, or `session.logout`. The report inferred intent from
   the name; it did not recognize the handler. A business or export handler with one of these names
@@ -50,11 +52,12 @@ both kinds of guard. Resolve either case by inspecting the registered handler an
 ## Review procedure
 
 For each `POSSIBLE CONTROL`, inspect the registered handler and confirm whether it is actually a
-login, logout, signup, or other host control action. Do not rely on its route name or URL. For each
-`RAW-GUARD BUSINESS` and `UNCLASSIFIED` entry, trace the handler and choose the intended guard based
-on the work it performs. For every `CONTROL` entry, confirm the recognized package handler, raw
-guard, and the host's route protections. Resolve unresolved and mixed-guard flags before treating
-coverage review as complete.
+login, logout, signup, or other host control action. Do not rely on its route name or URL. Resolve
+every effective-guard flag on a package control route by mounting it with its raw actor guard. For
+each `RAW-GUARD BUSINESS` and `UNCLASSIFIED` entry, trace the handler and choose the intended guard
+based on the work it performs. For every `CONTROL` entry, confirm the recognized package handler,
+raw guard, and the host's route protections. Resolve unresolved and mixed-guard flags before
+treating coverage review as complete.
 
 The report does not change authentication behavior, validate arbitrary middleware semantics, or
 prove that a route name describes its handler. Review the application route definitions and
