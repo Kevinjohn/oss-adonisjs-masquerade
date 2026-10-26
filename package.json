@@ -90,7 +90,6 @@
     "@japa/assert": "^4.2.0",
     "@japa/runner": "^5.3.0",
     "@poppinss/ts-exec": "^1.4.4",
-    "@release-it/conventional-changelog": "^10.0.5",
     "@stryker-mutator/core": "^10.0.0",
     "@types/luxon": "^3.7.6",
     "@types/node": "^25.3.5",
@@ -143,7 +142,8 @@
   },
   "publishConfig": {
     "access": "public",
-    "provenance": true
+    "provenance": true,
+    "tag": "alpha"
   },
   "tsdown": {
     "entry": [
@@ -176,7 +176,7 @@
   "release-it": {
     "hooks": {
       "before:bump": "pnpm version ${version} --no-git-tag-version --allow-same-version",
-      "before:release": "pnpm publish --access public --provenance --no-git-checks"
+      "before:release": "pnpm publish --access public --provenance --tag alpha --no-git-checks"
     },
     "git": {
       "requireCleanWorkingDir": true,
@@ -184,19 +184,13 @@
       "commitMessage": "chore(release): ${version}",
       "tagAnnotation": "v${version}",
       "push": true,
-      "tagName": "v${version}"
+      "tagName": "v${version}",
+      "changelog": "node bin/release_notes.mjs"
     },
     "github": {
       "release": true
     },
-    "npm": false,
-    "plugins": {
-      "@release-it/conventional-changelog": {
-        "preset": {
-          "name": "angular"
-        }
-      }
-    }
+    "npm": false
   },
   "c8": {
     "reporter": [

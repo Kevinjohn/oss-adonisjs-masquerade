@@ -17,3 +17,5 @@ their last revision.
 - [Expiry scan measurement](expiry-scan-measurement.md): disposable SQLite and PostgreSQL 16 query plans and timings.
 - [Clean self-setup validation](adoption-validation/README.md): clean demo, fresh-host and
   delivered-client setup evidence.
+
+- [First registry release checklist](release-checklist.md): decisions and pending publication gates.

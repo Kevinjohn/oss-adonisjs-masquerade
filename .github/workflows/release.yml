@@ -2,6 +2,11 @@ name: release
 
 on:
   workflow_dispatch:
+    inputs:
+      version:
+        description: Explicit prerelease version (for example 0.1.0-alpha.1)
+        required: true
+        type: string
 
 permissions:
   contents: write
@@ -22,6 +27,7 @@ jobs:
 
   release:
     needs: [checks, consumer, e2e, account-kit]
+    if: github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v7
@@ -33,19 +39,20 @@ jobs:
       - uses: actions/setup-node@v7
         with:
           node-version: 24
-          cache: pnpm
+          package-manager-cache: false
       - name: git config
         run: |
           git config user.name "${GITHUB_ACTOR}"
           git config user.email "${GITHUB_ACTOR}@users.noreply.github.com"
-      - name: Init pnpm config
-        run: pnpm config set //registry.npmjs.org/:_authToken $NPM_TOKEN
+      - name: Validate alpha version
         env:
-          NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
+          RELEASE_VERSION: ${{ inputs.version }}
+        run: |
+          node --input-type=module -e 'if (!/^(0|[1-9]\d*)\.(0|[1-9]\d*)\.(0|[1-9]\d*)-alpha\.(0|[1-9]\d*)$/.test(process.env.RELEASE_VERSION)) throw new Error("Expected an explicit alpha prerelease version")'
       - name: Install
         run: pnpm install --frozen-lockfile
       - name: Release
-        run: pnpm release --ci
+        run: pnpm release "$RELEASE_VERSION" --ci
         env:
-          NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
+          RELEASE_VERSION: ${{ inputs.version }}
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
