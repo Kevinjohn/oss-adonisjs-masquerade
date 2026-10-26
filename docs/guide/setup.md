@@ -21,7 +21,8 @@ pnpm pack:fixture
 For a repeatable local alpha self-test, build from the annotated tag selected for the baseline. The
 tag identifies the source revision; the package manifest remains `0.0.0`, and no registry version
 is provided. After the tag is available, replace `alpha-1` below with the exact tag named in the
-repository's maintainer verification record. Create a clean worktree so the selected source and
+repository's [maintainer verification record](../maintainers/alpha-baseline.md).
+Create a clean worktree so the selected source and
 lockfile stay fixed:
 
 ```sh

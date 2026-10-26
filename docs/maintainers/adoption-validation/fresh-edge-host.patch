@@ -7,40 +7,6 @@
 +  declare masqueradeOperator: boolean
 +  declare canMutate: boolean
 +
---- a/config/auth.ts
-+++ b/config/auth.ts
-@@ -2 +2,3 @@
--import { sessionGuard, sessionUserProvider } from '@adonisjs/auth/session'
-+import { sessionGuard } from '@adonisjs/auth/session'
-+import { effectiveSessionGuard } from 'adonisjs-masquerade/auth'
-+import { userProvider } from '#services/masquerade_user_provider'
-@@ -8,0 +11,2 @@
-+const webGuard = sessionGuard({ useRememberMeTokens: false, provider: userProvider })
-+
-@@ -14 +18 @@
--  default: 'web',
-+  default: 'web_effective',
-@@ -17,18 +21,2 @@
--    /**
--     * Web guard uses session-based authentication for web requests.
--     */
--    web: sessionGuard({
--      /**
--       * Whether to use "remember me" tokens for persistent authentication.
--       * When enabled, users can stay logged in across browser sessions.
--       */
--      useRememberMeTokens: false,
--
--      /**
--       * User provider configuration.
--       * Defines how to fetch and verify user credentials.
--       */
--      provider: sessionUserProvider({
--        model: () => import('#models/user'),
--      }),
--    }),
-+    web: webGuard,
-+    web_effective: effectiveSessionGuard(webGuard),
 --- a/config/masquerade.ts
 +++ b/config/masquerade.ts
 @@ -12,7 +11,0 @@
@@ -58,17 +24,24 @@
 +  incarnation: (user) => user.accountIncarnation,
 +  securityStamp: (user) => user.securityEpoch,
 +  isActive: (user) => Boolean(user.active),
-@@ -33,7 +26,2 @@
+@@ -33,3 +26,2 @@
 -    // Required global check: start receives reason/request; active admission does not.
 -    async canMasquerade() {
 -      return false
--    },
++    async canMasquerade({ actor, target }) {
++      return actor.user.masqueradeOperator && target.user.active && actor.id !== target.id
+@@ -37,3 +29,2 @@
+-    // Optional edit permission for starts and active edit admissions. Remove if edit is disabled.
+-    async canEdit() {
+-      return false
++    async canEdit({ actor, target }) {
++      return actor.user.masqueradeOperator && target.user.active && actor.id !== target.id
+@@ -41,4 +31,0 @@
 -    // Optional check for starts and active admissions, not idle routes. Remove if not needed.
 -    async canUseRequest() {
 -      return false
-+    async canMasquerade({ actor, target }) {
-+      return actor.user.masqueradeOperator && target.user.active && actor.id !== target.id
-@@ -46 +34 @@
+-    },
+@@ -50 +37 @@
 -  contextEnforcement: 'report',
 +  contextEnforcement: 'enforce',
 --- a/start/kernel.ts
@@ -218,7 +191,7 @@
 +}
 --- /dev/null
 +++ b/app/services/fresh_edge_control_input.ts
-@@ -0,0 +1,52 @@
+@@ -0,0 +1,53 @@
 +import type { HttpContext } from '@adonisjs/core/http'
 +import type { StartInput, StopInput } from 'adonisjs-masquerade/types'
 +
@@ -232,6 +205,7 @@
 +  if (!body) return invalidStartInput()
 +  return {
 +    targetId: body.targetId as StartInput['targetId'],
++    access: 'edit',
 +    reason: body.reason as StartInput['reason'],
 +    expectedContext: controlToken(ctx, body),
 +  }
