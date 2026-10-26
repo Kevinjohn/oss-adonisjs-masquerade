@@ -125,8 +125,10 @@ export default defineConfig({
     const previousProcessExitCode = process.exitCode
     const wired = await starterHost()
     const manual = await starterHost()
+    const json = await starterHost()
     try {
-      assert.equal(await runConfigure(wired, ['--banner']), 0)
+      assert.equal(await runConfigure(wired, ['--banner', '--form-controller']), 0)
+      assert.equal(await runConfigure(json, ['--banner']), 0)
       const auth = await readFile(join(wired, 'config/auth.ts'), 'utf8')
       assert.include(auth, "default: 'web_effective',")
       assert.include(auth, 'web_effective: effectiveSessionGuard(webGuard),')
@@ -150,9 +152,22 @@ export default defineConfig({
         await readFile(join(wired, 'resources/views/components/masquerade/banner.edge'), 'utf8'),
         '@if(masquerade && masquerade.isMasquerading)'
       )
+      assert.include(
+        await readFile(join(wired, 'app/controllers/masquerade_form_controller.ts'), 'utf8'),
+        'function acceptsHtmlForm(ctx: HttpContext): boolean'
+      )
       const routes = await readFile(join(wired, 'start/masquerade_routes.ts'), 'utf8')
-      assert.include(routes, "guard: 'web',")
-      assert.include(routes, 'startLimiter: startMasqueradeLimiter,')
+      assert.include(routes, "guards: ['web']")
+      assert.include(
+        routes,
+        "import MasqueradeFormController from '#controllers/masquerade_form_controller'"
+      )
+      assert.include(routes, "[MasqueradeFormController, 'stop']")
+      assert.include(routes, "[MasqueradeController, 'status']")
+      const jsonRoutes = await readFile(join(json, 'start/masquerade_routes.ts'), 'utf8')
+      assert.include(jsonRoutes, "import { masqueradeRoutes } from 'adonisjs-masquerade/http'")
+      assert.notInclude(jsonRoutes, 'MasqueradeFormController')
+      assert.isFalse(existsSync(join(json, 'app/controllers/masquerade_form_controller.ts')))
       assert.include(
         await readFile(join(wired, 'start/masquerade_limiter.ts'), 'utf8'),
         "ctx.auth.use('web').getUserOrFail()"
@@ -172,6 +187,7 @@ export default defineConfig({
       process.exitCode = previousProcessExitCode
       await rm(wired, { recursive: true, force: true })
       await rm(manual, { recursive: true, force: true })
+      await rm(json, { recursive: true, force: true })
     }
   })
     .timeout(20_000)

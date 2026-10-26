@@ -1,25 +1,25 @@
 import User from '#models/user'
-import { demoStartInput, demoStopInput } from '#services/demo_control_input'
 import { Bouncer } from '@adonisjs/bouncer'
 import type { HttpContext } from '@adonisjs/core/http'
 import db from '@adonisjs/lucid/services/db'
+import MasqueradeFormController from '#controllers/masquerade_form_controller'
 
-export default class DemoController {
+export default class DemoController extends MasqueradeFormController {
   async status(ctx: HttpContext) {
     const runtime = await ctx.containerResolver.make('masquerade.runtime')
     return runtime.service.status(ctx)
   }
 
-  async start(ctx: HttpContext) {
-    const runtime = await ctx.containerResolver.make('masquerade.runtime')
-    await runtime.service.start(ctx, demoStartInput(ctx))
-    return ctx.response.redirect().toPath('/support/customer')
+  protected override redirectAfterStart(_ctx: HttpContext): string {
+    return '/support/customer'
   }
 
-  async stop(ctx: HttpContext) {
-    const runtime = await ctx.containerResolver.make('masquerade.runtime')
-    await runtime.service.stop(ctx, demoStopInput(ctx))
-    return ctx.response.redirect().toPath('/support')
+  protected override redirectAfterStop(_ctx: HttpContext): string {
+    return '/support'
+  }
+
+  protected override errorPath(_ctx: HttpContext, _action: 'start' | 'stop'): string {
+    return '/support'
   }
 
   async customer(ctx: HttpContext) {

@@ -1,0 +1,24 @@
+{{{
+  exports({ to: app.makePath('start/masquerade_routes.ts') })
+}}}
+import router from '@adonisjs/core/services/router'
+import { middleware } from '#start/kernel'
+import { startMasqueradeLimiter, stopMasqueradeLimiter } from '#start/masquerade_limiter'
+import { MasqueradeController } from 'adonisjs-masquerade/http'
+import MasqueradeFormController from '#controllers/masquerade_form_controller'
+
+router
+  .group(() => {
+    router.get('/', [MasqueradeController, 'status']).as('status')
+    router
+      .post('/start', [MasqueradeFormController, 'start'])
+      .as('start')
+      .use(startMasqueradeLimiter)
+    router
+      .post('/stop', [MasqueradeFormController, 'stop'])
+      .as('stop')
+      .use(stopMasqueradeLimiter)
+  })
+  .prefix('/masquerade')
+  .as('masquerade')
+  .use(middleware.auth({ guards: [{{{ guardQuoted }}}] }))

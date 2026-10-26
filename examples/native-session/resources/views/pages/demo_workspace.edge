@@ -4,6 +4,15 @@
     description: 'A small, local example of account-wide customer support mode.',
   })
     <div class="support-stack">
+      @if(masqueradeFlash?.type === 'success')
+        <p role="status" class="support-copy">
+          {{ masqueradeFlash.action === 'started' ? 'Support mode started.' : 'Support mode stopped.' }}
+        </p>
+      @elseif(masqueradeFlash?.type === 'error')
+        <p role="alert" class="support-copy">
+          Support mode could not be changed ({{ masqueradeFlash.code }}). Check and try again.
+        </p>
+      @end
       <section class="panel support-identity" aria-labelledby="operator-heading">
         <div>
           <p class="tag">Signed-in account</p>

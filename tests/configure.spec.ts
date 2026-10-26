@@ -40,6 +40,7 @@ test.group('Masquerade configure scaffold', (group) => {
       assert.include(output.middleware, 'return masqueradeContext(ctx, next)')
       assert.isUndefined(output.banner)
       assert.isUndefined(output.statusMiddleware)
+      assert.isUndefined(output.formController)
       const migrationStub = await readFile(
         join(stubsRoot, 'migrations/create_masquerade_tables.stub'),
         'utf8'
@@ -88,6 +89,29 @@ test.group('Masquerade configure scaffold', (group) => {
         migrationPathsBeforeForce
       )
       assert.equal(await readFile(join(f.root, 'unrelated.txt'), 'utf8'), 'untouched')
+    } finally {
+      await f.dispose()
+    }
+  })
+
+  test('generates the host-owned form controller only when requested', async ({ assert }) => {
+    const f = await configureFixture()
+    try {
+      const configured = f.command({ namespace: 'support', guard: 'web', formController: true })
+      await configure(configured as never)
+
+      const output = await readScaffold(f.root)
+      assert.include(output.formController!, 'class MasqueradeFormController')
+      assert.include(output.formController!, "ctx.request.accepts(['html', 'json']) !== 'html'")
+      assert.include(output.formController!, "ctx.session.flash('masquerade', message)")
+      assert.include(output.formController!, 'MasqueradeErrorCode')
+      assert.include(output.formController!, 'runtime.service.start(ctx, parseStartForm(ctx))')
+      assert.include(output.formController!, "return '/'")
+      assert.isTrue(
+        configured.messages.some((message) =>
+          message.includes('Edit app/controllers/masquerade_form_controller.ts')
+        )
+      )
     } finally {
       await f.dispose()
     }
@@ -402,6 +426,7 @@ async function listScaffoldPaths(root: string): Promise<string[]> {
     'app/middleware/masquerade_context_middleware.ts',
     'app/middleware/share_masquerade_status_middleware.ts',
     'resources/views/components/masquerade/banner.edge',
+    'app/controllers/masquerade_form_controller.ts',
   ]
   const paths: string[] = []
   for (const file of files) {
@@ -429,6 +454,7 @@ async function readScaffold(root: string) {
     middleware: await read('app/middleware/masquerade_context_middleware.ts'),
     statusMiddleware: await optionalRead('app/middleware/share_masquerade_status_middleware.ts'),
     banner: await optionalRead('resources/views/components/masquerade/banner.edge'),
+    formController: await optionalRead('app/controllers/masquerade_form_controller.ts'),
     migration: await read(migrationPath),
   }
 
