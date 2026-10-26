@@ -35,7 +35,7 @@ pnpm test:consumer --profile=all --database=pg --package=tmp/alpha-baselines/alp
 
 ## Fresh AdonisJS host and browser journey
 
-A clean host was copied from the official AdonisJS Hypermedia starter at `449d77cc25dd08e036f442d2d39b760d43ccfbd3`. It installed the preserved tarball from a local file, ran the public configure command, applied [the fresh-host wiring patch](adoption-validation/fresh-edge-host.patch), migrated a disposable SQLite database, and passed `pnpm typecheck`. Configure produced the raw `web` and effective `web_effective` guards. The host used fictional operator and customer accounts and Chromium on loopback port `3382`.
+A clean host was copied from the official AdonisJS Hypermedia starter at `449d77cc25dd08e036f442d2d39b760d43ccfbd3`. It installed the preserved tarball from a local file, ran the public configure command, applied [the alpha fresh-host wiring patch](adoption-validation/fresh-alpha-edge-host.patch), migrated a disposable SQLite database, and passed `pnpm typecheck`. Configure produced the raw `web` and effective `web_effective` guards and registered the context middleware once; the alpha patch contains no `start/kernel.ts` change. The host used fictional operator and customer accounts and Chromium on loopback port `3384`.
 
 The browser workflow verified:
 
@@ -47,7 +47,7 @@ The browser workflow verified:
 - the preference remained Off after the denied stale submission; and
 - the raw operator session stopped the mode and returned to idle.
 
-The fresh-host patch now explicitly requests edit access for the preference workflow and grants it only to an eligible customer when the actor is an authorized operator. It also leaves auth guard wiring to the package configure command, avoiding duplicate edits. The originally checked-in patch lacked that edit setup and attempted to repeat configure's auth wiring; the corrected patch was reapplied from a pristine starter, followed by migration and typecheck.
+The alpha fresh-host patch explicitly requests edit access for the preference workflow and grants it only to an eligible customer when the actor is an authorized operator. It leaves auth guard wiring and context middleware registration to the package configure command, avoiding duplicate edits. The historical [fresh Edge patch](adoption-validation/fresh-edge-host.patch) remains unchanged for reproducing the earlier `7117345a94d6679d046b060b659bdb8bad40679b` run. The alpha patch was reapplied from a pristine starter, followed by migration, typecheck, and the browser journey above. Screenshots from this exact alpha run show [preference On](adoption-validation/evidence/alpha_fresh_preference_on.png), [preference Off](adoption-validation/evidence/alpha_fresh_preference_off.png), the [sensitive-action 403](adoption-validation/evidence/alpha_fresh_sensitive_403.png), [stale-form 409](adoption-validation/evidence/alpha_fresh_stale_form_409.png), and [idle after stop](adoption-validation/evidence/alpha_fresh_idle_after_stop.png).
 
 ## Rebuild and limits
 
