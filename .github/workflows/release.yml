@@ -2,15 +2,9 @@ name: release
 
 on:
   workflow_dispatch:
-    inputs:
-      version:
-        description: Explicit prerelease version (for example 0.1.0-alpha.1)
-        required: true
-        type: string
 
 permissions:
-  contents: write
-  id-token: write
+  contents: read
 
 jobs:
   checks:
@@ -27,11 +21,14 @@ jobs:
 
   release:
     needs: [checks, consumer, e2e, account-kit]
-    if: github.ref == 'refs/heads/main'
+    permissions:
+      contents: write
+      id-token: write
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v7
         with:
+          ref: ${{ github.sha }}
           fetch-depth: 0
       - uses: pnpm/action-setup@v6
         with:
@@ -40,19 +37,19 @@ jobs:
         with:
           node-version: 24
           package-manager-cache: false
-      - name: git config
-        run: |
-          git config user.name "${GITHUB_ACTOR}"
-          git config user.email "${GITHUB_ACTOR}@users.noreply.github.com"
-      - name: Validate alpha version
-        env:
-          RELEASE_VERSION: ${{ inputs.version }}
-        run: |
-          node --input-type=module -e 'if (!/^(0|[1-9]\d*)\.(0|[1-9]\d*)\.(0|[1-9]\d*)-alpha\.(0|[1-9]\d*)$/.test(process.env.RELEASE_VERSION)) throw new Error("Expected an explicit alpha prerelease version")'
       - name: Install
         run: pnpm install --frozen-lockfile
-      - name: Release
-        run: pnpm release "$RELEASE_VERSION" --ci
+      - name: Validate immutable release source and prepare notes
+        run: node --import=@poppinss/ts-exec bin/prepare_release.ts
+      - name: Build immutable source
+        run: pnpm build
+      - name: Pack release artifact
+        run: pnpm pack --out tmp/release_package.tgz
+      - name: Inspect release artifact
+        run: node --import=@poppinss/ts-exec bin/inspect_release_package.ts
+      - name: Publish alpha with provenance
+        run: pnpm publish tmp/release_package.tgz --access public --provenance --tag alpha --no-git-checks
+      - name: Create GitHub prerelease
         env:
-          RELEASE_VERSION: ${{ inputs.version }}
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: gh release create "${GITHUB_REF#refs/tags/}" --verify-tag --prerelease --notes-file tmp/release_notes.md

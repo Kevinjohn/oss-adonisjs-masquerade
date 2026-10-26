@@ -7,8 +7,8 @@ publication authorization after all pending gates below pass.
 
 - Keep imperative commits and a handwritten changelog. Release notes read the first entry and never
   rewrite it. Earlier implementation history lives in [development-history.md](development-history.md).
-- Publish the first prerelease under `alpha`, never `latest`. The manual workflow accepts an explicit
-  version such as `0.1.0-alpha.1`, only from `main`. The manifest stays `0.0.0` until release.
+- Publish the first prerelease under `alpha`, never `latest`. The manual workflow must be dispatched on a pre-existing
+  annotated version tag such as `v0.1.0-alpha.1`. The manifest stays `0.0.0` during preparation.
 - Keep TypeScript as an optional peer to record the tested declaration-consumer compiler contract
   (`^5.9.3 || ^6.0.3`), not a runtime requirement. JavaScript consumers need no compiler. The packed
   consumer harness reads this range to verify declarations at the 5.9.3 floor and latest matching
@@ -29,8 +29,9 @@ publication authorization after all pending gates below pass.
       allowed. Do not configure a stored publish token. A new publisher must complete its first
       successful publish within two days or be recreated.
 - [ ] Run full checks and release matrices on the final candidate. Review the artifact, notes and
-      alpha version. Rename the first changelog heading to that version and commit before dispatch.
-      Release-it dry runs are not a safe way to verify publication hooks.
+      alpha version. Commit the manifest version and matching first changelog heading, merge that
+      commit into `main`, and create its exact annotated `v<version>` tag under separate authorization. Dispatch
+      the workflow on that tag. The alpha-1 baseline tag cannot pass the release identity checks.
 - [ ] Under separate publication authorization, exercise tokenless publishing and provenance in the
       agreed test repository/package with its own matching publisher configuration, then authorize
       the real dispatch. Static checks do not meet #133's publication acceptance criterion.
@@ -44,5 +45,17 @@ No publication, baseline tag or provenance validation has occurred in this prepa
 - [Trusted publishing](https://docs.npmjs.com/trusted-publishers/): OIDC permissions, exact workflow
   identity, public package/repository provenance, publisher expiry and registry setup.
 - [pnpm publish](https://pnpm.io/cli/publish): native pnpm 11 publication and explicit dist-tags.
-- [release-it registry configuration](https://github.com/release-it/release-it/blob/main/docs/npm.md):
-  `npm: false` disables its registry plugin; the explicit pnpm hook owns publication and provenance.
+- [GitHub workflow dispatch](https://docs.github.com/en/actions/using-workflows/events-that-trigger-workflows#workflow_dispatch) and
+  [checkout](https://github.com/actions/checkout): dispatch on the version tag and check out the exact workflow SHA.
+
+The workflow validates tag, manifest, changelog, checkout SHA and main ancestry without changing
+source or Git state. It publishes only after the validation matrices pass, then creates the GitHub
+prerelease after publication succeeds. There are no release-time version, commit or tag hooks.
+
+## Publication recovery
+
+If the registry accepts the tarball but creating the GitHub prerelease fails, do not republish or
+move the tag. Verify that exact registry version, tarball integrity and provenance, then recover only
+the GitHub prerelease against the existing verified tag with the prepared handwritten notes under
+owner authorization. Record both outcomes. If publication reports an uncertain result, inspect the
+registry before retrying; a failed workflow does not prove that no upload occurred.

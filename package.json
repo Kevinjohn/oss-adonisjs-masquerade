@@ -53,8 +53,6 @@
     "compile": "tsdown && tsc --emitDeclarationOnly --declaration",
     "postcompile": "pnpm copy:templates",
     "build": "pnpm compile",
-    "release": "release-it",
-    "version": "pnpm build",
     "prepublishOnly": "pnpm build",
     "pg:start": "bash bin/pg.sh start",
     "pg:stop": "bash bin/pg.sh stop",
@@ -103,7 +101,6 @@
     "luxon": "^3.7.2",
     "pg": "^8.0.0",
     "prettier": "^3.8.1",
-    "release-it": "^19.2.4",
     "tsdown": "^0.21.0",
     "typedoc": "^0.28.20",
     "typedoc-plugin-markdown": "^4.14.1",
@@ -172,25 +169,6 @@
     "treeshake": false,
     "sourcemaps": false,
     "target": "esnext"
-  },
-  "release-it": {
-    "hooks": {
-      "before:bump": "pnpm version ${version} --no-git-tag-version --allow-same-version",
-      "before:release": "pnpm publish --access public --provenance --tag alpha --no-git-checks"
-    },
-    "git": {
-      "requireCleanWorkingDir": true,
-      "requireUpstream": true,
-      "commitMessage": "chore(release): ${version}",
-      "tagAnnotation": "v${version}",
-      "push": true,
-      "tagName": "v${version}",
-      "changelog": "node bin/release_notes.mjs"
-    },
-    "github": {
-      "release": true
-    },
-    "npm": false
   },
   "c8": {
     "reporter": [
