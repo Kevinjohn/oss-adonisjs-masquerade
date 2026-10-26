@@ -1,3 +1,6 @@
+// Core service failure paths: store reads, CAS and audit writes, observers, loggers, authority
+// and policy throws, and races. Happy paths go to core_service.spec.ts, admission to
+// core_admission.spec.ts. Fixtures: fixture() and errorCode() in tests/helpers/core.ts.
 import { test } from '@japa/runner'
 import { fixture, errorCode } from './helpers/core.js'
 
