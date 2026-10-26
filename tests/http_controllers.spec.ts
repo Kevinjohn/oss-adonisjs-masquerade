@@ -4,7 +4,7 @@ import { Socket } from 'node:net'
 import type { HttpContext } from '@adonisjs/core/http'
 import { RequestFactory } from '@adonisjs/core/factories/http'
 import { fixture } from './helpers/core.js'
-import { requestContext } from './helpers/http_context.js'
+import { controlRequestContext as requestContext } from './helpers/http_context.js'
 import { MasqueradeController } from '../http/controllers.js'
 import { MasqueradeError } from '../src/errors.js'
 
