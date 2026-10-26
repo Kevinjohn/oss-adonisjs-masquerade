@@ -26,8 +26,7 @@ Every change follows these.
 
 ## Local setup
 
-You need Node.js 24 and pnpm. The repository pins Node 24 in `.nvmrc`; `better-sqlite3` is compiled
-against it and the tests fail under other versions.
+You need Node.js 24 and pnpm. The repository pins Node 24 in `.nvmrc`, and `package.json` requires it.
 
 ```sh
 nvm use
