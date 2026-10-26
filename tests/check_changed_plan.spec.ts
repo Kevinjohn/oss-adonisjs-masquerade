@@ -81,6 +81,10 @@ test('deleted files select checks but are never passed to tools', ({ assert }) =
   assert.deepEqual(commands.typecheck, ['pnpm', 'typecheck'])
   assert.deepEqual(commands.tests, ['pnpm', 'quick:test'])
   assert.notInclude(commands.lint.join(' '), 'old_module')
+  assert.deepEqual(
+    ran(planChangedChecks([{ path: 'tests/old_module.spec.ts', deleted: true }])).tests,
+    ['pnpm', 'quick:test']
+  )
 })
 
 test('formats only existing files and leaves the lockfile to pnpm', ({ assert }) => {
