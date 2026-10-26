@@ -30,24 +30,43 @@ test('a changed spec runs on its own and requires executed tests', ({ assert }) 
   })
 })
 
-test('package source, test helpers and manifests run the full suite and built exports', ({
-  assert,
-}) => {
-  for (const path of ['src/service.ts', 'tests/helpers/http_context.ts', 'package.json']) {
+test('package source and manifests run the suite, build and built exports', ({ assert }) => {
+  for (const path of ['src/service.ts', 'package.json', 'pnpm-lock.yaml']) {
     const commands = ran(planChangedChecks(changed(path, 'tests/stamp_from.spec.ts')))
     assert.deepEqual(commands.tests, ['pnpm', 'quick:test'], path)
     assert.deepEqual(commands.build, ['pnpm', 'build'], path)
     assert.deepEqual(commands['built exports'], ['pnpm', 'test:built-exports'], path)
-    assert.notProperty(commands, 'recipe', path)
   }
 })
 
-test('recipe inputs run the SQLite recipe', ({ assert }) => {
+test('files the specs read run the full suite without building the package', ({ assert }) => {
+  for (const path of [
+    'tests/helpers/http_context.ts',
+    'CHANGELOG.md',
+    '.github/workflows/checks.yml',
+    'docs/guide/route-report.md',
+    'examples/native-session/README.md',
+  ]) {
+    const commands = ran(planChangedChecks(changed(path)))
+    assert.deepEqual(commands.tests, ['pnpm', 'quick:test'], path)
+    assert.notProperty(commands, 'build', path)
+  }
+})
+
+test('lockfile and workspace changes run lint and typecheck', ({ assert }) => {
+  for (const path of ['pnpm-lock.yaml', 'pnpm-workspace.yaml']) {
+    assert.properties(ran(planChangedChecks(changed(path))), ['lint', 'typecheck'], path)
+  }
+})
+
+test('the e2e workflow paths, configure and the manifest run the SQLite recipe', ({ assert }) => {
   for (const path of [
     'stubs/configure/masquerade_config.stub',
     'configure_wiring.ts',
-    'examples/recipe-host/package.json',
+    'http/controllers.ts',
+    'examples/native-session/start/routes.ts',
     'docs/guide/clients/edge.md',
+    'package.json',
   ]) {
     assert.deepEqual(
       ran(planChangedChecks(changed(path))).recipe,
@@ -55,18 +74,18 @@ test('recipe inputs run the SQLite recipe', ({ assert }) => {
       path
     )
   }
+  assert.notProperty(ran(planChangedChecks(changed('src/service.ts'))), 'recipe')
 })
 
-test('docs changes build the docs and require a clean tree, without the test suite', ({
-  assert,
-}) => {
-  const plan = planChangedChecks(changed('docs/guide/route-report.md', 'SECURITY.md'))
-
-  assert.deepEqual(Object.keys(ran(plan)), ['format', 'docs build'])
-  assert.deepInclude(
-    plan.find((step) => step.label === 'docs build'),
-    { requiresCleanTree: true }
-  )
+test('the docs workflow inputs build the docs and require a clean tree', ({ assert }) => {
+  for (const path of ['docs/guide/route-report.md', 'typedoc.json', 'src/service.ts', 'index.ts']) {
+    assert.deepInclude(
+      planChangedChecks(changed(path)).find((step) => step.label === 'docs build'),
+      { command: ['pnpm', 'docs:build'], requiresCleanTree: true },
+      path
+    )
+  }
+  assert.notProperty(ran(planChangedChecks(changed('SECURITY.md'))), 'docs build')
 })
 
 test('deleted files select checks but are never passed to tools', ({ assert }) => {
@@ -105,14 +124,11 @@ test('lint allows no warnings and skips files ESLint ignores', ({ assert }) => {
   assert.notProperty(ran(planChangedChecks(changed('examples/native-session/app/x.ts'))), 'lint')
 })
 
-test('other example changes are reported as skipped', ({ assert }) => {
-  const plan = planChangedChecks(changed('examples/native-session/start/routes.ts'))
+test('other example changes note the browser suites', ({ assert }) => {
+  const note = { label: 'example browser suites', skip: 'run pnpm check --browser' }
 
-  assert.deepEqual(Object.keys(ran(plan)), ['format'])
-  assert.deepInclude(plan, {
-    label: 'examples',
-    skip: 'covered by pnpm check --browser and the e2e workflow',
-  })
+  assert.deepInclude(planChangedChecks(changed('examples/native-session/start/routes.ts')), note)
+  assert.notDeepInclude(planChangedChecks(changed('examples/recipe-host/package.json')), note)
 })
 
 test('counts executed tests from the Japa summary', ({ assert }) => {

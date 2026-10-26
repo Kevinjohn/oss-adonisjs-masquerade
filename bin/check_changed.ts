@@ -1,4 +1,4 @@
-import { spawn, spawnSync } from 'node:child_process'
+import { spawn, spawnSync, type ChildProcess } from 'node:child_process'
 import { fileURLToPath } from 'node:url'
 import {
   executedTests,
@@ -9,6 +9,20 @@ import {
 
 const root = fileURLToPath(new URL('../', import.meta.url))
 const stepLimitMs = 15 * 60 * 1000
+let active: ChildProcess | undefined
+
+// Steps run detached, so an interrupt does not reach them: stop the running group before exiting.
+for (const [signal, code] of [
+  ['SIGINT', 130],
+  ['SIGTERM', 143],
+] as const) {
+  process.on(signal, () => {
+    try {
+      if (active?.pid) process.kill(-active.pid, 'SIGTERM')
+    } catch {}
+    process.exit(code)
+  })
+}
 
 function misuse(message: string): never {
   console.error(`[check:changed] ${message}`)
@@ -42,6 +56,7 @@ function run(step: ChangedCheckStep): Promise<{ status: number | null; output: s
       detached: true,
       stdio: ['ignore', 'pipe', 'pipe'],
     })
+    active = child
     let output = ''
     child.stdout.on('data', (chunk) => (output += chunk))
     child.stderr.on('data', (chunk) => (output += chunk))
