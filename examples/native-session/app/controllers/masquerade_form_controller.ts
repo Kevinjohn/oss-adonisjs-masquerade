@@ -7,7 +7,10 @@ import type { MasqueradeRuntime } from 'adonisjs-masquerade/providers/masquerade
 type FormAction = 'start' | 'stop'
 export type MasqueradeFormFlash =
   | { type: 'success'; action: 'started' | 'stopped' }
-  | { type: 'error'; code: MasqueradeErrorCode }
+  | {
+      type: 'error'
+      code: MasqueradeErrorCode
+    }
 
 /** Host-owned HTML form adapter. This is the generated --form-controller starter. */
 export default class MasqueradeFormController extends MasqueradeController {
@@ -32,9 +35,7 @@ export default class MasqueradeFormController extends MasqueradeController {
   private async transition(ctx: HttpContext, action: FormAction): Promise<void> {
     noStore(ctx)
     try {
-      const runtime = (await ctx.containerResolver.make(
-        'masquerade.runtime'
-      )) as MasqueradeRuntime
+      const runtime = (await ctx.containerResolver.make('masquerade.runtime')) as MasqueradeRuntime
       if (action === 'start') await runtime.service.start(ctx, parseStartForm(ctx))
       else await runtime.service.stop(ctx, parseStopForm(ctx))
 
@@ -117,9 +118,7 @@ function formDuration(value: unknown): StartInput['durationSeconds'] {
   if (typeof value !== 'string' || !/^(0|[1-9][0-9]*)$/.test(value))
     return value as unknown as StartInput['durationSeconds']
   const number = Number(value)
-  return Number.isSafeInteger(number)
-    ? number
-    : (value as unknown as StartInput['durationSeconds'])
+  return Number.isSafeInteger(number) ? number : (value as unknown as StartInput['durationSeconds'])
 }
 
 function controlToken(ctx: HttpContext, body: Record<string, unknown>): string | undefined {
@@ -137,5 +136,5 @@ function noStore(ctx: HttpContext): void {
 }
 
 function flash(ctx: HttpContext, message: MasqueradeFormFlash): void {
-  ctx.session.flash('masquerade', message)
+  ctx.session.flash({ masquerade: message })
 }

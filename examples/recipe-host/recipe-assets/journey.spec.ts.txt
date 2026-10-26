@@ -198,6 +198,7 @@ test.group('fresh host public recipe', (group) => {
 
     const bannerStop = await client
       .post(stopForm[1]!)
+      .redirects(0)
       .withSession({ 'csrf-secret': csrfSecret })
       .header('Accept', 'text/html')
       .form({ _csrf: renderedCsrf, _masqueradeContext: bannerToken })

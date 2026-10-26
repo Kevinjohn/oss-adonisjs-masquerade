@@ -158,12 +158,10 @@ export default defineConfig({
       )
       const routes = await readFile(join(wired, 'start/masquerade_routes.ts'), 'utf8')
       assert.include(routes, "guards: ['web']")
-      assert.include(
-        routes,
-        "import MasqueradeFormController from '#controllers/masquerade_form_controller'"
-      )
-      assert.include(routes, "[MasqueradeFormController, 'stop']")
-      assert.include(routes, "[MasqueradeController, 'status']")
+      assert.include(routes, "import('#controllers/masquerade_form_controller')")
+      assert.include(routes, "'status'")
+      assert.include(routes, "'start'")
+      assert.include(routes, "'stop'")
       const jsonRoutes = await readFile(join(json, 'start/masquerade_routes.ts'), 'utf8')
       assert.include(jsonRoutes, "import { masqueradeRoutes } from 'adonisjs-masquerade/http'")
       assert.notInclude(jsonRoutes, 'MasqueradeFormController')

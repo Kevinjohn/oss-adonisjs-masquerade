@@ -103,7 +103,7 @@ test.group('Masquerade configure scaffold', (group) => {
       const output = await readScaffold(f.root)
       assert.include(output.formController!, 'class MasqueradeFormController')
       assert.include(output.formController!, 'function acceptsHtmlForm(ctx: HttpContext): boolean')
-      assert.include(output.formController!, "ctx.session.flash('masquerade', message)")
+      assert.include(output.formController!, 'ctx.session.flash({ masquerade: message })')
       assert.include(output.formController!, 'MasqueradeErrorCode')
       assert.include(output.formController!, 'runtime.service.start(ctx, parseStartForm(ctx))')
       assert.include(output.formController!, "return '/'")

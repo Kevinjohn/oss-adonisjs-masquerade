@@ -15,8 +15,7 @@ export default class DemoController extends MasqueradeFormController {
     const runtime = await ctx.containerResolver.make('masquerade.runtime')
     const mode = await runtime.service.status(ctx)
     const masqueradeFlash = ctx.session.flashMessages.get('masquerade') as
-      | MasqueradeFormFlash
-      | undefined
+      MasqueradeFormFlash | undefined
     const customerEmails = demoAccounts
       .filter((account) => !account.masqueradeOperator)
       .map((account) => account.email)
