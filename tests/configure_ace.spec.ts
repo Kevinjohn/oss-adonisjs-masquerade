@@ -146,6 +146,10 @@ export default defineConfig({
         await readFile(join(wired, 'resources/views/components/masquerade/banner.edge'), 'utf8'),
         'masquerade.contextToken'
       )
+      assert.include(
+        await readFile(join(wired, 'resources/views/components/masquerade/banner.edge'), 'utf8'),
+        '@if(masquerade && masquerade.isMasquerading)'
+      )
       const routes = await readFile(join(wired, 'start/masquerade_routes.ts'), 'utf8')
       assert.include(routes, "guard: 'web',")
       assert.include(routes, 'startLimiter: startMasqueradeLimiter,')

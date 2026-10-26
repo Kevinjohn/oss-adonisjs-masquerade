@@ -18,7 +18,9 @@ export default class ShareMasqueradeStatusMiddleware {
     if (runtime.selectGuard(ctx).kind !== 'effective') return next()
     if (!(await ctx.auth.check())) return next()
 
-    const masquerade = await runtime.service.status(ctx)
+    // Auth admission is memoized for this request. Share its projection so the
+    // status UI cannot observe a newer mode than the handler was admitted under.
+    const { view: masquerade } = await runtime.admit(ctx)
     const sharedContext = ctx as SharedContext
     sharedContext.view?.share({ masquerade })
     sharedContext.inertia?.share({ masquerade })

@@ -114,7 +114,8 @@ test.group('Masquerade configure scaffold', (group) => {
       assert.include(output.banner!, 'masquerade.contextToken')
       assert.include(output.statusMiddleware!, 'runtime.selectGuard(ctx).kind')
       assert.include(output.statusMiddleware!, 'ctx.auth.check()')
-      assert.include(output.statusMiddleware!, 'runtime.service.status(ctx)')
+      assert.include(output.statusMiddleware!, 'runtime.admit(ctx)')
+      assert.notInclude(output.statusMiddleware!, 'runtime.service.status(ctx)')
       assert.include(output.statusMiddleware!, 'view?.share({ masquerade })')
       assert.include(output.statusMiddleware!, 'inertia?.share({ masquerade })')
       assert.notInclude(output.statusMiddleware!, 'ctx.auth.user')
@@ -138,20 +139,30 @@ test.group('Masquerade configure scaffold', (group) => {
         startedAt: '2026-10-25T10:00:00.000Z',
         expiresAt: '2026-10-25T10:15:00.000Z',
       }
+      const newerStatus = {
+        ...status,
+        targetId: 'customer-2',
+        contextToken: '4.0123456789abcdef0123456789abcdef',
+      }
       let statusReads = 0
       const run = async (kind: string, authenticated: boolean, fail = false) => {
         const edge: unknown[] = []
         const inertia: unknown[] = []
         let continued = false
-        let statusCalled = false
+        let admissionCalled = false
         const runtime = {
           selectGuard: () => ({ kind }),
+          async admit() {
+            admissionCalled = true
+            if (fail) throw new Error('store unavailable')
+            return { view: status }
+          },
           service: {
             async status() {
-              statusCalled = true
               statusReads++
               if (fail) throw new Error('store unavailable')
-              return status
+              // A second status read could see a concurrently updated row.
+              return newerStatus
             },
           },
         }
@@ -170,9 +181,9 @@ test.group('Masquerade configure scaffold', (group) => {
         } catch (error) {
           failure = error
         }
-        if (fail && statusCalled) assert.equal((failure as Error)?.message, 'store unavailable')
+        if (fail && admissionCalled) assert.equal((failure as Error)?.message, 'store unavailable')
         else if (failure) throw failure
-        return { edge, inertia, continued, statusReads }
+        return { edge, inertia, continued, statusReads, admissionCalled }
       }
 
       await run('none', false, true)
@@ -185,12 +196,15 @@ test.group('Masquerade configure scaffold', (group) => {
       assert.equal(anonymousDuringOutage.statusReads, 0)
       assert.isTrue(anonymousDuringOutage.continued)
       const authenticated = await run('effective', true)
-      assert.equal(statusReads, 1)
+      assert.equal(statusReads, 0)
+      assert.isTrue(authenticated.admissionCalled)
       assert.deepEqual(authenticated.edge, [{ masquerade: status }])
       assert.deepEqual(authenticated.inertia, [{ masquerade: status }])
       assert.isTrue(authenticated.continued)
-      await run('effective', true, true)
-      assert.equal(statusReads, 2)
+      const authenticatedDuringOutage = await run('effective', true, true)
+      assert.equal(statusReads, 0)
+      assert.isTrue(authenticatedDuringOutage.admissionCalled)
+      assert.deepEqual(authenticatedDuringOutage.edge, [])
     } finally {
       await f.dispose()
     }

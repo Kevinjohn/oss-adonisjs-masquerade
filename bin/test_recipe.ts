@@ -366,6 +366,8 @@ import { middleware } from '#start/kernel'
 router
   .get('/support/banner', async ({ view }) => view.render('masquerade_banner'))
   .use(middleware.auth({ guards: ['web_effective'] }))
+
+router.get('/support/public-banner', async ({ view }) => view.render('masquerade_banner'))
 `
   )
   await writeFile(
