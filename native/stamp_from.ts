@@ -1,6 +1,6 @@
 import { createHash } from 'node:crypto'
 
-export type StampField = string | number | boolean | bigint | null | undefined
+export type StampField = string | number | boolean | bigint | null
 
 /**
  * Build a stable security stamp from the host-selected account fields.
@@ -28,7 +28,8 @@ export function stampFrom<User>(
 
 function encodeField(value: unknown): [tag: string, value: string] {
   if (value === null) return ['l', '']
-  if (value === undefined) return ['u', '']
+  if (value === undefined)
+    throw new TypeError('Security stamp fields must not be undefined; use null for an empty value')
   if (typeof value === 'string') {
     if (!value.isWellFormed())
       throw new TypeError('Security stamp fields must be well-formed strings')

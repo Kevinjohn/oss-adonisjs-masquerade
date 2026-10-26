@@ -229,19 +229,24 @@ choice explicit; `stampFrom` does not supply or infer an incarnation.
 
 `stampFrom` returns a deterministic SHA-256 digest of the selected scalar fields. It frames each
 UTF-8 value with its type and byte length before hashing, so adjacent values cannot become
-ambiguous. Strings, finite numbers, booleans, bigints, `null` and `undefined` are supported. Convert
+ambiguous. Strings, finite numbers, booleans, bigints and `null` are supported; an `undefined` field
+throws, so a missing or unloaded property fails closed instead of producing a constant stamp. Convert
 Lucid `DateTime` values to a stable representation such as `.toISO()` in the selector. The package
 hashes the returned stamp again before storage; the helper's digest is not encryption or a secret.
 
 Choose fields that cover every account-wide event that should revoke active modes. Common Lucid
 choices include:
 
-| Field | What it detects | Limits |
-| --- | --- | --- |
-| `password` | Password hash changes, including password reset or change | A password rehash can also revoke modes even when the password itself did not change. |
-| `role` or `isAdmin` | Changes represented by that column | Does not detect changes in a separate roles or permissions table. |
-| `suspendedAt` or `active` | Suspension, reactivation or active-status changes | Include the value that reliably changes for both directions of the host's policy. |
-| `securityEpoch` | Every event for which the host increments this persisted epoch | This is the broadest option when updated transactionally and read from the current account record. |
+| Field                     | What it detects                                                | Limits                                                                                             |
+| ------------------------- | -------------------------------------------------------------- | -------------------------------------------------------------------------------------------------- |
+| `password`                | Password hash changes, including password reset or change      | A password rehash can also revoke modes even when the password itself did not change.              |
+| `role` or `isAdmin`       | Changes represented by that column                             | Does not detect changes in a separate roles or permissions table.                                  |
+| `suspendedAt` or `active` | Suspension or active-status changes                            | Returns to its earlier value on reactivation; see below.                                           |
+| `securityEpoch`           | Every event for which the host increments this persisted epoch | This is the broadest option when updated transactionally and read from the current account record. |
+
+A column that returns to its earlier value restores the earlier stamp. Suspending and then
+reactivating an account, or demoting and then restoring a role, before the account's next request
+leaves its active modes in place. Select `securityEpoch` for every event that must always revoke.
 
 For example, `securityEpoch` should advance transactionally after password changes or resets,
 privilege changes, suspension or reactivation, and account-wide logout/revocation whenever those
