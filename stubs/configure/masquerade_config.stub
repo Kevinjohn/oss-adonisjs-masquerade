@@ -6,7 +6,7 @@ import type { HttpContext } from '@adonisjs/core/http'
 import UserModel from '#models/user'
 import { Database } from '@adonisjs/lucid/database'
 import { defineConfig } from 'adonisjs-masquerade'
-import { sessionAuthority } from 'adonisjs-masquerade/native'
+import { sessionAuthority, stampFrom } from 'adonisjs-masquerade/native'
 import { LucidControlStore } from 'adonisjs-masquerade/stores/lucid'
 import { userProvider } from '#services/masquerade_user_provider'
 
@@ -24,7 +24,7 @@ const nativeAdapter = sessionAuthority<User>({
   guard: {{{ guardLiteral }}},
   provider: userProvider,
   incarnation: () => configureAccountIdentity(),
-  securityStamp: () => configureAccountIdentity(),
+  securityStamp: stampFrom<User>(() => [configureAccountIdentity()]),
   isActive: () => false,
 })
 

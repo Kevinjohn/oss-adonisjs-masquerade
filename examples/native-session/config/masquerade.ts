@@ -3,6 +3,7 @@ import {
   accessTokensAuthority,
   nativeAuthorities,
   sessionAuthority,
+  stampFrom,
 } from 'adonisjs-masquerade/native'
 import { LucidControlStore } from 'adonisjs-masquerade/stores/lucid'
 import app from '@adonisjs/core/services/app'
@@ -11,10 +12,10 @@ import type User from '#models/user'
 import { accessTokenUserProvider, userProvider } from '#services/web_guard'
 import { shouldThrowFromAuthorityCallbacks } from '#services/masquerade_test_boundary'
 
-function securityStamp(user: User) {
+const securityStamp = stampFrom<User>((user) => {
   if (shouldThrowFromAuthorityCallbacks()) throw new Error('Test security-stamp callback fault')
-  return user.securityStamp
-}
+  return [user.password, user.masqueradeOperator, user.active, user.securityStamp]
+})
 
 const native = sessionAuthority({
   namespace: 'native-session-fixture',
