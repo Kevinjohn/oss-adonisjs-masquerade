@@ -30,6 +30,9 @@
   guard, inserts the context middleware after `initialize_auth`, and, when `@adonisjs/limiter` is
   configured, generates and preloads the control routes and limiters. Other shapes are left
   unchanged with the manual step printed. `--no-wire` keeps the previous print-only behaviour.
+- Add opt-in `configure --banner` scaffolding for editable host-owned Edge status UI and middleware
+  that shares the safe mode projection with Edge and Inertia on authenticated effective routes.
+  The package continues to ship no runtime UI; the host owns target labels, layout, and copy.
 - Add `masqueradeRoutes(router, options)` to `adonisjs-masquerade/http`. It mounts status, start
   and stop on `MasqueradeController` behind the raw guard's named `auth` middleware, with separate
   start and stop limiters, and throws at registration when the guard, auth middleware or either

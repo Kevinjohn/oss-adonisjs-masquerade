@@ -17,13 +17,14 @@ type Codemods = Awaited<ReturnType<Configure['createCodemods']>>
 export async function wireHost(
   command: Configure,
   codemods: Codemods,
-  guard: string
-): Promise<Record<'auth' | 'kernel' | 'routes', WiringOutcome>> {
+  guard: string,
+  banner = false
+): Promise<Record<'auth' | 'kernel' | 'routes' | 'status', WiringOutcome>> {
   const project =
     typeof codemods.getTsMorphProject === 'function'
       ? await codemods.getTsMorphProject()
       : undefined
-  if (!project) return { auth: 'skipped', kernel: 'skipped', routes: 'skipped' }
+  if (!project) return { auth: 'skipped', kernel: 'skipped', routes: 'skipped', status: 'skipped' }
   const attempt = async (path: string, edit: () => Promise<WiringOutcome>) => {
     try {
       return await edit()
@@ -36,13 +37,17 @@ export async function wireHost(
   const kernelPath = command.app.makePath('start/kernel.ts')
   const auth = await attempt('config/auth.ts', () => wireAuthGuards(project, authPath, guard))
   const kernel = await attempt('start/kernel.ts', () => wireContextMiddleware(project, kernelPath))
+  const status =
+    banner && kernel !== 'skipped'
+      ? await attempt('start/kernel.ts', () => wireStatusMiddleware(project, kernelPath))
+      : 'skipped'
   const routes =
     auth === 'skipped' || kernel === 'skipped'
       ? 'skipped'
       : await attempt('start/masquerade_routes.ts', () =>
           wireControlRoutes(command, codemods, guard, kernelPath)
         )
-  return { auth, kernel, routes }
+  return { auth, kernel, routes, status }
 }
 
 /** Generate the limiter and route files and preload them, when the host has `@adonisjs/limiter`. */
@@ -87,6 +92,7 @@ const editorSettings = {
 } as unknown as Parameters<SourceFile['formatText']>[0]
 
 const contextMiddleware = "() => import('#middleware/masquerade_context_middleware')"
+const statusMiddleware = "() => import('#middleware/share_masquerade_status_middleware')"
 
 // Minimal views of the ts-morph nodes these edits touch; the package does not depend on ts-morph.
 interface AstNode {
@@ -174,6 +180,33 @@ export async function wireContextMiddleware(
   if (initialize === -1 || (silent !== -1 && silent < initialize)) return 'skipped'
   list.insertElement(initialize + 1, contextMiddleware)
   await save(file, contextMiddleware)
+  return 'wired'
+}
+
+/** Register the opt-in status sharing middleware after silent auth, when present. */
+export async function wireStatusMiddleware(
+  project: Project,
+  kernelPath: string
+): Promise<WiringOutcome> {
+  const file = project.addSourceFileAtPathIfExists(kernelPath)
+  if (!file) return 'skipped'
+  const stacks = file
+    .getDescendants()
+    .map((node) => call(node as AstNode, 'router.use'))
+    .filter((node): node is CallNode => node !== undefined)
+  if (stacks.length !== 1) return 'skipped'
+  const [list] = stacks[0].getArguments()
+  if (!is<ArrayNode>(list, 'ArrayLiteralExpression')) return 'skipped'
+  const entries = list.getElements().map((entry) => entry.getText())
+  if (entries.some((entry) => entry.includes('#middleware/share_masquerade_status_middleware')))
+    return 'already'
+  const context = entries.findIndex((entry) =>
+    entry.includes('#middleware/masquerade_context_middleware')
+  )
+  const silent = entries.findIndex((entry) => entry.includes('silent_auth_middleware'))
+  if (context === -1 || (silent !== -1 && silent < context)) return 'skipped'
+  list.insertElement((silent === -1 ? context : silent) + 1, statusMiddleware)
+  await save(file, statusMiddleware)
   return 'wired'
 }
 

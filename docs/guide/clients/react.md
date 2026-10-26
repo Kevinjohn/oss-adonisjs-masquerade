@@ -8,6 +8,43 @@ Use a hidden `_masqueradeContext` field on every unsafe form, including idle for
 
 Inertia retains page objects in browser history. Enable history encryption and carry a history-clear signal across successful start, stop and logout redirects; call `inertia.clearHistory()` on the rendered destination page. A call on a redirect response alone does not clear the browser key. Avoid `once`, merged, preserved props and local-storage drafts for identity-bound data. Revalidate a restored or newly visible page before showing customer data; freeze actions at the fixed deadline. The example sends Back, Forward and browser-cache restorations to the raw workspace after a tab has visited a support page, even from public pages after logout. Frontend cancellation may discard a late response, but it does not reverse a server request already admitted. The server's context check remains the authority when another tab or operator session changes mode.
 
+With configure's optional `--banner`, the host middleware shares the same `ModeView` under the
+`masquerade` prop on authenticated effective-guard routes. A banner can use only this projection;
+the package does not look up user display fields. Use a host-owned redirecting stop route for an
+Inertia form (`/support/stop` below). The package's `/masquerade/stop` route returns JSON for
+non-Inertia clients.
+
+```tsx
+import { Form, usePage } from '@inertiajs/react'
+import type { ModeView } from 'adonisjs-masquerade/types'
+
+type SharedProps = { masquerade?: ModeView }
+
+export function MasqueradeBanner() {
+  const { masquerade } = usePage<SharedProps>().props
+  if (!masquerade?.isMasquerading) return null
+
+  return (
+    <aside className="masquerade-banner" role="status" aria-live="polite">
+      <p>You are viewing as account {masquerade.targetId}.</p>
+      <p>Access: {masquerade.access === 'edit' ? 'Can edit' : 'View only'}.</p>
+      <p>
+        Fixed deadline: <time dateTime={masquerade.expiresAt}>{masquerade.expiresAt}</time>
+      </p>
+      <Form action="/support/stop" method="post">
+        <input
+          type="hidden"
+          name="_masqueradeContext"
+          value={masquerade.contextToken}
+          readOnly
+        />
+        <button type="submit">Stop masquerade</button>
+      </Form>
+    </aside>
+  )
+}
+```
+
 ## Access level and blocked actions
 
 A start request may include `access: 'view' | 'edit'`; omitting it starts in view mode. The active

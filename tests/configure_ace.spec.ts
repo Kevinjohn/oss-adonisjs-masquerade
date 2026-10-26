@@ -126,13 +126,29 @@ export default defineConfig({
     const wired = await starterHost()
     const manual = await starterHost()
     try {
-      assert.equal(await runConfigure(wired), 0)
+      assert.equal(await runConfigure(wired, ['--banner']), 0)
       const auth = await readFile(join(wired, 'config/auth.ts'), 'utf8')
       assert.include(auth, "default: 'web_effective',")
       assert.include(auth, 'web_effective: effectiveSessionGuard(webGuard),')
       assert.include(
         await readFile(join(wired, 'start/kernel.ts'), 'utf8'),
         "initialize_auth_middleware'),\n  () => import('#middleware/masquerade_context_middleware'),"
+      )
+      assert.include(
+        await readFile(join(wired, 'start/kernel.ts'), 'utf8'),
+        "() => import('#middleware/silent_auth_middleware'),\n  () => import('#middleware/share_masquerade_status_middleware'),"
+      )
+      assert.include(
+        await readFile(join(wired, 'app/middleware/share_masquerade_status_middleware.ts'), 'utf8'),
+        'runtime.selectGuard(ctx).kind'
+      )
+      assert.include(
+        await readFile(join(wired, 'resources/views/components/masquerade/banner.edge'), 'utf8'),
+        'masquerade.contextToken'
+      )
+      assert.include(
+        await readFile(join(wired, 'resources/views/components/masquerade/banner.edge'), 'utf8'),
+        '@if(masquerade && masquerade.isMasquerading)'
       )
       const routes = await readFile(join(wired, 'start/masquerade_routes.ts'), 'utf8')
       assert.include(routes, "guard: 'web',")

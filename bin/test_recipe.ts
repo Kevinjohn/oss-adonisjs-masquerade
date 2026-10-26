@@ -322,6 +322,11 @@ async function applyRecipe(app: string): Promise<void> {
   await writeHost(app, 'start/masquerade_control_routes.ts', snippets.controlRoutes)
   await writeHost(app, 'start/recipe_business_routes.ts', snippets.businessRoutes)
   await writeHost(app, 'start/recipe_html_routes.ts', snippets.htmlRoutes)
+  await writeHost(
+    app,
+    'resources/views/masquerade_banner.edge',
+    "@include('components/masquerade/banner')\n"
+  )
   await writeHost(app, 'app/services/demo_control_input.ts', snippets.htmlParser)
   await cp(
     join(app, 'recipe-assets/masquerade_controller.ts.txt'),
@@ -340,6 +345,34 @@ async function applyRecipe(app: string): Promise<void> {
     routesPath,
     (await readFile(routesPath, 'utf8')) +
       "\nimport '#start/masquerade_control_routes'\nimport '#start/recipe_business_routes'\nimport '#start/recipe_html_routes'\n"
+  )
+  const statusKernelPath = join(app, 'start/kernel.ts')
+  const statusKernel = await readFile(statusKernelPath, 'utf8')
+  await writeFile(
+    statusKernelPath,
+    replaceOnce(
+      statusKernel,
+      / {2}\(\) => import\('#middleware\/silent_auth_middleware'\),/,
+      "  () => import('#middleware/silent_auth_middleware'),\n  () => import('#middleware/share_masquerade_status_middleware'),",
+      'generated status middleware'
+    )
+  )
+  await writeHost(
+    app,
+    'start/recipe_banner_route.ts',
+    `import router from '@adonisjs/core/services/router'
+import { middleware } from '#start/kernel'
+
+router
+  .get('/support/banner', async ({ view }) => view.render('masquerade_banner'))
+  .use(middleware.auth({ guards: ['web_effective'] }))
+
+router.get('/support/public-banner', async ({ view }) => view.render('masquerade_banner'))
+`
+  )
+  await writeFile(
+    routesPath,
+    (await readFile(routesPath, 'utf8')) + "import '#start/recipe_banner_route'\n"
   )
 }
 
@@ -406,6 +439,7 @@ try {
           'adonisjs-masquerade',
           '--namespace=my_app',
           '--guard=web',
+          '--banner',
           '--no-wire',
         ],
         `${engine} configure`,

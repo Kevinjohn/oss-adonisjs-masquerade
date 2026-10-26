@@ -8,6 +8,10 @@ const fileDestinations = [
   'providers/masquerade_native_provider.ts',
   'app/middleware/masquerade_context_middleware.ts',
 ] as const
+const bannerDestinations = [
+  'app/middleware/share_masquerade_status_middleware.ts',
+  'resources/views/components/masquerade/banner.edge',
+] as const
 
 /** Scaffold a fail-closed native-session and Lucid setup without rewriting host auth. */
 export async function configure(command: Configure): Promise<void> {
@@ -62,7 +66,12 @@ export async function configure(command: Configure): Promise<void> {
   const migrationFolder = 'database/migrations'
   const migrationFile = await findMigrationFile(command.app.makePath(migrationFolder))
   const migrationDestination = `${migrationFolder}/${migrationFile}`
-  const destinations = [...fileDestinations, migrationDestination]
+  const banner = command.parsedFlags.banner === true
+  const destinations = [
+    ...fileDestinations,
+    ...(banner ? bannerDestinations : []),
+    migrationDestination,
+  ]
   if (!command.force) {
     const existingPaths = await Promise.all(
       destinations.map(async (destination) =>
@@ -93,6 +102,15 @@ export async function configure(command: Configure): Promise<void> {
     }),
     await codemods.makeUsingStub(command.stubsRoot, 'configure/native_provider.stub', {}),
     await codemods.makeUsingStub(command.stubsRoot, 'configure/context_middleware.stub', {}),
+    ...(banner
+      ? [
+          await codemods.makeUsingStub(command.stubsRoot, 'configure/status_middleware.stub', {}),
+          await codemods.makeUsingStub(command.stubsRoot, 'configure/banner_edge.stub', {
+            edgeOpen: '{{',
+            edgeClose: '}}',
+          }),
+        ]
+      : []),
     await codemods.makeUsingStub(command.stubsRoot, 'migrations/create_masquerade_tables.stub', {
       entity,
       flags: command.parsedFlags,
@@ -128,8 +146,8 @@ export async function configure(command: Configure): Promise<void> {
   }
 
   const wiring = noWire(command)
-    ? { auth: 'skipped', kernel: 'skipped', routes: 'skipped' }
-    : await wireHost(command, codemods, guard)
+    ? { auth: 'skipped', kernel: 'skipped', routes: 'skipped', status: 'skipped' }
+    : await wireHost(command, codemods, guard, banner)
   if (wiring.auth !== 'skipped')
     command.logger.info(
       `Wired config/auth.ts: the raw ${guard} guard reuses userProvider and ${guard}_effective is the default guard.`
@@ -141,6 +159,10 @@ export async function configure(command: Configure): Promise<void> {
   if (wiring.routes !== 'skipped')
     command.logger.info(
       'Mounted the control routes in start/masquerade_routes.ts with the limiters in start/masquerade_limiter.ts.'
+    )
+  if (banner && wiring.status !== 'skipped')
+    command.logger.info(
+      'Registered the optional banner status middleware after silent authentication; include components/masquerade/banner in an authenticated Edge layout.'
     )
 
   const rawGuardKey = JSON.stringify(guard)
@@ -162,6 +184,11 @@ export async function configure(command: Configure): Promise<void> {
     ...(wiring.routes === 'skipped'
       ? [
           `Define separate start and stop limiters, then mount the controls with masqueradeRoutes(router, { auth: middleware.auth, guard: "${guard}", startLimiter, stopLimiter }) from adonisjs-masquerade/http; keep Shield CSRF enabled. Do not mount routes before those controls are in place.`,
+        ]
+      : []),
+    ...(banner && wiring.status === 'skipped'
+      ? [
+          'Wire app/middleware/share_masquerade_status_middleware.ts in start/kernel.ts after silent_auth_middleware, then include components/masquerade/banner in an authenticated Edge layout. The middleware shares only safe status fields on authenticated effective-guard routes; public and raw control routes do not read mode status.',
         ]
       : []),
     'Keep context enforcement in report mode during form rollout; switch to enforce after clients submit the current context token. Host-managed retention never prunes idle rows.',

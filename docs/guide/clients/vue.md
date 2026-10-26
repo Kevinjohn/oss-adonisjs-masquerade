@@ -101,6 +101,42 @@ On an effective request, call `runtime.admit(ctx)` before reading customer data 
 
 Return only the selected actor and customer labels, allowed action flags, deadline, and context token in request-scoped Inertia props. Do not pass complete models, password hashes, security stamps, or audit reasons. Send `Cache-Control: private, no-store` and vary on `Accept` and `X-Masquerade-Context` for identity-bound responses.
 
+With configure's optional `--banner`, the host middleware shares the same `ModeView` under the
+`masquerade` prop on authenticated effective-guard routes. A banner can use only this projection;
+the package does not look up user display fields. Use a host-owned redirecting stop route for an
+Inertia form (`/support/stop` below). The package's `/masquerade/stop` route returns JSON for
+non-Inertia clients.
+
+```vue
+<script setup lang="ts">
+import { computed } from 'vue'
+import { Form } from '@adonisjs/inertia/vue'
+import { usePage } from '@inertiajs/vue3'
+import type { ModeView } from 'adonisjs-masquerade/types'
+
+type SharedProps = { masquerade?: ModeView }
+const page = usePage<SharedProps>()
+const masquerade = computed(() => page.props.masquerade)
+</script>
+
+<template>
+  <aside
+    v-if="masquerade?.isMasquerading"
+    class="masquerade-banner"
+    role="status"
+    aria-live="polite"
+  >
+    <p>You are viewing as account {{ masquerade.targetId }}.</p>
+    <p>Access: {{ masquerade.access === 'edit' ? 'Can edit' : 'View only' }}.</p>
+    <p>Fixed deadline: <time :datetime="masquerade.expiresAt">{{ masquerade.expiresAt }}</time></p>
+    <Form route="demo.stop" method="post">
+      <input type="hidden" name="_masqueradeContext" :value="masquerade.contextToken" />
+      <button type="submit">Stop masquerade</button>
+    </Form>
+  </aside>
+</template>
+```
+
 ## Bind each form to its original intent
 
 Every covered unsafe form requires the current context token while idle and during support mode. Capture it when constructing the form and keep it with the payload the user saw:

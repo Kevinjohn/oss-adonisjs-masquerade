@@ -75,9 +75,26 @@ manual step for anything it leaves alone:
   has the named `auth` middleware, configure writes `start/masquerade_limiter.ts` (separate start
   and stop budgets) and `start/masquerade_routes.ts` (`masqueradeRoutes` on the raw guard) and
   preloads the routes file. Without `@adonisjs/limiter`, the routes step is printed instead.
+- **Optional banner**: pass `--banner` on the initial configure command to generate the editable
+  `resources/views/components/masquerade/banner.edge` and
+  `app/middleware/share_masquerade_status_middleware.ts` files. On a recognized kernel, configure
+  registers the middleware after silent authentication. Include the component in an authenticated
+  Edge layout with `@include('components/masquerade/banner')`. It displays the target ID, access
+  level, deadline, CSRF field, and current context token. The generated files are host-owned and
+  can be restyled or replaced; the package ships no runtime UI. The middleware shares the safe
+  `ModeView` as `masquerade` with Edge and Inertia only on authenticated effective-guard routes.
+  Public, login/logout, and raw control routes do not read mode status. The host may replace the
+  displayed target ID with its own label; the package does not inspect application display fields.
+
+  The generated form posts to the named `masquerade.stop` route. With the default package route,
+  a successful stop returns JSON, which the browser displays. A host that wants a redirect or
+  confirmation page owns that response presentation and the route used by its form.
 
 The identity and policy callbacks stay manual and fail closed. Pass `--no-wire` to skip every edit
-above and get only the printed steps.
+above and get only the printed steps. With `--banner --no-wire`, manually register the generated
+status middleware in `router.use` after `silent_auth_middleware`, then include the Edge component in
+an authenticated layout yourself. If `--form-controller` is also enabled, manually mount its form
+routes in place of the package's start/stop routes while retaining the package status route.
 
 Generated files fail closed. Review the output and replace every placeholder described below before
 mounting routes. If a generated destination already exists, configure leaves files unchanged and
