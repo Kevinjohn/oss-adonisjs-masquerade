@@ -34,6 +34,7 @@ if (process.env.TEST_BUILT_EXPORTS === '1') {
     assert.isFunction(native.sessionAuthority)
     assert.isFunction(native.accessTokensAuthority)
     assert.isFunction(native.nativeAuthorities)
+    assert.isFunction(native.stampFrom)
     assert.isFunction(accountKit.accountKitAuthority)
     assert.isFunction(accountKitProvider.default)
     assert.isFunction(accountKitMiddleware.default)

@@ -165,10 +165,9 @@ Remove or leave unused the generated `masquerade_user_provider.ts`; do not creat
 The generated `config/masquerade.ts` imports `userProvider` from
 `#services/masquerade_user_provider`, the same module used by `web_guard.ts` above. Keep that import
 and provider unchanged; do not create a second `sessionUserProvider`. Adapt the callbacks to
-persistent fields owned by your User model. This example assumes the host model has a
-non-reused numeric `id`, an immutable `accountIncarnation` string, a boolean `active`, a boolean
-`masqueradeOperator`, and a persisted string `securityEpoch` that the host advances when
-account-wide revocation is required:
+persistent fields owned by your User model. This example assumes the host model has a numeric `id`,
+an immutable `accountIncarnation` string, a boolean `active`, a `securityEpoch` that the host
+advances when account-wide revocation is required, and the operator policy field shown below:
 
 <!-- host-recipe:identity-policy -->
 
@@ -176,14 +175,14 @@ account-wide revocation is required:
 // Relevant part of config/masquerade.ts
 import type User from '#models/user'
 import { userProvider } from '#services/masquerade_user_provider'
-import { sessionAuthority } from 'adonisjs-masquerade/native'
+import { sessionAuthority, stampFrom } from 'adonisjs-masquerade/native'
 
 const nativeAdapter = sessionAuthority<User>({
   namespace: 'my_app',
   guard: 'web',
   provider: userProvider,
   incarnation: (user) => user.accountIncarnation,
-  securityStamp: (user) => user.securityEpoch,
+  securityStamp: stampFrom((user) => [user.securityEpoch]),
   // Normalize database boolean representations to the strict boolean expected by the package.
   isActive: (user) => Boolean(user.active),
 })
@@ -206,8 +205,9 @@ export default defineConfig<User, HttpContext>({
 })
 ```
 
-This is a configuration fragment; retain the generated imports, store, and retention settings. Set
-`contextEnforcement` to `enforce` when business forms carry a captured context token: the generated
+This is a configuration fragment; add `stampFrom` to the generated import from
+`adonisjs-masquerade/native`, and retain the other generated imports, store, and retention settings.
+Set `contextEnforcement` to `enforce` when business forms carry a captured context token: the generated
 `report` setting logs stale tokens but allows the request to continue. Enforcement rejects every
 covered unsafe business request without the token with 428, including when no one is
 masquerading. An application with existing unsafe forms or clients on effective-guard routes keeps
@@ -217,12 +217,44 @@ the generated `report` until each one sends the token, as described in
 reused. Use `incarnation: 'id'` only if the host guarantees account IDs are never reused. The
 incarnation must not change during ordinary security updates.
 
-`securityStamp` must be a persisted security epoch, not a constant, a freshly generated timestamp on
-each lookup, or a partial security fingerprint. Advance it transactionally whenever the host wants
-all active modes for that account revoked: typically after password changes or resets, privilege
-changes, suspension or reactivation, and account-wide logout/revocation. Make the epoch visible to
-the provider's current user lookup. A persisted time value is valid if it remains stable between
-revocation events and changes reliably for each event.
+For a reusable numeric ID, an immutable creation timestamp can distinguish account lifetimes when
+the database's timestamp precision guarantees a different value for each reuse:
+
+```ts
+incarnation: (user) => user.createdAt.toISO()!,
+```
+
+If that guarantee does not hold, persist a generated immutable incarnation value instead. Keep this
+choice explicit; `stampFrom` does not supply or infer an incarnation.
+
+`stampFrom` returns a deterministic SHA-256 digest of the selected scalar fields. It frames each
+UTF-8 value with its type and byte length before hashing, so adjacent values cannot become
+ambiguous. Strings, finite numbers, booleans, bigints, `null` and `undefined` are supported. Convert
+Lucid `DateTime` values to a stable representation such as `.toISO()` in the selector. The package
+hashes the returned stamp again before storage; the helper's digest is not encryption or a secret.
+
+Choose fields that cover every account-wide event that should revoke active modes. Common Lucid
+choices include:
+
+| Field | What it detects | Limits |
+| --- | --- | --- |
+| `password` | Password hash changes, including password reset or change | A password rehash can also revoke modes even when the password itself did not change. |
+| `role` or `isAdmin` | Changes represented by that column | Does not detect changes in a separate roles or permissions table. |
+| `suspendedAt` or `active` | Suspension, reactivation or active-status changes | Include the value that reliably changes for both directions of the host's policy. |
+| `securityEpoch` | Every event for which the host increments this persisted epoch | This is the broadest option when updated transactionally and read from the current account record. |
+
+For example, `securityEpoch` should advance transactionally after password changes or resets,
+privilege changes, suspension or reactivation, and account-wide logout/revocation whenever those
+events must invalidate active modes. Keep the epoch visible to the provider's current user lookup.
+Unrelated fields such as email or display name need not be selected unless the host wants those
+changes to revoke modes. Do not use a constant, a timestamp generated on each lookup, or a value
+that can remain stale in a cache.
+
+The helper detects changes only to the values the host selects. It cannot see credential or session
+revocation, related-table permission changes, or external account status unless a selected field
+changes too. Include a persisted epoch for such events. `inspectAccount` and `securityStamp` must
+derive from the same current account state; stale or inconsistent reads can conceal revocation.
+
 Ordinary logout of one session remains the host session credential flow; advance the epoch as part
 of logout-all when that action should also revoke every active mode. The host owns which events
 advance it. `isActive` must return the current account eligibility as a boolean; a deleted or

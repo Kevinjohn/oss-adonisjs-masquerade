@@ -34,6 +34,7 @@ test.group('Masquerade configure scaffold', (group) => {
         output.config,
         'Configure immutable account incarnation and security stamp callbacks'
       )
+      assert.include(output.config, 'securityStamp: stampFrom<User>')
       assert.include(output.userProvider, "model: () => import('#models/user')")
       assert.include(output.nativeProvider, "bindValue('masquerade.native', nativeAdapter)")
       assert.include(output.middleware, 'export default class MasqueradeContextMiddleware')

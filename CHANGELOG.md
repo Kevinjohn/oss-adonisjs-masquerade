@@ -2,6 +2,7 @@
 
 ## Unreleased
 
+- Export `stampFrom` to build deterministic security stamps from host-selected account fields.
 - Pull request CI now runs only lint, typecheck, build, the built-export test and coverage. The demo
   launcher, recipe, Account Kit demo, browser suite and Inertia examples move to a new `e2e`
   workflow that runs on pull requests touching `examples/`, `http/`, `stubs/` or `docs/guide/`,
