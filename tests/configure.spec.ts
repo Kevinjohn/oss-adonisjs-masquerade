@@ -38,6 +38,8 @@ test.group('Masquerade configure scaffold', (group) => {
       assert.include(output.nativeProvider, "bindValue('masquerade.native', nativeAdapter)")
       assert.include(output.middleware, 'export default class MasqueradeContextMiddleware')
       assert.include(output.middleware, 'return masqueradeContext(ctx, next)')
+      assert.isUndefined(output.banner)
+      assert.isUndefined(output.statusMiddleware)
       const migrationStub = await readFile(
         join(stubsRoot, 'migrations/create_masquerade_tables.stub'),
         'utf8'
@@ -86,6 +88,95 @@ test.group('Masquerade configure scaffold', (group) => {
         migrationPathsBeforeForce
       )
       assert.equal(await readFile(join(f.root, 'unrelated.txt'), 'utf8'), 'untouched')
+    } finally {
+      await f.dispose()
+    }
+  })
+
+  test('generates the host-owned status sharing middleware and Edge banner only when requested', async ({
+    assert,
+  }) => {
+    const f = await configureFixture()
+    try {
+      const configured = f.command({ namespace: 'support', guard: 'web', banner: true })
+      await configure(configured as never)
+
+      const output = await readScaffold(f.root)
+      assert.include(output.banner!, 'You are viewing as account {{ masquerade.targetId }}')
+      assert.include(output.banner!, "masquerade.access === 'edit' ? 'Can edit' : 'View only'")
+      assert.include(output.banner!, 'masquerade.expiresAt')
+      assert.include(output.banner!, "route('masquerade.stop')")
+      assert.include(output.banner!, 'csrfField()')
+      assert.include(output.banner!, 'name="_masqueradeContext"')
+      assert.include(output.banner!, 'masquerade.contextToken')
+      assert.include(output.statusMiddleware!, 'runtime.selectGuard(ctx).kind')
+      assert.include(output.statusMiddleware!, 'ctx.auth.check()')
+      assert.include(output.statusMiddleware!, 'runtime.service.status(ctx)')
+      assert.include(output.statusMiddleware!, 'view?.share({ masquerade })')
+      assert.include(output.statusMiddleware!, 'inertia?.share({ masquerade })')
+      assert.notInclude(output.statusMiddleware!, 'ctx.auth.user')
+      assert.notInclude(output.statusMiddleware!, 'fullName')
+      assert.notInclude(output.statusMiddleware!, 'email')
+      assert.isTrue(
+        configured.messages.some((message) =>
+          message.includes('Wire app/middleware/share_masquerade_status_middleware.ts')
+        )
+      )
+
+      const module = await import(
+        pathToFileURL(join(f.root, 'app/middleware/share_masquerade_status_middleware.ts')).href
+      )
+      const middleware = new module.default()
+      const status = {
+        isMasquerading: true,
+        contextToken: '3.0123456789abcdef0123456789abcdef',
+        targetId: 'customer-1',
+        access: 'view',
+        startedAt: '2026-10-25T10:00:00.000Z',
+        expiresAt: '2026-10-25T10:15:00.000Z',
+      }
+      let statusReads = 0
+      const run = async (kind: string, authenticated: boolean, fail = false) => {
+        const edge: unknown[] = []
+        const inertia: unknown[] = []
+        let continued = false
+        const runtime = {
+          selectGuard: () => ({ kind }),
+          service: {
+            async status() {
+              statusReads++
+              if (fail) throw new Error('store unavailable')
+              return status
+            },
+          },
+        }
+        const ctx = {
+          containerResolver: { make: async () => runtime },
+          auth: { check: async () => authenticated },
+          view: { share: (value: unknown) => edge.push(value) },
+          inertia: { share: (value: unknown) => inertia.push(value) },
+        }
+        const result = middleware.handle(ctx as never, async () => {
+          continued = true
+        })
+        if (fail) await assert.rejects(() => result, 'store unavailable')
+        else await result
+        return { edge, inertia, continued }
+      }
+
+      await run('none', false)
+      await run('raw', true)
+      const anonymous = await run('effective', false)
+      assert.equal(statusReads, 0)
+      assert.deepEqual(anonymous.edge, [])
+      assert.deepEqual(anonymous.inertia, [])
+      const authenticated = await run('effective', true)
+      assert.equal(statusReads, 1)
+      assert.deepEqual(authenticated.edge, [{ masquerade: status }])
+      assert.deepEqual(authenticated.inertia, [{ masquerade: status }])
+      assert.isTrue(authenticated.continued)
+      await run('effective', true, true)
+      assert.equal(statusReads, 2)
     } finally {
       await f.dispose()
     }
@@ -281,6 +372,8 @@ async function listScaffoldPaths(root: string): Promise<string[]> {
     'config/masquerade.ts',
     'providers/masquerade_native_provider.ts',
     'app/middleware/masquerade_context_middleware.ts',
+    'app/middleware/share_masquerade_status_middleware.ts',
+    'resources/views/components/masquerade/banner.edge',
   ]
   const paths: string[] = []
   for (const file of files) {
@@ -306,7 +399,17 @@ async function readScaffold(root: string) {
     userProvider: await read('app/services/masquerade_user_provider.ts'),
     nativeProvider: await read('providers/masquerade_native_provider.ts'),
     middleware: await read('app/middleware/masquerade_context_middleware.ts'),
+    statusMiddleware: await optionalRead('app/middleware/share_masquerade_status_middleware.ts'),
+    banner: await optionalRead('resources/views/components/masquerade/banner.edge'),
     migration: await read(migrationPath),
+  }
+
+  async function optionalRead(file: string): Promise<string | undefined> {
+    try {
+      return await read(file)
+    } catch {
+      return undefined
+    }
   }
 }
 

@@ -1,0 +1,28 @@
+{{{
+  exports({ to: app.makePath('app/middleware/share_masquerade_status_middleware.ts') })
+}}}
+import type { HttpContext } from '@adonisjs/core/http'
+import type { NextFn } from '@adonisjs/core/types/http'
+import type { MasqueradeRuntime } from 'adonisjs-masquerade/providers/masquerade_provider'
+
+type SharedContext = HttpContext & {
+  view?: { share(values: Record<string, unknown>): unknown }
+  inertia?: { share(values: Record<string, unknown>): unknown }
+}
+
+export default class ShareMasqueradeStatusMiddleware {
+  async handle(ctx: HttpContext, next: NextFn) {
+    const runtime = (await ctx.containerResolver.make('masquerade.runtime')) as MasqueradeRuntime
+
+    // Keep public, login/logout and raw control routes outside the status-store boundary.
+    if (runtime.selectGuard(ctx).kind !== 'effective') return next()
+    if (!(await ctx.auth.check())) return next()
+
+    const masquerade = await runtime.service.status(ctx)
+    const sharedContext = ctx as SharedContext
+    sharedContext.view?.share({ masquerade })
+    sharedContext.inertia?.share({ masquerade })
+
+    return next()
+  }
+}

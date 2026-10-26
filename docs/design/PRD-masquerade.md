@@ -30,7 +30,7 @@ Success means an application can explicitly configure the package, deny masquera
 5. **Explicit application authorization:** Start is denied unless the application supplies a callback and it approves this actor-target pair. The application owns whether an actor can masquerade and access a target, including tenant constraints.
 6. **No nesting:** A request already operating in masquerade mode cannot start another masquerade or overwrite the current target. The operator must stop the current mode first.
 7. **No new target credential:** Masquerade does not create a target session, cookie, API token, or credential. It does not switch the authenticated actor credential or require actor credential restoration.
-8. **Application-owned UX and policy:** The package ships no admin UI, role/permission system, or translation catalog. Documentation may show a status indicator and stop control. If the host uses `@adonisjs/i18n`, the host owns localized copy with English fallback. No locale detection or package language setting.
+8. **Application-owned UX and policy:** The package ships no runtime admin UI, role/permission system, or translation catalog. On explicit `configure --banner`, it may generate an editable, host-owned starter view and middleware; the flag is off by default and the generated files are ordinary application code. The starter displays only the safe mode projection and target ID. The host owns any display-name lookup, final markup, stop-response presentation, and localized copy. Documentation may show a status indicator and stop control. If the host uses `@adonisjs/i18n`, the host owns localized copy with English fallback. No locale detection or package language setting.
 9. **Open-source AdonisJS fit:** Follow open-source AdonisJS conventions. AdonisJS Plus compatibility is not a product goal.
 10. **Transport boundary:** The product is not categorically browser-only. It may apply to supported authenticated request transports. Which actor transports receive v1 adapters is an open review point; an optional JWT adapter is deferred for v1 unless review decides otherwise.
 
@@ -41,6 +41,7 @@ Success means an application can explicitly configure the package, deny masquera
 - Accept an optional start reason by default; a host may require one. A supplied reason is trimmed before validation and contains 1–500 Unicode code points and at most 2,000 UTF-8 bytes.
 - Durably audit committed transitions and admitted start/stop control outcomes. Native authentication failures, status/business denials and requests rejected before the control audit boundary use host diagnostics, not mandatory package audit writes.
 - Bound post-commit observer/reporting work, include namespace and account incarnations in business audit context, and explicitly block billing mutations while active.
+- **Issue #118 — opt-in generated status UI:** `configure --banner` is opt-in and generates editable host files for Edge status and safe Edge/Inertia status sharing. The package keeps no runtime UI component. Generated status data uses `ModeView`; the host may replace the target ID with its own display label without exposing application records to the package. Later generated host form adapters may add redirect behavior without changing this boundary.
 
 ## Scope
 
@@ -59,7 +60,7 @@ Success means an application can explicitly configure the package, deny masquera
 
 ### Out of scope
 
-- A shipped operator dashboard, target search interface, user-management screen, or visual component.
+- A package-owned runtime operator dashboard, target search interface, user-management screen, or visual component. `configure --banner` may create editable app-owned starter files; the host decides whether to keep or replace them.
 - New credentials, sessions, cookies, or tokens for the target.
 - Password, MFA, recovery, email, credential, billing, or other sensitive security changes while masquerading.
 - Automatic tenant switching or a package-owned tenant authorization system.
