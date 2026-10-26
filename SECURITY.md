@@ -2,13 +2,15 @@
 
 ## Supported versions
 
-Security fixes go into the latest published minor version. Until 1.0, upgrade to the newest
-release to receive fixes.
+Masquerade is an unpublished early alpha for local self-testing. There is no registry release or
+published version to upgrade to. Security fixes are made on the main branch; check the affected
+commit when reporting a problem with a local build.
 
 ## Reporting a vulnerability
 
-Report suspected vulnerabilities privately to [cve@kevinjohngallagher.com](mailto:cve@kevinjohngallagher.com).
-Do not open a public issue.
+Report suspected vulnerabilities through [GitHub private vulnerability reporting](https://github.com/Kevinjohn/oss-adonisjs-masquerade/security/advisories)
+or privately to [cve@kevinjohngallagher.com](mailto:cve@kevinjohngallagher.com). On GitHub, use
+**Report a vulnerability** from the Security Advisories page. Do not open a public issue.
 
 Please include the affected package version or commit, runtime and database versions, a concise
 reproduction, and the impact you observed. Do not include live credentials or personal data.
@@ -17,15 +19,6 @@ whether the failure occurred before or after the database commit, if known.
 
 The maintainer will acknowledge the report, confirm the affected versions, and agree a disclosure
 date with you once a fix is ready.
-
-## Verifying a release
-
-Releases are published from GitHub Actions with npm provenance. To check that an installed copy was
-built from this repository:
-
-```sh
-npm audit signatures
-```
 
 ## Security model
 
