@@ -23,12 +23,12 @@ export default class MasqueradeFormController extends MasqueradeController {
   }
 
   override async start(ctx: HttpContext): Promise<void> {
-    if (ctx.request.accepts(['html', 'json']) !== 'html') return super.start(ctx)
+    if (!acceptsHtmlForm(ctx)) return super.start(ctx)
     await this.transition(ctx, 'start')
   }
 
   override async stop(ctx: HttpContext): Promise<void> {
-    if (ctx.request.accepts(['html', 'json']) !== 'html') return super.stop(ctx)
+    if (!acceptsHtmlForm(ctx)) return super.stop(ctx)
     await this.transition(ctx, 'stop')
   }
 
@@ -88,6 +88,15 @@ function parseStopForm(ctx: HttpContext): StopInput {
   const body = formBody(ctx, stopKeys)
   if (!body) return { __invalidHttpInput: true } as unknown as StopInput
   return { expectedContext: controlToken(ctx, body) ?? '' }
+}
+
+function acceptsHtmlForm(ctx: HttpContext): boolean {
+  const accept = ctx.request.header('accept')
+  const explicitlyAcceptsHtml = accept?.split(',').some((entry) => {
+    const mediaType = entry.split(';', 1)[0]?.trim().toLowerCase()
+    return mediaType === 'text/html' || mediaType === 'application/xhtml+xml'
+  })
+  return Boolean(explicitlyAcceptsHtml && ctx.request.accepts(['html', 'json']) === 'html')
 }
 
 function formBody(ctx: HttpContext, allowedKeys: Set<string>): Record<string, unknown> | null {

@@ -199,11 +199,15 @@ test.group('fresh host public recipe', (group) => {
     const bannerStop = await client
       .post(stopForm[1]!)
       .withSession({ 'csrf-secret': csrfSecret })
+      .header('Accept', 'text/html')
       .form({ _csrf: renderedCsrf, _masqueradeContext: bannerToken })
       .loginAs(actor)
-    bannerStop.assertStatus(200)
-    assert.isFalse(bannerStop.body().isMasquerading)
-    assert.notEqual(bannerStop.body().contextToken, bannerToken)
+    bannerStop.assertStatus(302)
+    assert.equal(bannerStop.header('location'), '/support')
+    assert.deepEqual(bannerStop.flashMessage('masquerade'), {
+      type: 'success',
+      action: 'stopped',
+    })
     const idleBanner = await client.get('/support/banner').loginAs(actor)
     idleBanner.assertStatus(204)
     assert.equal(idleBanner.text(), '')
@@ -211,5 +215,45 @@ test.group('fresh host public recipe', (group) => {
     const publicBannerLayout = await client.get('/support/public-banner')
     publicBannerLayout.assertStatus(204)
     assert.equal(publicBannerLayout.text(), '')
+
+    const idleAfterBannerStop = await client.get('/masquerade').loginAs(actor)
+    idleAfterBannerStop.assertStatus(200)
+    assert.isFalse(idleAfterBannerStop.body().isMasquerading)
+
+    const defaultAcceptStart = await client
+      .post('/masquerade/start')
+      .withCsrfToken()
+      .form({
+        targetId: String(target.id),
+        reason: 'Default Accept control',
+        _masqueradeContext: idleAfterBannerStop.body().contextToken,
+      })
+      .loginAs(actor)
+    defaultAcceptStart.assertStatus(200)
+    const defaultAcceptStop = await client
+      .post('/masquerade/stop')
+      .withCsrfToken()
+      .form({ _masqueradeContext: defaultAcceptStart.body().contextToken })
+      .loginAs(actor)
+    defaultAcceptStop.assertStatus(200)
+
+    const wildcardAcceptStart = await client
+      .post('/masquerade/start')
+      .withCsrfToken()
+      .header('Accept', '*/*')
+      .form({
+        targetId: String(target.id),
+        reason: 'Wildcard Accept control',
+        _masqueradeContext: defaultAcceptStop.body().contextToken,
+      })
+      .loginAs(actor)
+    wildcardAcceptStart.assertStatus(200)
+    const wildcardAcceptStop = await client
+      .post('/masquerade/stop')
+      .withCsrfToken()
+      .header('Accept', '*/*')
+      .form({ _masqueradeContext: wildcardAcceptStart.body().contextToken })
+      .loginAs(actor)
+    wildcardAcceptStop.assertStatus(200)
   })
 })

@@ -9,8 +9,9 @@ node ace configure adonisjs-masquerade --form-controller
 
 Configure creates `app/controllers/masquerade_form_controller.ts` and, when it can wire the
 starter-kit routes, uses that controller for POST start/stop while the package controller serves
-JSON status. The generated controller selects JSON or HTML from `Accept`; JSON requests delegate
-to the package controller. HTML requests call the same service, redirect, and flash a typed result
+JSON status. Only requests that explicitly accept HTML and negotiate it use the form adapter; JSON
+requests, requests without an `Accept` header, and wildcard-only requests delegate to the package
+controller. HTML requests call the same service, redirect, and flash a typed result
 under the `masquerade` key. Success values identify `started` or `stopped`; errors carry the stable
 `MasqueradeErrorCode`, which the host can map to localized text in its Edge layout. Edit the success
 redirect methods `redirectAfterStart` and `redirectAfterStop` for the destination pages and
