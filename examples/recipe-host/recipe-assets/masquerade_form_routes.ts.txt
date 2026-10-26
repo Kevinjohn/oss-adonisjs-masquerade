@@ -4,7 +4,7 @@ import router from '@adonisjs/core/services/router'
 router
   .group(() => {
     router
-      .get('/', [() => import('#controllers/demo_controller'), 'status'])
+      .get('/', [() => import('#controllers/masquerade_form_controller'), 'status'])
       .as('status')
     router
       .post('/start', [() => import('#controllers/demo_controller'), 'start'])

@@ -5,11 +5,6 @@ import db from '@adonisjs/lucid/services/db'
 import MasqueradeFormController from '#controllers/masquerade_form_controller'
 
 export default class DemoController extends MasqueradeFormController {
-  async status(ctx: HttpContext) {
-    const runtime = await ctx.containerResolver.make('masquerade.runtime')
-    return runtime.service.status(ctx)
-  }
-
   protected override redirectAfterStart(_ctx: HttpContext): string {
     return '/support/customer'
   }

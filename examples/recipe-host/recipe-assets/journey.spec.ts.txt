@@ -36,6 +36,8 @@ test.group('fresh host public recipe', (group) => {
 
     const idle = await client.get('/masquerade').loginAs(actor)
     idle.assertStatus(200)
+    assert.equal(idle.header('cache-control'), 'no-store')
+    assert.include(idle.header('vary')?.toLowerCase() ?? '', 'x-masquerade-context')
     assert.isFalse(idle.body().isMasquerading)
     const idleToken = idle.body().contextToken as string
 
