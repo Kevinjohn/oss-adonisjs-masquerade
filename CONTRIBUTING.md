@@ -50,7 +50,11 @@ Run the repository scripts, not the bare tools. They carry the flags the release
 | `pnpm check --browser` | Account Kit demo, native-session browser suite, Inertia React and Vue examples                                   |
 
 Run `pnpm check` before every pull request, and add `--full` for changes to the store, the
-packaging or the docs. `--browser` needs the native-session example's dependencies and Chromium
+packaging or the docs. While working on a branch, `pnpm check:changed [base]` runs only the
+checks the files changed since the merge-base with `base` (default `origin/main`) need, including
+uncommitted and untracked files: Prettier on those files, lint, typecheck, the changed specs or the
+full SQLite suite, build and built exports, the recipe, and the docs build. It prints one
+`pass`, `fail` or `skip` line per step and does not replace `pnpm check`. `--browser` needs the native-session example's dependencies and Chromium
 (`pnpm install` and `pnpm dlx playwright install chromium` in `examples/native-session`). The flags combine. Every pull request runs the `checks`
 workflow: lint, typecheck, build, the built-export test and coverage on SQLite and PostgreSQL. The `e2e`
 workflow runs the demo launcher, recipe and browser checks on pull requests that change `examples/`,
