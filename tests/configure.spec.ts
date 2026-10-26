@@ -140,10 +140,12 @@ test.group('Masquerade configure scaffold', (group) => {
         const edge: unknown[] = []
         const inertia: unknown[] = []
         let continued = false
+        let statusCalled = false
         const runtime = {
           selectGuard: () => ({ kind }),
           service: {
             async status() {
+              statusCalled = true
               statusReads++
               if (fail) throw new Error('store unavailable')
               return status
@@ -159,17 +161,26 @@ test.group('Masquerade configure scaffold', (group) => {
         const result = middleware.handle(ctx as never, async () => {
           continued = true
         })
-        if (fail) await assert.rejects(() => result, 'store unavailable')
-        else await result
-        return { edge, inertia, continued }
+        let failure: unknown
+        try {
+          await result
+        } catch (error) {
+          failure = error
+        }
+        if (fail && statusCalled) assert.equal((failure as Error)?.message, 'store unavailable')
+        else if (failure) throw failure
+        return { edge, inertia, continued, statusReads }
       }
 
-      await run('none', false)
-      await run('raw', true)
+      await run('none', false, true)
+      await run('raw', false, true)
       const anonymous = await run('effective', false)
       assert.equal(statusReads, 0)
       assert.deepEqual(anonymous.edge, [])
       assert.deepEqual(anonymous.inertia, [])
+      const anonymousDuringOutage = await run('effective', false, true)
+      assert.equal(anonymousDuringOutage.statusReads, 0)
+      assert.isTrue(anonymousDuringOutage.continued)
       const authenticated = await run('effective', true)
       assert.equal(statusReads, 1)
       assert.deepEqual(authenticated.edge, [{ masquerade: status }])

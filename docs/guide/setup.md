@@ -86,10 +86,16 @@ manual step for anything it leaves alone:
   Public, login/logout, and raw control routes do not read mode status. The host may replace the
   displayed target ID with its own label; the package does not inspect application display fields.
 
+  The generated form posts to the named `masquerade.stop` route. With the default package route,
+  a successful stop returns JSON, which the browser displays. If the host wants a redirect or
+  confirmation page instead, it owns that response presentation: provide a host route named
+  `masquerade.stop` and point the generated form at it.
+
 The identity and policy callbacks stay manual and fail closed. Pass `--no-wire` to skip every edit
-above and get only the printed steps. With `--banner --no-wire`, add the status middleware to
-`router.use` after `silent_auth_middleware`, then include the Edge component in an authenticated
-layout yourself.
+above and get only the printed steps. With `--banner --no-wire`, manually register the generated
+status middleware in `router.use` after `silent_auth_middleware`, then include the Edge component in
+an authenticated layout yourself. If `--form-controller` is also enabled, manually mount its form
+routes in place of the package's start/stop routes while retaining the package status route.
 
 Generated files fail closed. Review the output and replace every placeholder described below before
 mounting routes. If a generated destination already exists, configure leaves files unchanged and

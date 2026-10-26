@@ -134,5 +134,36 @@ test.group('fresh host public recipe', (group) => {
       .form({ _masqueradeContext: jsonStart.body().contextToken })
       .loginAs(actor)
     jsonStop.assertStatus(200)
+
+    const bannerStart = await client
+      .post('/masquerade/start')
+      .withCsrfToken()
+      .form({
+        targetId: String(target.id),
+        reason: 'Generated banner check',
+        _masqueradeContext: jsonStop.body().contextToken,
+      })
+      .loginAs(actor)
+    bannerStart.assertStatus(200)
+    const bannerToken = bannerStart.body().contextToken as string
+    const bannerPage = await client.get('/support/banner').loginAs(actor)
+    bannerPage.assertStatus(200)
+    const bannerHtml = bannerPage.text()
+    assert.include(bannerHtml, `You are viewing as account ${target.id}.`)
+    assert.include(bannerHtml, 'Access: View only.')
+    assert.include(bannerHtml, bannerToken)
+    assert.include(bannerHtml, 'name="_csrf"')
+
+    const bannerStop = await client
+      .post('/masquerade/stop')
+      .withCsrfToken()
+      .form({ _masqueradeContext: bannerToken })
+      .loginAs(actor)
+    bannerStop.assertStatus(200)
+    assert.isFalse(bannerStop.body().isMasquerading)
+    assert.notEqual(bannerStop.body().contextToken, bannerToken)
+    const idleBanner = await client.get('/support/banner').loginAs(actor)
+    idleBanner.assertStatus(200)
+    assert.notInclude(idleBanner.text(), 'You are viewing as account')
   })
 })
