@@ -152,7 +152,8 @@ test.group('fresh host public recipe', (group) => {
     assert.include(bannerHtml, `You are viewing as account ${target.id}.`)
     assert.include(bannerHtml, 'Access: View only.')
     assert.include(bannerHtml, bannerToken)
-    assert.include(bannerHtml, 'name="_csrf"')
+    assert.include(bannerHtml, 'action="/masquerade/stop"')
+    assert.match(bannerHtml, /name=['"]_csrf['"]/, 'Shield CSRF field')
 
     const bannerStop = await client
       .post('/masquerade/stop')
@@ -163,7 +164,7 @@ test.group('fresh host public recipe', (group) => {
     assert.isFalse(bannerStop.body().isMasquerading)
     assert.notEqual(bannerStop.body().contextToken, bannerToken)
     const idleBanner = await client.get('/support/banner').loginAs(actor)
-    idleBanner.assertStatus(200)
-    assert.notInclude(idleBanner.text(), 'You are viewing as account')
+    idleBanner.assertStatus(204)
+    assert.equal(idleBanner.text(), '')
   })
 })

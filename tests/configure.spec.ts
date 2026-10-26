@@ -102,11 +102,14 @@ test.group('Masquerade configure scaffold', (group) => {
       await configure(configured as never)
 
       const output = await readScaffold(f.root)
-      assert.include(output.banner!, 'You are viewing as account {{ masquerade.targetId }}')
-      assert.include(output.banner!, "masquerade.access === 'edit' ? 'Can edit' : 'View only'")
-      assert.include(output.banner!, 'masquerade.expiresAt')
-      assert.include(output.banner!, "route('masquerade.stop')")
-      assert.include(output.banner!, 'csrfField()')
+      assert.include(output.banner!, 'You are viewing as account {{ masquerade.targetId }}.</p>')
+      assert.include(
+        output.banner!,
+        "Access: {{ masquerade.access === 'edit' ? 'Can edit' : 'View only' }}.</p>"
+      )
+      assert.include(output.banner!, 'datetime="{{ masquerade.expiresAt }}">')
+      assert.include(output.banner!, 'action="{{ route(\'masquerade.stop\') }}">')
+      assert.include(output.banner!, '{{ csrfField() }}')
       assert.include(output.banner!, 'name="_masqueradeContext"')
       assert.include(output.banner!, 'masquerade.contextToken')
       assert.include(output.statusMiddleware!, 'runtime.selectGuard(ctx).kind')

@@ -87,9 +87,8 @@ manual step for anything it leaves alone:
   displayed target ID with its own label; the package does not inspect application display fields.
 
   The generated form posts to the named `masquerade.stop` route. With the default package route,
-  a successful stop returns JSON, which the browser displays. If the host wants a redirect or
-  confirmation page instead, it owns that response presentation: provide a host route named
-  `masquerade.stop` and point the generated form at it.
+  a successful stop returns JSON, which the browser displays. A host that wants a redirect or
+  confirmation page owns that response presentation and the route used by its form.
 
 The identity and policy callbacks stay manual and fail closed. Pass `--no-wire` to skip every edit
 above and get only the printed steps. With `--banner --no-wire`, manually register the generated

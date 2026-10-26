@@ -105,7 +105,10 @@ export async function configure(command: Configure): Promise<void> {
     ...(banner
       ? [
           await codemods.makeUsingStub(command.stubsRoot, 'configure/status_middleware.stub', {}),
-          await codemods.makeUsingStub(command.stubsRoot, 'configure/banner_edge.stub', {}),
+          await codemods.makeUsingStub(command.stubsRoot, 'configure/banner_edge.stub', {
+            edgeOpen: '{{',
+            edgeClose: '}}',
+          }),
         ]
       : []),
     await codemods.makeUsingStub(command.stubsRoot, 'migrations/create_masquerade_tables.stub', {
