@@ -4,6 +4,10 @@ import type { Router } from '@adonisjs/core/http'
 import { routeCoverageReport } from '../commands/routes.js'
 import { masqueradeRoutes } from '../http/control_routes.js'
 import { MasqueradeController } from '../http/controllers.js'
+import { selectRouteGuard } from '../integration/route_guard_selection.js'
+import { MasqueradeError } from '../src/errors.js'
+import { fixture } from './helpers/core.js'
+import { requestContext } from './helpers/http_context.js'
 
 class AuthMiddleware {
   async handle(_ctx: unknown, next: () => Promise<unknown>, _options?: { guards: string[] }) {
@@ -93,6 +97,75 @@ test.group('masqueradeRoutes', () => {
       )
       const [report] = await routeCoverageReport(router.toJSON(), 'web', 'web_effective')
       assert.include(report, 'api\n  GET,HEAD           /api/masquerade [CONTROL READ]')
+    })
+  })
+
+  test('flags effective-guard controls and still permits stopping through the raw mount', async ({
+    assert,
+  }) => {
+    await withRouter(async (router) => {
+      masqueradeRoutes(router, {
+        auth: namedAuth(router),
+        guard: 'web_effective',
+        startLimiter,
+        stopLimiter,
+        prefix: '/effective/masquerade',
+        as: 'effective.masquerade',
+      })
+      masqueradeRoutes(router, { auth: namedAuth(router), guard: 'web', startLimiter, stopLimiter })
+      router.commit()
+
+      const routes = router.toJSON().root
+      const effectiveStatus = routes.find((route) => route.name === 'effective.masquerade.status')!
+      const rawStop = routes.find((route) => route.name === 'masquerade.stop')!
+      const sections = await routeCoverageReport(
+        router.toJSON(),
+        'web',
+        'web_effective',
+        ['web_effective'],
+        { web_effective: 'web' }
+      )
+      const report = sections.join('\n')
+      assert.include(
+        report,
+        '/effective/masquerade [CONTROL READ] (effective guard; controls must use raw guard)'
+      )
+
+      const f = fixture()
+      const service = await f.create()
+      const active = await f.start(service)
+      const authenticationCount = f.state.authenticateCount
+      const authSelection = (route: typeof effectiveStatus) =>
+        selectRouteGuard(route, 'web_effective', { web_effective: 'web' }, ['web'], 'web')
+
+      const effectiveRequest = requestContext(f, {
+        method: 'GET',
+        route: effectiveStatus,
+        selectGuard: () => authSelection(effectiveStatus),
+      })
+      let failure: unknown
+      try {
+        await new MasqueradeController().status(effectiveRequest.ctx)
+      } catch (error) {
+        failure = error
+      }
+      assert.instanceOf(failure, MasqueradeError)
+      assert.equal((failure as MasqueradeError).code, 'E_MASQUERADE_UNAVAILABLE')
+      assert.equal(f.state.authenticateCount, authenticationCount)
+      const stillActive = await service.status({ actorId: 'a' })
+      assert.isTrue(stillActive.isMasquerading)
+
+      const rawRequest = requestContext(f, {
+        method: 'POST',
+        body: {},
+        raw: '{}',
+        header: active.contextToken,
+        route: rawStop,
+        selectGuard: () => authSelection(rawStop),
+      })
+      await new MasqueradeController().stop(rawRequest.ctx)
+      assert.equal(rawRequest.responseState.status, 200)
+      assert.isFalse((rawRequest.responseState.json as { isMasquerading: boolean }).isMasquerading)
     })
   })
 

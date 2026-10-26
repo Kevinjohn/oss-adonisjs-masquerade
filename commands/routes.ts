@@ -98,6 +98,7 @@ export function routeCoverageReport(
         const methods = route.methods.join(',')
         const packageControl = await isPackageControl(route.handler, controllerCache)
         const nameInferredControl = !packageControl.control && isHostControl(route.name)
+        const effectiveGuardedControl = packageControl.control && hasEffectiveGuard
         for (const declaredGuard of labels) {
           const guard = declaredGuard
           const category =
@@ -120,6 +121,7 @@ export function routeCoverageReport(
             markers.allowMutation ? 'allowMutation' : '',
             nameInferredControl ? 'name-inferred; review handler' : '',
             packageControl.unresolved ? 'unresolved handler' : '',
+            effectiveGuardedControl ? 'effective guard; controls must use raw guard' : '',
             mixedEffectiveGuards ? 'unsupported mixed effective/non-effective guards' : '',
             distinctEffectiveTransports
               ? 'unsupported distinct effective credential transports'
