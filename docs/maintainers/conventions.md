@@ -14,7 +14,7 @@ AdonisJS Plus compatibility.
   upstream Core `7.0.0` startup compatibility and the Masquerade floor/latest database and strategy
   matrix are verified. See the [integration guide](../guide/account-kit.md),
   [acceptance evidence](requirement-ledger.md#v12-account-kit-acceptance-t-kit-and-t-kit-http), and
-  [historical compatibility brief](account-kit-core-floor-feedback.md).
+  [historical compatibility brief](https://github.com/Kevinjohn/oss-adonisjs-masquerade/blob/0adbe49/docs/maintainers/account-kit-core-floor-feedback.md).
 - The raw native session guard authenticates the actor. The effective guard is used on business
   routes. The package never issues target credentials or unions permissions.
 - Routes stay host-mounted. The host wires `masqueradeContext` after auth initialization and before
