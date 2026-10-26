@@ -58,6 +58,48 @@ test.group('support operator browser journey', (group) => {
       .form({ _masqueradeContext: active.body().contextToken })
       .loginAs(actor)
     stopped.assertStatus(302)
+    assert.deepEqual(stopped.flashMessage('masquerade'), {
+      type: 'success',
+      action: 'stopped',
+    })
+  })
+
+  test('flashes a typed form error and returns to the host support page', async ({
+    client,
+    assert,
+  }) => {
+    const { actor, target } = await createUsers()
+    const idle = await client.get('/masquerade').loginAs(actor)
+    const started = await client
+      .post('/support/start')
+      .redirects(0)
+      .withCsrfToken()
+      .header('Accept', 'text/html')
+      .form({
+        targetId: String(target.id),
+        reason: 'First request',
+        _masqueradeContext: idle.body().contextToken,
+      })
+      .loginAs(actor)
+    started.assertStatus(302)
+
+    const rejected = await client
+      .post('/support/start')
+      .redirects(0)
+      .withCsrfToken()
+      .header('Accept', 'text/html')
+      .form({
+        targetId: String(target.id),
+        reason: 'Stale duplicate',
+        _masqueradeContext: idle.body().contextToken,
+      })
+      .loginAs(actor)
+    rejected.assertStatus(302)
+    assert.equal(rejected.header('location'), '/support')
+    assert.deepEqual(rejected.flashMessage('masquerade'), {
+      type: 'error',
+      code: 'E_MASQUERADE_CONTEXT_CHANGED',
+    })
   })
 
   test('renders raw control, customer read, reversible mutation and sensitive denial', async ({
@@ -305,11 +347,17 @@ test.group('support operator browser journey', (group) => {
     ]) {
       const denied = await client
         .post('/support/start')
+        .redirects(0)
         .withCsrfToken()
         .header('Accept', 'text/html')
         .form({ targetId: String(target.id), _masqueradeContext: token, ...fields })
         .loginAs(actor)
-      denied.assertStatus(422)
+      denied.assertStatus(302)
+      assert.equal(denied.header('location'), '/support')
+      assert.deepEqual(denied.flashMessage('masquerade'), {
+        type: 'error',
+        code: 'E_MASQUERADE_INVALID_INPUT',
+      })
     }
     const limited = await client
       .post('/support/start')

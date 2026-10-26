@@ -18,7 +18,8 @@ export async function wireHost(
   command: Configure,
   codemods: Codemods,
   guard: string,
-  banner = false
+  banner = false,
+  formController = false
 ): Promise<Record<'auth' | 'kernel' | 'routes' | 'status', WiringOutcome>> {
   const project =
     typeof codemods.getTsMorphProject === 'function'
@@ -45,7 +46,7 @@ export async function wireHost(
     auth === 'skipped' || kernel === 'skipped'
       ? 'skipped'
       : await attempt('start/masquerade_routes.ts', () =>
-          wireControlRoutes(command, codemods, guard, kernelPath)
+          wireControlRoutes(command, codemods, guard, kernelPath, formController)
         )
   return { auth, kernel, routes, status }
 }
@@ -55,14 +56,19 @@ async function wireControlRoutes(
   command: Configure,
   codemods: Codemods,
   guard: string,
-  kernelPath: string
+  kernelPath: string,
+  formController: boolean
 ): Promise<WiringOutcome> {
   if (!(await exists(command.app.makePath('config/limiter.ts')))) return 'skipped'
   if (!/\bauth:\s*\(\)\s*=>\s*import\(/.test(await readFile(kernelPath, 'utf8'))) return 'skipped'
   const state = { guardQuoted: `'${guard}'` }
   const results = [
     await codemods.makeUsingStub(command.stubsRoot, 'configure/control_limiter.stub', state),
-    await codemods.makeUsingStub(command.stubsRoot, 'configure/control_routes.stub', state),
+    await codemods.makeUsingStub(
+      command.stubsRoot,
+      formController ? 'configure/form_control_routes.stub' : 'configure/control_routes.stub',
+      state
+    ),
   ]
   if (results.some((result) => 'status' in result && result.status === 'skipped')) return 'skipped'
   type RcFileUpdater = Parameters<typeof codemods.updateRcFile>[0]

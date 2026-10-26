@@ -1,13 +1,33 @@
 # Edge forms and host redirects
 
-The package controller's status/start/stop routes return JSON. To use Edge, the host can adapt the
-same public runtime service: validate the host form, call the service, then redirect only after a
-successful transition. The provider registers the typed `masquerade.runtime` binding; the type is
-exported from the provider entry point. For a host-rendered status page, call
-`runtime.service.status(ctx)`, load eligible target choices with the host's account query, and
-render the result. Keep that page behind the raw `web` guard so recovery remains available when
-the effective account or operator eligibility changes. Attach the same independent start/stop
-limiters to the host form routes:
+The package controller keeps its JSON response for JSON clients. To scaffold a host-owned
+controller that also accepts Edge form posts, opt in when configuring the package:
+
+```sh
+node ace configure adonisjs-masquerade --form-controller
+```
+
+Configure creates `app/controllers/masquerade_form_controller.ts` and, when it can wire the
+starter-kit routes, uses that controller for POST start/stop while the package controller serves
+JSON status. Only requests that explicitly accept HTML and negotiate it use the form adapter; JSON
+requests, requests without an `Accept` header, and wildcard-only requests delegate to the package
+controller. HTML requests call the same service, redirect, and flash a typed result
+under the `masquerade` key. Success values identify `started` or `stopped`; errors carry the stable
+`MasqueradeErrorCode`, which the host can map to localized text in its Edge layout. Edit the success
+redirect methods `redirectAfterStart` and `redirectAfterStop` for the destination pages and
+`errorPath` for the form recovery page. HTML forms require the host's session middleware for flash
+storage. The controller renders no UI.
+
+Use `--banner --form-controller` together when generating the starter banner: its
+`route('masquerade.stop')` action then reaches the host-owned HTML adapter. Without
+`--form-controller`, the package route keeps its JSON response, including for a browser form.
+With `--no-wire`, configure prints the manual route wiring instead.
+
+The native-session example extends the generated controller and overrides only its app-specific
+redirects. For a host-rendered status page, call `runtime.service.status(ctx)`, load eligible target
+choices with the host's account query, and render the result. Keep that page behind the raw `web`
+guard so recovery remains available when the effective account or operator eligibility changes.
+Attach separate start and stop limiters to the host form routes:
 
 <!-- host-recipe:html-control-routes -->
 
@@ -33,208 +53,23 @@ router
 ```
 
 Keep the raw actor guard, separate limiter, Shield CSRF, and captured context token on the Edge
-POSTs too. The following complete fixture files show the boundary end to end. Copy each fence to
-the named file in the native-session example, or adapt its account query and view names to the host.
-The public `MasqueradeRuntime` type import brings the container-binding declaration into scope for
-TypeScript.
+POSTs too. Configure's generated form controller enforces the 8 KiB body limit, accepts only
+URL-encoded control fields, and leaves malformed input on the service's normal audit path. It
+flashes typed errors by stable code and leaves localization to the host. For an Inertia adapter,
+retain the same input and service boundaries, and clear Inertia history after transitions as
+described in the official [AdonisJS Inertia guide](https://docs.adonisjs.com/guides/frontend/inertia).
 
-<!-- host-recipe:demo-control-input -->
+The input parser is part of the generated `app/controllers/masquerade_form_controller.ts`; edit
+that host-owned file when adding fields. It validates URL-encoded input and the captured
+`_masqueradeContext` before calling the service.
 
-[`demo_control_input.ts`](https://github.com/Kevinjohn/oss-adonisjs-masquerade/blob/main/examples/native-session/app/services/demo_control_input.ts):
-
-```ts
-import type { HttpContext } from '@adonisjs/core/http'
-import type { StartInput, StopInput } from 'adonisjs-masquerade/types'
-
-const bodyLimit = 8 * 1024
-const startKeys = new Set(['targetId', 'reason', 'access', '_masqueradeContext', '_csrf'])
-const stopKeys = new Set(['_masqueradeContext', '_csrf'])
-
-/** Keep the HTML forms within the canonical control input and audit boundary. */
-export function demoStartInput(ctx: HttpContext): StartInput {
-  const body = formBody(ctx, startKeys)
-  if (!body) return invalidStartInput()
-  return {
-    targetId: body.targetId as StartInput['targetId'],
-    reason: body.reason as StartInput['reason'],
-    access: body.access as StartInput['access'],
-    expectedContext: controlToken(ctx, body),
-  }
-}
-
-export function demoStopInput(ctx: HttpContext): StopInput {
-  const body = formBody(ctx, stopKeys)
-  if (!body) return invalidStopInput()
-  return { expectedContext: controlToken(ctx, body) }
-}
-
-function formBody(ctx: HttpContext, allowed: Set<string>): Record<string, unknown> | null {
-  const contentType = ctx.request.header('content-type')?.split(';', 1)[0]?.trim().toLowerCase()
-  const raw = ctx.request.raw()
-  const body = ctx.request.body()
-  if (contentType !== 'application/x-www-form-urlencoded') return null
-  if (raw === null || Buffer.byteLength(raw, 'utf8') > bodyLimit) return null
-  if (!body || typeof body !== 'object' || Array.isArray(body)) return null
-  if (Object.keys(body).some((key) => !allowed.has(key))) return null
-  return body
-}
-
-function controlToken(ctx: HttpContext, body: Record<string, unknown>): string {
-  const header = ctx.request.header('X-Masquerade-Context')
-  const hidden = body._masqueradeContext
-  if (header !== undefined && hidden !== undefined && header !== hidden) {
-    return `0.${'0'.repeat(32)}`
-  }
-  const token = header ?? hidden
-  return typeof token === 'string' ? token : ''
-}
-
-function invalidStartInput(): StartInput {
-  return { __invalidHttpInput: true } as unknown as StartInput
-}
-
-function invalidStopInput(): StopInput {
-  return { __invalidHttpInput: true } as unknown as StopInput
-}
-```
-
-The demo form intentionally omits the optional duration control. If the host adds one, allow the
-field in the host parser and convert only canonical, safe integer strings before passing it to the
-service; core validation still enforces the configured 60-second minimum and maximum. The
-controller calls `noStore(ctx)` for the rendered status page and both transitions so its overrides
-retain `Cache-Control: private, no-store` and `Vary: Accept, X-Masquerade-Context`.
-
-<!-- host-recipe:demo-controller -->
-
-[`demo_controller.ts`](https://github.com/Kevinjohn/oss-adonisjs-masquerade/blob/main/examples/native-session/app/controllers/demo_controller.ts):
-
-```ts
-import User from '#models/user'
-import { demoAccounts } from '#services/demo_accounts'
-import { demoStartInput, demoStopInput } from '#services/demo_control_input'
-import { Bouncer } from '@adonisjs/bouncer'
-import type { HttpContext } from '@adonisjs/core/http'
-import db from '@adonisjs/lucid/services/db'
-import { MasqueradeController, shareMasquerade } from 'adonisjs-masquerade/http'
-
-/** Browser-only adapter around the same service used by the JSON control routes. */
-export default class DemoController extends MasqueradeController {
-  override async status(ctx: HttpContext): Promise<void> {
-    noStore(ctx)
-    const actor = ctx.auth.use('web').getUserOrFail() as User
-    const runtime = await ctx.containerResolver.make('masquerade.runtime')
-    const mode = await runtime.service.status(ctx)
-    const customerEmails = demoAccounts
-      .filter((account) => !account.masqueradeOperator)
-      .map((account) => account.email)
-    const customers = actor.masqueradeOperator
-      ? await User.query().whereIn('email', customerEmails).where('active', true)
-      : []
-    const target = mode.isMasquerading ? await User.find(mode.targetId) : null
-    ctx.response.send(
-      await ctx.view.render('pages/demo_workspace', {
-        actor,
-        operator: actor.masqueradeOperator,
-        mode,
-        customers,
-        target,
-        beforeDeadline: mode.isMasquerading && Date.parse(mode.expiresAt) > Date.now(),
-        targetAvailable: Boolean(target?.active),
-        expiresText: mode.isMasquerading ? formatDeadline(mode.expiresAt) : undefined,
-      })
-    )
-  }
-
-  override async start(ctx: HttpContext): Promise<void> {
-    noStore(ctx)
-    const runtime = await ctx.containerResolver.make('masquerade.runtime')
-    await runtime.service.start(ctx, demoStartInput(ctx))
-    ctx.response.redirect().toPath('/support/customer')
-  }
-
-  override async stop(ctx: HttpContext): Promise<void> {
-    noStore(ctx)
-    const runtime = await ctx.containerResolver.make('masquerade.runtime')
-    await runtime.service.stop(ctx, demoStopInput(ctx))
-    ctx.response.redirect().toPath('/support')
-  }
-
-  async customer(ctx: HttpContext) {
-    noStore(ctx)
-    const mode = await shareMasquerade(ctx)
-    if (!mode.isMasquerading || Date.parse(mode.expiresAt) <= Date.now()) {
-      return ctx.response.redirect().toPath('/support')
-    }
-    const actor = ctx.auth.use('web').getUserOrFail() as User
-    const customer = ctx.auth.user as User
-    await customerBouncer(ctx).authorize(
-      Bouncer.ability((user: User) => user.active && user.id === customer.id)
-    )
-    const preference = await db.from('demo_preferences').where('user_id', customer.id).first()
-    return ctx.view.render('pages/demo_customer', {
-      actor,
-      customer,
-      mode,
-      expiresText: formatDeadline(mode.expiresAt),
-      emailUpdates: Boolean(preference?.email_updates),
-      canEdit: await customerBouncer(ctx).allows(
-        Bouncer.ability((user: User) => user.active && user.canMutate && user.id === customer.id)
-      ),
-    })
-  }
-
-  async preference(ctx: HttpContext) {
-    noStore(ctx)
-    const mode = await shareMasquerade(ctx)
-    if (!mode.isMasquerading || Date.parse(mode.expiresAt) <= Date.now()) {
-      return ctx.response.redirect().toPath('/support')
-    }
-    const customer = ctx.auth.user as User
-    await customerBouncer(ctx).authorize(
-      Bouncer.ability((user: User) => user.active && user.canMutate && user.id === customer.id)
-    )
-    const value = ctx.request.input('emailUpdates')
-    if (value !== '0' && value !== '1') {
-      return ctx.response.badRequest('Choose on or off for email updates.')
-    }
-    await db
-      .table('demo_preferences')
-      .insert({ user_id: customer.id, email_updates: value === '1' })
-      .onConflict('user_id')
-      .merge()
-    ctx.session.flash('success', 'Customer email preference saved.')
-    return ctx.response.redirect().toPath('/support/customer')
-  }
-
-  async sensitive(ctx: HttpContext) {
-    // The sensitive marker rejects an active mode before this handler runs.
-    return ctx.response.forbidden('Sensitive account actions are unavailable in support mode.')
-  }
-}
-
-function customerBouncer(ctx: HttpContext) {
-  return new Bouncer<User>(() => (ctx.auth.user as User | undefined) ?? null)
-}
-
-function noStore(ctx: HttpContext) {
-  ctx.response.header('Cache-Control', 'private, no-store')
-  ctx.response.vary(['Accept', 'X-Masquerade-Context'])
-}
-
-function formatDeadline(value: string): string {
-  return `${new Intl.DateTimeFormat('en-GB', {
-    dateStyle: 'medium',
-    timeStyle: 'short',
-    timeZone: 'UTC',
-  }).format(new Date(value))} UTC`
-}
-```
-
-These are the concrete demo adapters, not additional package hooks. They use the typed public
-provider binding and `MasqueradeRuntime` declaration; the host owns the eligible-account query,
-flash messages, redirects, and rendered error recovery. Service errors reach the host exception
-handler, which can render the appropriate recovery page without replaying the form.
-
+The generated parser accepts an optional duration field and converts only canonical, safe integer
+strings; core validation enforces the configured duration bounds. HTML control responses set
+`Cache-Control: private, no-store` and `Vary: Accept, X-Masquerade-Context`.
+The example's `DemoController` extends `MasqueradeFormController` and overrides only the
+host-specific redirects. Its other methods own the eligible-account query, customer workspace, and
+business form. The generated controller supplies start/stop input parsing, service calls, and typed
+flashes.
 The status action renders a start form only when the host query returned eligible customers. The
 form component supplies Shield CSRF, and the hidden field keeps the context token from that status
 response with this start intent. This excerpt is copied from the

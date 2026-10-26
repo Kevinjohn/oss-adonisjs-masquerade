@@ -84,7 +84,6 @@ const snippets = {
   controlLimiters: fence(usage, 'control-limiters'),
   businessRoutes: fence(usage, 'business-routes'),
   htmlRoutes: fence(edge, 'html-control-routes'),
-  htmlParser: fence(edge, 'demo-control-input'),
 }
 
 function requireRecipe(condition: boolean, detail: string): void {
@@ -114,7 +113,6 @@ function verifyRecipe(parts: typeof snippets): void {
   const context = parts.kernelOrder.indexOf("'#middleware/masquerade_context_middleware'")
   const silent = parts.kernelOrder.indexOf("'#middleware/silent_auth_middleware'")
   requireRecipe(init >= 0 && init < context && context < silent, 'context middleware order')
-  requireRecipe(parts.htmlParser.includes('body._masqueradeContext'), 'documented form token')
   requireRecipe(
     parts.identityPolicy.includes('actor.user.masqueradeOperator'),
     'deny-by-default policy'
@@ -138,13 +136,6 @@ for (const [name, mutated] of [
         "() => import('#middleware/masquerade_context_middleware'),\n  () => import('#middleware/silent_auth_middleware')",
         "() => import('#middleware/silent_auth_middleware'),\n  () => import('#middleware/masquerade_context_middleware')"
       ),
-    },
-  ],
-  [
-    'form token',
-    {
-      ...snippets,
-      htmlParser: snippets.htmlParser.replace('body._masqueradeContext', 'body.contextToken'),
     },
   ],
 ] as const) {
@@ -319,7 +310,10 @@ async function applyRecipe(app: string): Promise<void> {
   )
 
   await writeHost(app, 'start/masquerade_control_limiter.ts', snippets.controlLimiters)
-  await writeHost(app, 'start/masquerade_control_routes.ts', snippets.controlRoutes)
+  await cp(
+    join(root, 'examples/recipe-host/recipe-assets/masquerade_form_routes.ts.txt'),
+    join(app, 'start/masquerade_control_routes.ts')
+  )
   await writeHost(app, 'start/recipe_business_routes.ts', snippets.businessRoutes)
   await writeHost(app, 'start/recipe_html_routes.ts', snippets.htmlRoutes)
   await writeHost(
@@ -327,7 +321,6 @@ async function applyRecipe(app: string): Promise<void> {
     'resources/views/masquerade_banner.edge',
     "@include('components/masquerade/banner')\n"
   )
-  await writeHost(app, 'app/services/demo_control_input.ts', snippets.htmlParser)
   await cp(
     join(app, 'recipe-assets/masquerade_controller.ts.txt'),
     join(app, 'app/controllers/masquerade_controller.ts')
@@ -440,6 +433,7 @@ try {
           '--namespace=my_app',
           '--guard=web',
           '--banner',
+          '--form-controller',
           '--no-wire',
         ],
         `${engine} configure`,
@@ -476,7 +470,7 @@ try {
       await run(app, ['test'], `${engine} journey`, env)
       await expectBrokenJourney(
         app,
-        'app/services/demo_control_input.ts',
+        'app/controllers/masquerade_form_controller.ts',
         'const hidden = body._masqueradeContext',
         'const hidden = body.contextToken',
         'form token',

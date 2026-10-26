@@ -85,6 +85,11 @@ manual step for anything it leaves alone:
   `ModeView` as `masquerade` with Edge and Inertia only on authenticated effective-guard routes.
   Public, login/logout, and raw control routes do not read mode status. The host may replace the
   displayed target ID with its own label; the package does not inspect application display fields.
+- **Optional form controller**: pass `--form-controller` to generate the editable
+  `app/controllers/masquerade_form_controller.ts`. Configure wires it to POST start/stop while GET
+  status remains on the package controller. The host controller delegates JSON requests to the
+  package controller and handles HTML form posts with typed flashes and host-owned redirects. Use
+  `--banner --form-controller` together when the generated banner's Stop form should redirect.
 
   The generated form posts to the named `masquerade.stop` route. With the default package route,
   a successful stop returns JSON, which the browser displays. A host that wants a redirect or

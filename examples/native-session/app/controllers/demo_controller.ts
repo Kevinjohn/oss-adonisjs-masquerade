@@ -1,18 +1,21 @@
 import User from '#models/user'
 import { demoAccounts } from '#services/demo_accounts'
-import { demoStartInput, demoStopInput } from '#services/demo_control_input'
 import { Bouncer } from '@adonisjs/bouncer'
 import type { HttpContext } from '@adonisjs/core/http'
 import db from '@adonisjs/lucid/services/db'
-import { MasqueradeController, shareMasquerade } from 'adonisjs-masquerade/http'
+import { shareMasquerade } from 'adonisjs-masquerade/http'
+import MasqueradeFormController from '#controllers/masquerade_form_controller'
+import type { MasqueradeFormFlash } from '#controllers/masquerade_form_controller'
 
-/** Browser-only adapter around the same service used by the JSON control routes. */
-export default class DemoController extends MasqueradeController {
+/** Host-owned workspace and account query around the generated form controller. */
+export default class DemoController extends MasqueradeFormController {
   override async status(ctx: HttpContext): Promise<void> {
     noStore(ctx)
     const actor = ctx.auth.use('web').getUserOrFail() as User
     const runtime = await ctx.containerResolver.make('masquerade.runtime')
     const mode = await runtime.service.status(ctx)
+    const masqueradeFlash = ctx.session.flashMessages.get('masquerade') as
+      MasqueradeFormFlash | undefined
     const customerEmails = demoAccounts
       .filter((account) => !account.masqueradeOperator)
       .map((account) => account.email)
@@ -25,6 +28,7 @@ export default class DemoController extends MasqueradeController {
         actor,
         operator: actor.masqueradeOperator,
         mode,
+        masqueradeFlash,
         customers,
         target,
         beforeDeadline: mode.isMasquerading && Date.parse(mode.expiresAt) > (await now()),
@@ -34,18 +38,16 @@ export default class DemoController extends MasqueradeController {
     )
   }
 
-  override async start(ctx: HttpContext): Promise<void> {
-    noStore(ctx)
-    const runtime = await ctx.containerResolver.make('masquerade.runtime')
-    await runtime.service.start(ctx, demoStartInput(ctx))
-    ctx.response.redirect().toPath('/support/customer')
+  protected override redirectAfterStart(_ctx: HttpContext): string {
+    return '/support/customer'
   }
 
-  override async stop(ctx: HttpContext): Promise<void> {
-    noStore(ctx)
-    const runtime = await ctx.containerResolver.make('masquerade.runtime')
-    await runtime.service.stop(ctx, demoStopInput(ctx))
-    ctx.response.redirect().toPath('/support')
+  protected override redirectAfterStop(_ctx: HttpContext): string {
+    return '/support'
+  }
+
+  protected override errorPath(_ctx: HttpContext, _action: 'start' | 'stop'): string {
+    return '/support'
   }
 
   async customer(ctx: HttpContext) {
