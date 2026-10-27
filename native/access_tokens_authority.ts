@@ -26,12 +26,23 @@ interface StandaloneAuthorityOptions<User> extends AccessTokensAuthorityBase<Use
   securityStamp(user: User): string | Promise<string>
   isActive(user: User): boolean | Promise<boolean>
 }
+/**
+ * Options for `accessTokensAuthority`: either share an existing `authority`, or supply the
+ * standalone `namespace`, `incarnation`, `securityStamp` and `isActive` fields. `ability` names the
+ * token ability the actor's token must allow.
+ */
 export type AccessTokensAuthorityOptions<User> =
   SharedAuthorityOptions<User> | StandaloneAuthorityOptions<User>
 
 export interface NativeAccessTokensAdapter<User = unknown> extends NativeRuntimeAdapter {
   readonly authority: NativeAuthority<User>
   readonly guard: string
+  /**
+   * Authenticate through the raw access-tokens guard; `E_UNAUTHORIZED_ACCESS` passes through.
+   *
+   * @throws {MasqueradeError} `E_MASQUERADE_NOT_ALLOWED` when the token lacks the ability, or
+   *   `E_MASQUERADE_UNAVAILABLE`.
+   */
   authenticateActor(ctx: HttpContext): Promise<Subject<User>>
 }
 
