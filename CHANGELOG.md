@@ -2,6 +2,11 @@
 
 ## Unreleased
 
+- Support Account Kit `0.1.3`. The optional `adonisjs-account-kit` peer now declares `0.1.3` in
+  place of `0.1.1`, and the Account Kit consumer matrix, demo and guide use the `0.1.3` GitHub
+  release artifact. All 16 floor/latest SQLite/PostgreSQL cells pass for both strategies with
+  session management on and off. No runtime code changed.
+
 ## 0.1.0-alpha.1 (2026-10-27)
 
 First alpha, distributed as a GitHub prerelease with the packed tarball attached. Not published to
