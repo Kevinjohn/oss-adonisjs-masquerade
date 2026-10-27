@@ -10,47 +10,46 @@ Hosts using Account Kit should also read the [Account Kit integration preview](a
 
 ## Generate the starter files
 
-Use Node 24 and pnpm. This package version is not published yet. From the package checkout, build
-and pack the current source:
+Use Node 24 and pnpm. Masquerade is not published to a package registry. The alpha
+`0.1.0-alpha.1` is a [GitHub prerelease](https://github.com/Kevinjohn/oss-adonisjs-masquerade/releases/tag/v0.1.0-alpha.1)
+with the packed tarball attached. Install it directly in the AdonisJS application:
 
 ```sh
-pnpm build
-pnpm pack:fixture
+pnpm add https://github.com/Kevinjohn/oss-adonisjs-masquerade/releases/download/v0.1.0-alpha.1/adonisjs-masquerade-0.1.0-alpha.1.tgz
 ```
 
-For a repeatable local alpha self-test, build from the annotated tag selected for the baseline. The
-tag identifies the source revision; the package manifest remains `0.0.0`, and no registry version
-is provided. After the tag is available, replace `alpha-1` below with the exact tag named in the
-repository's [maintainer verification record](../maintainers/alpha-baseline.md).
-Create a clean worktree so the selected source and
-lockfile stay fixed:
+The release notes list the tarball SHA-256 and source commit. To build the same version yourself,
+check out the annotated tag in a clean worktree so the source and lockfile stay fixed:
 
 ```sh
 git fetch origin --tags
-git worktree add --detach ../masquerade-alpha-1 alpha-1
-cd ../masquerade-alpha-1
+git worktree add --detach ../masquerade-v0.1.0-alpha.1 v0.1.0-alpha.1
+cd ../masquerade-v0.1.0-alpha.1
 nvm use
 pnpm install --frozen-lockfile
 pnpm build
 pnpm pack:fixture
 ```
 
-Use another unused worktree path if `../masquerade-alpha-1` already exists. Re-run the build and
-pack commands after changing the selected source; compare the resulting tarball hash when checking
-that two installations use the same artifact.
+Use another unused worktree path if that one already exists. To test unreleased changes, run
+`pnpm build` and `pnpm pack:fixture` in your package checkout instead.
 
-This creates `tmp/native-session-package.tgz`. In the AdonisJS application, install that artifact
-before running its configure command (adjust the path to the package checkout):
+A local build creates `tmp/native-session-package.tgz`; install it in place of the release URL
+(adjust the path to the package checkout):
 
 ```sh
 pnpm add file:/path/to/oss-adonisjs-masquerade/tmp/native-session-package.tgz
+```
+
+Then add any missing peers and run the configure command:
+
+```sh
 pnpm add -D @adonisjs/assembler
 pnpm add @adonisjs/lucid
 node ace configure adonisjs-masquerade --namespace=my_app --guard=web
 ```
 
-The last two install commands are needed only if those dependencies are absent. Alpha self-testing
-uses the local tarball; there is no registry version corresponding to this baseline. Configure
+The two install commands are needed only if those dependencies are absent. Configure
 itself does not install packages or run the generated migration.
 
 Choose a stable namespace for this identity domain and the name of the raw session guard. Configure

@@ -2,6 +2,26 @@
 
 ## Unreleased
 
+## 0.1.0-alpha.1 (2026-10-27)
+
+First alpha, distributed as a GitHub prerelease with the packed tarball attached. Not published to
+a package registry. Expect breaking changes before 1.0; no independent security review yet.
+
+- Account-wide support mode for AdonisJS 7: an authorized actor uses the application as another
+  user for a fixed time while staying authenticated as themselves.
+- Native session and opaque access-token guards, with the actor on the raw guard and the effective
+  user on business routes.
+- View-only by default, per-start **Can edit** gated by `canEdit`, and `sensitive()` routes that
+  stay blocked while a mode is active.
+- `node ace configure adonisjs-masquerade` scaffolding, Lucid control store for SQLite and
+  PostgreSQL, audit ledger, and the `masquerade:routes`, `masquerade:status`, `masquerade:stop`
+  and `masquerade:prune` commands.
+- Optional Edge banner and form-controller scaffolding, a Japa API client plugin, and an Account
+  Kit integration preview.
+- Runnable fictional demos: native session with Edge, Inertia React, Inertia Vue and Account Kit.
+
+### Development history
+
 - Add `pnpm check:changed [base]`, which runs only the checks that a branch's changed files need.
 - Reject package control handlers whose selected guard is not raw, and flag effective-guard control routes in `masquerade:routes`.
 - Export `stampFrom` to build deterministic security stamps from host-selected account fields.

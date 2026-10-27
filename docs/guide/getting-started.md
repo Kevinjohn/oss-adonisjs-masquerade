@@ -1,7 +1,7 @@
 # Getting started
 
 Masquerade supports AdonisJS 7 applications and Node.js 24 or later. The session setup is covered
-here; v1.1 also supports opaque access tokens through the [access-token guide](access-tokens.md).
+here; opaque access tokens are also supported through the [access-token guide](access-tokens.md).
 It keeps the operator authenticated as the **actor** while the selected account is the
 **effective identity** for covered business routes. The target does not sign in, receive a
 credential, or inherit the actor's permissions.

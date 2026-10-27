@@ -1,7 +1,7 @@
 {
   "name": "adonisjs-masquerade",
   "description": "Server-side account masquerade for AdonisJS: an operator acts as another account without a target login",
-  "version": "0.0.0",
+  "version": "0.1.0-alpha.1",
   "engines": {
     "node": ">=24.0.0"
   },

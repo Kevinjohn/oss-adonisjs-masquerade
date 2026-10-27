@@ -2,9 +2,9 @@
 
 ## Supported versions
 
-Masquerade is an unpublished early alpha for local self-testing. There is no registry release or
-published version to upgrade to. Security fixes are made on the main branch; check the affected
-commit when reporting a problem with a local build.
+Masquerade is an early alpha distributed as GitHub prereleases; it is not published to a package
+registry. Only the latest prerelease and the main branch receive security fixes. Name the release
+tag or commit when reporting a problem.
 
 ## Reporting a vulnerability
 

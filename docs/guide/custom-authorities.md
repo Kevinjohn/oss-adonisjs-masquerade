@@ -44,7 +44,7 @@ export const authority: NativeAuthority<User> = {
     return {
       subject: {
         id: String(user.id),
-        incarnation: 'id',
+        incarnation: String(user.id),
         user,
       },
       securityStamp: accountStamp(user),
