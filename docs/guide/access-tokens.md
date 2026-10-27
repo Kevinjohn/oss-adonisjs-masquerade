@@ -24,7 +24,11 @@ For a mixed session and token application, keep the same account-level authority
 application's native `AccessTokensUserProviderContract` for the selected Auth guard.
 
 ```ts
-import { accessTokensAuthority, nativeAuthorities, sessionAuthority } from 'adonisjs-masquerade/native'
+import {
+  accessTokensAuthority,
+  nativeAuthorities,
+  sessionAuthority,
+} from 'adonisjs-masquerade/native'
 
 const session = sessionAuthority({
   namespace: 'support-accounts',
@@ -104,9 +108,7 @@ and account callbacks with host-owned values. Standalone token options (`namespa
 Select the effective guard in Auth middleware for token business routes:
 
 ```ts
-router
-  .get('/api/customer', handler)
-  .use(middleware.auth({ guards: ['api_effective'] }))
+router.get('/api/customer', handler).use(middleware.auth({ guards: ['api_effective'] }))
 ```
 
 Use the matching effective guard for integrated session routes. Controls that call Masquerade

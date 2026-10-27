@@ -12,6 +12,7 @@ const browserEnv = { DB_CLIENT: 'sqlite', HOST: '127.0.0.1', SESSION_DRIVER: 'me
 /** Steps per profile. `full` and `browser` run after `quick`; together they cover the CI scripts. */
 export const checkProfiles: Record<CheckProfile, CheckStep[]> = {
   quick: [
+    { script: 'format:check' },
     { script: 'lint' },
     { script: 'typecheck' },
     { script: 'quick:test' },

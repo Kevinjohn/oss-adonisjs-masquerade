@@ -1,5 +1,7 @@
-import { readFileSync } from 'node:fs'
-import { join } from 'node:path'
+import { spawnSync } from 'node:child_process'
+import { mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
+import { tmpdir } from 'node:os'
+import { delimiter, join } from 'node:path'
 import { test } from '@japa/runner'
 import { checkProfiles, selectedSteps } from '../bin/check_profiles.js'
 
@@ -44,4 +46,31 @@ test('profiles add to the quick profile and reject unknown flags', ({ assert }) 
     checkProfiles.quick.length + checkProfiles.full.length + checkProfiles.browser.length
   )
   assert.throws(() => selectedSteps(['--fast']), /pnpm check/)
+})
+
+test('format:check covers tracked files only and tolerates an unstaged deletion', ({ assert }) => {
+  const directory = mkdtempSync(join(tmpdir(), 'format-check-'))
+  const formatCheck = () =>
+    spawnSync('sh', ['-c', scripts()['format:check']], {
+      cwd: directory,
+      env: {
+        ...process.env,
+        PATH: `${join(root, 'node_modules/.bin')}${delimiter}${process.env.PATH}`,
+      },
+    }).status
+
+  try {
+    spawnSync('git', ['init', '-q'], { cwd: directory })
+    writeFileSync(join(directory, 'kept.ts'), 'export const kept = 1;\n')
+    writeFileSync(join(directory, 'deleted.ts'), 'export const deleted = 1;\n')
+    spawnSync('git', ['add', '.'], { cwd: directory })
+    rmSync(join(directory, 'deleted.ts'))
+    writeFileSync(join(directory, 'untracked.ts'), 'export   const untracked={a:1}\n')
+    assert.equal(formatCheck(), 0)
+
+    writeFileSync(join(directory, 'kept.ts'), 'export   const kept=1\n')
+    assert.notEqual(formatCheck(), 0)
+  } finally {
+    rmSync(directory, { recursive: true, force: true })
+  }
 })

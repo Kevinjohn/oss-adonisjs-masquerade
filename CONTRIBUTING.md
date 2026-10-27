@@ -44,7 +44,7 @@ Run the repository scripts, not the bare tools. They carry the flags the release
 
 | Command                | What it adds                                                                                                     |
 | ---------------------- | ---------------------------------------------------------------------------------------------------------------- |
-| `pnpm check`           | Lint, typecheck, the SQLite test suite, build and the built-export test                                          |
+| `pnpm check`           | Prettier on tracked files, lint, typecheck, the SQLite test suite, build and the built-export test               |
 | `pnpm check --full`    | PostgreSQL suite, coverage, recipe, demo launcher, docs build, packed consumer and Account Kit consumer (SQLite) |
 | `pnpm check --browser` | Account Kit demo, native-session browser suite, Inertia React and Vue examples                                   |
 
@@ -58,7 +58,7 @@ full SQLite suite, build and built exports, the recipe, and the docs build. It p
 their own and the docs build, and prints a `skip` line for the full suite, build, built exports
 and recipe; use it when one shared run covers those, such as a batch of pull requests. `--browser` needs the native-session example's dependencies and Chromium
 (`pnpm install` and `pnpm dlx playwright install chromium` in `examples/native-session`). The flags combine. Every pull request runs the `checks`
-workflow: lint, typecheck, build, the built-export test and coverage on SQLite and PostgreSQL. The `e2e`
+workflow: Prettier, lint, typecheck, build, the built-export test and coverage on SQLite and PostgreSQL. The `e2e`
 workflow runs the demo launcher, recipe and browser checks on pull requests that change `examples/`,
 `http/`, `stubs/` or `docs/guide/`; `docs` builds the site when `docs/` changes. `e2e` and
 `account-kit` also run nightly, and both run with `consumer` before every release; `account-kit` and

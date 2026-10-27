@@ -2,6 +2,11 @@
 
 ## Unreleased
 
+- `pnpm check` and the `checks` workflow now start with `pnpm format:check`, which runs
+  `prettier --check` on the files git tracks, so formatting fails before lint and the tests run.
+  Untracked local files are not checked. Edge templates and the Edge client guide are
+  excluded because `prettier-edge` adds blank lines on every pass.
+
 ## 0.1.1-alpha (2026-10-27)
 
 Alpha patch, distributed as a GitHub prerelease with the packed tarball attached. Not published to
