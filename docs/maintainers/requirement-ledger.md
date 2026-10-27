@@ -230,8 +230,22 @@ six Account Kit integration specs in a fresh Ace process.
 Each profile passed 154 cases with 38 expected configuration-specific skips, the same counts as the
 `0.1.1` run. Floor records `codegen` as unsupported at Core `7.0.0`; configure, migration,
 typecheck, route report and all six suites passed in every cell. The SQLite + session + session
-management on cell is the configuration CapacityLens uses. The guide snippet host check below was
-run with `0.1.1` and was not repeated.
+management on cell is the configuration CapacityLens uses.
+
+The guide session snippets were then rechecked in a separate disposable host with Account Kit
+`0.1.3` and the committed candidate's Masquerade archive, SHA-256
+`48363200a49f2243529dfa32244c2f46c135921f52b48f4fd7d2ab880c017442`. The host was a copy of the
+latest SQLite session cell (Core `7.6.0`, Auth `10.1.0`, Session `8.3.0`) with session management
+on. These files were taken verbatim from the guide: `app/services/account_kit_guard.ts`,
+`config/masquerade.ts`, `providers/masquerade_native_provider.ts`,
+`app/middleware/account_kit_actor_admission_middleware.ts`, the `adonisrc.ts` provider order and
+the kernel middleware order. `app/services/masquerade_user_provider.ts` came from the configure
+stub, and the raw web guard imported it as the setup guide shows. The protected `/business` route
+was named `business.customers`. Migration, `node ace masquerade:routes` (18 verified managed
+routes) and `tsc --noEmit` passed. The packed journey spec passed (1 case) and the admission spec
+passed (3 cases) with `access: 'view'`, because the guide's policy defines no `canEdit`. Removing
+the `business.customers` name made the revoked-actor admission case fail with 200 instead of 403.
+This verifies the documented session wiring and runtime path; it is not a usability study.
 
 ### Pinned GitHub release artifact matrix — 22 October 2026
 
@@ -318,8 +332,8 @@ and owner namespace. All mutations were restored and focused suites passed. Some
 were recorded from named failures without retained raw logs; setup-error attempts were excluded.
 Independent review of the added guard regressions found no remaining issues.
 
-The guide session snippets were installed in a separate disposable host with Account Kit `0.1.1`
-and Masquerade artifact SHA `060dbe029e58dcf7126d92d55328ae46c8cf26c9d5ce017db7a717ab53d57d06`.
+For `0.1.1`, the guide session snippets were installed in a separate disposable host with Account
+Kit `0.1.1` and Masquerade artifact SHA `060dbe029e58dcf7126d92d55328ae46c8cf26c9d5ce017db7a717ab53d57d06`.
 Its provider setup, route report and `pnpm typecheck` passed. A view-mode journey passed (1 case)
 and admission passed (3 cases). The copied smoke requests selected view mode to match the guide's
 policy, and the protected business route had a matching `business.*` name. This verifies the
