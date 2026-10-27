@@ -32,12 +32,7 @@ export function MasqueradeBanner() {
         Fixed deadline: <time dateTime={masquerade.expiresAt}>{masquerade.expiresAt}</time>
       </p>
       <Form action="/support/stop" method="post">
-        <input
-          type="hidden"
-          name="_masqueradeContext"
-          value={masquerade.contextToken}
-          readOnly
-        />
+        <input type="hidden" name="_masqueradeContext" value={masquerade.contextToken} readOnly />
         <button type="submit">Stop masquerade</button>
       </Form>
     </aside>

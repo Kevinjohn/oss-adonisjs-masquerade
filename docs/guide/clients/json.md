@@ -26,7 +26,7 @@ const response = await fetch('/masquerade/start', {
   credentials: 'same-origin',
   cache: 'no-store',
   headers: {
-    Accept: 'application/json',
+    'Accept': 'application/json',
     'Content-Type': 'application/json',
     'X-CSRF-TOKEN': csrfToken,
     'X-Masquerade-Context': idleStatus.contextToken,
@@ -43,7 +43,11 @@ For example, a successful customer read resembles:
 {
   "actor": { "id": 1, "email": "operator@example.test" },
   "customer": { "id": 2, "fullName": "Customer One", "email": "customer-one@example.test" },
-  "mode": { "contextToken": "1.<nonce>", "expiresAt": "2026-10-21T14:30:00.000Z", "access": "edit" },
+  "mode": {
+    "contextToken": "1.<nonce>",
+    "expiresAt": "2026-10-21T14:30:00.000Z",
+    "access": "edit"
+  },
   "emailUpdates": false,
   "canEdit": true
 }

@@ -311,11 +311,11 @@ interface ControlStore {
 
 ## 8. HTTP contract
 
-| Method/path              | Operation | Input                                                        | Success               |
-| ------------------------ | --------- | ------------------------------------------------------------ | --------------------- |
-| `GET /masquerade`        | Status    | Raw actor credential                                         | 200 `ModeView`        |
+| Method/path              | Operation | Input                                                         | Success               |
+| ------------------------ | --------- | ------------------------------------------------------------- | --------------------- |
+| `GET /masquerade`        | Status    | Raw actor credential                                          | 200 `ModeView`        |
 | `POST /masquerade/start` | Start     | `{ targetId, reason?, durationSeconds?, access? }` plus token | 200 active `ModeView` |
-| `POST /masquerade/stop`  | Stop      | `{}` plus token                                              | 200 idle `ModeView`   |
+| `POST /masquerade/stop`  | Stop      | `{}` plus token                                               | 200 idle `ModeView`   |
 
 - Routes are opt-in and mounted by the host under a prefix behind Shield CSRF and the host limiter. Server-rendered controllers may redirect to fixed same-origin paths.
 - Control, status and effective-user responses send `Cache-Control: no-store` and appropriate `Vary`.

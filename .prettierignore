@@ -5,3 +5,7 @@ pnpm-lock.yaml
 .adonisjs/
 tmp/
 examples/*/public/assets/
+# prettier-edge adds blank lines on every pass, so Edge templates and the guide's Edge excerpts
+# are formatted by hand
+*.edge
+docs/guide/clients/edge.md
