@@ -5,7 +5,7 @@ import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { pathToFileURL } from 'node:url'
 import * as prettier from 'prettier'
-import { wireAuthGuards, wireContextMiddleware } from '../configure_wiring.js'
+import { wireAuthGuards, wireContextMiddleware, wireStatusMiddleware } from '../configure_wiring.js'
 import { starterAuthConfig, starterKernel } from './helpers/starter_kit.js'
 
 async function host(files: { auth?: string; kernel?: string }) {
@@ -137,6 +137,29 @@ test.group('configure wiring', (group) => {
         await readFile(h.kernel, 'utf8'),
         `  () => import('@adonisjs/auth/initialize_auth_middleware'),\n${contextEntry}\n])`
       )
+    } finally {
+      await rm(h.root, { recursive: true, force: true })
+    }
+  })
+
+  test('inserts opt-in status sharing after silent auth without duplicating it', async ({
+    assert,
+  }) => {
+    const h = await host({ kernel: starterKernel })
+    try {
+      assert.equal(await wireContextMiddleware(h.project(), h.kernel), 'wired')
+      assert.equal(await wireStatusMiddleware(h.project(), h.kernel), 'wired')
+      const kernel = await readFile(h.kernel, 'utf8')
+      assert.include(
+        kernel,
+        [
+          "  () => import('#middleware/masquerade_context_middleware'),",
+          "  () => import('#middleware/silent_auth_middleware'),",
+          "  () => import('#middleware/share_masquerade_status_middleware'),",
+        ].join('\n')
+      )
+      assert.equal(await wireStatusMiddleware(h.project(), h.kernel), 'already')
+      assert.equal(await readFile(h.kernel, 'utf8'), kernel)
     } finally {
       await rm(h.root, { recursive: true, force: true })
     }

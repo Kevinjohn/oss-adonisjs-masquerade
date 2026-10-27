@@ -1,0 +1,15 @@
+{{{
+  exports({ to: app.makePath('resources/views/components/masquerade/banner.edge') })
+}}}
+@if(masquerade && masquerade.isMasquerading)
+  <aside class="masquerade-banner" role="status" aria-live="polite">
+    <p>You are viewing as account {{{ edgeOpen }}} masquerade.targetId {{{ edgeClose }}}.</p>
+    <p>Access: {{{ edgeOpen }}} masquerade.access === 'edit' ? 'Can edit' : 'View only' {{{ edgeClose }}}.</p>
+    <p>Fixed deadline: <time datetime="{{{ edgeOpen }}} masquerade.expiresAt {{{ edgeClose }}}">{{{ edgeOpen }}} masquerade.expiresAt {{{ edgeClose }}}</time></p>
+    <form method="post" action="{{{ edgeOpen }}} route('masquerade.stop') {{{ edgeClose }}}">
+      {{{ edgeOpen }}} csrfField() {{{ edgeClose }}}
+      <input type="hidden" name="_masqueradeContext" value="{{{ edgeOpen }}} masquerade.contextToken {{{ edgeClose }}}" />
+      <button type="submit">Stop masquerade</button>
+    </form>
+  </aside>
+@end

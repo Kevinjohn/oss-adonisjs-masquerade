@@ -21,7 +21,8 @@ pnpm pack:fixture
 For a repeatable local alpha self-test, build from the annotated tag selected for the baseline. The
 tag identifies the source revision; the package manifest remains `0.0.0`, and no registry version
 is provided. After the tag is available, replace `alpha-1` below with the exact tag named in the
-repository's maintainer verification record. Create a clean worktree so the selected source and
+repository's [maintainer verification record](../maintainers/alpha-baseline.md).
+Create a clean worktree so the selected source and
 lockfile stay fixed:
 
 ```sh
@@ -75,9 +76,31 @@ manual step for anything it leaves alone:
   has the named `auth` middleware, configure writes `start/masquerade_limiter.ts` (separate start
   and stop budgets) and `start/masquerade_routes.ts` (`masqueradeRoutes` on the raw guard) and
   preloads the routes file. Without `@adonisjs/limiter`, the routes step is printed instead.
+- **Optional banner**: pass `--banner` on the initial configure command to generate the editable
+  `resources/views/components/masquerade/banner.edge` and
+  `app/middleware/share_masquerade_status_middleware.ts` files. On a recognized kernel, configure
+  registers the middleware after silent authentication. Include the component in an authenticated
+  Edge layout with `@include('components/masquerade/banner')`. It displays the target ID, access
+  level, deadline, CSRF field, and current context token. The generated files are host-owned and
+  can be restyled or replaced; the package ships no runtime UI. The middleware shares the safe
+  `ModeView` as `masquerade` with Edge and Inertia only on authenticated effective-guard routes.
+  Public, login/logout, and raw control routes do not read mode status. The host may replace the
+  displayed target ID with its own label; the package does not inspect application display fields.
+- **Optional form controller**: pass `--form-controller` to generate the editable
+  `app/controllers/masquerade_form_controller.ts`. Configure wires it to POST start/stop while GET
+  status remains on the package controller. The host controller delegates JSON requests to the
+  package controller and handles HTML form posts with typed flashes and host-owned redirects. Use
+  `--banner --form-controller` together when the generated banner's Stop form should redirect.
+
+  The generated form posts to the named `masquerade.stop` route. With the default package route,
+  a successful stop returns JSON, which the browser displays. A host that wants a redirect or
+  confirmation page owns that response presentation and the route used by its form.
 
 The identity and policy callbacks stay manual and fail closed. Pass `--no-wire` to skip every edit
-above and get only the printed steps.
+above and get only the printed steps. With `--banner --no-wire`, manually register the generated
+status middleware in `router.use` after `silent_auth_middleware`, then include the Edge component in
+an authenticated layout yourself. If `--form-controller` is also enabled, manually mount its form
+routes in place of the package's start/stop routes while retaining the package status route.
 
 Generated files fail closed. Review the output and replace every placeholder described below before
 mounting routes. If a generated destination already exists, configure leaves files unchanged and
@@ -165,10 +188,9 @@ Remove or leave unused the generated `masquerade_user_provider.ts`; do not creat
 The generated `config/masquerade.ts` imports `userProvider` from
 `#services/masquerade_user_provider`, the same module used by `web_guard.ts` above. Keep that import
 and provider unchanged; do not create a second `sessionUserProvider`. Adapt the callbacks to
-persistent fields owned by your User model. This example assumes the host model has a
-non-reused numeric `id`, an immutable `accountIncarnation` string, a boolean `active`, a boolean
-`masqueradeOperator`, and a persisted string `securityEpoch` that the host advances when
-account-wide revocation is required:
+persistent fields owned by your User model. This example assumes the host model has a numeric `id`,
+an immutable `accountIncarnation` string, a boolean `active`, a `securityEpoch` that the host
+advances when account-wide revocation is required, and the operator policy field shown below:
 
 <!-- host-recipe:identity-policy -->
 
@@ -176,14 +198,14 @@ account-wide revocation is required:
 // Relevant part of config/masquerade.ts
 import type User from '#models/user'
 import { userProvider } from '#services/masquerade_user_provider'
-import { sessionAuthority } from 'adonisjs-masquerade/native'
+import { sessionAuthority, stampFrom } from 'adonisjs-masquerade/native'
 
 const nativeAdapter = sessionAuthority<User>({
   namespace: 'my_app',
   guard: 'web',
   provider: userProvider,
   incarnation: (user) => user.accountIncarnation,
-  securityStamp: (user) => user.securityEpoch,
+  securityStamp: stampFrom((user) => [user.securityEpoch]),
   // Normalize database boolean representations to the strict boolean expected by the package.
   isActive: (user) => Boolean(user.active),
 })
@@ -206,8 +228,9 @@ export default defineConfig<User, HttpContext>({
 })
 ```
 
-This is a configuration fragment; retain the generated imports, store, and retention settings. Set
-`contextEnforcement` to `enforce` when business forms carry a captured context token: the generated
+This is a configuration fragment; add `stampFrom` to the generated import from
+`adonisjs-masquerade/native`, and retain the other generated imports, store, and retention settings.
+Set `contextEnforcement` to `enforce` when business forms carry a captured context token: the generated
 `report` setting logs stale tokens but allows the request to continue. Enforcement rejects every
 covered unsafe business request without the token with 428, including when no one is
 masquerading. An application with existing unsafe forms or clients on effective-guard routes keeps
@@ -217,12 +240,49 @@ the generated `report` until each one sends the token, as described in
 reused. Use `incarnation: 'id'` only if the host guarantees account IDs are never reused. The
 incarnation must not change during ordinary security updates.
 
-`securityStamp` must be a persisted security epoch, not a constant, a freshly generated timestamp on
-each lookup, or a partial security fingerprint. Advance it transactionally whenever the host wants
-all active modes for that account revoked: typically after password changes or resets, privilege
-changes, suspension or reactivation, and account-wide logout/revocation. Make the epoch visible to
-the provider's current user lookup. A persisted time value is valid if it remains stable between
-revocation events and changes reliably for each event.
+For a reusable numeric ID, an immutable creation timestamp can distinguish account lifetimes when
+the database's timestamp precision guarantees a different value for each reuse:
+
+```ts
+incarnation: (user) => user.createdAt.toISO()!,
+```
+
+If that guarantee does not hold, persist a generated immutable incarnation value instead. Keep this
+choice explicit; `stampFrom` does not supply or infer an incarnation.
+
+`stampFrom` returns a deterministic SHA-256 digest of the selected scalar fields. It frames each
+UTF-8 value with its type and byte length before hashing, so adjacent values cannot become
+ambiguous. Strings, finite numbers, booleans, bigints and `null` are supported; an `undefined` field
+throws, so a missing or unloaded property fails closed instead of producing a constant stamp. Convert
+Lucid `DateTime` values to a stable representation such as `.toISO()` in the selector. The package
+hashes the returned stamp again before storage; the helper's digest is not encryption or a secret.
+
+Choose fields that cover every account-wide event that should revoke active modes. Common Lucid
+choices include:
+
+| Field                     | What it detects                                                | Limits                                                                                             |
+| ------------------------- | -------------------------------------------------------------- | -------------------------------------------------------------------------------------------------- |
+| `password`                | Password hash changes, including password reset or change      | A password rehash can also revoke modes even when the password itself did not change.              |
+| `role` or `isAdmin`       | Changes represented by that column                             | Does not detect changes in a separate roles or permissions table.                                  |
+| `suspendedAt` or `active` | Suspension or active-status changes                            | Returns to its earlier value on reactivation; see below.                                           |
+| `securityEpoch`           | Every event for which the host increments this persisted epoch | This is the broadest option when updated transactionally and read from the current account record. |
+
+A column that returns to its earlier value restores the earlier stamp. Suspending and then
+reactivating an account, or demoting and then restoring a role, before the account's next request
+leaves its active modes in place. Select `securityEpoch` for every event that must always revoke.
+
+For example, `securityEpoch` should advance transactionally after password changes or resets,
+privilege changes, suspension or reactivation, and account-wide logout/revocation whenever those
+events must invalidate active modes. Keep the epoch visible to the provider's current user lookup.
+Unrelated fields such as email or display name need not be selected unless the host wants those
+changes to revoke modes. Do not use a constant, a timestamp generated on each lookup, or a value
+that can remain stale in a cache.
+
+The helper detects changes only to the values the host selects. It cannot see credential or session
+revocation, related-table permission changes, or external account status unless a selected field
+changes too. Include a persisted epoch for such events. `inspectAccount` and `securityStamp` must
+derive from the same current account state; stale or inconsistent reads can conceal revocation.
+
 Ordinary logout of one session remains the host session credential flow; advance the epoch as part
 of logout-all when that action should also revoke every active mode. The host owns which events
 advance it. `isActive` must return the current account eligibility as a boolean; a deleted or

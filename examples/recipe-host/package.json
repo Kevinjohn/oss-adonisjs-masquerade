@@ -30,6 +30,7 @@
     "@japa/api-client": "^3.2.1",
     "@vinejs/vine": "^4.4.0",
     "better-sqlite3": "^13.0.3",
+    "edge.js": "^6.5.1",
     "luxon": "^3.7.2",
     "pg": "^8.0.0",
     "reflect-metadata": "^0.2.2"

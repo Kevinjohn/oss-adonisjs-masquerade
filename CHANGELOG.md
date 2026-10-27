@@ -3,6 +3,8 @@
 ## Unreleased
 
 - Add `pnpm check:changed [base]`, which runs only the checks that a branch's changed files need.
+- Reject package control handlers whose selected guard is not raw, and flag effective-guard control routes in `masquerade:routes`.
+- Export `stampFrom` to build deterministic security stamps from host-selected account fields.
 - Pull request CI now runs only lint, typecheck, build, the built-export test and coverage. The demo
   launcher, recipe, Account Kit demo, browser suite and Inertia examples move to a new `e2e`
   workflow that runs on pull requests touching `examples/`, `http/`, `stubs/` or `docs/guide/`,
@@ -29,6 +31,12 @@
   guard, inserts the context middleware after `initialize_auth`, and, when `@adonisjs/limiter` is
   configured, generates and preloads the control routes and limiters. Other shapes are left
   unchanged with the manual step printed. `--no-wire` keeps the previous print-only behaviour.
+- Add opt-in `configure --banner` scaffolding for editable host-owned Edge status UI and middleware
+  that shares the safe mode projection with Edge and Inertia on authenticated effective routes.
+  The package continues to ship no runtime UI; the host owns target labels, layout, and copy.
+- Add opt-in `configure --form-controller` scaffolding for host-owned Edge form redirects and typed
+  flash results while retaining JSON responses for API clients. Combined with `--banner`, the
+  generated Stop form redirects through the host controller.
 - Add `masqueradeRoutes(router, options)` to `adonisjs-masquerade/http`. It mounts status, start
   and stop on `MasqueradeController` behind the raw guard's named `auth` middleware, with separate
   start and stop limiters, and throws at registration when the guard, auth middleware or either

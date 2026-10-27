@@ -4,6 +4,24 @@
     description: 'A small, local example of account-wide customer support mode.',
   })
     <div class="support-stack">
+      @if(masqueradeFlash?.type === 'success')
+        <p role="status" class="support-copy">
+          {{ masqueradeFlash.action === 'started' ? 'Support mode started.' : 'Support mode stopped.' }}
+        </p>
+      @elseif(masqueradeFlash?.type === 'error')
+        @if(masqueradeFlash.code === 'E_MASQUERADE_CONTEXT_CHANGED')
+          <section class="panel support-error" role="alert" aria-labelledby="support-error-title">
+            <h2 id="support-error-title" tabindex="-1">Support context changed</h2>
+            <p class="support-copy">
+              The old action was not replayed. Check current status and choose a new action.
+            </p>
+          </section>
+        @else
+          <p role="alert" class="support-copy" id="support-error-title" tabindex="-1">
+            Support mode could not be changed. Check current status and try again.
+          </p>
+        @end
+      @end
       <section class="panel support-identity" aria-labelledby="operator-heading">
         <div>
           <p class="tag">Signed-in account</p>
