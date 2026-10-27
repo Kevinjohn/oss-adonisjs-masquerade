@@ -3,6 +3,7 @@ node_modules
 coverage
 .stryker-tmp/
 /reports/mutation/
+.playwright-mcp/
 .DS_Store
 .idea
 .vscode/
