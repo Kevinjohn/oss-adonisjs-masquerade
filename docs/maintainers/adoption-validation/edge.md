@@ -3,7 +3,7 @@
 ## Tested revision and environment
 
 - Package source: `7117345a94d6679d046b060b659bdb8bad40679b` (`main` at the start of this run).
-- Package artifact: `native-session-package.tgz`, version `0.0.0`, SHA-256 `d251eecf42ef41fcd0b1226fb61b07741757bc3ce0ac7e2a6c6e2320047e867b`. The artifact is preserved at `tmp/alpha-baselines/alpha-1/native-session-package.tgz`; it was not overwritten.
+- Historical package artifact: `native-session-package.tgz`, version `0.0.0`, SHA-256 `d251eecf42ef41fcd0b1226fb61b07741757bc3ce0ac7e2a6c6e2320047e867b`. This hash belongs to source `7117345a94d6679d046b060b659bdb8bad40679b`; the original archive is no longer present locally. The ignored `tmp/alpha-baselines/alpha-1/native-session-package.tgz` path now holds the newer candidate documented in the [alpha baseline record](../alpha-baseline.md), with a different hash. The historical hash and browser evidence below remain recorded.
 - Runtime: macOS, Node `v24.21.0`, pnpm `11.23.0`.
 - A clean source archive had no `node_modules/`, example `.env`, or example database. The fresh host came from official [`adonisjs/starter-kits`](https://github.com/adonisjs/starter-kits), `hypermedia/`, commit `449d77cc25dd08e036f442d2d39b760d43ccfbd3`; it had no Masquerade files or dependency before setup. It was materialized from an empty parent directory with `git clone https://github.com/adonisjs/starter-kits.git starter-kits`, `git -C starter-kits checkout 449d77cc25dd08e036f442d2d39b760d43ccfbd3`, and `cp -R starter-kits/hypermedia fresh-edge-host`.
 - Local runs used fictional `operator@fresh.test` and `customer@fresh.test` accounts and SQLite under each disposable example's `tmp/db.sqlite3`. Browser HTTP port was `3372`; no repository or customer data was used.
@@ -47,8 +47,7 @@ cd "$FRESH_EDGE_HOST"
 ```
 
 Confirm the displayed SHA-256 equals the recorded `d251eecf...e867b` hash above before continuing.
-This regeneration was also verified in a clean exact-source worktree for the alpha record. The
-preserved `tmp/alpha-baselines/alpha-1/` copy is an alternative when it is already present locally.
+This regeneration was also verified in a clean exact-source worktree for the alpha record.
 From the fresh host, run:
 
 ```sh
@@ -62,7 +61,7 @@ node ace migration:run
 pnpm typecheck
 ```
 
-Before these commands, the tarball at `tmp/alpha-baselines/alpha-1/native-session-package.tgz` was copied from the package checkout into the fresh host root as `native-session-package.tgz`. Its recorded SHA-256 is above. `pnpm install --frozen-lockfile` and `pnpm add` used Node `v24.21.0` and pnpm `11.23.0`; `$(pnpm store path)` kept the local tarball add on the install's store. The exact host-specific additions from this run are in [fresh-edge-host.patch](fresh-edge-host.patch). The patch was validated against a second clean copy of the same official starter revision: after installing the preserved package artifact and running `node ace configure adonisjs-masquerade --namespace=fresh_edge --guard=web`, it applied without conflicts. The subsequent `.env` creation, key generation, migrations, and `pnpm typecheck` all passed. The patch contains only the host-owned model/auth/config, migration, middleware order, routes, controller, input helper, and two Edge views; it does not copy an already-configured package demo.
+For the original run, the fresh host received a copy of the exact-source archive identified by the historical SHA-256 above. The old archive bytes are no longer retained here; regenerate them from the recorded source commit and compare the hash before treating a new build as equivalent. `pnpm install --frozen-lockfile` and `pnpm add` used Node `v24.21.0` and pnpm `11.23.0`; `$(pnpm store path)` kept the local tarball add on the install's store. The exact host-specific additions from this run are in [fresh-edge-host.patch](fresh-edge-host.patch). The patch was validated against a second clean copy of the same official starter revision: after installing the preserved package artifact and running `node ace configure adonisjs-masquerade --namespace=fresh_edge --guard=web`, it applied without conflicts. The subsequent `.env` creation, key generation, migrations, and `pnpm typecheck` all passed. The patch contains only the host-owned model/auth/config, migration, middleware order, routes, controller, input helper, and two Edge views; it does not copy an already-configured package demo.
 
 For the patch-driven browser rerun, signup created `operator@patch.test` and `customer@patch.test` through the starter UI. After signup, the host's disposable SQLite records were assigned explicit identity values and roles with Node 24:
 
