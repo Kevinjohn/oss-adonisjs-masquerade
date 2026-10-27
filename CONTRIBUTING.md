@@ -44,7 +44,7 @@ Run the repository scripts, not the bare tools. They carry the flags the release
 
 | Command                | What it adds                                                                                                     |
 | ---------------------- | ---------------------------------------------------------------------------------------------------------------- |
-| `pnpm check`           | Prettier, lint, typecheck, the SQLite test suite, build and the built-export test                                |
+| `pnpm check`           | Prettier on tracked files, lint, typecheck, the SQLite test suite, build and the built-export test               |
 | `pnpm check --full`    | PostgreSQL suite, coverage, recipe, demo launcher, docs build, packed consumer and Account Kit consumer (SQLite) |
 | `pnpm check --browser` | Account Kit demo, native-session browser suite, Inertia React and Vue examples                                   |
 
