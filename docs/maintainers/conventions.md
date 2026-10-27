@@ -14,7 +14,7 @@ AdonisJS Plus compatibility.
   upstream Core `7.0.0` startup compatibility and the Masquerade floor/latest database and strategy
   matrix are verified. See the [integration guide](../guide/account-kit.md),
   [acceptance evidence](requirement-ledger.md#v12-account-kit-acceptance-t-kit-and-t-kit-http), and
-  [historical compatibility brief](account-kit-core-floor-feedback.md).
+  [historical compatibility brief](https://github.com/Kevinjohn/oss-adonisjs-masquerade/blob/0adbe49/docs/maintainers/account-kit-core-floor-feedback.md).
 - The raw native session guard authenticates the actor. The effective guard is used on business
   routes. The package never issues target credentials or unions permissions.
 - Routes stay host-mounted. The host wires `masqueradeContext` after auth initialization and before
@@ -41,6 +41,12 @@ packed native-session fixture has its own lint, typecheck, test and report-mode 
 `pnpm test:consumer` rebuilds and repacks the package before installing it, records floor/latest
 dependency versions from actual package resolution and exercises SQLite/PostgreSQL consumers;
 `--package=<path>` skips the rebuild and installs that tarball as given.
+
+Coverage and mutation scores gate their runs. The `c8` block in `package.json` sets `lines: 93`
+and `branches: 87`: the lower of the SQLite (94.29 / 88.14) and PostgreSQL (93.93 / 87.71)
+`checks` cells at `1f686d5`, rounded down. `stryker.config.json` sets `break: 85` from the 85.60
+score at `1f686d5` (1327 killed, 10 timed out, 225 survived), rounded down. Lowering either number is a reviewed change to
+the config and this paragraph together.
 
 `pnpm test:recipe --database=sqlite|pg|all` starts with the unwired
 `examples/recipe-host` template, installs the packed package in a disposable directory, runs

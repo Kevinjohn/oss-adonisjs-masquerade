@@ -1,3 +1,6 @@
+// The configure hook's scaffold: generated files, optional stubs, prompts and fail-closed exits.
+// Config and kernel rewrites go to configure_wiring.spec.ts, Ace runs to configure_ace.spec.ts.
+// Fixtures: configureFixture() and readScaffold() at the end of this file.
 import { test } from '@japa/runner'
 import { IgnitorFactory } from '@adonisjs/core/factories'
 import { mkdtemp, mkdir, readFile, readdir, rm, symlink, writeFile } from 'node:fs/promises'

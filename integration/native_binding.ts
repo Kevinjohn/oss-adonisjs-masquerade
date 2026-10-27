@@ -8,6 +8,7 @@ export interface NativeRuntimeAdapter {
   readonly guard?: string
   /** Native adapters keyed by their raw Auth guard name when multiple transports share an authority. */
   readonly adapters?: Readonly<Record<string, NativeRuntimeAdapter>>
+  /** Authenticate the actor through this adapter's raw guard. */
   authenticateActor(ctx: HttpContext): Promise<Subject<unknown>>
 }
 declare module '@adonisjs/core/types' {

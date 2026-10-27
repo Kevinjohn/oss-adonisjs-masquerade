@@ -2,6 +2,7 @@
 
 ## Unreleased
 
+- Add `pnpm check:changed [base]`, which runs only the checks that a branch's changed files need.
 - Reject package control handlers whose selected guard is not raw, and flag effective-guard control routes in `masquerade:routes`.
 - Export `stampFrom` to build deterministic security stamps from host-selected account fields.
 - Pull request CI now runs only lint, typecheck, build, the built-export test and coverage. The demo

@@ -24,3 +24,16 @@ date with you once a fix is ready.
 
 [SPEC-masquerade.md](https://github.com/Kevinjohn/oss-adonisjs-masquerade/blob/main/docs/design/SPEC-masquerade.md) section 10 describes what Masquerade defends against and what remains
 the application's responsibility.
+
+## Independent review
+
+Masquerade has not had an independent security review yet. One is planned before the first beta,
+with a reviewer from outside the project, covering:
+
+- the effective session and access-token guards (`auth/`);
+- the context token (`src/context_token.ts`) and its enforcement in `http/context_middleware.ts`;
+- the admission order in `src/service.ts` against the SPEC section 6.4 transition table;
+- the control store's compare-and-swap (`stores/lucid.ts`, `src/mode_transition.ts`).
+
+Exploitable findings go through the private channels above. The rest are filed as public issues,
+and this section will link the review once it is complete.

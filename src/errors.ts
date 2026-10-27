@@ -10,13 +10,17 @@ export const errorDetails = {
   E_MASQUERADE_CONTEXT_REQUIRED: [428, 'Masquerade context required'],
   E_MASQUERADE_UNAVAILABLE: [503, 'Masquerade is unavailable'],
 } as const
+/** Stable request error codes; each maps to one HTTP status and English message. */
 export type MasqueradeErrorCode = keyof typeof errorDetails
 
+/** The route rule behind `E_MASQUERADE_ACTION_BLOCKED`. */
 export type MasqueradeBlockedBy = 'sensitive' | 'view_only' | 'mutation_not_allowed'
 
+/** Boot-time configuration error codes, thrown as `MasqueradeSetupError`. */
 export type MasqueradeSetupErrorCode =
   'E_MASQUERADE_INVALID_CONFIGURATION' | 'E_MASQUERADE_INVALID_STORE'
 
+/** The configuration field a `MasqueradeSetupError` names. */
 export type MasqueradeSetupErrorField =
   | 'config'
   | 'authority'
@@ -76,6 +80,7 @@ export class MasqueradeError extends Error {
     this.blockedBy = options?.blockedBy
   }
 
+  /** AdonisJS self-handling: a no-store JSON `{ errors: [{ code, message, blockedBy? }] }` response. */
   handle(_error: unknown, ctx: HttpContext): void {
     ctx.response.header('Cache-Control', 'no-store')
     ctx.response.vary(['Accept', 'X-Masquerade-Context'])
