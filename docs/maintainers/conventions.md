@@ -45,7 +45,7 @@ dependency versions from actual package resolution and exercises SQLite/PostgreS
 Coverage and mutation scores gate their runs. The `c8` block in `package.json` sets `lines: 93`
 and `branches: 87`: the lower of the SQLite (94.29 / 88.14) and PostgreSQL (93.93 / 87.71)
 `checks` cells at `1f686d5`, rounded down. `stryker.config.json` sets `break: 85` from the 85.60
-score of the weekly run at `9fd2d23`, rounded down. Lowering either number is a reviewed change to
+score at `1f686d5` (1327 killed, 10 timed out, 225 survived), rounded down. Lowering either number is a reviewed change to
 the config and this paragraph together.
 
 `pnpm test:recipe --database=sqlite|pg|all` starts with the unwired
