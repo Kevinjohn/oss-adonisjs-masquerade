@@ -32,6 +32,7 @@
   "scripts": {
     "copy:templates": "copyfiles \"stubs/**/*.stub\" build",
     "check": "node --import=@poppinss/ts-exec --enable-source-maps bin/check.ts",
+    "check:changed": "node --import=@poppinss/ts-exec --enable-source-maps bin/check_changed.ts",
     "typecheck": "tsc --noEmit",
     "lint": "eslint .",
     "format": "prettier --write .",
