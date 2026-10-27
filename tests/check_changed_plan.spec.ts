@@ -131,6 +131,41 @@ test('other example changes note the browser suites', ({ assert }) => {
   assert.notDeepInclude(planChangedChecks(changed('examples/recipe-host/package.json')), note)
 })
 
+test('--static names each selected suite in a skip line instead of running it', ({ assert }) => {
+  const plan = planChangedChecks(changed('src/service.ts', 'package.json', 'docs/guide/setup.md'), {
+    static: true,
+  })
+
+  assert.deepEqual(Object.keys(ran(plan)), ['format', 'lint', 'typecheck', 'docs build'])
+  for (const [label, skip] of [
+    ['test suite', '--static leaves out pnpm quick:test'],
+    ['build', '--static leaves out pnpm build'],
+    ['built exports', '--static leaves out pnpm test:built-exports'],
+    ['recipe', '--static leaves out pnpm test:recipe --database=sqlite'],
+  ])
+    assert.deepInclude(plan, { label, skip })
+})
+
+test('--static still runs the changed specs on their own', ({ assert }) => {
+  const plan = planChangedChecks(changed('src/service.ts', 'tests/stamp_from.spec.ts'), {
+    static: true,
+  })
+
+  assert.deepEqual(ran(plan).tests, ['pnpm', 'quick:test', '--files=tests/stamp_from.spec.ts'])
+  assert.deepInclude(plan, { label: 'test suite', skip: '--static leaves out pnpm quick:test' })
+  assert.deepInclude(planChangedChecks(changed('src/service.ts'), { static: true }), {
+    label: 'tests',
+    skip: 'no test files changed',
+  })
+})
+
+test('--static plans a spec-only change exactly as the default does', ({ assert }) => {
+  assert.deepEqual(
+    planChangedChecks(changed('tests/stamp_from.spec.ts'), { static: true }),
+    planChangedChecks(changed('tests/stamp_from.spec.ts'))
+  )
+})
+
 test('counts executed tests from the Japa summary', ({ assert }) => {
   assert.equal(executedTests('\u001b[2mTests\u001b[22m  335 passed, 2 skipped (337)'), 335)
   assert.equal(executedTests('Tests  14 passed, 1 failed (15)'), 15)

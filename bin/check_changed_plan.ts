@@ -50,8 +50,16 @@ function outsidePackage(path: string): boolean {
   return /^(docs|examples|tests|\.github)\//.test(path) || /^[^/]+\.md$/.test(path)
 }
 
+export interface PlanOptions {
+  /** Leave out every whole suite and the package build: one shared run covers them for a batch. */
+  static?: boolean
+}
+
 /** Map the changed files to the repository scripts that check them. */
-export function planChangedChecks(changes: ChangedFile[]): PlannedCheckStep[] {
+export function planChangedChecks(
+  changes: ChangedFile[],
+  { static: staticOnly = false }: PlanOptions = {}
+): PlannedCheckStep[] {
   const paths = changes.map((change) => change.path)
   const present = changes.filter((change) => !change.deleted).map((change) => change.path)
   const formattable = present.filter((path) => path !== 'pnpm-lock.yaml')
@@ -69,6 +77,24 @@ export function planChangedChecks(changes: ChangedFile[]): PlannedCheckStep[] {
     command: string[],
     options: Omit<ChangedCheckStep, 'label' | 'command'> = {}
   ): PlannedCheckStep => (when ? { label, command, ...options } : { label, skip: reason })
+  // Under --static a suite the files select is named in a skip line instead of run.
+  const suiteStep = (
+    when: boolean,
+    reason: string,
+    label: string,
+    command: string[],
+    stepOptions: Omit<ChangedCheckStep, 'label' | 'command'> = {}
+  ): PlannedCheckStep =>
+    when && staticOnly
+      ? { label, skip: `--static leaves out ${command.join(' ')}` }
+      : step(when, reason, label, command, stepOptions)
+  const specsOnly = step(
+    specs.length > 0,
+    changes.length > 0 ? 'no test files changed' : 'no files changed',
+    'tests',
+    ['pnpm', 'quick:test', ...specs.map((path) => `--files=${path}`)],
+    { countsTests: true, requiresTests: true }
+  )
 
   return [
     step(formattable.length > 0, 'no changed files to format', 'format', [
@@ -97,17 +123,20 @@ export function planChangedChecks(changes: ChangedFile[]): PlannedCheckStep[] {
       'typecheck',
       ['pnpm', 'typecheck']
     ),
-    suite
-      ? { label: 'tests', command: ['pnpm', 'quick:test'], countsTests: true, requiresTests: true }
-      : step(
-          specs.length > 0,
-          'no files changed',
-          'tests',
-          ['pnpm', 'quick:test', ...specs.map((path) => `--files=${path}`)],
-          { countsTests: true, requiresTests: true }
-        ),
-    step(packageChanged, 'no package source changed', 'build', ['pnpm', 'build']),
-    step(
+    ...(!suite
+      ? [specsOnly]
+      : staticOnly
+        ? [{ label: 'test suite', skip: '--static leaves out pnpm quick:test' }, specsOnly]
+        : [
+            {
+              label: 'tests',
+              command: ['pnpm', 'quick:test'],
+              countsTests: true,
+              requiresTests: true,
+            },
+          ]),
+    suiteStep(packageChanged, 'no package source changed', 'build', ['pnpm', 'build']),
+    suiteStep(
       packageChanged,
       'no package source changed',
       'built exports',
@@ -117,7 +146,7 @@ export function planChangedChecks(changes: ChangedFile[]): PlannedCheckStep[] {
         requiresTests: true,
       }
     ),
-    step(
+    suiteStep(
       paths.some((path) => recipeInputs.some((input) => input.test(path))),
       'no recipe inputs changed; pnpm check --full always runs it',
       'recipe',
