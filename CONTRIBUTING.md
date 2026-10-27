@@ -69,7 +69,9 @@ own server instead, set `DB_CLIENT=pg` plus `DB_HOST`, `DB_PORT`, `DB_USER`, `DB
 
 `pnpm test:mutation` runs Stryker against `src/` with `pnpm quick:test`. It edits the source files
 in place while it runs and restores them afterwards, so run it on a clean checkout. The `mutation`
-workflow runs it weekly and on demand and uploads the report; the score never fails a build.
+workflow runs it weekly and on demand and uploads the report; it fails when the score drops below
+the `break` threshold in `stryker.config.json`. `pnpm test` and `pnpm test:coverage` fail when line
+or branch coverage drops below the thresholds in the `c8` block of `package.json`.
 
 Changes to the control store or its migrations should pass on both SQLite and PostgreSQL. The
 `checks` workflow runs both on every pull request.

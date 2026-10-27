@@ -20,7 +20,7 @@ jobs:
           node-version: 24
           cache: pnpm
       - run: pnpm install --frozen-lockfile
-      # Reports surviving mutants; the score never fails the run.
+      # Fails when the score drops below thresholds.break in stryker.config.json.
       - run: pnpm test:mutation
       - name: Upload mutation report
         if: always()

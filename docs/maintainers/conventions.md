@@ -42,6 +42,12 @@ packed native-session fixture has its own lint, typecheck, test and report-mode 
 dependency versions from actual package resolution and exercises SQLite/PostgreSQL consumers;
 `--package=<path>` skips the rebuild and installs that tarball as given.
 
+Coverage and mutation scores gate their runs. The `c8` block in `package.json` sets `lines: 93`
+and `branches: 87`: the lower of the SQLite (94.29 / 88.14) and PostgreSQL (93.93 / 87.71)
+`checks` cells at `1f686d5`, rounded down. `stryker.config.json` sets `break: 85` from the 85.60
+score at `1f686d5` (1327 killed, 10 timed out, 225 survived), rounded down. Lowering either number is a reviewed change to
+the config and this paragraph together.
+
 `pnpm test:recipe --database=sqlite|pg|all` starts with the unwired
 `examples/recipe-host` template, installs the packed package in a disposable directory, runs
 `configure`, applies the marked literal setup and usage guide fragments, typechecks the host,

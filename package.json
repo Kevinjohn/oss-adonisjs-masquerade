@@ -213,7 +213,10 @@
     ],
     "exclude": [
       "tests/**"
-    ]
+    ],
+    "check-coverage": true,
+    "lines": 93,
+    "branches": 87
   },
   "prettier": "@adonisjs/prettier-config",
   "repository": {
