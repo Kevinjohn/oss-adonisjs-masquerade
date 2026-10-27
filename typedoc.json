@@ -22,6 +22,8 @@
   "githubPages": false,
   "gitRevision": "main",
   "treatWarningsAsErrors": true,
+  "validation": { "notDocumented": true },
+  "requiredToBeDocumented": ["Class", "Function", "Interface", "TypeAlias", "Variable"],
   "intentionallyNotExported": [
     "errorDetails",
     "default",

@@ -140,7 +140,7 @@ complete with reported findings resolved.
 Account Kit `0.1.1` is pinned to the GitHub release artifact with SHA-256
 `38fd950b08990a95b780d3077ad65f3a98bb898cb858b7b2f9eaabaae236a3d2`, built from source commit
 `b1ae0d48fda29ff75a2edc9f021c61eff3b1267b`. This release fixes the Core `7.0.0` Ace-startup import
-failure described in the [historical compatibility brief](account-kit-core-floor-feedback.md).
+failure described in the [historical compatibility brief](https://github.com/Kevinjohn/oss-adonisjs-masquerade/blob/0adbe49/docs/maintainers/account-kit-core-floor-feedback.md).
 The initial matrix attempt reached all eight latest cells but stopped in the floor cells because
 the runner invoked an unsupported `codegen` Ace command at Core `7.0.0`; the corrected harness
 treated that command as unsupported and all eight floor cells passed. Public registry publication

@@ -1,5 +1,6 @@
 import { createHash } from 'node:crypto'
 
+/** A value `stampFrom` can hash; convert dates and other objects to a stable string first. */
 export type StampField = string | number | boolean | bigint | null
 
 /**

@@ -5,6 +5,13 @@
   "engines": {
     "node": ">=24.0.0"
   },
+  "devEngines": {
+    "runtime": {
+      "name": "node",
+      "version": "^24.0.0",
+      "onFail": "download"
+    }
+  },
   "type": "module",
   "files": [
     "build",
@@ -32,6 +39,7 @@
   "scripts": {
     "copy:templates": "copyfiles \"stubs/**/*.stub\" build",
     "check": "node --import=@poppinss/ts-exec --enable-source-maps bin/check.ts",
+    "check:changed": "node --import=@poppinss/ts-exec --enable-source-maps bin/check_changed.ts",
     "typecheck": "tsc --noEmit",
     "lint": "eslint .",
     "format": "prettier --write .",
@@ -91,13 +99,13 @@
     "@japa/runner": "^5.3.0",
     "@poppinss/ts-exec": "^1.4.4",
     "@release-it/conventional-changelog": "^10.0.5",
-    "@stryker-mutator/core": "^10.0.0",
+    "@stryker-mutator/core": "^10.1.1",
     "@types/luxon": "^3.7.6",
     "@types/node": "^26.6.5",
     "@vinejs/vine": "^4.4.0",
     "adonisjs-account-kit": "https://github.com/Kevinjohn/oss-adonisjs-account-kit/releases/download/v0.1.1/adonisjs-account-kit-0.1.1.tgz",
     "better-sqlite3": "^12.0.0",
-    "c8": "^11.0.0",
+    "c8": "^12.0.0",
     "copyfiles": "^2.4.1",
     "cross-env": "^10.1.0",
     "eslint": "^10.0.3",
@@ -205,7 +213,10 @@
     ],
     "exclude": [
       "tests/**"
-    ]
+    ],
+    "check-coverage": true,
+    "lines": 93,
+    "branches": 87
   },
   "prettier": "@adonisjs/prettier-config",
   "repository": {

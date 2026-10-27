@@ -37,6 +37,20 @@ import type {
   ResolvedContext,
 } from './types.js'
 
+/**
+ * Create the core service shared by the provider, guards, controllers and commands. The config is
+ * validated and the control store opened before any request is served.
+ *
+ * Injection points on `dependencies`: `authenticateActor` resolves the native actor from the raw
+ * guard (SPEC I01); `emitter`, `logger` and `observerErrorHandler` receive committed events and
+ * bounded diagnostics (I09, I11); `clock` replaces `new Date()` for expiry (§7.3); `environment`
+ * decides whether a test-only store may open.
+ *
+ * @throws {MasqueradeSetupError} `E_MASQUERADE_INVALID_CONFIGURATION` for an invalid config, or
+ *   `E_MASQUERADE_INVALID_STORE` for a store that is missing methods or test-only outside tests.
+ * @throws {MasqueradeError} `E_MASQUERADE_UNAVAILABLE` when the store factory throws.
+ * @throws {TypeError} When `authenticateActor` or an observer or diagnostic port is missing.
+ */
 export async function createMasqueradeService<User, Request extends object>(
   config: MasqueradeConfig<User, Request>,
   dependencies: ServiceDependencies<User, Request>
@@ -73,6 +87,12 @@ export async function createMasqueradeService<User, Request extends object>(
   return new CoreService(validated, dependencies, store)
 }
 
+/**
+ * Ordered orchestration of the SPEC §6.4 transition table. Admission, transitions, audit emission
+ * and account inspection live together because the order of their checks is the contract
+ * (AGENTS.md SRP rule 4): `start()` follows §7.1, `admit()` §7.2, `stop()` §7.3, and §14.1 adds
+ * the edit checks. Each comment below names the invariant or transition row its check enforces.
+ */
 class CoreService<User, Request extends object> implements MasqueradeService<Request> {
   #admitted = new WeakMap<Request, Promise<RequestAdmission<User>>>()
   constructor(
@@ -300,15 +320,21 @@ class CoreService<User, Request extends object> implements MasqueradeService<Req
     const owner = this.owner(actor)
     let row: ModeRow | null = null
     try {
+      // §6.4 Any: an unavailable store or malformed row is 503.
       row = await this.read(owner)
+      // §7.1 step 1: input shape, then the expected context (§6.4 Any: mismatch is 409).
       validateStartInputShape(input)
       requireContext(input.expectedContext, contextToken(owner, row))
+      // §6.4 Any: a revision at Number.MAX_SAFE_INTEGER fails closed.
       nextRevision(row)
+      // §7.1 step 1, I06: an expired row resolves to idle first, then 409; never start from it.
       if (row?.state === 'active' && this.now() >= row.expiresAt) {
         await this.clear(owner, row, 'expired', 'expired')
         throw new MasqueradeError('E_MASQUERADE_CONTEXT_CHANGED')
       }
+      // §6.4 Active: any second start is 409 with no replacement or extension (I02).
       if (row?.state === 'active') throw new MasqueradeError('E_MASQUERADE_ALREADY_ACTIVE')
+      // §7.1 step 3 reason policy, §14.1 access and the duration bounds.
       const { targetId, reason, duration, access } = parseStartSelection(
         input,
         actor.id,
@@ -316,19 +342,26 @@ class CoreService<User, Request extends object> implements MasqueradeService<Req
         this.config.maxDurationSeconds!,
         this.config.reason!
       )
+      // §7.1 step 2: both accounts come from inspectAccount; a throw is 503.
       const currentActor = await this.inspect(actor.id)
       const target = await this.inspect(targetId)
+      // §7.3: self-targeting is invalid input.
       if (target?.subject.id === actor.id) throw invalidInput()
+      // §7.1 step 2: a missing or ineligible actor or target gets the generic denial.
       if (!this.eligibleActor(currentActor, actor) || !target?.active)
         throw new MasqueradeError('E_MASQUERADE_NOT_ALLOWED')
+      // §6.4 Absent/idle: start requires canMasquerade to return true (§7.1 step 3).
       if (!(await this.allowed(currentActor.subject, target.subject, request, reason ?? undefined)))
         throw new MasqueradeError('E_MASQUERADE_NOT_ALLOWED')
+      // §14.1: an edit start needs canEdit true, after canMasquerade and before canUseRequest.
       if (
         access === 'edit' &&
         !(await this.editable(currentActor.subject, target.subject, request, reason ?? undefined))
       )
         throw new MasqueradeError('E_MASQUERADE_NOT_ALLOWED')
+      // §7.1 step 3: canUseRequest when configured.
       await this.local(currentActor.subject, target.subject, request)
+      // §7.1 step 3, I11: only the stamp hashes are kept.
       let actorHash: string
       let targetHash: string
       try {
@@ -368,10 +401,13 @@ class CoreService<User, Request extends object> implements MasqueradeService<Req
         access: next.access,
         revision: next.revision,
       })
+      // §7.1 step 4, I05: CAS against the observed revision; a conflict is 409.
       await this.commit(owner, row, next, event)
       return modeView(owner, next)
     } catch (error) {
+      // I09: an indeterminate commit may have applied, so it records no denial.
       if (error instanceof UnknownCommit) throw error
+      // §6.4: every refused start records one start_denied outcome; I07: other errors are 503.
       reportDiagnostic(
         this.dependencies,
         'control',
@@ -393,20 +429,29 @@ class CoreService<User, Request extends object> implements MasqueradeService<Req
     let row: ModeRow | null = null
     let idleOutcomeAttempted = false
     try {
+      // §6.4 Any: an unavailable store or malformed row is 503.
       row = await this.read(owner)
+      // §7.3: stop accepts only the expected context.
       if (!input || Object.keys(input).some((key) => key !== 'expectedContext'))
         throw invalidInput()
+      // §7.3: a stale stop never clears a newer mode (§6.4 Any: mismatch is 409).
       requireContext(input.expectedContext, contextToken(owner, row))
+      // §6.4 Any: a revision at Number.MAX_SAFE_INTEGER fails closed.
       nextRevision(row)
+      // §6.4 Idle/absent: 200 idle, no revision change, one control_noop record.
       if (!row || row.state === 'idle') {
         idleOutcomeAttempted = true
         await this.outcome(owner, row, 'control_noop', 'idle')
         return modeView(owner, row)
       }
+      // §6.4 Active: idle with one stopped event; I08: no target load or policy call.
       return modeView(owner, await this.clear(owner, row, 'stopped', 'stopped'))
     } catch (error) {
+      // I09: an indeterminate commit may have applied, so it records no denial.
       if (error instanceof UnknownCommit) throw error
+      // A failed control_noop record is not also a denial.
       if (idleOutcomeAttempted) throw error
+      // §6.4: every refused stop records one stop_denied outcome; I07: other errors are 503.
       reportDiagnostic(
         this.dependencies,
         'control',
@@ -422,6 +467,7 @@ class CoreService<User, Request extends object> implements MasqueradeService<Req
       throw error instanceof MasqueradeError ? error : unavailable()
     }
   }
+  /** §7.2 business admission through admit(), once per request (I10). */
   async resolve(request: Request): Promise<ResolvedContext> {
     const admitted = await this[admission](request)
     return admitted.context
@@ -437,15 +483,20 @@ class CoreService<User, Request extends object> implements MasqueradeService<Req
   private async admit(request: Request): Promise<RequestAdmission<User>> {
     const actor = await this.actor(request)
     const owner = this.owner(actor)
+    // §7.2 step 1: read the owner row on every request; no cross-request allow cache.
     const row = await this.read(owner)
+    // §6.4 Any: a revision at Number.MAX_SAFE_INTEGER fails closed.
     if (row?.revision === Number.MAX_SAFE_INTEGER) throw unavailable()
+    // §7.2 step 2: an idle request runs as the actor.
     let effective = actor
     if (row?.state === 'active') {
       let invalid: string | undefined
+      // §7.2 step 3, I06: expiry is checked before any account read; the request gets 409.
       if (this.now() >= row.expiresAt) {
         await this.clear(owner, row, 'expired', 'expired')
         throw new MasqueradeError('E_MASQUERADE_CONTEXT_CHANGED')
       }
+      // §6.4 Active: an ineligible account, changed stamp or canMasquerade false invalidates.
       const currentActor = await this.inspect(actor.id)
       const target = await this.inspect(row.targetId)
       if (!this.eligibleActor(currentActor, actor)) invalid = 'actor_ineligible'
@@ -470,6 +521,7 @@ class CoreService<User, Request extends object> implements MasqueradeService<Req
         }
         if (!invalid && !(await this.allowed(currentActor.subject, target.subject)))
           invalid = 'policy_denied'
+        // §14.1: an edit mode also needs canEdit true; it is never downgraded to view.
         if (
           !invalid &&
           row.access === 'edit' &&
@@ -477,11 +529,13 @@ class CoreService<User, Request extends object> implements MasqueradeService<Req
         )
           invalid = 'edit_denied'
       }
+      // §6.4 Active: CAS to idle with one invalidated event; the triggering request gets 409.
       if (invalid) {
         await this.clear(owner, row, 'invalidated', invalid)
         throw new MasqueradeError('E_MASQUERADE_CONTEXT_CHANGED')
       }
       effective = target!.subject
+      // §6.4 Active: canUseRequest false rejects this request only; the mode is unchanged.
       await this.local(currentActor!.subject, effective, request)
     }
     return admittedProjection(owner, row, actor, effective)
