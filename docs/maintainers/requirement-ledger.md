@@ -333,7 +333,8 @@ were recorded from named failures without retained raw logs; setup-error attempt
 Independent review of the added guard regressions found no remaining issues.
 
 For `0.1.1`, the guide session snippets were installed in a separate disposable host with Account
-Kit `0.1.1` and Masquerade artifact SHA `060dbe029e58dcf7126d92d55328ae46c8cf26c9d5ce017db7a717ab53d57d06`.
+Kit `0.1.1` and Masquerade artifact SHA
+`060dbe029e58dcf7126d92d55328ae46c8cf26c9d5ce017db7a717ab53d57d06`.
 Its provider setup, route report and `pnpm typecheck` passed. A view-mode journey passed (1 case)
 and admission passed (3 cases). The copied smoke requests selected view mode to match the guide's
 policy, and the protected business route had a matching `business.*` name. This verifies the
