@@ -60,6 +60,9 @@ jobs:
             examples/inertia-react/pnpm-lock.yaml
             examples/inertia-vue/pnpm-lock.yaml
       - run: pnpm install --frozen-lockfile
+      - name: Check formatting
+        if: ${{ matrix.database == 'better-sqlite3' }}
+        run: pnpm format:check
       - name: Typecheck
         if: ${{ matrix.database == 'better-sqlite3' }}
         run: pnpm typecheck

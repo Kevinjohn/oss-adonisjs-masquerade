@@ -1,3 +1,7 @@
 build/
 coverage/
 pnpm-lock.yaml
+# Generated or ignored by nested .gitignore files, which Prettier does not read
+.adonisjs/
+tmp/
+examples/*/public/assets/
