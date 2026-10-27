@@ -93,6 +93,8 @@ comes from.
 
 - Keep each pull request to one change.
 - Add or update tests. A bug fix should include a test that fails without the fix.
+- Give every public export a JSDoc block. `pnpm docs:api` fails on an undocumented class, function,
+  interface, type alias or variable.
 - Update the relevant page in `docs/` and add a line under `## Unreleased` in
   [CHANGELOG.md](CHANGELOG.md) when behaviour visible to users changes.
 - Write commit messages in the imperative mood, describing the change ("Reject a stale stop
