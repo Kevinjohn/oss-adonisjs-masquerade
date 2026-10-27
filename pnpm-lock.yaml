@@ -63,8 +63,8 @@ importers:
         specifier: ^4.4.0
         version: 4.4.0
       adonisjs-account-kit:
-        specifier: https://github.com/Kevinjohn/oss-adonisjs-account-kit/releases/download/v0.1.1/adonisjs-account-kit-0.1.1.tgz
-        version: https://github.com/Kevinjohn/oss-adonisjs-account-kit/releases/download/v0.1.1/adonisjs-account-kit-0.1.1.tgz(0ab9c85429fe1af092e046bf68a7d0b7)
+        specifier: https://github.com/Kevinjohn/oss-adonisjs-account-kit/releases/download/v0.1.3/adonisjs-account-kit-0.1.3.tgz
+        version: https://github.com/Kevinjohn/oss-adonisjs-account-kit/releases/download/v0.1.3/adonisjs-account-kit-0.1.3.tgz(0ab9c85429fe1af092e046bf68a7d0b7)
       better-sqlite3:
         specifier: ^13.0.3
         version: 13.0.3
@@ -2266,9 +2266,9 @@ packages:
     engines: {node: '>=0.4.0'}
     hasBin: true
 
-  adonisjs-account-kit@https://github.com/Kevinjohn/oss-adonisjs-account-kit/releases/download/v0.1.1/adonisjs-account-kit-0.1.1.tgz:
-    resolution: {integrity: sha512-L8lIJvz/pEGgFbHA6KJsZc1JivLj5K6ZqFkf4dA4V+VaPFN3LFCbRBtg/iV5PZfdMOv2vYgP5iehMG/2ItpStw==, tarball: https://github.com/Kevinjohn/oss-adonisjs-account-kit/releases/download/v0.1.1/adonisjs-account-kit-0.1.1.tgz}
-    version: 0.1.1
+  adonisjs-account-kit@https://github.com/Kevinjohn/oss-adonisjs-account-kit/releases/download/v0.1.3/adonisjs-account-kit-0.1.3.tgz:
+    resolution: {integrity: sha512-t70g6Ek7CEvCCbWCnIn7hEUodDB8HS3C3lPzTllej0J8Cv4BJv8Rq/lYTq9F09rZVJpKwoWAK0TI7fTh/U0W3A==, tarball: https://github.com/Kevinjohn/oss-adonisjs-account-kit/releases/download/v0.1.3/adonisjs-account-kit-0.1.3.tgz}
+    version: 0.1.3
     engines: {node: '>=24.0.0'}
     peerDependencies:
       '@adonisjs/assembler': ^8.0.0
@@ -7042,7 +7042,7 @@ snapshots:
 
   acorn@8.19.0: {}
 
-  adonisjs-account-kit@https://github.com/Kevinjohn/oss-adonisjs-account-kit/releases/download/v0.1.1/adonisjs-account-kit-0.1.1.tgz(0ab9c85429fe1af092e046bf68a7d0b7):
+  adonisjs-account-kit@https://github.com/Kevinjohn/oss-adonisjs-account-kit/releases/download/v0.1.3/adonisjs-account-kit-0.1.3.tgz(0ab9c85429fe1af092e046bf68a7d0b7):
     dependencies:
       '@adonisjs/core': 7.6.0(@adonisjs/assembler@8.6.0(typescript@6.0.3))(@vinejs/vine@4.4.0)(supports-color@10.2.2)(youch@4.1.1)
       '@adonisjs/limiter': 3.0.1(@adonisjs/assembler@8.6.0(typescript@6.0.3))(@adonisjs/core@7.6.0(@adonisjs/assembler@8.6.0(typescript@6.0.3))(@vinejs/vine@4.4.0)(supports-color@10.2.2)(youch@4.1.1))(@adonisjs/lucid@22.4.2(@adonisjs/assembler@8.6.0(typescript@6.0.3))(@adonisjs/core@7.6.0(@adonisjs/assembler@8.6.0(typescript@6.0.3))(@vinejs/vine@4.4.0)(supports-color@10.2.2)(youch@4.1.1))(@vinejs/vine@4.4.0)(better-sqlite3@13.0.3)(luxon@3.7.2)(pg@8.23.1)(supports-color@10.2.2))

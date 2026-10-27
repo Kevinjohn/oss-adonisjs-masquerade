@@ -1,16 +1,16 @@
 # Account Kit integration preview
 
 This page describes the Account Kit adapter planned for Masquerade v1.2. It is a prerelease
-integration preview using Account Kit alpha `0.1.1`, available as a GitHub release artifact. The
+integration preview using Account Kit alpha `0.1.3`, available as a GitHub release artifact. The
 package is not published to a public package registry. Install the pinned release tarball with pnpm:
 
 ```sh
-pnpm add https://github.com/Kevinjohn/oss-adonisjs-account-kit/releases/download/v0.1.1/adonisjs-account-kit-0.1.1.tgz
+pnpm add https://github.com/Kevinjohn/oss-adonisjs-account-kit/releases/download/v0.1.3/adonisjs-account-kit-0.1.3.tgz
 ```
 
 The artifact SHA-256 is
-`38fd950b08990a95b780d3077ad65f3a98bb898cb858b7b2f9eaabaae236a3d2` and its source commit is
-`b1ae0d48fda29ff75a2edc9f021c61eff3b1267b`. This pin supports local development from the GitHub
+`1ca53538256c360cb87ddbadfaf00f2364a453fea349f6bb8757e58756ed9e7f` and its source commit is
+`4b3be3878c7f1cede6080273d84b8841345a3b3a`. This pin supports local development from the GitHub
 release artifact; a future public registry publication is a separate release step.
 
 Account Kit's HTTP integration requires the host-provided `@vinejs/vine` `^4.4.0` dependency. The
@@ -281,13 +281,14 @@ Ace command it commits the router itself first, and it never commits in other en
 commit the routes as `<group>.accountKit.*`, which the blocker does not match, so startup fails with
 `is not mounted`.
 
-This prerelease interface was verified against the pinned GitHub release artifact. Account Kit
-`0.1.1` resolves `configProvider` through `@adonisjs/core` in its OpenAPI command and session store
-protection code, addressing the Core `7.0.0` Ace-startup failure documented in the
+This prerelease interface works with Account Kit `0.1.3`, the only version the optional peer
+declares. The complete Masquerade matrix passed against the pinned `0.1.3` GitHub release artifact
+for both strategies, with session management on and off, on SQLite and PostgreSQL at the declared
+floor and latest compatible peers. Other Account Kit versions, MySQL and a second composed
+Masquerade transport are not tested. Account Kit `0.1.1` and later resolve `configProvider` through
+`@adonisjs/core`, addressing the Core `7.0.0` Ace-startup failure documented in the
 [0.1.1 release notes](https://github.com/Kevinjohn/oss-adonisjs-account-kit/releases/tag/v0.1.1).
-The complete Masquerade matrix passed for both strategies, with session management on and off, on
-SQLite and PostgreSQL at the declared floor and latest compatible peers. The tested artifact hashes
-and matrix are recorded in the
+The tested artifact hashes and matrix are recorded in the
 [maintainer ledger](https://github.com/Kevinjohn/oss-adonisjs-masquerade/blob/main/docs/maintainers/requirement-ledger.md#v12-account-kit-acceptance-t-kit-and-t-kit-http).
 
 With an active mode, the global blocker prevents Account Kit's own password, identity, recovery,

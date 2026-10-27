@@ -31,8 +31,8 @@ const nativeSource = path.join(repoRoot, 'examples/native-session')
 const overlaySource = path.join(repoRoot, 'examples/account-kit-demo')
 const wiringSource = path.join(helperSource, 'account_kit_host_wiring.ts')
 const kitUrl =
-  'https://github.com/Kevinjohn/oss-adonisjs-account-kit/releases/download/v0.1.1/adonisjs-account-kit-0.1.1.tgz'
-const kitSha = '38fd950b08990a95b780d3077ad65f3a98bb898cb858b7b2f9eaabaae236a3d2'
+  'https://github.com/Kevinjohn/oss-adonisjs-account-kit/releases/download/v0.1.3/adonisjs-account-kit-0.1.3.tgz'
+const kitSha = '1ca53538256c360cb87ddbadfaf00f2364a453fea349f6bb8757e58756ed9e7f'
 const syntheticKit = Buffer.from('synthetic Account Kit release for isolated launcher tests\n')
 const syntheticSha = createHash('sha256').update(syntheticKit).digest('hex')
 const stopTimeoutMs = 8_000
@@ -207,9 +207,9 @@ async function fixture(options = {}) {
   assert.equal((pinnedSource.match(new RegExp(kitSha, 'g')) ?? []).length, 1)
   assert.match(
     pinnedSource,
-    /kitReleaseUrl\s*=\s*'https:\/\/github\.com\/Kevinjohn\/oss-adonisjs-account-kit\/releases\/download\/v0\.1\.1\/adonisjs-account-kit-0\.1\.1\.tgz'/
+    /kitReleaseUrl\s*=\s*'https:\/\/github\.com\/Kevinjohn\/oss-adonisjs-account-kit\/releases\/download\/v0\.1\.3\/adonisjs-account-kit-0\.1\.3\.tgz'/
   )
-  assert.match(pinnedSource, new RegExp(`kitReleaseVersion\\s*=\\s*'0\\.1\\.1'`))
+  assert.match(pinnedSource, new RegExp(`kitReleaseVersion\\s*=\\s*'0\\.1\\.3'`))
   assert.match(pinnedSource, new RegExp(`kitReleaseSha256\\s*=\\s*'${kitSha}'`))
   if (options.patchPin !== false) {
     const copiedText = await readFile(copiedWiring, 'utf8')
@@ -769,7 +769,7 @@ test('bootstraps from a clean workspace, downloads only the pinned release URL, 
     ),
     1
   )
-  await writeFile(path.join(demo.stateRoot, 'account-kit-0.1.1.tgz'), 'tampered on relaunch')
+  await writeFile(path.join(demo.stateRoot, 'account-kit-0.1.3.tgz'), 'tampered on relaunch')
   const callsBeforeTamper = (await commandLog(demo)).length
   const tamperedRelaunch = launch(demo, [], t)
   const tamperedResult = await exitOf(tamperedRelaunch)
@@ -890,7 +890,7 @@ test('rejects tampered cached artifacts and synthetic bytes against the producti
   t.after(() => cleanupFixture(tampered))
   await mkdir(tampered.stateRoot, { recursive: true })
   await writeFile(path.join(tampered.stateRoot, 'recipe.json'), JSON.stringify({ schema: 1 }))
-  await writeFile(path.join(tampered.stateRoot, 'account-kit-0.1.1.tgz'), 'tampered cache')
+  await writeFile(path.join(tampered.stateRoot, 'account-kit-0.1.3.tgz'), 'tampered cache')
   const first = launch(tampered, [], t)
   const firstResult = await exitOf(first)
   assert.equal(firstResult.code, 1, firstResult.text)
@@ -906,7 +906,7 @@ test('rejects tampered cached artifacts and synthetic bytes against the producti
   t.after(() => cleanupFixture(unmodified))
   await mkdir(unmodified.stateRoot, { recursive: true })
   await writeFile(path.join(unmodified.stateRoot, 'recipe.json'), JSON.stringify({ schema: 1 }))
-  await copyFile(unmodified.releaseBytes, path.join(unmodified.stateRoot, 'account-kit-0.1.1.tgz'))
+  await copyFile(unmodified.releaseBytes, path.join(unmodified.stateRoot, 'account-kit-0.1.3.tgz'))
   const second = launch(unmodified, [], t)
   const secondResult = await exitOf(second)
   assert.equal(secondResult.code, 1, secondResult.text)
@@ -1110,9 +1110,9 @@ test('keeps the production artifact pin exact in source and performs no network 
   assert.equal((source.match(new RegExp(kitSha, 'g')) ?? []).length, 1)
   assert.match(
     source,
-    /kitReleaseUrl\s*=\s*\n\s*'https:\/\/github\.com\/Kevinjohn\/oss-adonisjs-account-kit\/releases\/download\/v0\.1\.1\/adonisjs-account-kit-0\.1\.1\.tgz'/
+    /kitReleaseUrl\s*=\s*\n\s*'https:\/\/github\.com\/Kevinjohn\/oss-adonisjs-account-kit\/releases\/download\/v0\.1\.3\/adonisjs-account-kit-0\.1\.3\.tgz'/
   )
-  assert.match(source, /kitReleaseVersion\s*=\s*'0\.1\.1'/)
+  assert.match(source, /kitReleaseVersion\s*=\s*'0\.1\.3'/)
   const demo = await fixture()
   t.after(() => cleanupFixture(demo))
   demo.env.KIT_DEMO_TEST_RELEASE_URL = 'https://not-the-pinned-release.example.test/file.tgz'
