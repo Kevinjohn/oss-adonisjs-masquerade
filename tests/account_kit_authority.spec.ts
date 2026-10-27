@@ -1,3 +1,6 @@
+// The accountKitAuthority adapter alone: credentials, inspection, stamps and options. Service
+// outcomes go to account_kit_service.spec.ts, boot checks to account_kit_provider.spec.ts.
+// Each test builds inline provider and kit fakes; errorCode() is in tests/helpers/core.ts.
 import { test } from '@japa/runner'
 import { errors, symbols } from '@adonisjs/auth'
 import type { HttpContext } from '@adonisjs/core/http'
