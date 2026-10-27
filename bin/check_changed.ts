@@ -73,8 +73,10 @@ function run(step: ChangedCheckStep): Promise<{ status: number | null; output: s
   })
 }
 
-const args = process.argv.slice(2)
-if (args.length > 1 || args[0]?.startsWith('-')) misuse('Use pnpm check:changed [base]')
+const flags = process.argv.slice(2).filter((arg) => arg.startsWith('-'))
+const args = process.argv.slice(2).filter((arg) => !arg.startsWith('-'))
+if (args.length > 1 || flags.some((flag) => flag !== '--static'))
+  misuse('Use pnpm check:changed [--static] [base]')
 if (Number(process.versions.node.split('.')[0]) !== 24) {
   misuse(`Use Node 24 (found ${process.version}); run nvm use`)
 }
@@ -87,7 +89,7 @@ if (
 const changes = changedFiles(base)
 console.log(`[check:changed] ${changes.length} changed files since the merge-base with ${base}`)
 let failed = false
-for (const step of planChangedChecks(changes)) {
+for (const step of planChangedChecks(changes, { static: flags.includes('--static') })) {
   if ('skip' in step) {
     console.log(`skip ${step.label} (${step.skip})`)
     continue
