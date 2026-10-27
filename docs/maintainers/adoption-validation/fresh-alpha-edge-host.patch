@@ -1,0 +1,302 @@
+--- a/app/models/user.ts
++++ b/app/models/user.ts
+@@ -16,0 +17,6 @@
++  declare accountIncarnation: string
++  declare securityEpoch: string
++  declare active: boolean
++  declare masqueradeOperator: boolean
++  declare canMutate: boolean
++
+--- a/config/masquerade.ts
++++ b/config/masquerade.ts
+@@ -12,7 +11,0 @@
+-function configureAccountIdentity(): never {
+-  throw new Error('Configure immutable account incarnation and security stamp callbacks in config/masquerade.ts')
+-}
+-
+-// The incarnation must change if an account ID can be deleted and reused.
+-// The security stamp must change after privilege, password, suspension, and logout-all changes.
+-// Replace these fail-closed callbacks with account-specific, stable implementations.
+@@ -23,3 +16,3 @@
+-  incarnation: () => configureAccountIdentity(),
+-  securityStamp: () => configureAccountIdentity(),
+-  isActive: () => false,
++  incarnation: (user) => user.accountIncarnation,
++  securityStamp: (user) => user.securityEpoch,
++  isActive: (user) => Boolean(user.active),
+@@ -33,3 +26,2 @@
+-    // Required global check: start receives reason/request; active admission does not.
+-    async canMasquerade() {
+-      return false
++    async canMasquerade({ actor, target }) {
++      return actor.user.masqueradeOperator && target.user.active && actor.id !== target.id
+@@ -37,3 +29,2 @@
+-    // Optional edit permission for starts and active edit admissions. Remove if edit is disabled.
+-    async canEdit() {
+-      return false
++    async canEdit({ actor, target }) {
++      return actor.user.masqueradeOperator && target.user.active && actor.id !== target.id
+@@ -41,4 +31,0 @@
+-    // Optional check for starts and active admissions, not idle routes. Remove if not needed.
+-    async canUseRequest() {
+-      return false
+-    },
+@@ -50 +37 @@
+-  contextEnforcement: 'report',
++  contextEnforcement: 'enforce',
+--- a/start/routes.ts
++++ b/start/routes.ts
+@@ -1,9 +0,0 @@
+-/*
+-|--------------------------------------------------------------------------
+-| Routes file
+-|--------------------------------------------------------------------------
+-|
+-| The routes file is used for defining the HTTP routes.
+-|
+-*/
+-
+@@ -12,0 +4 @@
++import { allowMutation, sensitive } from 'adonisjs-masquerade/http'
+@@ -15,17 +7,21 @@
+-
+-router
+-  .group(() => {
+-    router.get('signup', [controllers.NewAccount, 'create'])
+-    router.post('signup', [controllers.NewAccount, 'store'])
+-
+-    router.get('login', [controllers.Session, 'create'])
+-    router.post('login', [controllers.Session, 'store'])
+-  })
+-  .use(middleware.guest())
+-
+-router
+-  .group(() => {
+-    router.on('/dashboard').render('pages/dashboard').as('dashboard')
+-    router.post('logout', [controllers.Session, 'destroy'])
+-  })
+-  .use(middleware.auth())
++router.group(() => {
++  router.get('signup', [controllers.NewAccount, 'create'])
++  router.post('signup', [controllers.NewAccount, 'store'])
++  router.get('login', [controllers.Session, 'create'])
++  router.post('login', [controllers.Session, 'store'])
++}).use(middleware.guest())
++router.group(() => {
++  router.on('/dashboard').render('pages/dashboard').as('dashboard')
++  router.post('logout', [controllers.Session, 'destroy'])
++}).use(middleware.auth({ guards: ['web'] }))
++router.group(() => {
++  router.get('/', [() => import('#controllers/fresh_edge_controller'), 'status']).as('fresh_edge.support')
++  router.post('/start', [() => import('#controllers/fresh_edge_controller'), 'start']).as('fresh_edge.start')
++  router.post('/stop', [() => import('#controllers/fresh_edge_controller'), 'stop']).as('fresh_edge.stop')
++}).prefix('/support').use(middleware.auth({ guards: ['web'] }))
++router.get('/support/customer', [() => import('#controllers/fresh_edge_controller'), 'customer'])
++  .as('fresh_edge.customer').use(middleware.auth({ guards: ['web_effective'] }))
++router.post('/support/customer/preference', [() => import('#controllers/fresh_edge_controller'), 'preference'])
++  .as('fresh_edge.preference').use(allowMutation()).use(middleware.auth({ guards: ['web_effective'] }))
++router.post('/support/customer/sensitive', [() => import('#controllers/fresh_edge_controller'), 'sensitive'])
++  .as('fresh_edge.sensitive').use(sensitive()).use(middleware.auth({ guards: ['web_effective'] }))
+--- /dev/null
++++ b/database/migrations/1792595237713_add_fresh_edge_identity.ts
+@@ -0,0 +1,30 @@
++import { BaseSchema } from '@adonisjs/lucid/schema'
++
++export default class extends BaseSchema {
++  protected tableName = 'users'
++
++  async up() {
++    this.schema.alterTable(this.tableName, (table) => {
++      table.string('account_incarnation').notNullable().defaultTo('')
++      table.string('security_epoch').notNullable().defaultTo('0')
++      table.boolean('active').notNullable().defaultTo(true)
++      table.boolean('masquerade_operator').notNullable().defaultTo(false)
++      table.boolean('can_mutate').notNullable().defaultTo(true)
++    })
++    this.schema.createTable('fresh_edge_preferences', (table) => {
++      table.integer('user_id').unsigned().primary().references('users.id').onDelete('CASCADE')
++      table.boolean('email_updates').notNullable().defaultTo(false)
++    })
++  }
++
++  async down() {
++    this.schema.dropTable('fresh_edge_preferences')
++    this.schema.alterTable(this.tableName, (table) => {
++      table.dropColumn('account_incarnation')
++      table.dropColumn('security_epoch')
++      table.dropColumn('active')
++      table.dropColumn('masquerade_operator')
++      table.dropColumn('can_mutate')
++    })
++  }
++}
+--- /dev/null
++++ b/app/controllers/fresh_edge_controller.ts
+@@ -0,0 +1,52 @@
++import User from '#models/user'
++import { demoStartInput, demoStopInput } from '#services/fresh_edge_control_input'
++import type { HttpContext } from '@adonisjs/core/http'
++import db from '@adonisjs/lucid/services/db'
++import { MasqueradeController, shareMasquerade } from 'adonisjs-masquerade/http'
++
++export default class FreshEdgeController extends MasqueradeController {
++  override async status(ctx: HttpContext) {
++    const actor = ctx.auth.use('web').getUserOrFail() as User
++    const runtime = await ctx.containerResolver.make('masquerade.runtime')
++    const mode = await runtime.service.status(ctx)
++    const customers = actor.masqueradeOperator
++      ? await User.query().whereNot('id', actor.id).where('active', true)
++      : []
++    ctx.response.send(await ctx.view.render('pages/support', { actor, mode, customers }))
++  }
++
++  override async start(ctx: HttpContext) {
++    const runtime = await ctx.containerResolver.make('masquerade.runtime')
++    await runtime.service.start(ctx, demoStartInput(ctx))
++    return ctx.response.redirect().toPath('/support/customer')
++  }
++
++  override async stop(ctx: HttpContext) {
++    const runtime = await ctx.containerResolver.make('masquerade.runtime')
++    await runtime.service.stop(ctx, demoStopInput(ctx))
++    return ctx.response.redirect().toPath('/support')
++  }
++
++  async customer(ctx: HttpContext) {
++    const mode = await shareMasquerade(ctx)
++    const customer = ctx.auth.user as User
++    const actor = ctx.auth.use('web').getUserOrFail() as User
++    const preference = await db.from('fresh_edge_preferences').where('user_id', customer.id).first()
++    ctx.response.send(await ctx.view.render('pages/customer', {
++      actor, customer, mode, emailUpdates: Boolean(preference?.email_updates),
++    }))
++  }
++
++  async preference(ctx: HttpContext) {
++    const customer = ctx.auth.user as User
++    if (!customer.active || !customer.canMutate) return ctx.response.forbidden('Preference updates are not permitted.')
++    const value = ctx.request.input('emailUpdates')
++    if (value !== '0' && value !== '1') return ctx.response.badRequest('Choose on or off.')
++    await db.table('fresh_edge_preferences').insert({ user_id: customer.id, email_updates: value === '1' }).onConflict('user_id').merge()
++    return ctx.response.redirect().toPath('/support/customer')
++  }
++
++  async sensitive(ctx: HttpContext) {
++    return ctx.response.forbidden('Sensitive actions are disabled during support mode.')
++  }
++}
+--- /dev/null
++++ b/app/services/fresh_edge_control_input.ts
+@@ -0,0 +1,53 @@
++import type { HttpContext } from '@adonisjs/core/http'
++import type { StartInput, StopInput } from 'adonisjs-masquerade/types'
++
++const bodyLimit = 8 * 1024
++const startKeys = new Set(['targetId', 'reason', '_masqueradeContext', '_csrf'])
++const stopKeys = new Set(['_masqueradeContext', '_csrf'])
++
++/** Keep the HTML forms within the canonical control input and audit boundary. */
++export function demoStartInput(ctx: HttpContext): StartInput {
++  const body = formBody(ctx, startKeys)
++  if (!body) return invalidStartInput()
++  return {
++    targetId: body.targetId as StartInput['targetId'],
++    access: 'edit',
++    reason: body.reason as StartInput['reason'],
++    expectedContext: controlToken(ctx, body),
++  }
++}
++
++export function demoStopInput(ctx: HttpContext): StopInput {
++  const body = formBody(ctx, stopKeys)
++  if (!body) return invalidStopInput()
++  return { expectedContext: controlToken(ctx, body) }
++}
++
++function formBody(ctx: HttpContext, allowed: Set<string>): Record<string, unknown> | null {
++  const contentType = ctx.request.header('content-type')?.split(';', 1)[0]?.trim().toLowerCase()
++  const raw = ctx.request.raw()
++  const body = ctx.request.body()
++  if (contentType !== 'application/x-www-form-urlencoded') return null
++  if (raw === null || Buffer.byteLength(raw, 'utf8') > bodyLimit) return null
++  if (!body || typeof body !== 'object' || Array.isArray(body)) return null
++  if (Object.keys(body).some((key) => !allowed.has(key))) return null
++  return body
++}
++
++function controlToken(ctx: HttpContext, body: Record<string, unknown>): string {
++  const header = ctx.request.header('X-Masquerade-Context')
++  const hidden = body._masqueradeContext
++  if (header !== undefined && hidden !== undefined && header !== hidden) {
++    return `0.${'0'.repeat(32)}`
++  }
++  const token = header ?? hidden
++  return typeof token === 'string' ? token : ''
++}
++
++function invalidStartInput(): StartInput {
++  return { __invalidHttpInput: true } as unknown as StartInput
++}
++
++function invalidStopInput(): StopInput {
++  return { __invalidHttpInput: true } as unknown as StopInput
++}
+--- /dev/null
++++ b/resources/views/pages/support.edge
+@@ -0,0 +1,28 @@
++@layouts.app({ title: 'Support workspace' })
++  @page()
++    <h1>Support workspace</h1>
++    <p>Signed in as {{ actor.email }}. The raw operator session remains the actor.</p>
++    @if(mode.isMasquerading)
++      <p role="status">Support mode active for {{ mode.targetId }}.</p>
++      @form({ route: 'fresh_edge.stop', method: 'POST' })
++        <input type="hidden" name="_masqueradeContext" value="{{ mode.contextToken }}" />
++        <button type="submit">Stop support mode</button>
++      @end
++    @elseif(actor.masqueradeOperator)
++      @form({ route: 'fresh_edge.start', method: 'POST' })
++        <input type="hidden" name="_masqueradeContext" value="{{ mode.contextToken }}" />
++        <label for="targetId">Customer</label>
++        <select id="targetId" name="targetId" required>
++          @each(customer in customers)
++            <option value="{{ customer.id }}">{{ customer.fullName }} — {{ customer.email }}</option>
++          @end
++        </select>
++        <label for="reason">Reason</label>
++        <textarea id="reason" name="reason" required maxlength="500">Checking a reported preference issue</textarea>
++        <button type="submit">Start support mode</button>
++      @end
++    @else
++      <p>No support controls are available for this account.</p>
++    @end
++  @end
++@end
+--- /dev/null
++++ b/resources/views/pages/customer.edge
+@@ -0,0 +1,25 @@
++@layouts.app({ title: 'Customer workspace' })
++  @page()
++    <h1>Customer workspace</h1>
++    <p>Viewing as {{ customer.email }}</p>
++    <p>Signed in as {{ actor.email }}</p>
++    <p>Email updates: <strong>{{ emailUpdates ? 'On' : 'Off' }}</strong></p>
++    @form({ route: 'fresh_edge.preference', method: 'POST' })
++      <input type="hidden" name="_masqueradeContext" value="{{ mode.contextToken }}" />
++      <label for="emailUpdates">Email updates</label>
++      <select id="emailUpdates" name="emailUpdates">
++        <option value="1" {{ emailUpdates ? 'selected' : '' }}>On</option>
++        <option value="0" {{ !emailUpdates ? 'selected' : '' }}>Off</option>
++      </select>
++      <button type="submit">Save preference</button>
++    @end
++    @form({ route: 'fresh_edge.sensitive', method: 'POST' })
++      <input type="hidden" name="_masqueradeContext" value="{{ mode.contextToken }}" />
++      <button type="submit">Change password</button>
++    @end
++    @form({ route: 'fresh_edge.stop', method: 'POST' })
++      <input type="hidden" name="_masqueradeContext" value="{{ mode.contextToken }}" />
++      <button type="submit">Stop support mode</button>
++    @end
++  @end
++@end

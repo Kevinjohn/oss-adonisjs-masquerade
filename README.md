@@ -81,7 +81,8 @@ Open <http://127.0.0.1:3333> and sign in with the fictional operator account lis
 ## Status
 
 Early alpha for local self-testing. Version `0.0.0` is not published to a registry; install from a
-local build as described in the [setup guide](docs/guide/setup.md#generate-the-starter-files).
+local build as described in the [setup guide](docs/guide/setup.md#generate-the-starter-files). The [baseline verification record](docs/maintainers/alpha-baseline.md) names the validated source
+and local artifact.
 
 ## Documentation
 

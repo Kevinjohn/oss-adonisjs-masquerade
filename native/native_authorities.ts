@@ -2,6 +2,7 @@ import type { HttpContext } from '@adonisjs/core/http'
 import type { NativeRuntimeAdapter } from '../integration/native_binding.js'
 import { boundedString } from '../src/bounded_string.js'
 
+/** The result of `nativeAuthorities`: the primary authority and one adapter per raw guard. */
 export interface NativeAuthorityComposition<Primary extends NativeRuntimeAdapter> {
   readonly authority: Primary['authority']
   readonly guard?: string

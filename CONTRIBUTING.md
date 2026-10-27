@@ -26,8 +26,7 @@ Every change follows these.
 
 ## Local setup
 
-You need Node.js 24 and pnpm. The repository pins Node 24 in `.nvmrc`; `better-sqlite3` is compiled
-against it and the tests fail under other versions.
+You need Node.js 24 and pnpm. The repository pins Node 24 in `.nvmrc`, and `package.json` requires it.
 
 ```sh
 nvm use
@@ -50,7 +49,11 @@ Run the repository scripts, not the bare tools. They carry the flags the release
 | `pnpm check --browser` | Account Kit demo, native-session browser suite, Inertia React and Vue examples                                   |
 
 Run `pnpm check` before every pull request, and add `--full` for changes to the store, the
-packaging or the docs. `--browser` needs the native-session example's dependencies and Chromium
+packaging or the docs. While working on a branch, `pnpm check:changed [base]` runs only the
+checks the files changed since the merge-base with `base` (default `origin/main`) need, including
+uncommitted and untracked files: Prettier on those files, lint, typecheck, the changed specs or the
+full SQLite suite, build and built exports, the recipe, and the docs build. It prints one
+`pass`, `fail` or `skip` line per step and does not replace `pnpm check`. `--browser` needs the native-session example's dependencies and Chromium
 (`pnpm install` and `pnpm dlx playwright install chromium` in `examples/native-session`). The flags combine. Every pull request runs the `checks`
 workflow: lint, typecheck, build, the built-export test and coverage on SQLite and PostgreSQL. The `e2e`
 workflow runs the demo launcher, recipe and browser checks on pull requests that change `examples/`,
@@ -65,7 +68,9 @@ own server instead, set `DB_CLIENT=pg` plus `DB_HOST`, `DB_PORT`, `DB_USER`, `DB
 
 `pnpm test:mutation` runs Stryker against `src/` with `pnpm quick:test`. It edits the source files
 in place while it runs and restores them afterwards, so run it on a clean checkout. The `mutation`
-workflow runs it weekly and on demand and uploads the report; the score never fails a build.
+workflow runs it weekly and on demand and uploads the report; it fails when the score drops below
+the `break` threshold in `stryker.config.json`. `pnpm test` and `pnpm test:coverage` fail when line
+or branch coverage drops below the thresholds in the `c8` block of `package.json`.
 
 Changes to the control store or its migrations should pass on both SQLite and PostgreSQL. The
 `checks` workflow runs both on every pull request.
@@ -93,6 +98,8 @@ comes from.
 
 - Keep each pull request to one change.
 - Add or update tests. A bug fix should include a test that fails without the fix.
+- Give every public export a JSDoc block. `pnpm docs:api` fails on an undocumented class, function,
+  interface, type alias or variable.
 - Update the relevant page in `docs/` and add a line under `## Unreleased` in
   [CHANGELOG.md](CHANGELOG.md) when behaviour visible to users changes.
 - Write commit messages in the imperative mood, describing the change ("Reject a stale stop

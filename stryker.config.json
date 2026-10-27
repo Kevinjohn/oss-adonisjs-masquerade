@@ -7,5 +7,6 @@
   "inPlace": true,
   "coverageAnalysis": "off",
   "reporters": ["clear-text", "progress", "html", "json"],
+  "thresholds": { "high": 90, "low": 80, "break": 85 },
   "concurrency": 4
 }

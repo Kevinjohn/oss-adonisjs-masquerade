@@ -45,6 +45,7 @@ export function createMasqueradeSchema(
       table.index(['at', 'id'], 'masquerade_events_retention_index')
     })
 }
+/** Drop the `masquerade_events` and `masquerade_modes` tables, for a migration's `down`. */
 export function dropMasqueradeSchema(
   schema: QueryClientContract['schema']
 ): QueryClientContract['schema'] {

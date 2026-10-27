@@ -61,5 +61,5 @@ registry. Build the selected tagged baseline and install its local tarball as de
 in the [development plan](https://github.com/Kevinjohn/oss-adonisjs-masquerade/blob/main/docs/design/DEVELOPMENT-PLAN.md),
 the [technical specification](https://github.com/Kevinjohn/oss-adonisjs-masquerade/blob/main/docs/design/SPEC-masquerade.md),
 and the [product requirements](https://github.com/Kevinjohn/oss-adonisjs-masquerade/blob/main/docs/design/PRD-masquerade.md).
-See [maintainer records](https://github.com/Kevinjohn/oss-adonisjs-masquerade/tree/main/docs/maintainers)
-for repository and verification guidance.
+See the [alpha baseline verification record](maintainers/alpha-baseline.md) for the tested commit, artifact hash, checks, and remaining release gate. The
+[maintainer records](https://github.com/Kevinjohn/oss-adonisjs-masquerade/tree/main/docs/maintainers) contain further repository and verification guidance.

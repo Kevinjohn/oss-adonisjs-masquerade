@@ -7,16 +7,24 @@ import type { NativeAuthority, Subject } from '../src/types.js'
 import { boundedString } from '../src/bounded_string.js'
 import { unavailable } from '../src/errors.js'
 
+/** Options for `sessionAuthority`. */
 export interface SessionAuthorityOptions<User> {
   namespace: string
+  /** The raw session guard that authenticates the actor. */
   guard: string
+  /** The same user provider the raw session guard uses. */
   provider: SessionUserProviderContract<User>
+  /** `'id'` reuses the ID; a function returns a value that changes when an ID is reused. */
   incarnation: 'id' | ((user: User) => string)
+  /** Current account epoch; change it on password, privilege, suspension and logout-all changes. */
   securityStamp(user: User): string | Promise<string>
+  /** Whether the account may act or be targeted; must return a boolean. */
   isActive(user: User): boolean | Promise<boolean>
 }
+/** The native session adapter: account authority plus raw-guard actor authentication. */
 export interface NativeSessionAdapter<User = unknown> {
   readonly authority: NativeAuthority<User>
+  /** Authenticate through the raw session guard; `E_UNAUTHORIZED_ACCESS` passes through unchanged. */
   authenticateActor(ctx: HttpContext): Promise<Subject<User>>
 }
 /** Use the same public user provider as the raw native session guard. */
