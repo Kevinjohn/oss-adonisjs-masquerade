@@ -4,6 +4,7 @@ import { MasqueradeController } from './controllers.js'
 import { routeGuards } from '../integration/route_guards.js'
 import { boundedString } from '../src/bounded_string.js'
 
+/** Options for `masqueradeRoutes`. */
 export interface MasqueradeRoutesOptions<Guard extends string> {
   /** The host's named auth middleware, usually `middleware.auth` from `#start/kernel`. */
   auth: (options: { guards: Guard[] }) => MiddlewareFn | ParsedNamedMiddleware

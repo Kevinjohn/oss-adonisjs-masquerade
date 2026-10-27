@@ -6,7 +6,9 @@ import type { ModeAccess } from '../src/types.js'
 const CONTEXT_HEADER = 'X-Masquerade-Context'
 const SAFE_METHODS = new Set(['GET', 'HEAD', 'OPTIONS'])
 
+/** Start options for `request.masquerading(target, options)`. */
 export interface MasqueradingOptions {
+  /** Defaults to `view`. */
   access?: ModeAccess
   reason?: string
   durationSeconds?: number
@@ -14,11 +16,13 @@ export interface MasqueradingOptions {
   prefix?: string
 }
 
+/** Options for the `masqueradeApiClient` plugin. */
 export interface MasqueradeApiClientOptions {
   /** Control route prefix mounted by the host; defaults to `/masquerade`. */
   prefix?: string
 }
 
+/** The target account: a model with an `id`, or the ID itself. */
 export type MasqueradeTarget = { id: string | number | bigint } | string | number | bigint
 
 interface MasqueradingData {
