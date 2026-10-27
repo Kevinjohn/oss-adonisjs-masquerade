@@ -51,6 +51,6 @@ The alpha fresh-host patch explicitly requests edit access for the preference wo
 
 ## Rebuild and limits
 
-To rebuild the released alpha, check out `v0.1.0-alpha.1` in a clean worktree as shown in the [setup guide](../guide/setup.md#generate-the-starter-files). Build and pack with Node 24 and pnpm, then compare the tarball SHA-256 with the release notes. No matching registry package exists.
+To rebuild a released alpha, check out its tag (for example `v0.1.1-alpha`) in a clean worktree as shown in the [setup guide](../guide/setup.md#generate-the-starter-files). Build and pack with Node 24 and pnpm, then compare the tarball SHA-256 with the release notes. No matching registry package exists.
 
 This is local technical validation with fictional data. It does not establish production readiness, external-user usability, or validation by real application teams. No registry publication or release-workflow dispatch occurred during this run. The release workflow is triggered only by manual dispatch.
