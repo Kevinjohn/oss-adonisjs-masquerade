@@ -21,10 +21,10 @@ The tarball contains 111 files. Every declared runtime export resolves to a pack
 
 The preserved artifact then passed the explicit consumer matrix:
 
-| Profile | AdonisJS Core | Auth | Lucid | Session | TypeScript | SQLite | PostgreSQL |
-| --- | --- | --- | --- | --- | --- | --- | --- |
-| Floor | 7.0.0 | 10.0.0 | 22.4.2 | 8.1.0 | 5.9.3 | Pass | Pass |
-| Latest resolved | 7.6.0 | 10.1.0 | 22.4.2 | 8.3.0 | 6.0.3 | Pass | Pass |
+| Profile         | AdonisJS Core | Auth   | Lucid  | Session | TypeScript | SQLite | PostgreSQL |
+| --------------- | ------------- | ------ | ------ | ------- | ---------- | ------ | ---------- |
+| Floor           | 7.0.0         | 10.0.0 | 22.4.2 | 8.1.0   | 5.9.3      | Pass   | Pass       |
+| Latest resolved | 7.6.0         | 10.1.0 | 22.4.2 | 8.3.0   | 6.0.3      | Pass   | Pass       |
 
 All four consumer cells passed 63 peer checks, with no incompatible peer warnings. Each PostgreSQL cell passed 59 functional tests, 1 token-only test, 2 report tests, and 1 credential test. Each SQLite cell passed 65 functional tests plus the same token-only, report, and credential counts. Commands used the preserved archive explicitly:
 
@@ -51,6 +51,6 @@ The alpha fresh-host patch explicitly requests edit access for the preference wo
 
 ## Rebuild and limits
 
-To rebuild the released alpha, check out `v0.1.0-alpha.1` in a clean worktree as shown in the [setup guide](../guide/setup.md#generate-the-starter-files). Build and pack with Node 24 and pnpm, then compare the tarball SHA-256 with the release notes. No matching registry package exists.
+To rebuild a released alpha, check out its tag (for example `v0.1.1-alpha`) in a clean worktree as shown in the [setup guide](../guide/setup.md#generate-the-starter-files). Build and pack with Node 24 and pnpm, then compare the tarball SHA-256 with the release notes. No matching registry package exists.
 
 This is local technical validation with fictional data. It does not establish production readiness, external-user usability, or validation by real application teams. No registry publication or release-workflow dispatch occurred during this run. The release workflow is triggered only by manual dispatch.

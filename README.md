@@ -80,7 +80,7 @@ Open <http://127.0.0.1:3333> and sign in with the fictional operator account lis
 
 ## Status
 
-Early alpha. [`0.1.0-alpha.1`](https://github.com/Kevinjohn/oss-adonisjs-masquerade/releases/tag/v0.1.0-alpha.1)
+Early alpha. [`0.1.1-alpha`](https://github.com/Kevinjohn/oss-adonisjs-masquerade/releases/tag/v0.1.1-alpha)
 is a GitHub prerelease with the packed tarball attached; it is not published to a package registry.
 Install it as described in the [setup guide](docs/guide/setup.md#generate-the-starter-files).
 Expect breaking changes before 1.0, and do not rely on it in production yet: it has not had an
