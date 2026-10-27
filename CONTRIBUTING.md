@@ -85,6 +85,9 @@ The layout follows [SPEC-masquerade.md](docs/design/SPEC-masquerade.md) section 
   the native session authority.
 - `stores/` holds the optional Lucid control store, `providers/` the AdonisJS provider and
   `testing/` the memory store and conformance suite.
+- `commands/` holds the Ace commands, `configure.ts` and `stubs/` the configure scaffold,
+  `plugins/` the Japa API client plugin, `account_kit/` the Account Kit preview adapter and
+  `integration/` internal wiring shared by the guards, middleware and providers.
 - `tests/` mirrors the source: one spec per module. Shared fixtures live in `tests/helpers/`.
 
 [The maintainer source map](docs/maintainers/source-map.md) maps common tasks to their owning

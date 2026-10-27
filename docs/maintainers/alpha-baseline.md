@@ -3,8 +3,8 @@
 ## Candidate and tag state
 
 - Validated source: `9fd2d232dd4a47220a86af27ba42d551a79886dd`, the clean `main` checkout used for this run.
-- Candidate tag: `alpha-1` is unused and remains pending until this verification record and the corrected fresh-host recipe are merged. If it remains unused, create an annotated tag on the validated source commit above; do not move or replace an existing tag.
-- Package manifest: `adonisjs-masquerade@0.0.0`. This is a local alpha baseline, not a registry version.
+- Tag: the planned `alpha-1` tag was never created. The first alpha is `v0.1.0-alpha.1`, tagged on a later `main` commit; its [release notes](https://github.com/Kevinjohn/oss-adonisjs-masquerade/releases/tag/v0.1.0-alpha.1) record that commit, its checks and the attached tarball SHA-256.
+- Package manifest at this source: `adonisjs-masquerade@0.0.0`. This record is the pre-release baseline run, not a registry version.
 - Environment: macOS 26.6.2, arm64; Node `v24.21.0`; pnpm `11.23.0`.
 - Root lockfile SHA-256: `ea06d0ba379989cd380bb5e2f5cb7ffa913965beb2361af8e6c8869f0bc6d63b`.
 - Local artifact: `tmp/alpha-baselines/alpha-1/native-session-package.tgz` (ignored by Git), SHA-256 `24f51de777f1974cff8cfcdd86181f61a2178bfba96428d10ec1066fb2bf024d`.
@@ -51,6 +51,6 @@ The alpha fresh-host patch explicitly requests edit access for the preference wo
 
 ## Rebuild and limits
 
-After `alpha-1` is available, select it and rebuild from a clean worktree as shown in the [setup guide](../guide/setup.md#generate-the-starter-files). Build and pack with Node 24 and pnpm, then compare the resulting tarball SHA-256 before reusing it. The manifest version remains `0.0.0`; no matching registry package exists.
+To rebuild the released alpha, check out `v0.1.0-alpha.1` in a clean worktree as shown in the [setup guide](../guide/setup.md#generate-the-starter-files). Build and pack with Node 24 and pnpm, then compare the tarball SHA-256 with the release notes. No matching registry package exists.
 
-This is local technical validation with fictional data. It does not establish production readiness, external-user usability, or validation by real application teams. No registry publication, GitHub Release, release asset upload, or release-workflow dispatch occurred. The release workflow is triggered only by manual dispatch.
+This is local technical validation with fictional data. It does not establish production readiness, external-user usability, or validation by real application teams. No registry publication or release-workflow dispatch occurred during this run. The release workflow is triggered only by manual dispatch.

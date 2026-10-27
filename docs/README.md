@@ -55,11 +55,11 @@ with real application screenshots.
 - [Notes for code agents](guide/agents.md): wiring rules for agents integrating Masquerade into a
   host application.
 
-The package is an early alpha for local self-testing and has not been published to a package
-registry. Build the selected tagged baseline and install its local tarball as described in the
+The package is an early alpha distributed as GitHub prereleases and has not been published to a
+package registry. Install the release tarball or a local build as described in the
 [setup guide](guide/setup.md#generate-the-starter-files). The accepted v1 boundaries are
 in the [development plan](https://github.com/Kevinjohn/oss-adonisjs-masquerade/blob/main/docs/design/DEVELOPMENT-PLAN.md),
 the [technical specification](https://github.com/Kevinjohn/oss-adonisjs-masquerade/blob/main/docs/design/SPEC-masquerade.md),
 and the [product requirements](https://github.com/Kevinjohn/oss-adonisjs-masquerade/blob/main/docs/design/PRD-masquerade.md).
-See the [alpha baseline verification record](maintainers/alpha-baseline.md) for the tested commit, artifact hash, checks, and remaining release gate. The
+See the [alpha baseline verification record](maintainers/alpha-baseline.md) for the pre-release baseline run. The
 [maintainer records](https://github.com/Kevinjohn/oss-adonisjs-masquerade/tree/main/docs/maintainers) contain further repository and verification guidance.
