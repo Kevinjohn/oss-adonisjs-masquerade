@@ -128,7 +128,9 @@ const masquerade = computed(() => page.props.masquerade)
   >
     <p>You are viewing as account {{ masquerade.targetId }}.</p>
     <p>Access: {{ masquerade.access === 'edit' ? 'Can edit' : 'View only' }}.</p>
-    <p>Fixed deadline: <time :datetime="masquerade.expiresAt">{{ masquerade.expiresAt }}</time></p>
+    <p>
+      Fixed deadline: <time :datetime="masquerade.expiresAt">{{ masquerade.expiresAt }}</time>
+    </p>
     <Form route="demo.stop" method="post">
       <input type="hidden" name="_masqueradeContext" :value="masquerade.contextToken" />
       <button type="submit">Stop masquerade</button>

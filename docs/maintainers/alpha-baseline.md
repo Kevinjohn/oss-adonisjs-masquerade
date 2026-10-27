@@ -21,10 +21,10 @@ The tarball contains 111 files. Every declared runtime export resolves to a pack
 
 The preserved artifact then passed the explicit consumer matrix:
 
-| Profile | AdonisJS Core | Auth | Lucid | Session | TypeScript | SQLite | PostgreSQL |
-| --- | --- | --- | --- | --- | --- | --- | --- |
-| Floor | 7.0.0 | 10.0.0 | 22.4.2 | 8.1.0 | 5.9.3 | Pass | Pass |
-| Latest resolved | 7.6.0 | 10.1.0 | 22.4.2 | 8.3.0 | 6.0.3 | Pass | Pass |
+| Profile         | AdonisJS Core | Auth   | Lucid  | Session | TypeScript | SQLite | PostgreSQL |
+| --------------- | ------------- | ------ | ------ | ------- | ---------- | ------ | ---------- |
+| Floor           | 7.0.0         | 10.0.0 | 22.4.2 | 8.1.0   | 5.9.3      | Pass   | Pass       |
+| Latest resolved | 7.6.0         | 10.1.0 | 22.4.2 | 8.3.0   | 6.0.3      | Pass   | Pass       |
 
 All four consumer cells passed 63 peer checks, with no incompatible peer warnings. Each PostgreSQL cell passed 59 functional tests, 1 token-only test, 2 report tests, and 1 credential test. Each SQLite cell passed 65 functional tests plus the same token-only, report, and credential counts. Commands used the preserved archive explicitly:
 
