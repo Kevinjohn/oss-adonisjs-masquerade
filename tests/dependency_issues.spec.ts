@@ -11,13 +11,21 @@ import {
 import { tmpdir } from 'node:os'
 import { dirname, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
-import { test } from '@japa/runner'
+import { test as japaTest } from '@japa/runner'
 import { actionUpdate, issueFor } from '../bin/helpers/dependency_updates.js'
 
 const repositoryRoot = dirname(dirname(fileURLToPath(import.meta.url)))
 const loaderPath = join(repositoryRoot, 'node_modules/@poppinss/ts-exec/build/index.js')
 const action = 'actions/checkout'
 const packageName = '@adonisjs/core'
+
+// Stryker mutates src/ only. These CLI runs cannot kill a mutant and add seconds to every mutant's
+// suite run; its initial dry run, which sets no active mutant, still runs them.
+const mutantRun = Boolean(process.env.__STRYKER_ACTIVE_MUTANT__)
+
+function test(title: string, callback: Parameters<typeof japaTest>[1]) {
+  return japaTest(title, callback).skip(mutantRun, 'bin/ is not mutated')
+}
 
 interface FakeResponse {
   output?: string
