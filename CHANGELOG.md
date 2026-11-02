@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+- Dependency update scans now fail on operational GitHub release lookup errors before creating
+  or editing issues, and use pnpm for package repository metadata.
 - `pnpm check` and the `checks` workflow now start with `pnpm format:check`, which runs
   `prettier --check` on the files git tracks, so formatting fails before lint and the tests run.
   Untracked local files are not checked. Edge templates and the Edge client guide are

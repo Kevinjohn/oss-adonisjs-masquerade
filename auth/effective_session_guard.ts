@@ -3,7 +3,6 @@ import { RuntimeException } from '@adonisjs/core/exceptions'
 import type { GuardContract } from '@adonisjs/auth/types'
 import type { HttpContext } from '@adonisjs/core/http'
 import type {} from '@adonisjs/auth/initialize_auth_middleware'
-import { isBusinessRoute } from '../integration/route_metadata.js'
 import { runtimeFor } from '../integration/runtime.js'
 
 /**
@@ -17,7 +16,6 @@ export class EffectiveSessionGuard<User> implements GuardContract<User> {
   isAuthenticated = false
   authenticationAttempted = false
   constructor(
-    private name: string,
     private rawName: string,
     private ctx: HttpContext,
     private raw: GuardContract<User>
@@ -42,17 +40,13 @@ export class EffectiveSessionGuard<User> implements GuardContract<User> {
     this.isAuthenticated = false
     this.user = undefined
     const runtime = await runtimeFor(this.ctx)
-    const selected = runtime.selectGuard?.(this.ctx)
-    if (
-      selected
-        ? selected.kind === 'effective'
-        : isBusinessRoute(this.ctx, this.name, runtime.effectiveGuardNames)
-    ) {
+    const selected = runtime.selectGuard(this.ctx)
+    if (selected.kind === 'effective') {
       const admitted = await runtime.admit(this.ctx)
       this.user = admitted.effective.user as User
     } else {
       const raw = this.ctx.auth.use(
-        (selected && selected.kind !== 'ambiguous' ? selected.raw : this.rawName) as never
+        (selected.kind === 'ambiguous' ? this.rawName : selected.raw) as never
       ) as GuardContract<User>
       this.user = await raw.authenticate()
     }

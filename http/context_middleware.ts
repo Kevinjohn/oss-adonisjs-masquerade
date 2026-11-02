@@ -3,7 +3,7 @@ import { errors } from '@adonisjs/auth'
 import { MasqueradeError } from '../src/errors.js'
 import { requireContext } from '../src/context_token.js'
 import { runtimeFor } from '../integration/runtime.js'
-import { routeGuards, isBusinessRoute, routeMarkers } from '../integration/route_metadata.js'
+import { routeGuards, routeMarkers } from '../integration/route_metadata.js'
 
 /** Enforce context freshness and active-mode route policy on effective-guard routes. */
 export async function masqueradeContext(
@@ -26,21 +26,13 @@ export async function masqueradeContext(
   // every potentially business-authenticated response is non-cacheable.
   setNoStore(ctx)
   const runtime = await runtimeFor(ctx)
-  const selected = runtime.selectGuard
-    ? runtime.selectGuard(ctx)
-    : {
-        kind: isBusinessRoute(ctx, runtime.effectiveGuardName, runtime.effectiveGuardNames)
-          ? 'effective'
-          : 'raw',
-      }
+  // A fallback raw/token guard could bypass admission or replace the effective facade user.
+  // Session-only business routes must select effective guards exclusively.
+  const selected = runtime.selectGuard(ctx)
   if (selected.kind !== 'effective') {
     await next()
     return
   }
-  // A fallback raw/token guard could bypass admission or replace the effective facade user.
-  // Session-only business routes must select effective guards exclusively.
-  if (!runtime.selectGuard && guards.some((guard) => !runtime.effectiveGuardNames.includes(guard)))
-    throw new MasqueradeError('E_MASQUERADE_UNAVAILABLE')
   const admitted = await runtime.admit(ctx).catch((error: unknown) => {
     // Named auth owns native login redirects and unauthorized rendering. Its check will
     // observe this same cached rejection; no mode state has been read or handler admitted.
