@@ -16,7 +16,7 @@ export function effectiveSessionGuard<User>(
       const rawFactory = await raw.resolver(config.authority.guard, app)
       return markEffectiveFactory(
         (ctx: HttpContext) =>
-          new EffectiveSessionGuard(name, config.authority.guard, ctx, rawFactory(ctx)),
+          new EffectiveSessionGuard(config.authority.guard, ctx, rawFactory(ctx)),
         config.authority.guard
       )
     },

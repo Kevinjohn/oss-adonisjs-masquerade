@@ -213,7 +213,7 @@ test('a route accepting several raw guards keeps native auth but cannot enter th
     continued = true
   })
   assert.isTrue(continued)
-  const silent = new EffectiveSessionGuard('web_effective', 'web', ctx as never, rawGuard as never)
+  const silent = new EffectiveSessionGuard('web', ctx as never, rawGuard as never)
   assert.isTrue(await silent.check())
   assert.deepEqual(names, ['web'])
   assert.equal(

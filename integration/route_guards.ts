@@ -1,20 +1,4 @@
-import type { HttpContext } from '@adonisjs/core/http'
-
 type RouteMetadata = { middleware: { all(): Iterable<unknown> } }
-
-/**
- * Classify from route middleware registered by the router, before global
- * middleware such as `silent_auth` can authenticate a default guard.
- */
-export function isBusinessRoute(
-  ctx: HttpContext,
-  effectiveGuardName: string,
-  effectiveGuardNames: readonly string[] = [effectiveGuardName]
-): boolean {
-  return routeGuards(ctx.route, effectiveGuardName).some((guard) =>
-    effectiveGuardNames.includes(guard)
-  )
-}
 
 /** Resolve omitted auth options once; an explicitly named "default" remains an ordinary guard. */
 export function routeGuards(route: RouteMetadata | undefined, defaultGuardName: string): string[] {

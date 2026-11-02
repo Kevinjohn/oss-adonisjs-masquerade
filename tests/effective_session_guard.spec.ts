@@ -4,6 +4,10 @@ import { SessionGuard } from '@adonisjs/auth/session'
 import type { GuardContract } from '@adonisjs/auth/types'
 import type { HttpContext } from '@adonisjs/core/http'
 import { EffectiveSessionGuard } from '../auth/effective_session_guard.js'
+import { selectRouteGuard } from '../integration/route_guard_selection.js'
+
+const selectGuard = (ctx: HttpContext) =>
+  selectRouteGuard(ctx.route, 'web_effective', { web_effective: 'web' }, ['web'], 'web')
 
 test('raw/public requests authenticate natively without reading mode state', async ({ assert }) => {
   let runtimeResolutions = 0
@@ -31,6 +35,7 @@ test('raw/public requests authenticate natively without reading mode state', asy
         return {
           effectiveGuardName: 'web_effective',
           effectiveGuardNames: ['web_effective'],
+          selectGuard,
           admit: async () => {
             modeReads++
             throw new Error('store offline')
@@ -39,14 +44,14 @@ test('raw/public requests authenticate natively without reading mode state', asy
       },
     },
   } as unknown as HttpContext
-  const guard = new EffectiveSessionGuard('web_effective', 'web', ctx, raw)
+  const guard = new EffectiveSessionGuard('web', ctx, raw)
   assert.isTrue(await guard.check())
   assert.strictEqual(guard.user, actor)
   assert.equal(rawAuthentications, 1)
   ctx.route = {
     middleware: { all: () => [{ name: 'auth', args: [{ guards: ['web'] }] }] },
   } as never
-  const controlGuard = new EffectiveSessionGuard('web_effective', 'web', ctx, raw)
+  const controlGuard = new EffectiveSessionGuard('web', ctx, raw)
   assert.isTrue(await controlGuard.check())
   assert.strictEqual(controlGuard.user, actor)
   assert.equal(rawAuthentications, 2)
@@ -74,10 +79,11 @@ test('only a genuine native unauthorized error becomes false', async ({ assert }
       make: async () => ({
         effectiveGuardName: 'web_effective',
         effectiveGuardNames: ['web_effective'],
+        selectGuard,
       }),
     },
   } as unknown as HttpContext
-  const guard = new EffectiveSessionGuard('web_effective', 'web', ctx, raw)
+  const guard = new EffectiveSessionGuard('web', ctx, raw)
   assert.isFalse(await guard.check())
   assert.isTrue(guard.authenticationAttempted)
   assert.isFalse(guard.isAuthenticated)
@@ -98,7 +104,7 @@ test('getUserOrFail preserves native session unauthorized behavior after a faile
       middleware: { all: () => [{ name: 'auth', args: [{ guards: ['web'] }] }] },
     },
     containerResolver: {
-      make: async () => ({ effectiveGuardNames: ['web_effective'] }),
+      make: async () => ({ effectiveGuardNames: ['web_effective'], selectGuard }),
     },
   } as unknown as HttpContext
   native = new SessionGuard(
@@ -108,7 +114,7 @@ test('getUserOrFail preserves native session unauthorized behavior after a faile
     { emit: async () => {} } as never,
     {} as never
   ) as unknown as GuardContract<unknown>
-  const effective = new EffectiveSessionGuard('web_effective', 'web', ctx, native)
+  const effective = new EffectiveSessionGuard('web', ctx, native)
 
   assert.throws(() => effective.getUserOrFail(), 'No effective user is authenticated')
   assert.isFalse(await native.check())
@@ -167,6 +173,7 @@ test('business guard owns the facade while the raw guard retains actor identity;
   }
   let failure: MasqueradeError | undefined
   ctx.containerResolver.bindValue('masquerade.runtime', {
+    selectGuard,
     admit: async () => {
       if (failure) throw failure
       return { actor: { user: actor }, effective: { user: target } }
@@ -176,7 +183,7 @@ test('business guard owns the facade while the raw guard retains actor identity;
     default: 'web_effective',
     guards: {
       web: () => raw,
-      web_effective: () => new EffectiveSessionGuard('web_effective', 'web', ctx, raw),
+      web_effective: () => new EffectiveSessionGuard('web', ctx, raw),
     },
   })
   ctx.auth = auth as never
@@ -196,7 +203,6 @@ test('effective wrapper rejects non-session native drivers', ({ assert }) => {
   assert.throws(
     () =>
       new EffectiveSessionGuard(
-        'web_effective',
         'api',
         {} as HttpContext,
         { driverName: 'access_tokens' } as GuardContract<unknown>
@@ -231,7 +237,7 @@ test('default silent auth uses an unrelated registered raw guard without mode ad
       }),
     },
   } as unknown as HttpContext
-  const effective = new EffectiveSessionGuard('web_effective', 'web', ctx, raw)
+  const effective = new EffectiveSessionGuard('web', ctx, raw)
   assert.strictEqual(await effective.authenticate(), member)
   assert.deepEqual(names, ['members'])
   assert.equal(admissions, 0)
