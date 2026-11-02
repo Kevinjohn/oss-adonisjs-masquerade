@@ -10,6 +10,7 @@ test('indeterminate committed start logs a safe diagnostic and never emits or re
   const f = fixture()
   const service = await f.create()
   const idle = await service.status({})
+  f.observed.length = 0
   const cas = f.store.compareAndSet.bind(f.store)
   f.store.compareAndSet = async (input) => {
     await cas(input)
@@ -24,6 +25,7 @@ test('indeterminate committed start logs a safe diagnostic and never emits or re
     ),
     'E_MASQUERADE_UNAVAILABLE'
   )
+  assert.deepEqual(f.observed, [])
   assert.deepEqual(
     f.store.events.map((event) => event.kind),
     ['started']
@@ -57,6 +59,7 @@ test('indeterminate committed stop does not emit success or record a false denia
     await errorCode(() => service.stop({}, { expectedContext: active.contextToken })),
     'E_MASQUERADE_UNAVAILABLE'
   )
+  assert.deepEqual(f.observed, [])
   assert.deepEqual(
     f.store.events.map((event) => event.kind),
     ['started', 'stopped']
@@ -73,7 +76,7 @@ test('indeterminate committed stop does not emit success or record a false denia
   ])
 })
 
-test('CAS write and required outcome failures return503 and leave authoritative state unchanged', async ({
+test('CAS write and required outcome failures return 503 and leave authoritative state unchanged', async ({
   assert,
 }) => {
   const f = fixture()
@@ -490,6 +493,7 @@ for (const missingOutcome of [null, undefined]) {
               )
           : () => service.stop({}, { expectedContext: initial.contextToken })
       assert.equal(await errorCode(invoke), 'E_MASQUERADE_UNAVAILABLE')
+      assert.deepEqual(f.observed, [])
       const last = f.store.events.at(-1)!
       assert.equal(last.kind, operation === 'start' ? 'started' : 'stopped')
       assert.deepEqual(f.diagnostics, [
@@ -505,7 +509,7 @@ for (const missingOutcome of [null, undefined]) {
   }
 }
 
-test('failed expired-start denial audit preserves committed expiry and returns503 without compensation', async ({
+test('failed expired-start denial audit preserves committed expiry and returns 503 without compensation', async ({
   assert,
 }) => {
   const f = fixture()

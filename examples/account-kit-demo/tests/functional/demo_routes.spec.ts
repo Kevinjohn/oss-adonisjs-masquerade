@@ -13,10 +13,18 @@ test.group('Account Kit demo pages', (group) => {
 
   test('renders public and signed-in pages and redirects anonymous support', async ({ assert }) => {
     const anonymous = new AccountKitHttp()
-    for (const path of ['/', '/login', '/unknown-account-kit-demo-path']) {
-      const result = await anonymous.request(path, { headers: { accept: 'text/html' } })
-      assert.notEqual(result.status, 500, path)
-    }
+    const home = await anonymous.request('/', { headers: { accept: 'text/html' } })
+    assert.equal(home.status, 200, '/')
+    assert.include(await home.text(), 'Welcome to the power of a Hypermedia app.')
+    const login = await anonymous.request('/login', { headers: { accept: 'text/html' } })
+    assert.equal(login.status, 200, '/login')
+    const loginHtml = await login.text()
+    assert.include(loginHtml, 'data-demo="account-kit"')
+    assert.include(loginHtml, 'Sign in to support')
+    const unknown = await anonymous.request('/unknown-account-kit-demo-path', {
+      headers: { accept: 'text/html' },
+    })
+    assert.equal(unknown.status, 404, '/unknown-account-kit-demo-path')
     const denied = await anonymous.request('/support', { headers: { accept: 'text/html' } })
     assert.equal(denied.status, 302)
     assert.include(denied.headers.get('location') ?? '', '/login')
@@ -51,7 +59,10 @@ test.group('Account Kit demo pages', (group) => {
       { email: actor.email, password: 'bad' },
       { 'x-csrf-token': csrf }
     )
-    assert.notEqual(wrong.status, 200)
+    assert.equal(wrong.status, 401)
+    const wrongBody = (await wrong.json()) as { errors?: Array<{ code?: unknown }> }
+    assert.equal(wrongBody.errors?.[0]?.code, 'E_INVALID_CREDENTIALS')
+    assert.isNull(await db.from('account_sessions').where('user_id', actor.id).first())
     await http.login(actor.email, 'secret', 'session')
     assert.isNotNull(await db.from('account_sessions').where('user_id', actor.id).first())
     const logout = await http.json(

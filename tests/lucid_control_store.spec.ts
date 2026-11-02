@@ -257,27 +257,82 @@ test.group('Lucid control store', () => {
           sqliteBusyDelayMs: 1,
         })
         const start = Date.now()
-        await assert.rejects(() => bounded.compareAndSet(a))
+        const boundedFailure = await bounded.compareAndSet(a).then(
+          () => undefined,
+          (error: unknown) => error
+        )
+        assert.equal((boundedFailure as { code?: string } | undefined)?.code, 'SQLITE_BUSY')
         assert.isBelow(Date.now() - start, 1000)
         assert.isNull(await f.other.read(a.owner))
+
+        let signalBusy!: (observation: { code: string; sql: string }) => void
+        const busy = new Promise<{ code: string; sql: string }>((resolve) => {
+          signalBusy = resolve
+        })
+        const busyObservations: Array<{ code: string; sql: string }> = []
+        const writeClient = f.second.getWriteClient()
+        const onQueryError = (error: { code?: string }, query: { sql: string }) => {
+          if (
+            error.code === 'SQLITE_BUSY' &&
+            /^\s*insert\b/i.test(query.sql) &&
+            /\bmasquerade_modes\b/i.test(query.sql)
+          ) {
+            const observation = { code: error.code, sql: query.sql }
+            busyObservations.push(observation)
+            signalBusy(observation)
+          }
+        }
+        writeClient.on('query-error', onQueryError)
+
+        let unlockStarted = false
+        let deadline: ReturnType<typeof setTimeout> | undefined
+        let waiterDeadline: ReturnType<typeof setTimeout> | undefined
         const waiting = new LucidControlStore(f.second, {
           sqliteBusyRetries: 5,
           sqliteBusyDelayMs: 15,
         })
           .compareAndSet(a)
           .then(
-            (result) => result,
-            (error: unknown) => ({ status: 'failed', error })
+            (result) => ({ status: 'settled' as const, result }),
+            (error: unknown) => ({ status: 'failed' as const, error })
           )
-        await new Promise((resolve) => setTimeout(resolve, 10))
-        await lock.rollback()
-        assert.deepEqual(await waiting, { status: 'applied', transitionId: a.event.id })
-        assert.deepEqual(await f.store.read(a.owner), a.next)
-        const savedEvents = await f.client.from('masquerade_events')
-        assert.deepEqual(
-          savedEvents.map((event) => event.id),
-          [a.event.id]
-        )
+        try {
+          const deadlineReached = new Promise<{ status: 'deadline' }>((resolve) => {
+            deadline = setTimeout(() => resolve({ status: 'deadline' }), 1000)
+          })
+          const beforeBusy = await Promise.race([
+            busy.then((observation) => ({ status: 'busy' as const, observation })),
+            waiting.then((outcome) => ({ status: 'completed' as const, outcome })),
+            deadlineReached,
+          ])
+          assert.equal(beforeBusy.status, 'busy')
+          assert.equal(unlockStarted, false)
+          assert.equal(busyObservations.length > 0, true)
+
+          unlockStarted = true
+          await lock.rollback()
+          const waiterDeadlineReached = new Promise<{ status: 'deadline' }>((resolve) => {
+            waiterDeadline = setTimeout(() => resolve({ status: 'deadline' }), 1000)
+          })
+          const outcome = await Promise.race([waiting, waiterDeadlineReached])
+          assert.equal(outcome.status, 'settled')
+          if (outcome.status === 'settled')
+            assert.deepEqual(outcome.result, { status: 'applied', transitionId: a.event.id })
+          assert.deepEqual(await f.store.read(a.owner), a.next)
+          const savedEvents = await f.client.from('masquerade_events')
+          assert.deepEqual(
+            savedEvents.map((event) => event.id),
+            [a.event.id]
+          )
+        } finally {
+          if (deadline) clearTimeout(deadline)
+          if (waiterDeadline) clearTimeout(waiterDeadline)
+          if (!lock.isCompleted) await lock.rollback()
+          writeClient.off('query-error', onQueryError)
+          // The outcome handlers were attached at launch; wait for all retries to finish before
+          // the fixture closes, including when the barrier or its bounded wait fails.
+          await waiting
+        }
       } finally {
         if (!lock.isCompleted) await lock.rollback()
         await f.cleanup()
