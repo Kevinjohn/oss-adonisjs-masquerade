@@ -94,11 +94,8 @@ function latestActionRelease(name: string): string | undefined {
     const confirmation = spawnSync('gh', ['api', `repos/${name}/releases?per_page=1`, '--silent'], {
       encoding: 'utf8',
     })
-    if (
-      confirmation.status === 0 &&
-      confirmation.signal === null &&
-      confirmation.error === undefined
-    ) {
+    // A signal or spawn error leaves `status` null, so exit 0 alone proves the read succeeded.
+    if (confirmation.status === 0) {
       console.warn(`No latest release found for ${name}; skipped`)
       return undefined
     }
