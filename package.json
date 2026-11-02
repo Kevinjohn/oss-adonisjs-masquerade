@@ -1,7 +1,7 @@
 {
   "name": "adonisjs-masquerade",
   "description": "Server-side account masquerade for AdonisJS: an operator acts as another account without a target login",
-  "version": "0.1.1-alpha",
+  "version": "0.1.2-alpha",
   "engines": {
     "node": ">=24.0.0"
   },
@@ -117,7 +117,7 @@
     "tsdown": "^0.23.4",
     "typedoc": "^0.28.20",
     "typedoc-plugin-markdown": "^4.14.1",
-    "typescript": "~6.0.3",
+    "typescript": "5.9.3",
     "vitepress": "^1.6.4"
   },
   "peerDependencies": {
