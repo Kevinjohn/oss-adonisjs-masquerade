@@ -381,14 +381,13 @@ test.group('masquerade HTTP boundary', () => {
       routeMiddleware: [{ name: 'auth', args: { guards: ['web'] } }],
     })
     let runtimeCalls = 0
-    ;(
-      ctx as { containerResolver: { make(name: string): Promise<unknown> } }
-    ).containerResolver.make = async () => {
+    const resolver = (
+      ctx as unknown as { containerResolver: { make(name: string): Promise<unknown> } }
+    ).containerResolver
+    const resolveRuntime = resolver.make.bind(resolver)
+    resolver.make = async (name: string) => {
       runtimeCalls++
-      return {
-        effectiveGuardName: 'web_effective',
-        effectiveGuardNames: ['web_effective'],
-      }
+      return resolveRuntime(name)
     }
     let continued = false
     await masqueradeContext(ctx, async () => {

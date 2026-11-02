@@ -2,6 +2,7 @@ import { admission } from '../../src/request_admission.js'
 import type { RequestAdmission } from '../../src/request_admission.js'
 import type { MasqueradeService } from '../../src/types.js'
 import type { RouteGuardSelection } from '../../integration/route_guard_selection.js'
+import { selectRouteGuard } from '../../integration/route_guard_selection.js'
 import type { fixture } from './core.js'
 
 type RequestContextOptions = {
@@ -13,7 +14,7 @@ type RequestContextOptions = {
   contentLength?: string | null
   header?: string
   route?: unknown
-  selectGuard?: (ctx: object) => RouteGuardSelection
+  selectGuard?: (ctx: SelectableContext) => RouteGuardSelection
   routeMiddleware?: unknown[]
   groupMiddleware?: unknown[]
   defaultGuard?: string
@@ -22,6 +23,8 @@ type RequestContextOptions = {
     fallback: () => Promise<RequestAdmission<unknown>>
   ) => Promise<RequestAdmission<unknown>>
 }
+
+type SelectableContext = { route?: { middleware: { all(): Iterable<unknown> } } }
 
 export function requestContext(f: ReturnType<typeof fixture>, options: RequestContextOptions) {
   const responseState: {
@@ -96,7 +99,16 @@ export function requestContext(f: ReturnType<typeof fixture>, options: RequestCo
         config: f.config,
         effectiveGuardName: 'web_effective',
         effectiveGuardNames: ['web_effective', 'web_alias'],
-        ...(options.selectGuard ? { selectGuard: options.selectGuard } : {}),
+        selectGuard:
+          options.selectGuard ??
+          ((request: SelectableContext) =>
+            selectRouteGuard(
+              request.route,
+              options.defaultGuard ?? 'web_effective',
+              { web_effective: 'web', web_alias: 'web' },
+              ['web', 'api', 'default'],
+              'web'
+            )),
         admit: async (request: object) => {
           const service = await f.create()
           const fallback = () =>
