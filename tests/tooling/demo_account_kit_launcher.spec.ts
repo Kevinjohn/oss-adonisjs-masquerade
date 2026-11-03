@@ -114,7 +114,7 @@ async function setupSharedRuntime() {
   }
   await chmod(fixtureNode, 0o755)
   await writeFile(path.join(fakebin, 'pnpm'), fakePnpm, { mode: 0o755 })
-  fixturePreload = path.join(sharedFixtureRoot, 'fetch-preload.js')
+  fixturePreload = path.join(sharedFixtureRoot, 'fetch-preload.ts')
   await writeFile(fixturePreload, fetchPreload)
 }
 
@@ -283,7 +283,7 @@ async function fixture(options: FixtureOptions = {}): Promise<Demo> {
     await writeFile(copiedWiring, copiedText.replace(kitSha, syntheticSha))
   }
   await writeFile(
-    path.join(root, 'orphan.js'),
+    path.join(root, 'orphan.ts'),
     `import { writeFile } from 'node:fs/promises'; await writeFile(process.env.KIT_DEMO_TEST_ORPHAN_PID, String(process.pid)); await new Promise(() => setInterval(() => {}, 1000))\n`
   )
   const port = options.port ?? (await freePort())
@@ -316,7 +316,7 @@ async function fixture(options: FixtureOptions = {}): Promise<Demo> {
       KIT_DEMO_TEST_RELEASE_BYTES: releaseBytes,
       KIT_DEMO_TEST_RELEASE_URL: kitUrl,
       KIT_DEMO_TEST_ORPHAN_PID: path.join(root, 'orphan.pid'),
-      KIT_DEMO_TEST_ORPHAN_SCRIPT: path.join(root, 'orphan.js'),
+      KIT_DEMO_TEST_ORPHAN_SCRIPT: path.join(root, 'orphan.ts'),
       KIT_DEMO_TEST_CHILD_PID: path.join(root, 'child.pid'),
       KIT_DEMO_TEST_OWNED_SERVER_READY: path.join(root, 'owned-server-ready'),
       KIT_DEMO_TEST_EXIT_SERVER: path.join(root, 'exit-owned-server'),
