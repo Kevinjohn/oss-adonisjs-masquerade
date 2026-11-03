@@ -17,6 +17,7 @@
     "build",
     "!build/bin",
     "!build/tests",
+    "README-AGENTS.md",
     "SECURITY.md",
     "CHANGELOG.md"
   ],
@@ -80,6 +81,14 @@
   ],
   "author": "Kevinjohn Gallagher",
   "license": "MIT",
+  "homepage": "https://kevinjohn.github.io/oss-adonisjs-masquerade/",
+  "bugs": {
+    "url": "https://github.com/Kevinjohn/oss-adonisjs-masquerade/issues"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Kevinjohn/oss-adonisjs-masquerade.git"
+  },
   "devDependencies": {
     "@adonisjs/assembler": "^8.6.0",
     "@adonisjs/auth": "^10.0.0",
@@ -93,23 +102,23 @@
     "@japa/api-client": "^3.2.1",
     "@japa/assert": "^4.2.0",
     "@japa/runner": "^5.3.0",
-    "@poppinss/ts-exec": "^1.4.4",
-    "@types/luxon": "^3.7.6",
-    "@types/node": "^26.6.6",
+    "@poppinss/ts-exec": "^1.5.1",
+    "@types/luxon": "^3.0.0",
+    "@types/node": "^24.0.0",
     "@vinejs/vine": "^4.4.0",
     "adonisjs-account-kit": "https://github.com/Kevinjohn/oss-adonisjs-account-kit/releases/download/v0.1.4/adonisjs-account-kit-0.1.4.tgz",
-    "better-sqlite3": "^13.0.3",
+    "better-sqlite3": "^13.0.0",
     "c8": "^12.0.0",
     "copyfiles": "^2.4.1",
     "cross-env": "^10.1.0",
     "eslint": "^10.0.3",
-    "luxon": "^3.7.2",
+    "luxon": "^3.0.0",
     "pg": "^8.0.0",
     "prettier": "^3.8.1",
     "tsdown": "^0.23.4",
     "typedoc": "^0.28.20",
     "typedoc-plugin-markdown": "^4.14.1",
-    "typescript": "5.9.3",
+    "typescript": "^5.9.3",
     "vitepress": "^1.6.4"
   },
   "peerDependencies": {
@@ -183,9 +192,5 @@
     "branches": 87
   },
   "prettier": "@adonisjs/prettier-config",
-  "repository": {
-    "type": "git",
-    "url": "git+https://github.com/Kevinjohn/oss-adonisjs-masquerade.git"
-  },
   "packageManager": "pnpm@11.23.0"
 }
