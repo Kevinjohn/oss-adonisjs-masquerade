@@ -873,7 +873,7 @@ packages:
     resolution: {integrity: sha512-zzNR+SdQSDJzc8joaeP8QQoCQr8NuYx2dIIytl1QeBEZHJ9uW6hebsrYgbz8hJwUQao3TWCMtmfV8Nu1twOLAw==}
 
   '@kevinjohn/adonisjs-account-kit@https://github.com/Kevinjohn/oss-adonisjs-account-kit/releases/download/v0.1.5/kevinjohn-adonisjs-account-kit-0.1.5.tgz':
-    resolution: {integrity: sha512-nd5PDmDtmR/GtM9lvu3C5MV6PvrdU/tinC3J25WfDlW00UpX1NYniQTKlw3oT5S5kly86CDdPg80x7bafIjf2Q==, tarball: https://github.com/Kevinjohn/oss-adonisjs-account-kit/releases/download/v0.1.5/kevinjohn-adonisjs-account-kit-0.1.5.tgz}
+    resolution: {integrity: sha512-MdcA4xZIjawlsSmcvLRary114JhNzc87VioKsSTupG3GOgFNo51lY0MtYcQxEsKn4PEe5BkknR3qdnsLZecGow==, tarball: https://github.com/Kevinjohn/oss-adonisjs-account-kit/releases/download/v0.1.5/kevinjohn-adonisjs-account-kit-0.1.5.tgz}
     version: 0.1.5
     engines: {node: '>=24.0.0'}
     peerDependencies:

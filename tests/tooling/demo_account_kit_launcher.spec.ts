@@ -32,7 +32,7 @@ const overlaySource = path.join(repoRoot, 'examples/account-kit-demo')
 const wiringSource = path.join(helperSource, 'account_kit_host_wiring.ts')
 const kitUrl =
   'https://github.com/Kevinjohn/oss-adonisjs-account-kit/releases/download/v0.1.5/kevinjohn-adonisjs-account-kit-0.1.5.tgz'
-const kitSha = 'd124bfec0913fc05ee3df010e996ebca20d5633272c1f0cc8d602fc85e253d8b'
+const kitSha = '1efdb5bcda9aeb1dd78e71293d1af0471335cb44e25661ea58dc26540e8a69d5'
 const syntheticKit = Buffer.from('synthetic Account Kit release for isolated launcher tests\n')
 const syntheticSha = createHash('sha256').update(syntheticKit).digest('hex')
 const stopTimeoutMs = 8_000

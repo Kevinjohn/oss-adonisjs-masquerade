@@ -1,17 +1,17 @@
 # Account Kit integration preview
 
 This page describes the Account Kit adapter planned for Masquerade v1.2. It is a prerelease
-integration preview targeting the planned scoped Account Kit `0.1.5` release. The scoped
-release is pending. Once published, install its tarball with pnpm:
+integration preview using the scoped Account Kit `0.1.5` GitHub release. Install its tarball
+with pnpm:
 
 ```sh
 pnpm add https://github.com/Kevinjohn/oss-adonisjs-account-kit/releases/download/v0.1.5/kevinjohn-adonisjs-account-kit-0.1.5.tgz
 ```
 
-The local release candidate SHA-256 is
-`d124bfec0913fc05ee3df010e996ebca20d5633272c1f0cc8d602fc85e253d8b` and its source commit is
-`555c56cda66f3168477fec687c32e4ff87ae71de`. These are provisional candidate bytes, not proof of a published release. Reconcile the digest
-with the actual scoped release before using the release URL.
+The release artifact SHA-256 is
+`1efdb5bcda9aeb1dd78e71293d1af0471335cb44e25661ea58dc26540e8a69d5` and its source commit is
+`4aebc86950139b5ad173e67e21da01b53135bc86`. Verify a downloaded archive against this digest
+before installing it.
 
 Account Kit's HTTP integration requires the host-provided `@vinejs/vine` `^4.4.0` dependency. The
 standard AdonisJS native-auth host already includes it.
@@ -285,10 +285,9 @@ commit the routes as `<group>.accountKit.*`, which the blocker does not match, s
 `is not mounted`.
 
 This prerelease interface works with Account Kit `0.1.5`, the only version the optional peer
-declares. The scoped release still needs validation against its published artifact; prior matrix results
-apply to the historical unscoped release
-for both strategies, with session management on and off, on SQLite and PostgreSQL at the declared
-floor and latest compatible peers. Other Account Kit versions, MySQL and a second composed
+declares. Historical matrix results cover the unscoped release for both strategies, with session
+management on and off, on SQLite and PostgreSQL at the declared floor and latest compatible peers.
+The scoped release is validated separately in the pull request that updates this dependency. Other Account Kit versions, MySQL and a second composed
 Masquerade transport are not tested. Account Kit `0.1.1` and later resolve `configProvider` through
 `@adonisjs/core`, addressing the Core `7.0.0` Ace-startup failure documented in the
 [0.1.1 release notes](https://github.com/Kevinjohn/oss-adonisjs-account-kit/releases/tag/v0.1.1).
@@ -330,6 +329,5 @@ callbacks, including `canAccess`, so keep them safe to retry. PostgreSQL locks t
 account row. Masquerade supports this integration only on SQLite and PostgreSQL, matching its
 existing database support; this preview does not claim MySQL support.
 
-This integration remains a prerelease preview. The scoped GitHub release is pending; its published artifact still needs validation before
-installation. Public registry publication is separate from integration acceptance. Check the
+This integration remains a prerelease preview. Account Kit is distributed as a scoped GitHub release artifact. Public registry publication is separate from integration acceptance. Check the
 [troubleshooting guide](troubleshooting.md) for common configuration failures.

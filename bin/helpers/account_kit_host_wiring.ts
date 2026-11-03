@@ -3,10 +3,9 @@ import { join } from 'node:path'
 
 export const kitReleaseUrl =
   'https://github.com/Kevinjohn/oss-adonisjs-account-kit/releases/download/v0.1.5/kevinjohn-adonisjs-account-kit-0.1.5.tgz'
-// Expected candidate bytes; reconcile with the published scoped release before delivery.
-export const kitReleaseSha256 = 'd124bfec0913fc05ee3df010e996ebca20d5633272c1f0cc8d602fc85e253d8b'
+export const kitReleaseSha256 = '1efdb5bcda9aeb1dd78e71293d1af0471335cb44e25661ea58dc26540e8a69d5'
 export const kitReleaseVersion = '0.1.5'
-export const kitSourceRevision = '555c56cda66f3168477fec687c32e4ff87ae71de'
+export const kitSourceRevision = '4aebc86950139b5ad173e67e21da01b53135bc86'
 
 export async function overlay(sourceDir: string, destinationDir: string): Promise<void> {
   for (const entry of await readdir(sourceDir, { withFileTypes: true })) {
