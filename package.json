@@ -69,8 +69,8 @@
     "test:pg": "bash bin/pg.sh test",
     "demo": "node bin/demo.mjs",
     "demo:account-kit": "node --import=@poppinss/ts-exec --enable-source-maps bin/demo_account_kit.ts",
-    "test:demo": "node --test tests/demo_launcher.test.mjs tests/demo_account_kit_launcher.test.mjs",
-    "test:demo:account-kit": "node --test tests/demo_account_kit_launcher.test.mjs",
+    "test:demo": "node --test tests/tooling/demo_launcher.test.mjs tests/tooling/demo_account_kit_launcher.test.mjs",
+    "test:demo:account-kit": "node --test tests/tooling/demo_account_kit_launcher.test.mjs",
     "test:account-kit-demo": "node --import=@poppinss/ts-exec --enable-source-maps bin/test_account_kit_demo.ts",
     "test:inertia-react": "node --import=@poppinss/ts-exec --enable-source-maps bin/test_inertia_react.ts"
   },

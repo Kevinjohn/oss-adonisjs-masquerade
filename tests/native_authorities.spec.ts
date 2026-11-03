@@ -1,6 +1,6 @@
 import { test } from '@japa/runner'
 import type { HttpContext } from '@adonisjs/core/http'
-import type { NativeRuntimeAdapter } from '../integration/native_binding.js'
+import type { NativeRuntimeAdapter } from '../src/integration/native_binding.js'
 import { nativeAuthorities } from '../native/main.js'
 import type { NativeAuthority, Subject } from '../src/types.js'
 

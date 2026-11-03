@@ -8,9 +8,9 @@ import os from 'node:os'
 import path from 'node:path'
 import test from 'node:test'
 import { fileURLToPath } from 'node:url'
-import { assertNodeVersion } from '../bin/demo.mjs'
+import { assertNodeVersion } from '../../bin/demo.mjs'
 
-const repoRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..')
+const repoRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../..')
 const launcherPath = path.join(repoRoot, 'bin/demo.mjs')
 const currentNode = process.execPath
 

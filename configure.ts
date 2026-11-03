@@ -1,6 +1,6 @@
 import type Configure from '@adonisjs/core/commands/configure'
 import { access, readdir } from 'node:fs/promises'
-import { wireHost } from './configure_wiring.js'
+import { wireHost } from './src/configure_wiring.js'
 
 const fileDestinations = [
   'app/services/masquerade_user_provider.ts',

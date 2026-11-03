@@ -1,5 +1,5 @@
 import type { HttpContext } from '@adonisjs/core/http'
-import { runtimeFor } from '../integration/runtime.js'
+import { runtimeFor } from '../src/integration/runtime.js'
 import { MasqueradeError } from '../src/errors.js'
 import { parseStartControl, parseStopControl } from './control_input.js'
 

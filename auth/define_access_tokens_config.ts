@@ -3,7 +3,7 @@ import type { GuardConfigProvider, GuardContract } from '@adonisjs/auth/types'
 import type { symbols } from '@adonisjs/auth'
 import type { AccessTokensGuard } from '@adonisjs/auth/access_tokens'
 import type { AccessTokensUserProviderContract } from '@adonisjs/auth/types/access_tokens'
-import { markEffectiveFactory } from '../integration/guard_registration.js'
+import { markEffectiveFactory } from '../src/integration/guard_registration.js'
 import { EffectiveAccessTokensGuard } from './effective_access_tokens_guard.js'
 
 /** Pair a native opaque token guard with an effective-user facade. */

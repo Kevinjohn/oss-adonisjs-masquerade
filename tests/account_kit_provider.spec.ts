@@ -8,7 +8,7 @@ import type { HttpContext } from '@adonisjs/core/http'
 import { test } from '@japa/runner'
 import AccountKitProvider from '../account_kit/provider.js'
 import AccountKitBlocker from '../account_kit/middleware.js'
-import { hasVerifiedAccountKitBlocker } from '../integration/account_kit_status.js'
+import { hasVerifiedAccountKitBlocker } from '../src/integration/account_kit_status.js'
 
 function canLoadKit(): boolean {
   if (process.env.ACCOUNT_KIT_SOURCE) return true

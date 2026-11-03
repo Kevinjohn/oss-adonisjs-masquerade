@@ -6,9 +6,9 @@ import {
   planChangedChecks,
   type ChangedFile,
   type PlannedCheckStep,
-} from '../bin/check_changed_plan.js'
+} from '../../bin/check_changed_plan.js'
 
-const root = join(import.meta.dirname, '..')
+const root = join(import.meta.dirname, '../..')
 const changed = (...paths: string[]): ChangedFile[] =>
   paths.map((path) => ({ path, deleted: false }))
 
@@ -62,7 +62,7 @@ test('lockfile and workspace changes run lint and typecheck', ({ assert }) => {
 test('the e2e workflow paths, configure and the manifest run the SQLite recipe', ({ assert }) => {
   for (const path of [
     'stubs/configure/masquerade_config.stub',
-    'configure_wiring.ts',
+    'src/configure_wiring.ts',
     'http/controllers.ts',
     'examples/native-session/start/routes.ts',
     'docs/guide/clients/edge.md',

@@ -2,7 +2,7 @@ import type { ApplicationService } from '@adonisjs/core/types'
 import { AccountKitBlocker } from './middleware.js'
 import type { AccountKitAdapter } from './main.js'
 import { assertManagedRouteRegistration } from './route_validation.js'
-import { recordAccountKitBlocker } from '../integration/account_kit_status.js'
+import { recordAccountKitBlocker } from '../src/integration/account_kit_status.js'
 import { managedRegistration } from './registration.js'
 
 async function installed(

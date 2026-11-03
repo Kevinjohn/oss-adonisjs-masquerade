@@ -26,13 +26,13 @@ export type PlannedCheckStep = ChangedCheckStep | SkippedCheckStep
 // The e2e workflow's pull request paths, plus the recipe's own script, configure and manifest.
 const recipeInputs = [
   /^(examples|http|stubs|docs\/guide)\//,
-  /^configure(_wiring)?\.ts$/,
+  /^(configure\.ts|src\/configure_wiring\.ts)$/,
   /^bin\/test_recipe\.ts$/,
   /^package\.json$/,
 ]
 // The docs workflow's push paths: TypeDoc reads the package source and treats warnings as errors.
 const docsInputs = [
-  /^(docs|auth|commands|http|integration|native|providers|src|stores|testing|stubs)\//,
+  /^(docs|auth|commands|http|native|providers|src|stores|testing|stubs)\//,
   /^(index|configure)\.ts$/,
   /^(package\.json|pnpm-lock\.yaml|pnpm-workspace\.yaml|tsconfig\.json|typedoc\.json)$/,
 ]

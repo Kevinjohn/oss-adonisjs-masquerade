@@ -22,7 +22,7 @@ import path from 'node:path'
 import test from 'node:test'
 import { fileURLToPath } from 'node:url'
 
-const repoRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..')
+const repoRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../..')
 const node24 = process.execPath
 const tsExec = path.join(repoRoot, 'node_modules/@poppinss/ts-exec/build/index.js')
 const launcherSource = path.join(repoRoot, 'bin/demo_account_kit.ts')

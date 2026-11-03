@@ -1,5 +1,5 @@
 import { test } from '@japa/runner'
-import { selectRouteGuard } from '../integration/route_guard_selection.js'
+import { selectRouteGuard } from '../src/integration/route_guard_selection.js'
 
 const route = (guards: string[]) => ({
   middleware: { all: () => [{ name: 'auth', args: [{ guards }] }] },

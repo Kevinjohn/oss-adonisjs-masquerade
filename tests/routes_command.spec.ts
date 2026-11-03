@@ -1,7 +1,7 @@
 import { test } from '@japa/runner'
 import { IgnitorFactory } from '@adonisjs/core/factories'
 import { routeCoverageReport } from '../commands/routes.js'
-import { sensitive } from '../integration/route_metadata.js'
+import { sensitive } from '../src/integration/route_metadata.js'
 
 test.group('masquerade:routes Ace command', () => {
   test('reports routes from the actual router grouped by guard and marker', async ({ assert }) => {

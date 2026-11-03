@@ -13,7 +13,6 @@ on:
       - 'auth/**'
       - 'commands/**'
       - 'http/**'
-      - 'integration/**'
       - 'native/**'
       - 'providers/**'
       - 'index.ts'

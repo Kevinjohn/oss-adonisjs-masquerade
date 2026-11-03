@@ -1,7 +1,7 @@
 import type { HttpContext } from '@adonisjs/core/http'
 import type { GuardConfigProvider, GuardContract } from '@adonisjs/auth/types'
 import type { MasqueradeConfig } from '../src/types.js'
-import { markEffectiveFactory } from '../integration/guard_registration.js'
+import { markEffectiveFactory } from '../src/integration/guard_registration.js'
 import { EffectiveSessionGuard } from './effective_session_guard.js'
 
 /** Reuse the same raw session configuration for its normal and effective guards. */

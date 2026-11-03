@@ -5,7 +5,11 @@ import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { pathToFileURL } from 'node:url'
 import * as prettier from 'prettier'
-import { wireAuthGuards, wireContextMiddleware, wireStatusMiddleware } from '../configure_wiring.js'
+import {
+  wireAuthGuards,
+  wireContextMiddleware,
+  wireStatusMiddleware,
+} from '../src/configure_wiring.js'
 import { starterAuthConfig, starterKernel } from './helpers/starter_kit.js'
 
 async function host(files: { auth?: string; kernel?: string }) {

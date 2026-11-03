@@ -2,8 +2,8 @@ import type { HttpContext } from '@adonisjs/core/http'
 import { errors } from '@adonisjs/auth'
 import { MasqueradeError } from '../src/errors.js'
 import { requireContext } from '../src/context_token.js'
-import { runtimeFor } from '../integration/runtime.js'
-import { routeGuards, routeMarkers } from '../integration/route_metadata.js'
+import { runtimeFor } from '../src/integration/runtime.js'
+import { routeGuards, routeMarkers } from '../src/integration/route_metadata.js'
 
 /** Enforce context freshness and active-mode route policy on effective-guard routes. */
 export async function masqueradeContext(
