@@ -1,7 +1,7 @@
 import { test } from '@japa/runner'
 import { IgnitorFactory } from '@adonisjs/core/factories'
-import { sensitive, allowMutation, routeMarkers } from '../integration/route_metadata.js'
-import { selectRouteGuard } from '../integration/route_guard_selection.js'
+import { sensitive, allowMutation, routeMarkers } from '../src/integration/route_metadata.js'
+import { selectRouteGuard } from '../src/integration/route_guard_selection.js'
 
 const middleware = (name: string, args?: unknown[]) => ({ name, args })
 const ctx = (routeMiddleware: unknown[] | undefined) => ({

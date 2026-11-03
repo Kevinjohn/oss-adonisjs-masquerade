@@ -1,9 +1,12 @@
 import { BaseCommand } from '@adonisjs/core/ace'
 import { MasqueradeController } from '../http/controllers.js'
 import type { MasqueradeConfig } from '../src/types.js'
-import { routeGuards, routeMarkers } from '../integration/route_metadata.js'
-import { effectiveFactoryRawGuard, isEffectiveFactory } from '../integration/guard_registration.js'
-import { hasVerifiedAccountKitBlocker } from '../integration/account_kit_status.js'
+import { routeGuards, routeMarkers } from '../src/integration/route_metadata.js'
+import {
+  effectiveFactoryRawGuard,
+  isEffectiveFactory,
+} from '../src/integration/guard_registration.js'
+import { hasVerifiedAccountKitBlocker } from '../src/integration/account_kit_status.js'
 
 /** Print a route coverage report from the router's committed route definitions. */
 export default class RoutesCommand extends BaseCommand {

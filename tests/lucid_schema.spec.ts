@@ -29,7 +29,7 @@ test('migration stub respects Lucid dry-run, creates once and rolls back both ta
         "'adonisjs-masquerade/stores/lucid'",
         JSON.stringify(new URL('../stores/lucid.ts', import.meta.url).href)
       )
-    const file = join(directory, 'migration.mjs')
+    const file = join(directory, 'migration.ts')
     await writeFile(file, source)
     const { default: Migration } = (await import(pathToFileURL(file).href)) as {
       default: typeof BaseSchema

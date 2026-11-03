@@ -317,7 +317,7 @@ form and deliberate identity, alternate-guard,
 mutation and concurrency probes live in `start/test_routes.ts` and `start/member_routes.ts`;
 AdonisJS preloads them only when `NODE_ENV=test`, where the original test URLs remain available.
 Set `NODE_ENV=test` when running `node ace masquerade:routes` to include those routes in the
-coverage report. `app/services/masquerade_test_boundary.ts` and
+coverage report. `app/services/masquerade_fixture_boundary.ts` and
 `app/services/fixture_control_store.ts` hold test-only failure injection and diagnostics. The
 admitted-stop-form endpoint is a concurrency probe and is not registered for an interactive app.
 

@@ -51,7 +51,7 @@ export default defineConfig({
     () => import('@adonisjs/auth/auth_provider'),
     () => import('@adonisjs/limiter/limiter_provider'),
     () => import('#providers/masquerade_native_provider'),
-    () => import('adonisjs-masquerade/providers/masquerade_provider'),
+    () => import('adonisjs-masquerade/masquerade_provider'),
   ],
 
   /*

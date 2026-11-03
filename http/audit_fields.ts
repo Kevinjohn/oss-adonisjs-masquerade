@@ -1,6 +1,6 @@
 import type { HttpContext } from '@adonisjs/core/http'
 import type { ModeAccess, SubjectId } from '../src/types.js'
-import { runtimeFor } from '../integration/runtime.js'
+import { runtimeFor } from '../src/integration/runtime.js'
 
 /** Safe identity fields for a host business audit record; every key is always present. */
 export interface MasqueradeAuditFields {

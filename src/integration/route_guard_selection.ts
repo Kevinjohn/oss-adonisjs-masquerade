@@ -1,5 +1,5 @@
 import { routeGuards } from './route_guards.js'
-import { MasqueradeError } from '../src/errors.js'
+import { MasqueradeError } from '../errors.js'
 
 type RouteMetadata = { middleware: { all(): Iterable<unknown> } }
 export type RouteGuardSelection =

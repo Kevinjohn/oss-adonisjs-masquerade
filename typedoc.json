@@ -12,7 +12,7 @@
     "testing/main.ts",
     "plugins/api_client.ts"
   ],
-  "out": "docs/api",
+  "out": "docs/reference/api",
   "plugin": ["typedoc-plugin-markdown"],
   "entryFileName": "index",
   "readme": "none",

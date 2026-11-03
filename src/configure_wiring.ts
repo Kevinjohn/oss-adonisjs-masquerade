@@ -12,7 +12,7 @@ type Codemods = Awaited<ReturnType<Configure['createCodemods']>>
 
 /**
  * Perform the mechanical host wiring after the scaffold is registered. Each step edits only a
- * recognised shape; anything else is skipped so configure prints the manual step instead.
+ * recognized shape; anything else is skipped so configure prints the manual step instead.
  */
 export async function wireHost(
   command: Configure,

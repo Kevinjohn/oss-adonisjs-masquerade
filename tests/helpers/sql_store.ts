@@ -62,7 +62,7 @@ export async function sqlFixture(options: { poolMax?: number } = {}) {
             port: Number(process.env.DB_PORT ?? 55432),
             user: process.env.DB_USER ?? 'account_kit',
             password: process.env.DB_PASSWORD ?? '',
-            database: process.env.DB_DATABASE ?? 'account_kit_test',
+            database: process.env.DB_DATABASE ?? 'package_test',
           },
           searchPath: [schema],
           pool: { min: 1, max: options.poolMax ?? 1 },

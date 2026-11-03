@@ -3,7 +3,23 @@ name: checks
 on:
   push:
     branches: [main]
+    paths-ignore:
+      - '.github/ISSUE_TEMPLATE/**'
+      - '.github/FUNDING.yml'
+      - '.github/pull_request_template.md'
+      - '.github/dependabot.yml'
+      - '.github/workflows/codeql.yml'
+      - '.github/workflows/docs.yml'
+      - '.github/workflows/scorecard.yml'
   pull_request:
+    paths-ignore:
+      - '.github/ISSUE_TEMPLATE/**'
+      - '.github/FUNDING.yml'
+      - '.github/pull_request_template.md'
+      - '.github/dependabot.yml'
+      - '.github/workflows/codeql.yml'
+      - '.github/workflows/docs.yml'
+      - '.github/workflows/scorecard.yml'
   workflow_dispatch:
   workflow_call:
 
@@ -25,21 +41,21 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        database: [pg, better-sqlite3]
+        database: [better-sqlite3, pg]
     env:
       DB_CLIENT: ${{ matrix.database }}
       DB_HOST: 127.0.0.1
       DB_PORT: 5432
       DB_USER: postgres
       DB_PASSWORD: postgres
-      DB_DATABASE: masquerade_test
+      DB_DATABASE: package_test
     services:
       postgres:
         image: ${{ matrix.database == 'pg' && 'postgres:16' || '' }}
         env:
           POSTGRES_USER: postgres
           POSTGRES_PASSWORD: postgres
-          POSTGRES_DB: masquerade_test
+          POSTGRES_DB: package_test
         ports:
           - 5432:5432
         options: >-
@@ -63,16 +79,16 @@ jobs:
       - name: Check formatting
         if: ${{ matrix.database == 'better-sqlite3' }}
         run: pnpm format:check
-      - name: Typecheck
-        if: ${{ matrix.database == 'better-sqlite3' }}
-        run: pnpm typecheck
       - name: Lint
         if: ${{ matrix.database == 'better-sqlite3' }}
         run: pnpm lint
+      - name: Typecheck
+        if: ${{ matrix.database == 'better-sqlite3' }}
+        run: pnpm typecheck
+      - run: pnpm test
       - name: Build
         if: ${{ matrix.database == 'better-sqlite3' }}
         run: pnpm build
       - name: Test built package exports
         if: ${{ matrix.database == 'better-sqlite3' }}
         run: pnpm test:built-exports
-      - run: pnpm test:coverage

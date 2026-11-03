@@ -1,7 +1,7 @@
 import { errors } from '@adonisjs/auth'
 import type { HttpContext } from '@adonisjs/core/http'
 import type { GuardContract } from '@adonisjs/auth/types'
-import type { NativeRuntimeAdapter } from '../integration/native_binding.js'
+import type { NativeRuntimeAdapter } from '../src/integration/native_binding.js'
 import type { NativeAuthority, Subject } from '../src/types.js'
 import { boundedString } from '../src/bounded_string.js'
 import { MasqueradeError, unavailable } from '../src/errors.js'

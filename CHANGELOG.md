@@ -2,14 +2,20 @@
 
 ## Unreleased
 
-## 0.1.4-alpha (2026-11-03)
+### Changed
+
+- Move the public provider import to `adonisjs-masquerade/masquerade_provider`. Update the
+  provider entry in `adonisrc.ts` and any runtime type imports from
+  `adonisjs-masquerade/providers/masquerade_provider`; the former subpath is no longer exported.
+
+## 0.1.4-alpha - 2026-11-03
 
 - Support Account Kit `0.1.4`. The optional `adonisjs-account-kit` peer now declares `0.1.4` in
   place of `0.1.3`, and the Account Kit consumer matrix, demo and guide use the `0.1.4` GitHub
   release artifact. All 16 floor/latest SQLite/PostgreSQL cells pass for both strategies with
   session management on and off. No runtime code changed.
 
-## 0.1.3-alpha (2026-11-02)
+## 0.1.3-alpha - 2026-11-02
 
 - Dependency update scans now fail on operational GitHub release lookup errors before creating
   or editing issues, and use pnpm for package repository metadata.
@@ -21,11 +27,11 @@
   weekly. Dependabot still opens patch pull requests weekly.
 - Shorten the README to the pitch, install, a route example and links to the guides.
 
-## 0.1.2-alpha (2026-11-02)
+## 0.1.2-alpha - 2026-11-02
 
 - Pin the repository and examples to TypeScript 5.9.3.
 
-## 0.1.1-alpha (2026-10-27)
+## 0.1.1-alpha - 2026-10-27
 
 Alpha patch, distributed as a GitHub prerelease with the packed tarball attached. Not published to
 a package registry. No runtime code changed from `0.1.0-alpha.1`.
@@ -35,7 +41,7 @@ a package registry. No runtime code changed from `0.1.0-alpha.1`.
   release artifact. All 16 floor/latest SQLite/PostgreSQL cells pass for both strategies with
   session management on and off. No runtime code changed.
 
-## 0.1.0-alpha.1 (2026-10-27)
+## 0.1.0-alpha.1 - 2026-10-27
 
 First alpha, distributed as a GitHub prerelease with the packed tarball attached. Not published to
 a package registry. Expect breaking changes before 1.0; no independent security review yet.
@@ -202,5 +208,5 @@ Add a native-session starter fixture that proves the effective guard, raw actor 
 lazy Bouncer resolution, silent authentication, native error rendering, Japa login and operator
 isolation before package implementation.
 
-Repository scaffold. No package behaviour yet; see [DEVELOPMENT-PLAN.md](https://github.com/Kevinjohn/oss-adonisjs-masquerade/blob/main/docs/design/DEVELOPMENT-PLAN.md) for
+Repository scaffold. No package behaviour yet; see [DEVELOPMENT-PLAN.md](https://github.com/Kevinjohn/oss-adonisjs-masquerade/blob/main/docs/maintainers/design/development-plan.md) for
 the milestones.

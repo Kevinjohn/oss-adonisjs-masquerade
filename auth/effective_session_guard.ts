@@ -3,7 +3,7 @@ import { RuntimeException } from '@adonisjs/core/exceptions'
 import type { GuardContract } from '@adonisjs/auth/types'
 import type { HttpContext } from '@adonisjs/core/http'
 import type {} from '@adonisjs/auth/initialize_auth_middleware'
-import { runtimeFor } from '../integration/runtime.js'
+import { runtimeFor } from '../src/integration/runtime.js'
 
 /**
  * A native session wrapper; the raw guard continues to own all credentials.

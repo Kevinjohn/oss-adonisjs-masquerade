@@ -2,19 +2,16 @@
 
 Masquerade follows open-source AdonisJS conventions. The host application owns language, UI,
 roles, permissions, tenant rules, route sensitivity, limiter policy and audit retention. The accepted
-[development plan](../design/DEVELOPMENT-PLAN.md) controls v1 scope; this repository does not target
+[development plan](design/development-plan.md) controls v1 scope; this repository does not target
 AdonisJS Plus compatibility.
 
 ## Distribution
 
-Releases are distributed as GitHub release artifacts. Until the release workflow is added, nothing
-runs the release gates for you: dispatch the `e2e` and `account-kit` workflows and run
-`pnpm test:consumer` locally (the `consumer` workflow has no caller until then). Then build and
-pack the package and create the GitHub release manually:
-
-```sh
-pnpm build && pnpm pack && gh release create
-```
+Releases are distributed as GitHub prereleases with a packed tarball. The manually dispatched
+`release` workflow calls the reusable `checks`, `compat`, and `examples` workflows, then rejects
+any release target outside `main`. Its final gate checks the tag and dated changelog, builds and
+packs the package, and creates release notes with an install command and SHA-256 digest.
+See [releasing](releasing.md) for the release procedure and local dry-run command.
 
 ## Architecture and boundaries
 
@@ -46,16 +43,19 @@ pnpm build && pnpm pack && gh release create
 
 Use Node 24 and pnpm. Run repository scripts rather than bare tools. The standard checks are
 `pnpm lint`, `pnpm typecheck`, `pnpm build`, `pnpm quick:test`, `pnpm test:built-exports`, and
-`pnpm test:pg`. `pnpm test:coverage` runs the same c8-wrapped root suite without the `pretest` lint
-hook; CI uses it in the SQLite/PostgreSQL matrix after lint is covered by the package build. The
-packed native-session fixture has its own lint, typecheck, test and report-mode commands.
+`pnpm test:pg`. `pnpm test` runs the c8-wrapped root suite after its `pretest` lint hook; the
+`checks` workflow runs it in both SQLite and PostgreSQL matrix cells. The packed native-session
+fixture has its own lint, typecheck, test and report-mode commands.
 `pnpm test:consumer` rebuilds and repacks the package before installing it, records floor/latest
 dependency versions from actual package resolution and exercises SQLite/PostgreSQL consumers;
 `--package=<path>` skips the rebuild and installs that tarball as given.
 
 The `c8` block in `package.json` sets `lines: 93` and `branches: 87`: the lower of the SQLite
 (94.29 / 88.14) and PostgreSQL (93.93 / 87.71) `checks` cells at `1f686d5`, rounded down.
-Lowering either number is a reviewed change to the config and this paragraph together.
+With `bin/**` excluded, SQLite measured 95.32% statements and 91.84% functions; PostgreSQL
+measured 94.92% statements and 91.84% functions. The statements and functions floors are 94 and
+91, respectively: each rounds down the lower result across the supported databases.
+Lowering a floor is a reviewed change to the config and this paragraph together.
 
 `pnpm test:recipe --database=sqlite|pg|all` starts with the unwired
 `examples/recipe-host` template, installs the packed package in a disposable directory, runs
@@ -87,8 +87,8 @@ binaries are unavailable. Provide all connection settings explicitly; the tests 
 remove their own tables, so never point them at a production or shared application database.
 
 ```sh
-DB_CLIENT=pg DB_HOST=127.0.0.1 DB_PORT=5432 DB_USER=masquerade_test \
-  DB_PASSWORD=local_test_password DB_DATABASE=masquerade_test pnpm quick:test
+DB_CLIENT=pg DB_HOST=127.0.0.1 DB_PORT=5432 DB_USER=postgres \
+  DB_PASSWORD=local_test_password DB_DATABASE=package_test pnpm quick:test
 ```
 
 Replace these local example credentials with those of your disposable test database. This runs
@@ -106,19 +106,15 @@ the same suite directly against your server; it does not start or stop that serv
 - M4's packed consumer evidence includes native session at floor/latest on SQLite and PostgreSQL,
   root optional-import isolation, canonical numeric/string/UUID identifiers and an alternate users
   table.
-- The `consumer` workflow holds the packed native-session consumer matrix at floor/latest on SQLite
-  and PostgreSQL. It has no caller until the release workflow is added; see
-  [Distribution](#distribution). Private-repository push and pull-request checks remain gated, while
-  manual checks run.
-- The `checks` database matrix retains its SQLite and PostgreSQL status names. Both cells run the
-  c8-wrapped root suite; the SQLite cell runs typechecking, the clean-host recipe, and built-export
-  tests, then builds the docs and runs the example browser suite twice on pull requests. The
-  recipe's `pnpm build` invokes lint once; `test:coverage` avoids the `pretest` lint hook in both
-  database cells. Repositories that require these existing status names for branch protection
-  will continue to require the new SQLite steps in that context. The four-cell consumer
-  matrix retains floor/latest compatibility coverage. PR verification has read-only
-  repository permissions and never uploads or deploys Pages artifacts. Manual dispatch runs checks
-  for private repositories while their automatic push and pull-request checks remain gated.
+- The `compat` workflow checks minimum and latest supported peers, packed native-session consumers
+  at floor/latest on SQLite and PostgreSQL, and the Account Kit consumer matrix. It runs weekly,
+  for selected compatibility changes, and before a release.
+- The `checks` workflow runs the coverage suite on SQLite and PostgreSQL for every pull request.
+  Its SQLite cell also runs formatting, lint, typechecking, build, and built-export tests.
+  The `examples` workflow runs the recipe, launchers, and browser journeys weekly, for selected
+  example changes, and before a release. The `docs` workflow builds the site and uploads an
+  artifact on pull requests; main-branch pushes and manual dispatch can deploy Pages.
+  Automatic checks remain gated for private repositories; manual dispatch runs them.
 - Do not publish, tag, merge, or rename as part of a release-candidate implementation task unless
   separately authorized by the owner.
 

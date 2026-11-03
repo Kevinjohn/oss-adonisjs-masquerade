@@ -1,7 +1,7 @@
 import type { HttpContext } from '@adonisjs/core/http'
 import { unavailable, MasqueradeError } from '../src/errors.js'
 import { boundedString } from '../src/bounded_string.js'
-import { runtimeFor } from '../integration/runtime.js'
+import { runtimeFor } from '../src/integration/runtime.js'
 import type { AccountKitAdapter } from './main.js'
 import type { GuardContract } from '@adonisjs/auth/types'
 import { assertManagedRouteRegistration } from './route_validation.js'

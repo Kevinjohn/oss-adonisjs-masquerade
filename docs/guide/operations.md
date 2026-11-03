@@ -1,6 +1,6 @@
 # Pruning, retention and active modes
 
-The [API entry-point map](../api-reference.md#supported-package-imports) links the command loader
+The [API entry-point map](../reference/README.md#supported-package-imports) links the command loader
 under `adonisjs-masquerade/commands` and Lucid store lifecycle and schema exports under the optional
 `adonisjs-masquerade/stores/lucid` entry point.
 

@@ -36,7 +36,7 @@ with real application screenshots.
   context, refreshed customer pages, and deliberate recovery.
 - [Inertia Vue](guide/clients/vue.md): run the fictional support workflow with Vue forms and
   page recovery after an identity change.
-- [Supported package imports](api-reference.md#supported-package-imports): map public package
+- [Supported package imports](reference/README.md#supported-package-imports): map public package
   entry points to their API references.
 
 ## Security and operations
@@ -58,8 +58,8 @@ with real application screenshots.
 The package is an early alpha distributed as GitHub prereleases and has not been published to a
 package registry. Install the release tarball or a local build as described in the
 [setup guide](guide/setup.md#generate-the-starter-files). The accepted v1 boundaries are
-in the [development plan](https://github.com/Kevinjohn/oss-adonisjs-masquerade/blob/main/docs/design/DEVELOPMENT-PLAN.md),
-the [technical specification](https://github.com/Kevinjohn/oss-adonisjs-masquerade/blob/main/docs/design/SPEC-masquerade.md),
-and the [product requirements](https://github.com/Kevinjohn/oss-adonisjs-masquerade/blob/main/docs/design/PRD-masquerade.md).
+in the [development plan](https://github.com/Kevinjohn/oss-adonisjs-masquerade/blob/main/docs/maintainers/design/development-plan.md),
+the [technical specification](https://github.com/Kevinjohn/oss-adonisjs-masquerade/blob/main/docs/maintainers/design/spec-masquerade.md),
+and the [product requirements](https://github.com/Kevinjohn/oss-adonisjs-masquerade/blob/main/docs/maintainers/design/prd-masquerade.md).
 See the [alpha baseline verification record](maintainers/alpha-baseline.md) for the pre-release baseline run. The
 [maintainer records](https://github.com/Kevinjohn/oss-adonisjs-masquerade/tree/main/docs/maintainers) contain further repository and verification guidance.

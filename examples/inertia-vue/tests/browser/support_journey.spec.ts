@@ -6,7 +6,7 @@ import { demoAccounts, resetDemoAccounts, seedDemoAccounts } from '#services/dem
 import {
   setCustomerRequestsUnavailable,
   setMasqueradeStoreUnavailable,
-} from '#services/masquerade_test_boundary'
+} from '#services/masquerade_fixture_boundary'
 
 test.group('Inertia Vue browser journey', (group) => {
   group.setup(async () => {

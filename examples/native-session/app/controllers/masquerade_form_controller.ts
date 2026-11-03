@@ -2,7 +2,7 @@ import type { HttpContext } from '@adonisjs/core/http'
 import { MasqueradeError } from 'adonisjs-masquerade'
 import type { StartInput, StopInput, MasqueradeErrorCode } from 'adonisjs-masquerade'
 import { MasqueradeController } from 'adonisjs-masquerade/http'
-import type { MasqueradeRuntime } from 'adonisjs-masquerade/providers/masquerade_provider'
+import type { MasqueradeRuntime } from 'adonisjs-masquerade/masquerade_provider'
 
 type FormAction = 'start' | 'stop'
 export type MasqueradeFormFlash =

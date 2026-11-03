@@ -1,6 +1,6 @@
 import type Configure from '@adonisjs/core/commands/configure'
 import { access, readdir } from 'node:fs/promises'
-import { wireHost } from './configure_wiring.js'
+import { wireHost } from './src/configure_wiring.js'
 
 const fileDestinations = [
   'app/services/masquerade_user_provider.ts',
@@ -141,7 +141,7 @@ export async function configure(command: Configure): Promise<void> {
     addCommand(command: string): unknown
   }) => {
     rcFile.addProvider('#providers/masquerade_native_provider')
-    rcFile.addProvider('adonisjs-masquerade/providers/masquerade_provider')
+    rcFile.addProvider('adonisjs-masquerade/masquerade_provider')
     rcFile.addCommand('adonisjs-masquerade/commands')
   }) as RcFileUpdater)
   if (codemodError || (typeof command.exitCode === 'number' && command.exitCode !== 0)) {

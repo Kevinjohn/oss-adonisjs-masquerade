@@ -1,7 +1,7 @@
 import type { Router } from '@adonisjs/core/http'
 import type { MiddlewareFn, ParsedNamedMiddleware } from '@adonisjs/core/types/http'
 import { MasqueradeController } from './controllers.js'
-import { routeGuards } from '../integration/route_guards.js'
+import { routeGuards } from '../src/integration/route_guards.js'
 import { boundedString } from '../src/bounded_string.js'
 
 /** Options for `masqueradeRoutes`. */

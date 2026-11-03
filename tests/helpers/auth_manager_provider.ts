@@ -1,6 +1,6 @@
 import type { ApplicationService } from '@adonisjs/core/types'
 import { AuthManager } from '@adonisjs/auth'
-import { markEffectiveFactory } from '../../integration/guard_registration.js'
+import { markEffectiveFactory } from '../../src/integration/guard_registration.js'
 
 /** Minimal native auth-manager binding for the standalone Ace command fixture. */
 export default class AuthManagerProvider {

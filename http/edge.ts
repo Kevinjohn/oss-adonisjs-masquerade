@@ -1,6 +1,6 @@
 import type { HttpContext } from '@adonisjs/core/http'
 import type { ModeView } from '../src/types.js'
-import { runtimeFor } from '../integration/runtime.js'
+import { runtimeFor } from '../src/integration/runtime.js'
 
 /** Share the safe status projection and a token-only hidden-field renderer with Edge. */
 export async function shareMasquerade(ctx: HttpContext): Promise<ModeView> {

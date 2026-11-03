@@ -87,9 +87,9 @@ export default defineConfig({
       assert.include(rcFile, "'#commands/host_command'")
       assert.isBelow(
         rcFile.indexOf('#providers/masquerade_native_provider'),
-        rcFile.indexOf('adonisjs-masquerade/providers/masquerade_provider')
+        rcFile.indexOf('adonisjs-masquerade/masquerade_provider')
       )
-      assert.equal(rcFile.match(/adonisjs-masquerade\/providers\/masquerade_provider/g)?.length, 1)
+      assert.equal(rcFile.match(/adonisjs-masquerade\/masquerade_provider/g)?.length, 1)
       assert.equal(rcFile.match(/adonisjs-masquerade\/commands/g)?.length, 1)
       assert.include(rcFile, '#providers/masquerade_native_provider')
 

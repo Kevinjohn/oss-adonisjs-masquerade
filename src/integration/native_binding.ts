@@ -1,5 +1,5 @@
 import type { HttpContext } from '@adonisjs/core/http'
-import type { Subject } from '../src/types.js'
+import type { Subject } from '../types.js'
 
 /** Model-erased container boundary; concrete adapters retain their own User typing. */
 export interface NativeRuntimeAdapter {

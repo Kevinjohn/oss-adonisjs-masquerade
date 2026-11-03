@@ -10,7 +10,7 @@ import {
   resetMasqueradeReadCount,
   resetMasqueradeFixtureDiagnostics,
   setMasqueradeStoreUnavailable,
-} from '#services/masquerade_test_boundary'
+} from '#services/masquerade_fixture_boundary'
 import { cleanUsers, createUsers } from '#tests/helpers/users'
 import type User from '#models/user'
 import { createHash } from 'node:crypto'

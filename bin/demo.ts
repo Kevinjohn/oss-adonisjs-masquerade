@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-import { spawn } from 'node:child_process'
+import { spawn, type ChildProcess } from 'node:child_process'
 import { createHash } from 'node:crypto'
 import { createServer } from 'node:net'
 import { realpathSync } from 'node:fs'
@@ -19,13 +19,13 @@ const reservedEmails = [
   'customer-two@example.test',
 ]
 const reservedPasswords = ['demo-operator-2026', 'demo-customer-one-2026', 'demo-customer-two-2026']
-const children = new Set()
-const ownedGroups = new Set()
-const groupCleanupPromises = new Map()
-let interruptedBy = null
-let cleanupPromise = null
+const children = new Set<ChildProcess>()
+const ownedGroups = new Set<number>()
+const groupCleanupPromises = new Map<number, Promise<void>>()
+let interruptedBy: NodeJS.Signals | null = null
+let cleanupPromise: Promise<void> | null = null
 
-export function assertNodeVersion(version = process.versions.node) {
+export function assertNodeVersion(version: string = process.versions.node): void {
   const major = Number(version.split('.')[0])
   if (!Number.isInteger(major) || major < 24) {
     throw new Error(
@@ -34,8 +34,8 @@ export function assertNodeVersion(version = process.versions.node) {
   }
 }
 
-function parseEnv(source, filePath) {
-  const result = new Map()
+function parseEnv(source: string, filePath: string): Map<string, string> {
+  const result = new Map<string, string>()
   for (const [index, rawLine] of source.split(/\r?\n/).entries()) {
     const line = rawLine.trim()
     if (!line || line.startsWith('#')) continue
@@ -128,22 +128,22 @@ async function effectiveEnv() {
   }
 }
 
-function processGroupExists(groupId) {
+function processGroupExists(groupId: number): boolean {
   try {
     process.kill(-groupId, 0)
     return true
   } catch (error) {
-    return error.code === 'EPERM'
+    return (error as NodeJS.ErrnoException).code === 'EPERM'
   }
 }
 
-function signalOwnedProcesses(signal = 'SIGTERM') {
+function signalOwnedProcesses(signal: NodeJS.Signals = 'SIGTERM'): void {
   if (process.platform !== 'win32') {
     for (const groupId of ownedGroups) {
       try {
         process.kill(-groupId, signal)
       } catch (error) {
-        if (error.code !== 'ESRCH') throw error
+        if ((error as NodeJS.ErrnoException).code !== 'ESRCH') throw error
       }
     }
     return
@@ -154,8 +154,8 @@ function signalOwnedProcesses(signal = 'SIGTERM') {
   }
 }
 
-function waitForProcessGroupExit(groupId, timeoutMs) {
-  return new Promise((resolve) => {
+function waitForProcessGroupExit(groupId: number, timeoutMs: number): Promise<boolean> {
+  return new Promise<boolean>((resolve) => {
     const deadline = Date.now() + timeoutMs
     const poll = setInterval(() => {
       if (!processGroupExists(groupId)) {
@@ -170,7 +170,7 @@ function waitForProcessGroupExit(groupId, timeoutMs) {
   })
 }
 
-function cleanupProcessGroup(groupId) {
+function cleanupProcessGroup(groupId: number | undefined): Promise<void> {
   if (!groupId || process.platform === 'win32') return Promise.resolve()
   const existing = groupCleanupPromises.get(groupId)
   if (existing) return existing
@@ -183,13 +183,13 @@ function cleanupProcessGroup(groupId) {
     try {
       process.kill(-groupId, 'SIGTERM')
     } catch (error) {
-      if (error.code !== 'ESRCH') throw error
+      if ((error as NodeJS.ErrnoException).code !== 'ESRCH') throw error
     }
     if (await waitForProcessGroupExit(groupId, 1800)) return
     try {
       process.kill(-groupId, 'SIGKILL')
     } catch (error) {
-      if (error.code !== 'ESRCH') throw error
+      if ((error as NodeJS.ErrnoException).code !== 'ESRCH') throw error
     }
     await waitForProcessGroupExit(groupId, 1800)
   })().finally(() => groupCleanupPromises.delete(groupId))
@@ -197,7 +197,7 @@ function cleanupProcessGroup(groupId) {
   return cleanup
 }
 
-function cleanupOwnedProcesses() {
+function cleanupOwnedProcesses(): Promise<void> {
   if (cleanupPromise) return cleanupPromise
   if (ownedGroups.size === 0 && children.size === 0) {
     cleanupPromise = Promise.resolve()
@@ -212,7 +212,7 @@ function cleanupOwnedProcesses() {
         [...children].some((child) => child.exitCode === null && child.signalCode === null) &&
         Date.now() < deadline
       ) {
-        await new Promise((resolve) => setTimeout(resolve, 40))
+        await new Promise<void>((resolve) => setTimeout(resolve, 40))
       }
       for (const child of children) {
         if (child.exitCode === null && child.signalCode === null) child.kill('SIGKILL')
@@ -222,9 +222,13 @@ function cleanupOwnedProcesses() {
   return cleanupPromise
 }
 
-function run(command, args, options = {}) {
+function run(
+  command: string,
+  args: string[],
+  options: { cwd?: string; env?: NodeJS.ProcessEnv } = {}
+): Promise<void> {
   if (interruptedBy) return Promise.reject(new Error(`Interrupted by ${interruptedBy}`))
-  return new Promise((resolve, reject) => {
+  return new Promise<void>((resolve, reject) => {
     const child = spawn(command, args, {
       cwd: options.cwd ?? root,
       env: options.env ?? process.env,
@@ -258,13 +262,14 @@ function run(command, args, options = {}) {
   })
 }
 
-function portIsFreeOn(host, port) {
-  return new Promise((resolve, reject) => {
+function portIsFreeOn(host: string, port: number): Promise<boolean> {
+  return new Promise<boolean>((resolve, reject) => {
     const server = createServer()
     server.once('error', (error) => {
-      if (error.code === 'EADDRINUSE') resolve(false)
+      const code = (error as NodeJS.ErrnoException).code
+      if (code === 'EADDRINUSE') resolve(false)
       // The host has no such address family, so nothing can hold the port there.
-      else if (['EADDRNOTAVAIL', 'EAFNOSUPPORT'].includes(error.code)) resolve(true)
+      else if (code && ['EADDRNOTAVAIL', 'EAFNOSUPPORT'].includes(code)) resolve(true)
       else reject(error)
     })
     server.listen({ host, port, exclusive: true }, () => {
@@ -275,7 +280,7 @@ function portIsFreeOn(host, port) {
 
 // `node ace serve` moves to a random port when any local address holds the configured one, so
 // a listener on the wildcard or IPv6 addresses must count as busy too.
-async function assertPortAvailable(port) {
+async function assertPortAvailable(port: number): Promise<void> {
   for (const host of ['127.0.0.1', '0.0.0.0', '::', '::1']) {
     if (!(await portIsFreeOn(host, port))) {
       throw new Error(
@@ -300,7 +305,7 @@ async function refreshLocalTarballIntegrity() {
   ])
   const integrity = `sha512-${createHash('sha512').update(tarball).digest('base64')}`
   const localResolution =
-    /(  adonisjs-masquerade@file:\.\.\/\.\.\/tmp\/native-session-package\.tgz:\n    resolution: \{integrity: )sha512-[A-Za-z0-9+/=]+(, tarball: file:\.\.\/\.\.\/tmp\/native-session-package\.tgz\s*\})/g
+    /( {2}adonisjs-masquerade@file:\.\.\/\.\.\/tmp\/native-session-package\.tgz:\n {4}resolution: \{integrity: )sha512-[A-Za-z0-9+/=]+(, tarball: file:\.\.\/\.\.\/tmp\/native-session-package\.tgz\s*\})/g
   const matches = [...lockfile.matchAll(localResolution)]
   if (matches.length !== 1) {
     throw new Error(
@@ -311,14 +316,19 @@ async function refreshLocalTarballIntegrity() {
   if (updated !== lockfile) await writeFile(exampleLockPath, updated)
 }
 
-async function waitForDemo(port, serverChild, getSpawnError) {
+async function waitForDemo(
+  port: number,
+  serverChild: ChildProcess,
+  getSpawnError: () => NodeJS.ErrnoException | undefined
+): Promise<string> {
   const url = `http://127.0.0.1:${port}/`
   const deadline = Date.now() + 30000
   while (Date.now() < deadline) {
     if (interruptedBy) throw new Error(`Interrupted by ${interruptedBy}`)
-    if (getSpawnError())
+    const spawnError = getSpawnError()
+    if (spawnError)
       throw new Error(
-        `Could not start the demo server: ${getSpawnError().message}. Check that pnpm is installed and on PATH.`
+        `Could not start the demo server: ${spawnError.message}. Check that pnpm is installed and on PATH.`
       )
     if (serverChild.exitCode !== null || serverChild.signalCode !== null) {
       throw new Error(
@@ -344,7 +354,7 @@ async function waitForDemo(port, serverChild, getSpawnError) {
   )
 }
 
-async function startServer(environment) {
+async function startServer(environment: NodeJS.ProcessEnv): Promise<void> {
   const child = spawn('pnpm', ['dev'], {
     cwd: example,
     env: { ...environment, HOST: '127.0.0.1' },
@@ -354,11 +364,13 @@ async function startServer(environment) {
   })
   children.add(child)
   if (process.platform !== 'win32' && child.pid) ownedGroups.add(child.pid)
-  const exitPromise = new Promise((resolve, reject) => {
-    child.once('error', reject)
-    child.once('exit', (code, signal) => resolve({ code, signal }))
-  })
-  let spawnError
+  const exitPromise = new Promise<{ code: number | null; signal: NodeJS.Signals | null }>(
+    (resolve, reject) => {
+      child.once('error', reject)
+      child.once('exit', (code, signal) => resolve({ code, signal }))
+    }
+  )
+  let spawnError: NodeJS.ErrnoException | undefined
   child.once('error', (error) => {
     spawnError = error
     children.delete(child)
@@ -367,7 +379,7 @@ async function startServer(environment) {
     children.delete(child)
     void cleanupProcessGroup(child.pid)
   })
-  const url = await waitForDemo(environment.PORT, child, () => spawnError)
+  const url = await waitForDemo(Number(environment.PORT), child, () => spawnError)
   console.log(`\nDemo ready: ${url}`)
   console.log('Sign in with the fictional local operator account:')
   console.log(`  ${reservedEmails[0]} / ${reservedPasswords[0]}`)
@@ -442,7 +454,7 @@ export async function runDemo() {
 
 const invokedPath = process.argv[1]
 if (invokedPath && realpathSync(invokedPath) === realpathSync(fileURLToPath(import.meta.url))) {
-  for (const signal of ['SIGINT', 'SIGTERM']) {
+  for (const signal of ['SIGINT', 'SIGTERM'] as const) {
     process.on(signal, () => {
       if (interruptedBy) return
       interruptedBy = signal

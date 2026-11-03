@@ -6,7 +6,7 @@ import type User from '#models/user'
 import {
   masqueradeFixtureDiagnostics,
   resetMasqueradeReadCount,
-} from '#services/masquerade_test_boundary'
+} from '#services/masquerade_fixture_boundary'
 
 test.group('effective session guard through the packed package', (group) => {
   group.setup(() => testUtils.db().migrate())

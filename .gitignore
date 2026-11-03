@@ -18,13 +18,15 @@ package-lock.json
 PLAN*.md
 __*.md
 /plans/
-docs/maintainers/design/prd*.md
 docs/maintainers/reviews/
 docs/reference/api
 docs/.vitepress/cache
 docs/.vitepress/dist
 
 # Repository-specific
+# private reviews and generated API pages kept locally from before the docs moved
+docs/reviews/
+docs/api/
 # example env fixtures
 !examples/native-session/.env.test
 # example env fixtures
@@ -33,9 +35,3 @@ docs/.vitepress/dist
 !examples/inertia-vue/.env.test
 # Playwright MCP scratch
 .playwright-mcp/
-# until the docs move (WP-7)
-docs/PRD*.md
-# until the docs move (WP-7)
-docs/reviews/
-# until the docs move (WP-7)
-docs/api

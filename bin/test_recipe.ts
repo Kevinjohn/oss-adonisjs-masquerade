@@ -384,7 +384,7 @@ const baseEnv = {
   DB_HOST: process.env.DB_HOST ?? '127.0.0.1',
   DB_USER: process.env.DB_USER ?? 'account_kit',
   DB_PASSWORD: process.env.DB_PASSWORD ?? '',
-  DB_DATABASE: process.env.DB_DATABASE ?? 'account_kit_test',
+  DB_DATABASE: process.env.DB_DATABASE ?? 'package_test',
   FORCE_COLOR: '0',
   NO_COLOR: '1',
 }

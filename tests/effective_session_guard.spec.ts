@@ -4,7 +4,7 @@ import { SessionGuard } from '@adonisjs/auth/session'
 import type { GuardContract } from '@adonisjs/auth/types'
 import type { HttpContext } from '@adonisjs/core/http'
 import { EffectiveSessionGuard } from '../auth/effective_session_guard.js'
-import { selectRouteGuard } from '../integration/route_guard_selection.js'
+import { selectRouteGuard } from '../src/integration/route_guard_selection.js'
 
 const selectGuard = (ctx: HttpContext) =>
   selectRouteGuard(ctx.route, 'web_effective', { web_effective: 'web' }, ['web'], 'web')

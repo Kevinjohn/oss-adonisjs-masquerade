@@ -1,3 +1,4 @@
+import { rejects } from 'node:assert/strict'
 import { spawnSync } from 'node:child_process'
 import { existsSync } from 'node:fs'
 import { join } from 'node:path'
@@ -7,7 +8,9 @@ if (process.env.TEST_BUILT_EXPORTS === '1') {
   test('loads every built public export', async ({ assert }) => {
     const root = await import('adonisjs-masquerade')
     const types = await import('adonisjs-masquerade/types')
-    const provider = await import('adonisjs-masquerade/providers/masquerade_provider')
+    const provider = await import('adonisjs-masquerade/masquerade_provider')
+    const retiredProviderPath = 'adonisjs-masquerade/providers/masquerade_provider'
+    await rejects(() => import(retiredProviderPath), { code: 'ERR_PACKAGE_PATH_NOT_EXPORTED' })
     const commands = await import('adonisjs-masquerade/commands')
     const auth = await import('adonisjs-masquerade/auth')
     const http = await import('adonisjs-masquerade/http')

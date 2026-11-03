@@ -1,6 +1,6 @@
 import type { HttpContext } from '@adonisjs/core/http'
-import type { MasqueradeConfig, MasqueradeService, OwnerKey } from '../src/types.js'
-import type { RequestAdmission } from '../src/request_admission.js'
+import type { MasqueradeConfig, MasqueradeService, OwnerKey } from '../types.js'
+import type { RequestAdmission } from '../request_admission.js'
 import type { RouteGuardSelection } from './route_guard_selection.js'
 
 /** The `masquerade.runtime` container binding the provider registers. */

@@ -9,7 +9,7 @@ import { resetDemoAccounts, seedDemoAccounts } from '#services/demo_accounts'
 import {
   setMasqueradeStoreUnavailable,
   setMasqueradeTestTime,
-} from '#services/masquerade_test_boundary'
+} from '#services/masquerade_fixture_boundary'
 
 const base = () => `http://${process.env.HOST ?? '127.0.0.1'}:${process.env.PORT ?? '3371'}`
 

@@ -1,8 +1,8 @@
 import { admission } from '../../src/request_admission.js'
 import type { RequestAdmission } from '../../src/request_admission.js'
 import type { MasqueradeService } from '../../src/types.js'
-import type { RouteGuardSelection } from '../../integration/route_guard_selection.js'
-import { selectRouteGuard } from '../../integration/route_guard_selection.js'
+import type { RouteGuardSelection } from '../../src/integration/route_guard_selection.js'
+import { selectRouteGuard } from '../../src/integration/route_guard_selection.js'
 import type { fixture } from './core.js'
 
 type RequestContextOptions = {

@@ -1,6 +1,6 @@
 # Security and operations
 
-The [API entry-point map](../api-reference.md#supported-package-imports) links the HTTP context
+The [API entry-point map](../reference/README.md#supported-package-imports) links the HTTP context
 middleware and route markers, and the native authority's host-owned account check boundary.
 
 For a practical status → start → customer work → stop journey, see [Use a support mode](usage.md).
@@ -55,7 +55,7 @@ On active edit-mode admission, the package rechecks `canEdit({ actor, target })`
 the package clears the whole mode with `edit_denied` and rejects that request with 409; it does not
 downgrade to view. A thrown callback returns 503 and leaves the mode unchanged. View-mode
 admission and stop do not call `canEdit`. The accepted details are in the
-[view-only and edit-access contract](https://github.com/Kevinjohn/oss-adonisjs-masquerade/blob/main/docs/design/SPEC-masquerade.md#14-view-only-default-and-per-start-edit-access-accepted-22-october-2026).
+[view-only and edit-access contract](https://github.com/Kevinjohn/oss-adonisjs-masquerade/blob/main/docs/maintainers/design/spec-masquerade.md#14-view-only-default-and-per-start-edit-access-accepted-22-october-2026).
 
 After context-token validation, active requests follow this order: `sensitive()` blocks any method
 with `blockedBy: 'sensitive'`; an unsafe method without edit access blocks with

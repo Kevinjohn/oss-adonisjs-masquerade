@@ -2,7 +2,7 @@ import { errors, symbols } from '@adonisjs/auth'
 import { RuntimeException } from '@adonisjs/core/exceptions'
 import type { GuardContract } from '@adonisjs/auth/types'
 import type { HttpContext } from '@adonisjs/core/http'
-import { runtimeFor } from '../integration/runtime.js'
+import { runtimeFor } from '../src/integration/runtime.js'
 
 /** Effective user facade for a native opaque access-token guard. */
 export type EffectiveAccessTokensUser<User> = User extends { currentAccessToken: unknown }

@@ -1,5 +1,5 @@
 import type { HttpContext } from '@adonisjs/core/http'
-import type { NativeRuntimeAdapter } from '../integration/native_binding.js'
+import type { NativeRuntimeAdapter } from '../src/integration/native_binding.js'
 import { boundedString } from '../src/bounded_string.js'
 
 /** The result of `nativeAuthorities`: the primary authority and one adapter per raw guard. */

@@ -1,18 +1,18 @@
 # Technical specification: server-side account masquerade
 
-**Status:** v1 development contract, reduced to the scope accepted in [DEVELOPMENT-PLAN.md](DEVELOPMENT-PLAN.md) on 19 October 2026.
+**Status:** v1 development contract, reduced to the scope accepted in [development-plan.md](development-plan.md) on 19 October 2026.
 **Version:** 0.3
 **Date:** 19 October 2026
-**Product requirements:** [PRD-masquerade.md](PRD-masquerade.md)
+**Product requirements:** [prd-masquerade.md](prd-masquerade.md)
 **Working package label:** `adonisjs-masquerade`; registry name, repository name, version and publication are undecided.
 
 ## 1. Reading contract and authority
 
 - This document describes a new, independently maintained package for AdonisJS 7, native Auth 10 and Session 8. Names are proposed APIs. MUST, MUST NOT, SHOULD and MAY carry their usual meaning.
 - The PRD's settled boundaries and document-review decisions are requirements. The development plan's twenty agreed items and four owner decisions are the v1 contract; where the plan narrows an earlier proposal, the plan wins.
-- Masquerade is an account-level setting: an authenticated operator selects "masquerade as this user" and the server resolves that operator's effective identity on later requests. Start and stop never log in as the target, change the authenticated actor, replace a session or mint target credentials. Native remember-me and cookie maintenance keep their ordinary behaviour.
+- Masquerade is an account-level setting: an authenticated operator selects "masquerade as this user" and the server resolves that operator's effective identity on later requests. Start and stop never log in as the target, change the authenticated actor, replace a session or mint target credentials. Native remember-me and cookie maintenance keep their ordinary behavior.
 - This document authorises the milestones in section 11.2. It does not authorise publication, repository naming or merging.
-- v1 decisions in one line each: one mode per actor per namespace, visible to all of that actor's sessions (D01); native session transport only, opaque tokens v1.1, JWT out (D02); 15-minute default, 60-minute ceiling, hosts may only narrow (D03); normalised reason, optional by default and host-configurable as required (D04, amended 23 October 2026); one `ControlStore` contract with a Lucid SQLite/PostgreSQL subpath (D05); owner-bound context token on every covered unsafe request with report and enforce modes (D06); one revoked credential never clears the mode, an advanced stamp does (D07); hashed stamps captured at start and rechecked on every active admission (D08); active mode defaults to view-only; edit mode plus `allowMutation()` permits ordinary mutations and `sensitive()` always denies (D09; superseded by [§14](#14-view-only-default-and-per-start-edit-access-accepted-22-october-2026)); an invalidated request never continues as the actor (D10); Account Kit integration is v1.2 (D11).
+- v1 decisions in one line each: one mode per actor per namespace, visible to all of that actor's sessions (D01); native session transport only, opaque tokens v1.1, JWT out (D02); 15-minute default, 60-minute ceiling, hosts may only narrow (D03); normalized reason, optional by default and host-configurable as required (D04, amended 23 October 2026); one `ControlStore` contract with a Lucid SQLite/PostgreSQL subpath (D05); owner-bound context token on every covered unsafe request with report and enforce modes (D06); one revoked credential never clears the mode, an advanced stamp does (D07); hashed stamps captured at start and rechecked on every active admission (D08); active mode defaults to view-only; edit mode plus `allowMutation()` permits ordinary mutations and `sensitive()` always denies (D09; superseded by [§14](#14-view-only-default-and-per-start-edit-access-accepted-22-october-2026)); an invalidated request never continues as the actor (D10); Account Kit integration is v1.2 (D11).
 
 ## 2. Architecture and ownership
 
@@ -25,7 +25,7 @@ Proposed exports:
 ```text
 .                 # defineConfig, service, domain types/errors, configure export
 ./types           # public types only
-./providers/masquerade_provider
+./masquerade_provider
 ./auth            # effective guard factory
 ./http            # context middleware, sensitive()/allowMutation() markers, error mapping, controllers
 ./native          # native session authority factory
@@ -203,9 +203,9 @@ interface ResolvedContext {
 
 - Routes under an effective guard are business routes. GET, HEAD and OPTIONS are `read`; other methods are `mutation`. While active, unsafe methods require edit access and route/group `allowMutation()`; `sensitive()` denies regardless of access or `allowMutation()`. The access rules are superseded by [§14](#14-view-only-default-and-per-start-edit-access-accepted-22-october-2026).
 - Markers are explicit route or group middleware; an unsafe verb is at least `mutation` whatever the markers say. Idle requests follow ordinary actor policy and still need the context token.
-- Routes under a raw guard are control routes only if they are the package's start, stop and status routes or the host's login, signup, logout and public routes. A raw-guard route that runs business behaviour is a coverage defect.
+- Routes under a raw guard are control routes only if they are the package's start, stop and status routes or the host's login, signup, logout and public routes. A raw-guard route that runs business behavior is a coverage defect.
   **Superseded for Account Kit managed routes only by [§15](#15-v12-account-kit-integration).**
-- `node ace masquerade:routes` prints every route grouped by guard with its classification and flags raw-guard routes that are not recognised control routes. The host reviews that report as a release gate (PRD FR-09); it is not a boot gate.
+- `node ace masquerade:routes` prints every route grouped by guard with its classification and flags raw-guard routes that are not recognized control routes. The host reviews that report as a release gate (PRD FR-09); it is not a boot gate.
 - One Edge share exposes the safe `ModeView` and renders the hidden field. Inertia and API clients read status and send the header.
 
 ## 6. Persistence and atomic transitions
@@ -320,7 +320,7 @@ interface ControlStore {
 - Routes are opt-in and mounted by the host under a prefix behind Shield CSRF and the host limiter. Server-rendered controllers may redirect to fixed same-origin paths.
 - Control, status and effective-user responses send `Cache-Control: no-store` and appropriate `Vary`.
 - Input: reject unknown fields, oversized bodies (8 KiB), fractional or out-of-range durations, and client-supplied expiry. The optional `access` field is specified in §14; this start-body clause is superseded by [§14](#14-view-only-default-and-per-start-edit-access-accepted-22-october-2026).
-- Reason normalisation order (for a supplied reason, or any reason in required mode): trim with `String.prototype.trim()`, replace `\r\n` with `\n`, reject any C0 or C1 control except `\n` and `\t`, then require 1–500 Unicode code points and at most 2,000 UTF-8 bytes. Persist the normalised value; never truncate. Acceptable: `Ticket 4821: cannot see invoices`. Unacceptable: a tab-only string, or text containing `\u0007`.
+- Reason normalization order (for a supplied reason, or any reason in required mode): trim with `String.prototype.trim()`, replace `\r\n` with `\n`, reject any C0 or C1 control except `\n` and `\t`, then require 1–500 Unicode code points and at most 2,000 UTF-8 bytes. Persist the normalized value; never truncate. Acceptable: `Ticket 4821: cannot see invoices`. Unacceptable: a tab-only string, or text containing `\u0007`.
 - JSON errors are `{ errors: [{ code, message }] }` with stable codes and English messages, except §14 defines the `blockedBy` field for `E_MASQUERADE_ACTION_BLOCKED`. The host exception handler localises; the package ships no translations, i18n lookup or JSON:API negotiation.
 
 | HTTP | Code                            | Meaning                                                                           |
@@ -334,7 +334,7 @@ interface ControlStore {
 | 428  | `E_MASQUERADE_CONTEXT_REQUIRED` | Covered unsafe request lacks a token                                              |
 | 503  | `E_MASQUERADE_UNAVAILABLE`      | Store, authority or policy infrastructure failure, or lost commit acknowledgement |
 
-Limiter rejections are the host limiter's own 429. Shield CSRF errors remain framework errors. No `Idempotency-Key` header is advertised; CAS plus status defines retry behaviour.
+Limiter rejections are the host limiter's own 429. Shield CSRF errors remain framework errors. No `Idempotency-Key` header is advertised; CAS plus status defines retry behavior.
 
 ## 9. Account Kit integration (deferred to v1.2)
 
@@ -368,7 +368,7 @@ Until then, hosts using Account Kit may wire the native contract by hand against
 | **T-ACTIONS**      | Active unsafe denied by default; `allowMutation()` permits under target Bouncer; `sensitive()` and billing denied regardless; idle routes follow actor policy with token; unsafe verb cannot be marked read; `masquerade:routes` flags unmarked raw-guard routes; logout affects the actor credential only.                                                                                              |
 | **T-FAILURE**      | Store read, write and event failure; unique conflict; SQLite busy timeout and rollback; lost commit acknowledgement maps to 503 with the transition ID logged; authority and policy throws; stop and status 503 when store unavailable while login and logout succeed.                                                                                                                                   |
 | **T-AUDIT**        | Row and event atomicity; admitted denials, conflicts and no-ops recorded without revision change; outcome write failure is 503; pre-boundary rejections write nothing; events carry both incarnations; rejected listener leaves the committed result and reaches the emitter error handler.                                                                                                              |
-| **T-PRIVACY**      | No stamps, raw models or reasons in status, errors, logs or events; no target enumeration; reason normalisation order with one acceptable and one unacceptable example; code-point and byte boundaries; body size; `no-store` headers; reused ID with new incarnation rejects old mode and token.                                                                                                        |
+| **T-PRIVACY**      | No stamps, raw models or reasons in status, errors, logs or events; no target enumeration; reason normalization order with one acceptable and one unacceptable example; code-point and byte boundaries; body size; `no-store` headers; reused ID with new incarnation rejects old mode and token.                                                                                                        |
 | **T-STORE**        | Conformance suite on memory, SQLite and PostgreSQL; two-connection PostgreSQL race; SQLite independent-connection CAS and audit under busy timeout and rollback; owner isolation; idle row retention; malformed state; BIGINT string parsed to integer; one `MAX_SAFE_INTEGER` overflow test.                                                                                                            |
 | **T-PACKAGE**      | Packed native-session consumer at floor and latest dependency sets on SQLite and PostgreSQL; root import resolves neither Lucid nor Account Kit; `configure` command; numeric, string and UUID IDs; alternate users table.                                                                                                                                                                               |
 | **T-TENANT**       | Distinct namespaces never collide; actor across included guards shares one mode; cross-tenant denial; device in tenant B denied locally while tenant A mode and revision stay unchanged; tenant context not inherited from the actor.                                                                                                                                                                    |
@@ -379,31 +379,31 @@ FR-24 and FR-25 are satisfied in v1 only to the extent of the native-session tra
 
 ### 11.2 Milestone acceptance gates
 
-| #   | Ships                                                                                                                                                                                                                    | Gate                                                                                                 |
-| --- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | ---------------------------------------------------------------------------------------------------- |
-| M0  | Throwaway AdonisJS 7 hypermedia starter-kit app with the effective guard over the session guard.                                                                                                                         | T-IDENTITY passes in the real app. This document is the SPEC per plan item 17.                       |
-| M1  | Core: state machine, CAS on the memory store, policy, fixed expiry with injectable clock, nonce token, hashed stamps, reason rule, emitter events.                                                                       | Every row of section 6.4 has a mutation-checked test.                                                |
-| M2  | Lucid store: migration stub, CAS plus event in one transaction, conformance suite on SQLite and PostgreSQL, prune command.                                                                                               | Two-connection PostgreSQL race yields one winner and one event; SQLite busy and rollback cases pass. |
-| M3  | HTTP: controllers, effective session guard, markers, context middleware with report/enforce, Edge share, error codes, `no-store`, `masquerade:routes`.                                                                   | T-CONTEXT and T-ACTIONS pass in the M0 app.                                                          |
-| M4  | `configure` command, docs (account-global scope, one-device logout, cross-device behaviour, Inertia/fetch header, jobs and side effects, report-to-enforce migration), packed consumer at floor and latest. Publish 0.x. | Requirement-to-test ledger complete.                                                                 |
+| #   | Ships                                                                                                                                                                                                                   | Gate                                                                                                 |
+| --- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------- |
+| M0  | Throwaway AdonisJS 7 hypermedia starter-kit app with the effective guard over the session guard.                                                                                                                        | T-IDENTITY passes in the real app. This document is the SPEC per plan item 17.                       |
+| M1  | Core: state machine, CAS on the memory store, policy, fixed expiry with injectable clock, nonce token, hashed stamps, reason rule, emitter events.                                                                      | Every row of section 6.4 has a mutation-checked test.                                                |
+| M2  | Lucid store: migration stub, CAS plus event in one transaction, conformance suite on SQLite and PostgreSQL, prune command.                                                                                              | Two-connection PostgreSQL race yields one winner and one event; SQLite busy and rollback cases pass. |
+| M3  | HTTP: controllers, effective session guard, markers, context middleware with report/enforce, Edge share, error codes, `no-store`, `masquerade:routes`.                                                                  | T-CONTEXT and T-ACTIONS pass in the M0 app.                                                          |
+| M4  | `configure` command, docs (account-global scope, one-device logout, cross-device behavior, Inertia/fetch header, jobs and side effects, report-to-enforce migration), packed consumer at floor and latest. Publish 0.x. | Requirement-to-test ledger complete.                                                                 |
 
 Commands are future repository scripts on Node 24 with pnpm: `pnpm lint`, `pnpm typecheck`, `pnpm build`, `pnpm quick:test`, `pnpm test:pg`, `pnpm test:consumer`. Each is run exactly as the repository script, never the bare tool.
 
 ## 12. References
 
 - [AdonisJS session guard](https://docs.adonisjs.com/guides/auth/session-guard), [custom guards](https://docs.adonisjs.com/guides/auth/custom-auth-guard) and [authorization](https://docs.adonisjs.com/guides/auth/authorization): integration contracts to verify in M0.
-- [Auth 10 Authenticator](https://github.com/adonisjs/auth/blob/10.x/src/authenticator.ts) and [session guard](https://github.com/adonisjs/auth/blob/10.x/modules/session_guard/guard.ts): the seam in section 4.3 depends on their last-attempted-guard behaviour, which M0 proves rather than assumes.
+- [Auth 10 Authenticator](https://github.com/adonisjs/auth/blob/10.x/src/authenticator.ts) and [session guard](https://github.com/adonisjs/auth/blob/10.x/modules/session_guard/guard.ts): the seam in section 4.3 depends on their last-attempted-guard behavior, which M0 proves rather than assumes.
 - [Previously assessed package](https://github.com/devnymous/adonis-impersonate/tree/b86b3c82dcff91026473d861999a6afba9c42314): comparison only; its browser-login-switch architecture is not adopted.
 
 This document defines acceptance targets, not execution results. The original milestone gates
 are recorded as complete in [M4-RESULT.md](https://github.com/Kevinjohn/oss-adonisjs-masquerade/blob/7e0940e/M4-RESULT.md) and the
-[requirement ledger](../maintainers/requirement-ledger.md). Those records distinguish verified
+[requirement ledger](../requirement-ledger.md). Those records distinguish verified
 behavior from publication; the technical contract remains authoritative for implementation.
 
 ## 13. V1.1 additive contract: opaque access tokens
 
 This section adds the v1.1 access-token transport to the completed v1 contract. Sections 1–12 and
-the accepted [development plan](DEVELOPMENT-PLAN.md) remain the historical v1 record; the v1.1
+the accepted [development plan](development-plan.md) remain the historical v1 record; the v1.1
 transport does not change v1 session behavior or expand the accepted v1 scope. AdonisJS Auth 10
 opaque access tokens are supported. JWT remains out of scope, and Account Kit remains v1.2.
 
@@ -523,7 +523,7 @@ T-TOKEN requires evidence for both token-only and mixed session/token integratio
 
 This family defines required acceptance evidence; it does not claim that a test or packed-consumer
 matrix has passed. Current evidence and any remaining gaps belong in the
-[requirement ledger](../maintainers/requirement-ledger.md).
+[requirement ledger](../requirement-ledger.md).
 
 **Superseded for Account Kit managed routes only by [§15](#15-v12-account-kit-integration).**
 

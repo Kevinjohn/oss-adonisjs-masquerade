@@ -13,6 +13,10 @@ function trackedDocuments(): string[] {
 
 test('every relative Markdown link points at a tracked path', async ({ assert }) => {
   const broken: string[] = []
+  const listed = spawnSync('git', ['ls-files', '-z'], { cwd: repoRoot, encoding: 'utf8' })
+  if (listed.status !== 0) throw new Error(listed.stderr)
+  const paths = listed.stdout.split('\0').filter(Boolean)
+  const tracked = new Set(paths)
   let checked = 0
   for (const document of trackedDocuments()) {
     const source = await readFile(join(repoRoot, document), 'utf8')
@@ -21,8 +25,34 @@ test('every relative Markdown link points at a tracked path', async ({ assert })
       if (/^(?:[a-z][a-z\d+.-]*:|#)/i.test(target)) continue
       const path = decodeURIComponent(target.split('#')[0])
       checked++
-      if (!existsSync(join(repoRoot, dirname(document), path)))
+      const resolved = posix.normalize(posix.join(posix.dirname(document), path)).replace(/\/$/, '')
+      const trackedTarget =
+        tracked.has(resolved) || paths.some((name) => name.startsWith(`${resolved}/`))
+      if (!existsSync(join(repoRoot, dirname(document), path)) || !trackedTarget)
         broken.push(`${document}: ${target}`)
+    }
+  }
+  assert.isAbove(checked, 0)
+  assert.deepEqual(broken, [])
+})
+
+test('every link to this repository on main points at a tracked path', async ({ assert }) => {
+  const listed = spawnSync('git', ['ls-files', '-z'], { cwd: repoRoot, encoding: 'utf8' })
+  if (listed.status !== 0) throw new Error(listed.stderr)
+  const paths = listed.stdout.split('\0').filter(Boolean)
+  const broken: string[] = []
+  let checked = 0
+  // The changelog's links are live too, so it is checked here.
+  for (const document of trackedMarkdown(['**/*.md'])) {
+    const source = await readFile(join(repoRoot, document), 'utf8')
+    const links = source.matchAll(
+      /github\.com\/Kevinjohn\/oss-adonisjs-masquerade\/(?:blob|tree)\/main\/([^)\s#]+)/g
+    )
+    for (const [, path] of links) {
+      checked++
+      const target = decodeURIComponent(path).replace(/\/$/, '')
+      if (!paths.some((name) => name === target || name.startsWith(`${target}/`)))
+        broken.push(`${document}: ${path}`)
     }
   }
   assert.isAbove(checked, 0)
@@ -64,8 +94,8 @@ test('every anchor in a relative Markdown link names a heading', async ({ assert
 })
 
 test('guide navigation points to existing guide pages and sections', async ({ assert }) => {
-  const config = await readFile(join(repoRoot, 'docs/.vitepress/config.mts'), 'utf8')
-  const links = [...config.matchAll(/link:\s*'([^']+)'/g)].map(([, link]) => link)
+  const navigation = await readFile(join(repoRoot, 'docs/.vitepress/navigation.mts'), 'utf8')
+  const links = [...navigation.matchAll(/link:\s*'([^']+)'/g)].map(([, link]) => link)
   const guideLinks = links.filter((link) => link.startsWith('/guide/'))
   const missing: string[] = []
 

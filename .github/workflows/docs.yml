@@ -5,39 +5,59 @@ on:
   pull_request:
     paths:
       - 'docs/**'
+      - 'typedoc.json'
+      - 'index.ts'
+      - 'configure.ts'
+      - 'src/**'
+      - 'auth/**'
+      - 'commands/**'
+      - 'http/**'
+      - 'native/**'
+      - 'providers/**'
+      - 'stores/**'
+      - 'testing/**'
+      - 'stubs/**'
+      - 'account_kit/**'
+      - 'plugins/**'
+      - 'package.json'
+      - 'pnpm-lock.yaml'
+      - 'pnpm-workspace.yaml'
+      - 'tsconfig.json'
       - '.github/workflows/docs.yml'
   push:
     branches: [main]
     paths:
       - 'docs/**'
+      - 'typedoc.json'
+      - 'index.ts'
+      - 'configure.ts'
+      - 'src/**'
       - 'auth/**'
       - 'commands/**'
       - 'http/**'
-      - 'integration/**'
       - 'native/**'
       - 'providers/**'
-      - 'index.ts'
-      - 'src/**'
       - 'stores/**'
       - 'testing/**'
       - 'stubs/**'
-      - 'configure.ts'
+      - 'account_kit/**'
+      - 'plugins/**'
       - 'package.json'
       - 'pnpm-lock.yaml'
       - 'pnpm-workspace.yaml'
       - 'tsconfig.json'
-      - 'typedoc.json'
       - '.github/workflows/docs.yml'
 
 permissions:
   contents: read
 
 concurrency:
-  group: ${{ github.event_name == 'pull_request' && format('docs-{0}', github.ref) || 'pages' }}
+  group: pages
   cancel-in-progress: true
 
 jobs:
   build:
+    if: ${{ github.event_name == 'workflow_dispatch' || !github.event.repository.private }}
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v7
@@ -54,10 +74,15 @@ jobs:
         uses: actions/upload-pages-artifact@v5
         with:
           path: docs/.vitepress/dist
+      - if: ${{ github.event_name == 'pull_request' }}
+        uses: actions/upload-artifact@v7
+        with:
+          name: docs-site
+          path: docs/.vitepress/dist
 
   deploy:
     # Pull requests only build the site.
-    if: ${{ github.event_name != 'pull_request' }}
+    if: ${{ github.event_name == 'workflow_dispatch' || (!github.event.repository.private && github.event_name == 'push') }}
     needs: build
     runs-on: ubuntu-latest
     permissions:

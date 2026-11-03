@@ -7,7 +7,7 @@ import { cleanUsers, createUsers } from '#tests/helpers/users'
 import {
   setMasqueradeStoreUnavailable,
   setMasqueradeTestTime,
-} from '#services/masquerade_test_boundary'
+} from '#services/masquerade_fixture_boundary'
 
 test.group('Inertia support journey', (group) => {
   group.setup(() => testUtils.db().migrate())
