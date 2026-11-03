@@ -15,8 +15,6 @@ optional.
 
 ## Install
 
-The scoped release below is pending publication.
-
 ```sh
 pnpm add https://github.com/Kevinjohn/oss-adonisjs-masquerade/releases/download/v0.1.5/kevinjohn-adonisjs-masquerade-0.1.5.tgz
 node ace configure @kevinjohn/adonisjs-masquerade --namespace=my_app --guard=web

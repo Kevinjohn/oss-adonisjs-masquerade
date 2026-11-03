@@ -10,16 +10,17 @@ Hosts using Account Kit should also read the [Account Kit integration preview](a
 
 ## Generate the starter files
 
-Use Node 24 and pnpm. Masquerade is not published to a package registry. The planned
+Use Node 24 and pnpm. Masquerade is not published to a package registry. The
 `0.1.5` [GitHub release](https://github.com/Kevinjohn/oss-adonisjs-masquerade/releases/tag/v0.1.5)
-will carry the packed tarball. Once published, install it directly in the AdonisJS application:
+carries the packed tarball. Install it directly in the AdonisJS application:
 
 ```sh
 pnpm add https://github.com/Kevinjohn/oss-adonisjs-masquerade/releases/download/v0.1.5/kevinjohn-adonisjs-masquerade-0.1.5.tgz
 ```
 
-The release notes list the tarball SHA-256 and source commit. To build the same version yourself,
-check out the annotated tag in a clean worktree so the source and lockfile stay fixed:
+The release notes list the tarball SHA-256, and the `v0.1.5` tag marks the source commit. To build
+the same version yourself, check out the tag in a clean worktree so the source and lockfile stay
+fixed:
 
 ```sh
 git fetch origin --tags
@@ -49,7 +50,7 @@ pnpm add @adonisjs/lucid
 node ace configure @kevinjohn/adonisjs-masquerade --namespace=my_app --guard=web
 ```
 
-The scoped `0.1.5` candidate registers `@kevinjohn/adonisjs-masquerade/masquerade_provider`.
+The scoped `0.1.5` release registers `@kevinjohn/adonisjs-masquerade/masquerade_provider`.
 Replace the previous provider path in existing `adonisrc.ts` entries and provider type imports.
 
 The two install commands are needed only if those dependencies are absent. Configure
