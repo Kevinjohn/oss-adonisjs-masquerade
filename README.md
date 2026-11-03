@@ -3,8 +3,9 @@
 [![checks](https://github.com/Kevinjohn/oss-adonisjs-masquerade/actions/workflows/checks.yml/badge.svg?branch=main)](https://github.com/Kevinjohn/oss-adonisjs-masquerade/actions/workflows/checks.yml)
 [![Node.js 24+](https://img.shields.io/badge/node-%3E%3D24-339933)](package.json)
 [![AdonisJS 7](https://img.shields.io/badge/AdonisJS-7-5a45ff)](https://adonisjs.com)
-[![Status: alpha](https://img.shields.io/badge/status-alpha-orange)](#status)
 [![License: MIT](https://img.shields.io/badge/license-MIT-blue)](LICENSE.md)
+
+> Pre-release. Installed from GitHub releases; not on npm.
 
 **See your app exactly as another user sees it, without their password.**
 

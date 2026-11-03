@@ -1,9 +1,6 @@
-# Update policy: Dependabot opens pull requests for patch updates only.
-# Minor and major updates become issues instead, one per dependency, with the reason each needs a
-# hand review: the `dependency-issues` workflow (`bin/dependency_issues.ts`) opens them monthly.
-# - Minor updates: follow AdonisJS. AdonisJS-owned packages move when released; everything else
-#   (TypeScript included) moves by hand, when AdonisJS moves.
-# - Major updates: raise them by hand alongside an AdonisJS major.
+# Dependabot opens one pull request a week with patch updates to npm packages.
+# Minor and major updates, and GitHub Actions versions, are updated by hand (see
+# docs/maintainers/README.md, "Monthly").
 version: 2
 updates:
   - package-ecosystem: npm
@@ -11,18 +8,9 @@ updates:
     schedule:
       interval: weekly
     groups:
-      adonisjs:
-        patterns: ['@adonisjs/*', '@japa/*', '@poppinss/*']
-      development:
-        dependency-type: development
+      patch:
+        update-types: ['patch']
     ignore:
       - dependency-name: '*'
         update-types: ['version-update:semver-major', 'version-update:semver-minor']
     open-pull-requests-limit: 5
-  - package-ecosystem: github-actions
-    directory: /
-    schedule:
-      interval: monthly
-    ignore:
-      - dependency-name: '*'
-        update-types: ['version-update:semver-major', 'version-update:semver-minor']

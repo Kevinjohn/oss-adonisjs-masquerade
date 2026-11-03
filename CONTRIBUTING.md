@@ -61,19 +61,15 @@ and recipe; use it when one shared run covers those, such as a batch of pull req
 workflow: Prettier, lint, typecheck, build, the built-export test and coverage on SQLite and PostgreSQL. The `e2e`
 workflow runs the demo launcher, recipe and browser checks on pull requests that change `examples/`,
 `http/`, `stubs/` or `docs/guide/`; `docs` builds the site when `docs/` changes. `e2e` and
-`account-kit` also run nightly, and both run with `consumer` before every release; `account-kit` and
-`consumer` cover PostgreSQL as well. `bin/check_profiles.ts`
+`account-kit` also run nightly; `account-kit` and `consumer` cover PostgreSQL as well. `bin/check_profiles.ts`
 lists the steps, and a test fails if CI runs a script that no profile covers.
 
 `pnpm test:pg` needs PostgreSQL 16 binaries (`brew install postgresql@16` on macOS). To use your
 own server instead, set `DB_CLIENT=pg` plus `DB_HOST`, `DB_PORT`, `DB_USER`, `DB_PASSWORD` and
 `DB_DATABASE`, then run `pnpm quick:test`.
 
-`pnpm test:mutation` runs Stryker against `src/` with `pnpm quick:test`. It edits the source files
-in place while it runs and restores them afterwards, so run it on a clean checkout. The `mutation`
-workflow runs it weekly and on demand and uploads the report; it fails when the score drops below
-the `break` threshold in `stryker.config.json`. `pnpm test` and `pnpm test:coverage` fail when line
-or branch coverage drops below the thresholds in the `c8` block of `package.json`.
+`pnpm test` and `pnpm test:coverage` fail when line or branch coverage drops below the thresholds
+in the `c8` block of `package.json`.
 
 Changes to the control store or its migrations should pass on both SQLite and PostgreSQL. The
 `checks` workflow runs both on every pull request.

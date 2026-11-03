@@ -50,7 +50,6 @@
     "docs:build": "pnpm docs:api && vitepress build docs",
     "quick:test": "node --import=@poppinss/ts-exec --enable-source-maps bin/test.ts",
     "test:coverage": "c8 pnpm quick:test",
-    "test:mutation": "stryker run",
     "test:built-exports": "cross-env TEST_BUILT_EXPORTS=1 pnpm quick:test --files=package_exports.spec.ts --files=package_files.spec.ts --files=configure.spec.ts --files=configure_ace.spec.ts",
     "test:consumer": "node --import=@poppinss/ts-exec --enable-source-maps bin/test_consumer.ts",
     "test:account-kit": "node --import=@poppinss/ts-exec --enable-source-maps bin/test_account_kit.ts",
@@ -63,9 +62,6 @@
     "compile": "tsdown && tsc --emitDeclarationOnly --declaration",
     "postcompile": "pnpm copy:templates",
     "build": "pnpm compile",
-    "release": "release-it",
-    "version": "pnpm build",
-    "prepublishOnly": "pnpm build",
     "pg:start": "bash bin/pg.sh start",
     "pg:stop": "bash bin/pg.sh stop",
     "test:pg": "bash bin/pg.sh test",
@@ -74,7 +70,6 @@
     "test:demo": "node --test tests/demo_launcher.test.mjs tests/demo_account_kit_launcher.test.mjs",
     "test:demo:account-kit": "node --test tests/demo_account_kit_launcher.test.mjs",
     "test:account-kit-demo": "node --import=@poppinss/ts-exec --enable-source-maps bin/test_account_kit_demo.ts",
-    "dependency:issues": "node --import=@poppinss/ts-exec --enable-source-maps bin/dependency_issues.ts",
     "test:inertia-react": "node --import=@poppinss/ts-exec --enable-source-maps bin/test_inertia_react.ts"
   },
   "keywords": [
@@ -108,8 +103,6 @@
     "@japa/assert": "^4.2.0",
     "@japa/runner": "^5.3.0",
     "@poppinss/ts-exec": "^1.5.1",
-    "@release-it/conventional-changelog": "^12.0.2",
-    "@stryker-mutator/core": "^10.1.1",
     "@types/luxon": "^3.0.0",
     "@types/node": "^24.0.0",
     "@vinejs/vine": "^4.4.0",
@@ -122,7 +115,6 @@
     "luxon": "^3.0.0",
     "pg": "^8.0.0",
     "prettier": "^3.8.1",
-    "release-it": "^21.1.2",
     "tsdown": "^0.23.4",
     "typedoc": "^0.28.20",
     "typedoc-plugin-markdown": "^4.14.1",
@@ -200,34 +192,5 @@
     "branches": 87
   },
   "prettier": "@adonisjs/prettier-config",
-  "publishConfig": {
-    "access": "public",
-    "provenance": true
-  },
-  "release-it": {
-    "hooks": {
-      "before:bump": "pnpm version ${version} --no-git-tag-version --allow-same-version",
-      "before:release": "pnpm publish --access public --provenance --no-git-checks"
-    },
-    "git": {
-      "requireCleanWorkingDir": true,
-      "requireUpstream": true,
-      "commitMessage": "chore(release): ${version}",
-      "tagAnnotation": "v${version}",
-      "push": true,
-      "tagName": "v${version}"
-    },
-    "github": {
-      "release": true
-    },
-    "npm": false,
-    "plugins": {
-      "@release-it/conventional-changelog": {
-        "preset": {
-          "name": "angular"
-        }
-      }
-    }
-  },
   "packageManager": "pnpm@11.23.0"
 }
