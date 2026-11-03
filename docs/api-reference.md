@@ -27,8 +27,8 @@ is for tests and adapter conformance, not application persistence.
 
 Generated pages may show internal or framework types in a public signature so TypeScript contracts
 are readable. That does not make their source modules importable. Import package types from
-`adonisjs-masquerade/types` or another listed entry point, and do not deep-import `src/`,
-`src/` or other implementation paths. The package's [declared export map](https://github.com/Kevinjohn/oss-adonisjs-masquerade/blob/main/package.json) is the authority for supported paths.
+`adonisjs-masquerade/types` or another listed entry point, and do not deep-import `src/` or other
+implementation paths. The package's [declared export map](https://github.com/Kevinjohn/oss-adonisjs-masquerade/blob/main/package.json) is the authority for supported paths.
 
 ## Guides
 
