@@ -28,7 +28,7 @@ import {
   accessTokensAuthority,
   nativeAuthorities,
   sessionAuthority,
-} from 'adonisjs-masquerade/native'
+} from '@kevinjohn/adonisjs-masquerade/native'
 
 const session = sessionAuthority({
   namespace: 'support-accounts',
@@ -70,8 +70,8 @@ standalone Masquerade adapter. The model's `accessTokens` property and migration
 ```ts
 import { defineConfig } from '@adonisjs/auth'
 import { tokensGuard, tokensUserProvider } from '@adonisjs/auth/access_tokens'
-import { effectiveAccessTokensGuard } from 'adonisjs-masquerade/auth'
-import { accessTokensAuthority } from 'adonisjs-masquerade/native'
+import { effectiveAccessTokensGuard } from '@kevinjohn/adonisjs-masquerade/auth'
+import { accessTokensAuthority } from '@kevinjohn/adonisjs-masquerade/native'
 
 const tokenProvider = tokensUserProvider({
   tokens: 'accessTokens',

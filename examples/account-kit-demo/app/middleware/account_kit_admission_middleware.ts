@@ -1,6 +1,6 @@
 import app from '@adonisjs/core/services/app'
 import type { HttpContext } from '@adonisjs/core/http'
-import { AccountAdmission } from 'adonisjs-account-kit/admission'
+import { AccountAdmission } from '@kevinjohn/adonisjs-account-kit/admission'
 import { Exception } from '@adonisjs/core/exceptions'
 
 const gated = ['/dashboard', '/support', '/masquerade', '/api/masquerade']

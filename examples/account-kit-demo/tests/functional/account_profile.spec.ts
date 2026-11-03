@@ -4,7 +4,7 @@ import db from '@adonisjs/lucid/services/db'
 import limiter from '@adonisjs/limiter/services/main'
 import { DateTime } from 'luxon'
 import app from '@adonisjs/core/services/app'
-import { AccountAdmission } from 'adonisjs-account-kit/admission'
+import { AccountAdmission } from '@kevinjohn/adonisjs-account-kit/admission'
 import { AccountKitHttp } from '#tests/helpers/account_kit_http'
 import { cleanUsers, createUsers } from '#tests/helpers/users'
 

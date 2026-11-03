@@ -4,7 +4,7 @@ The package controller keeps its JSON response for JSON clients. To scaffold a h
 controller that also accepts Edge form posts, opt in when configuring the package:
 
 ```sh
-node ace configure adonisjs-masquerade --form-controller
+node ace configure @kevinjohn/adonisjs-masquerade --form-controller
 ```
 
 Configure creates `app/controllers/masquerade_form_controller.ts` and, when it can wire the

@@ -1,4 +1,4 @@
-import { defineAdmission } from 'adonisjs-account-kit/admission'
+import { defineAdmission } from '@kevinjohn/adonisjs-account-kit/admission'
 
 export default defineAdmission({
   approval: {

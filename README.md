@@ -20,15 +20,15 @@ credential.
 
 ## Install
 
-Masquerade requires Node.js 24+ and AdonisJS 7. Install the current prerelease from GitHub:
+Masquerade requires Node.js 24+ and AdonisJS 7. Install the planned scoped release from GitHub once it is published:
 
 ```sh
-pnpm add https://github.com/Kevinjohn/oss-adonisjs-masquerade/releases/download/v0.1.4-alpha/adonisjs-masquerade-0.1.4-alpha.tgz
-node ace configure adonisjs-masquerade --namespace=my_app --guard=web
+pnpm add https://github.com/Kevinjohn/oss-adonisjs-masquerade/releases/download/v0.1.5/kevinjohn-adonisjs-masquerade-0.1.5.tgz
+node ace configure @kevinjohn/adonisjs-masquerade --namespace=my_app --guard=web
 ```
 
-The release asset is `adonisjs-masquerade-0.1.4-alpha.tgz` (SHA-256
-`f7bea1f2d869093296467fa28f6082b77872a2c3f7dbbdf6830703b87695a739`). See the
+The planned release asset is `kevinjohn-adonisjs-masquerade-0.1.5.tgz`. Verify its SHA-256
+against the release notes once published. See the
 [setup guide](docs/guide/setup.md) for peer dependencies and generated files.
 
 ## Quick example
@@ -39,7 +39,7 @@ blocked during masquerade:
 ```ts
 import router from '@adonisjs/core/services/router'
 import { middleware } from '#start/kernel'
-import { allowMutation, sensitive } from 'adonisjs-masquerade/http'
+import { allowMutation, sensitive } from '@kevinjohn/adonisjs-masquerade/http'
 
 const asCustomer = middleware.auth({ guards: ['web_effective'] })
 

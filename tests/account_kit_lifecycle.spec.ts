@@ -27,7 +27,7 @@ async function loadAccountKitHttp(): Promise<AccountKitHttpApi> {
   const source = process.env.ACCOUNT_KIT_SOURCE
   const entry = source
     ? pathToFileURL(resolve(source, 'build/http/main.js')).href
-    : 'adonisjs-account-kit/http'
+    : '@kevinjohn/adonisjs-account-kit/http'
   return (await import(entry)) as AccountKitHttpApi
 }
 
@@ -39,7 +39,7 @@ async function temporaryRoot(): Promise<string> {
 function canResolveAccountKitHttp(): boolean {
   if (process.env.ACCOUNT_KIT_SOURCE) return true
   try {
-    import.meta.resolve('adonisjs-account-kit/http')
+    import.meta.resolve('@kevinjohn/adonisjs-account-kit/http')
     return true
   } catch {
     return false

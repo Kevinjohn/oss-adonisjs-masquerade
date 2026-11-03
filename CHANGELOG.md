@@ -2,11 +2,17 @@
 
 ## Unreleased
 
+## 0.1.5 - 2026-11-03
+
 ### Changed
 
-- Move the public provider import to `adonisjs-masquerade/masquerade_provider`. Update the
+- Move the public provider import to `@kevinjohn/adonisjs-masquerade/masquerade_provider`. Update the
   provider entry in `adonisrc.ts` and any runtime type imports from
   `adonisjs-masquerade/providers/masquerade_provider`; the former subpath is no longer exported.
+
+- Package renamed to `@kevinjohn/adonisjs-masquerade`. Migration: reinstall from the new
+  tarball; replace `adonisjs-masquerade` with `@kevinjohn/adonisjs-masquerade` in imports; change the provider
+  line in `adonisrc.ts` to `@kevinjohn/adonisjs-masquerade/masquerade_provider`.
 
 ## 0.1.4-alpha - 2026-11-03
 

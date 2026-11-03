@@ -410,7 +410,7 @@ try {
       await mkdir(join(app, 'tmp'), { recursive: true })
       await cp(artifact, join(app, 'package.tgz'))
       const manifest = JSON.parse(await readFile(join(app, 'package.json'), 'utf8'))
-      manifest.dependencies['adonisjs-masquerade'] = 'file:./package.tgz'
+      manifest.dependencies['@kevinjohn/adonisjs-masquerade'] = 'file:./package.tgz'
       await writeFile(join(app, 'package.json'), JSON.stringify(manifest, null, 2) + '\n')
       await writeFile(
         join(app, 'pnpm-workspace.yaml'),
@@ -429,7 +429,7 @@ try {
           'node',
           'ace.js',
           'configure',
-          'adonisjs-masquerade',
+          '@kevinjohn/adonisjs-masquerade',
           '--namespace=my_app',
           '--guard=web',
           '--banner',

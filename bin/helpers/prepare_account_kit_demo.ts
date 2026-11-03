@@ -67,7 +67,7 @@ export async function prepare(
     childEnv,
     signal
   )
-  await ensureKitArtifact(join(workspace, 'account-kit-0.1.4.tgz'), signal)
+  await ensureKitArtifact(join(workspace, 'account-kit-0.1.5.tgz'), signal)
   signal?.throwIfAborted()
   await copyNativeDemo(native, app)
   await overlay(demo, app)
@@ -103,7 +103,7 @@ export async function prepare(
     [
       'ace.js',
       'configure',
-      'adonisjs-account-kit',
+      '@kevinjohn/adonisjs-account-kit',
       '--users-table=users',
       '--user-id-type=integer',
     ],

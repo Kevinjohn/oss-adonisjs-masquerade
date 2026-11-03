@@ -286,7 +286,7 @@ export async function wireAuthGuards(
     .find((named) => named.getName() === 'sessionUserProvider')
   if (unused && !/\bsessionUserProvider\b/.test(stripImports(file))) unused.remove()
   file.addImportDeclaration({
-    moduleSpecifier: 'adonisjs-masquerade/auth',
+    moduleSpecifier: '@kevinjohn/adonisjs-masquerade/auth',
     namedImports: ['effectiveSessionGuard'],
   })
   file.addImportDeclaration({

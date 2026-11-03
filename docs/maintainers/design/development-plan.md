@@ -70,7 +70,7 @@ Issue #86 records the owner-accepted D1–D10 changes to active request policy, 
 ## Accepted v1.2 change
 
 The owner accepted decisions D1–D13 for the Account Kit adapter and managed-route blocker on 22
-October 2026. They add the optional `adonisjs-masquerade/account-kit` adapter and its provider,
+October 2026. They add the optional `@kevinjohn/adonisjs-masquerade/account-kit` adapter and its provider,
 coherent Account Kit account/revision inspection, native actor revalidation, host-owned admission
 gates, managed-route blocking, and verified route-report classification. Core remains independent
 of Account Kit; v1.2 supports one matching transport and SQLite/PostgreSQL. The complete contract,

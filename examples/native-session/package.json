@@ -1,5 +1,5 @@
 {
-  "name": "adonisjs-masquerade-native-session-fixture",
+  "name": "@kevinjohn/adonisjs-masquerade-native-session-fixture",
   "version": "0.0.0",
   "private": true,
   "type": "module",
@@ -74,7 +74,7 @@
     "@adonisjs/vite": "^6.0.2",
     "@japa/api-client": "^3.2.1",
     "@vinejs/vine": "^4.4.0",
-    "adonisjs-masquerade": "file:../../tmp/native-session-package.tgz",
+    "@kevinjohn/adonisjs-masquerade": "file:../../tmp/native-session-package.tgz",
     "better-sqlite3": "^13.0.3",
     "edge-iconify": "^2.0.2",
     "edge.js": "^6.5.1",

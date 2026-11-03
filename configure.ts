@@ -141,8 +141,8 @@ export async function configure(command: Configure): Promise<void> {
     addCommand(command: string): unknown
   }) => {
     rcFile.addProvider('#providers/masquerade_native_provider')
-    rcFile.addProvider('adonisjs-masquerade/masquerade_provider')
-    rcFile.addCommand('adonisjs-masquerade/commands')
+    rcFile.addProvider('@kevinjohn/adonisjs-masquerade/masquerade_provider')
+    rcFile.addCommand('@kevinjohn/adonisjs-masquerade/commands')
   }) as RcFileUpdater)
   if (codemodError || (typeof command.exitCode === 'number' && command.exitCode !== 0)) {
     command.logger.error(
@@ -182,7 +182,7 @@ export async function configure(command: Configure): Promise<void> {
     ...(wiring.auth === 'skipped'
       ? [
           'In your raw sessionGuard configuration, import userProvider from #services/masquerade_user_provider and pass that exact instance to sessionGuard. Keep the raw guard named web (or your --guard value).',
-          `Wrap the raw factory with effectiveSessionGuard from adonisjs-masquerade/auth and make the wrapper the default auth guard, e.g. import { effectiveSessionGuard } from 'adonisjs-masquerade/auth'; default: ${effectiveGuardKey}; guards: { ${rawGuardKey}: rawGuard, ${effectiveGuardKey}: effectiveSessionGuard(rawGuard) }.`,
+          `Wrap the raw factory with effectiveSessionGuard from @kevinjohn/adonisjs-masquerade/auth and make the wrapper the default auth guard, e.g. import { effectiveSessionGuard } from '@kevinjohn/adonisjs-masquerade/auth'; default: ${effectiveGuardKey}; guards: { ${rawGuardKey}: rawGuard, ${effectiveGuardKey}: effectiveSessionGuard(rawGuard) }.`,
         ]
       : []),
     ...(wiring.kernel === 'skipped'
@@ -199,7 +199,7 @@ export async function configure(command: Configure): Promise<void> {
                 `Mount GET /masquerade on MasqueradeController and POST /masquerade/start|stop on #controllers/masquerade_form_controller, behind middleware.auth({ guards: ["${guard}"] }) with separate start/stop limiters and route names masquerade.status|start|stop. Keep Shield CSRF enabled.`,
               ]
             : [
-                `Define separate start and stop limiters, then mount the controls with masqueradeRoutes(router, { auth: middleware.auth, guard: "${guard}", startLimiter, stopLimiter }) from adonisjs-masquerade/http; keep Shield CSRF enabled. Do not mount routes before those controls are in place.`,
+                `Define separate start and stop limiters, then mount the controls with masqueradeRoutes(router, { auth: middleware.auth, guard: "${guard}", startLimiter, stopLimiter }) from @kevinjohn/adonisjs-masquerade/http; keep Shield CSRF enabled. Do not mount routes before those controls are in place.`,
               ]),
         ]
       : []),

@@ -1,4 +1,4 @@
-import { allowMutation, sensitive } from 'adonisjs-masquerade/http'
+import { allowMutation, sensitive } from '@kevinjohn/adonisjs-masquerade/http'
 import { middleware } from '#start/kernel'
 import router from '@adonisjs/core/services/router'
 

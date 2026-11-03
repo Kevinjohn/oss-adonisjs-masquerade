@@ -150,7 +150,7 @@ const lockPath = 'pnpm-lock.yaml'
 const lock = await readFile(lockPath, 'utf8')
 const tarball = await readFile('../../tmp/native-session-package.tgz')
 const integrity = `sha512-${createHash('sha512').update(tarball).digest('base64')}`
-const entry = /(  adonisjs-masquerade@file:\.\.\/\.\.\/tmp\/native-session-package\.tgz:\n    resolution: \{integrity: )sha512-[A-Za-z0-9+/=]+(, tarball: file:\.\.\/\.\.\/tmp\/native-session-package\.tgz\s*\})/g
+const entry = /( {2}'@kevinjohn\/adonisjs-masquerade@file:\.\.\/\.\.\/tmp\/native-session-package\.tgz':\n {4}resolution: \{integrity: )sha512-[A-Za-z0-9+/=]+(, tarball: file:\.\.\/\.\.\/tmp\/native-session-package\.tgz\s*\})/g
 if ([...lock.matchAll(entry)].length !== 1) throw new Error('Expected one local package entry in pnpm-lock.yaml')
 await writeFile(lockPath, lock.replace(entry, `$1${integrity}$2`))
 NODE

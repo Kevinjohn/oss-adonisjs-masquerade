@@ -1,6 +1,6 @@
 import { defineConfig } from '@adonisjs/auth'
 import { webGuard } from '#services/web_guard'
-import { effectiveSessionGuard } from 'adonisjs-masquerade/auth'
+import { effectiveSessionGuard } from '@kevinjohn/adonisjs-masquerade/auth'
 import type { InferAuthenticators, InferAuthEvents, Authenticators } from '@adonisjs/auth/types'
 
 /**

@@ -167,7 +167,7 @@ export interface CompareAndSetInput {
 }
 /**
  * Durable mode and audit storage. An implementation must pass the conformance suite in
- * `adonisjs-masquerade/testing`.
+ * `@kevinjohn/adonisjs-masquerade/testing`.
  */
 export interface ControlStore {
   /** Test stores must expose this flag so production boot rejects them. */

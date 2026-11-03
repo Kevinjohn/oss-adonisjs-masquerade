@@ -38,7 +38,7 @@ to `preloads` in `adonisrc.ts`. The same file type-checks in the native-session 
 <!-- host-recipe:masquerade-alerts -->
 
 ```ts
-import type { ObserverEvent } from 'adonisjs-masquerade/types'
+import type { ObserverEvent } from '@kevinjohn/adonisjs-masquerade/types'
 import emitter from '@adonisjs/core/services/emitter'
 import logger from '@adonisjs/core/services/logger'
 import env from '#start/env'

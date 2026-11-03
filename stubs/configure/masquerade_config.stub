@@ -5,9 +5,9 @@ import app from '@adonisjs/core/services/app'
 import type { HttpContext } from '@adonisjs/core/http'
 import UserModel from '#models/user'
 import { Database } from '@adonisjs/lucid/database'
-import { defineConfig } from 'adonisjs-masquerade'
-import { sessionAuthority, stampFrom } from 'adonisjs-masquerade/native'
-import { LucidControlStore } from 'adonisjs-masquerade/stores/lucid'
+import { defineConfig } from '@kevinjohn/adonisjs-masquerade'
+import { sessionAuthority, stampFrom } from '@kevinjohn/adonisjs-masquerade/native'
+import { LucidControlStore } from '@kevinjohn/adonisjs-masquerade/stores/lucid'
 import { userProvider } from '#services/masquerade_user_provider'
 
 type User = InstanceType<typeof UserModel>

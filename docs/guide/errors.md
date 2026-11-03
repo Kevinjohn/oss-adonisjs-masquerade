@@ -22,7 +22,7 @@ Edge template (or use `ctx.inertia.render` for a host Inertia page). The templat
 the host's explanation and should offer a link to status or stop.
 
 ```ts
-import { MasqueradeError } from 'adonisjs-masquerade'
+import { MasqueradeError } from '@kevinjohn/adonisjs-masquerade'
 import type { HttpContext } from '@adonisjs/core/http'
 
 export async function handleBlockedAction(

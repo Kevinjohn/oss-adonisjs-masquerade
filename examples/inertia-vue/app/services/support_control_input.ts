@@ -1,5 +1,5 @@
 import type { HttpContext } from '@adonisjs/core/http'
-import type { StartInput, StopInput } from 'adonisjs-masquerade/types'
+import type { StartInput, StopInput } from '@kevinjohn/adonisjs-masquerade/types'
 
 /** Preserve the context token that accompanied the original form intent. */
 export function controlInput(ctx: HttpContext, action: 'start'): StartInput

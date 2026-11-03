@@ -1,13 +1,13 @@
 # Testing your routes
 
-`adonisjs-masquerade/plugins/api_client` adds `masquerading()` to Japa API client requests, next to
+`@kevinjohn/adonisjs-masquerade/plugins/api_client` adds `masquerading()` to Japa API client requests, next to
 `loginAs()` from `@adonisjs/auth`. It is for host route tests such as "a support agent viewing a
 customer cannot reach billing".
 
 Register the plugin after the auth, session and Shield API client plugins in `tests/bootstrap.ts`:
 
 ```ts
-import { masqueradeApiClient } from 'adonisjs-masquerade/plugins/api_client'
+import { masqueradeApiClient } from '@kevinjohn/adonisjs-masquerade/plugins/api_client'
 
 export const plugins: Config['plugins'] = [
   // assert(), pluginAdonisJS(app), apiClient(), authApiClient(app),

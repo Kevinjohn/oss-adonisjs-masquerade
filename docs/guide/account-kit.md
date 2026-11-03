@@ -1,17 +1,17 @@
 # Account Kit integration preview
 
 This page describes the Account Kit adapter planned for Masquerade v1.2. It is a prerelease
-integration preview using Account Kit alpha `0.1.4`, available as a GitHub release artifact. The
-package is not published to a public package registry. Install the pinned release tarball with pnpm:
+integration preview targeting the planned scoped Account Kit `0.1.5` release. The scoped
+release is pending. Once published, install its tarball with pnpm:
 
 ```sh
-pnpm add https://github.com/Kevinjohn/oss-adonisjs-account-kit/releases/download/v0.1.4/adonisjs-account-kit-0.1.4.tgz
+pnpm add https://github.com/Kevinjohn/oss-adonisjs-account-kit/releases/download/v0.1.5/kevinjohn-adonisjs-account-kit-0.1.5.tgz
 ```
 
-The artifact SHA-256 is
-`5fa51b3f892d03e9f4e4776c40a33bc1eff2e4e884e4e6d2f528bbf99ef44d6b` and its source commit is
-`fae423198ae2d591cdf3bc89ee1b3e47258dfb99`. This pin supports local development from the GitHub
-release artifact; a future public registry publication is a separate release step.
+The local release candidate SHA-256 is
+`d124bfec0913fc05ee3df010e996ebca20d5633272c1f0cc8d602fc85e253d8b` and its source commit is
+`555c56cda66f3168477fec687c32e4ff87ae71de`. These are provisional candidate bytes, not proof of a published release. Reconcile the digest
+with the actual scoped release before using the release URL.
 
 Account Kit's HTTP integration requires the host-provided `@vinejs/vine` `^4.4.0` dependency. The
 standard AdonisJS native-auth host already includes it.
@@ -38,7 +38,7 @@ raw `api` guard and set the adapter's `ability` option as shown below.
 
 ```ts
 // app/services/account_kit_guard.ts
-import { createManagedGuard } from 'adonisjs-account-kit/http'
+import { createManagedGuard } from '@kevinjohn/adonisjs-account-kit/http'
 
 export const managedGuard = createManagedGuard({
   strategy: 'session',
@@ -62,7 +62,7 @@ export const accessTokenUserProvider = tokensUserProvider({
 
 ```ts
 // app/services/account_kit_guard.ts (access_tokens variant)
-import { createManagedGuard } from 'adonisjs-account-kit/http'
+import { createManagedGuard } from '@kevinjohn/adonisjs-account-kit/http'
 
 export const managedGuard = createManagedGuard({
   strategy: 'access_tokens',
@@ -83,11 +83,11 @@ context-token rollout settings:
 
 ```ts
 // config/masquerade.ts
-import { defineConfig } from 'adonisjs-masquerade'
-import { accountKitAuthority } from 'adonisjs-masquerade/account-kit'
-import { LucidControlStore } from 'adonisjs-masquerade/stores/lucid'
-import { AccountKit } from 'adonisjs-account-kit'
-import { AccountAdmission } from 'adonisjs-account-kit/admission'
+import { defineConfig } from '@kevinjohn/adonisjs-masquerade'
+import { accountKitAuthority } from '@kevinjohn/adonisjs-masquerade/account-kit'
+import { LucidControlStore } from '@kevinjohn/adonisjs-masquerade/stores/lucid'
+import { AccountKit } from '@kevinjohn/adonisjs-account-kit'
+import { AccountAdmission } from '@kevinjohn/adonisjs-account-kit/admission'
 import app from '@adonisjs/core/services/app'
 import { Database } from '@adonisjs/lucid/database'
 import type User from '#models/user'
@@ -184,7 +184,7 @@ may authenticate; admission controls whether a signed-in account may use host ro
 `canAccess` restriction-only.
 
 For **actor admission**, resolve `AccountAdmission` from
-`adonisjs-account-kit/admission` and gate the host's Masquerade control and business routes before
+`@kevinjohn/adonisjs-account-kit/admission` and gate the host's Masquerade control and business routes before
 the global `masqueradeContext` middleware. A route-level `admissionMiddleware` is too late when
 `masqueradeContext` runs globally first: active admission can read or invalidate the mode before the
 route middleware runs. Use a host global middleware after Auth initialization, scoped to the
@@ -200,7 +200,7 @@ route with `.as('business.customers')` when `business.` is in `protectedPrefixes
 import type { HttpContext } from '@adonisjs/core/http'
 import type { NextFn } from '@adonisjs/core/types/http'
 import app from '@adonisjs/core/services/app'
-import { AccountAdmission, admissionMiddleware } from 'adonisjs-account-kit/admission'
+import { AccountAdmission, admissionMiddleware } from '@kevinjohn/adonisjs-account-kit/admission'
 import { managedGuard } from '#services/account_kit_guard'
 
 const protectedPrefixes = ['masquerade.', 'token.masquerade.', 'business.']
@@ -233,9 +233,8 @@ in `canAccess`.
 
 ## Install the provider and blocker
 
-The provider example below follows the unreleased Masquerade source. For the published
-`0.1.4-alpha` tarball, use `adonisjs-masquerade/providers/masquerade_provider` for the Masquerade core
-provider entry instead. The installed configure hook registers its matching provider path.
+The provider example below targets the scoped Masquerade `0.1.5` candidate. Its configure hook
+registers `@kevinjohn/adonisjs-masquerade/masquerade_provider` for the core provider.
 
 Register the Account Kit provider subpath and its global middleware in the host. The middleware
 must run after session setup and `initialize_auth`, and before application middleware that calls
@@ -251,11 +250,11 @@ Auth initialization in the global router stack:
 providers: [
   // Keep the framework providers required by your strategy (including Lucid and limiter) in
   // their normal host order before the Account Kit provider.
-  () => import('adonisjs-account-kit/account_kit_provider'),
-  () => import('adonisjs-account-kit/admission/provider'),
+  () => import('@kevinjohn/adonisjs-account-kit/account_kit_provider'),
+  () => import('@kevinjohn/adonisjs-account-kit/admission/provider'),
   () => import('#providers/masquerade_native_provider'),
-  () => import('adonisjs-masquerade/masquerade_provider'),
-  () => import('adonisjs-masquerade/account-kit/provider'),
+  () => import('@kevinjohn/adonisjs-masquerade/masquerade_provider'),
+  () => import('@kevinjohn/adonisjs-masquerade/account-kit/provider'),
 ]
 ```
 
@@ -266,7 +265,7 @@ import router from '@adonisjs/core/services/router'
 router.use([
   // Session and Shield middleware...
   () => import('@adonisjs/auth/initialize_auth_middleware'),
-  () => import('adonisjs-masquerade/account-kit/middleware'),
+  () => import('@kevinjohn/adonisjs-masquerade/account-kit/middleware'),
   () => import('#middleware/account_kit_actor_admission_middleware'),
   () => import('#middleware/masquerade_context_middleware'),
   // silent_auth and other application middleware...
@@ -285,8 +284,9 @@ Ace command it commits the router itself first, and it never commits in other en
 commit the routes as `<group>.accountKit.*`, which the blocker does not match, so startup fails with
 `is not mounted`.
 
-This prerelease interface works with Account Kit `0.1.4`, the only version the optional peer
-declares. The complete Masquerade matrix passed against the pinned `0.1.4` GitHub release artifact
+This prerelease interface works with Account Kit `0.1.5`, the only version the optional peer
+declares. The scoped release still needs validation against its published artifact; prior matrix results
+apply to the historical unscoped release
 for both strategies, with session management on and off, on SQLite and PostgreSQL at the declared
 floor and latest compatible peers. Other Account Kit versions, MySQL and a second composed
 Masquerade transport are not tested. Account Kit `0.1.1` and later resolve `configProvider` through
@@ -330,6 +330,6 @@ callbacks, including `canAccess`, so keep them safe to retry. PostgreSQL locks t
 account row. Masquerade supports this integration only on SQLite and PostgreSQL, matching its
 existing database support; this preview does not claim MySQL support.
 
-This integration remains a prerelease preview. The GitHub release artifact is installable for local
-development; public registry publication is separate from integration acceptance. Check the
+This integration remains a prerelease preview. The scoped GitHub release is pending; its published artifact still needs validation before
+installation. Public registry publication is separate from integration acceptance. Check the
 [troubleshooting guide](troubleshooting.md) for common configuration failures.

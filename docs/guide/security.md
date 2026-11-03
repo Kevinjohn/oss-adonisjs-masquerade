@@ -86,7 +86,7 @@ propagate unchanged.
 The optional [Account Kit integration](account-kit.md) keeps admission distinct from account
 restriction. Account Kit's `canAccess` decision controls authentication eligibility; it does not
 include the separate host admission gate. Resolve `AccountAdmission` from
-`adonisjs-account-kit/admission`. Gate the actor's protected control and business routes before the
+`@kevinjohn/adonisjs-account-kit/admission`. Gate the actor's protected control and business routes before the
 global `masqueradeContext` middleware; route-level admission middleware runs too late when that
 global middleware resolves the effective identity first. The [Account Kit guide](account-kit.md)
 shows a scoped pre-context gate. A denied actor then receives the admission response before
@@ -116,7 +116,7 @@ field alongside Shield's CSRF field:
 
 ```ts
 // In the route handler
-import { shareMasquerade } from 'adonisjs-masquerade/http'
+import { shareMasquerade } from '@kevinjohn/adonisjs-masquerade/http'
 
 await shareMasquerade(ctx)
 return ctx.view.render('pages/edit')

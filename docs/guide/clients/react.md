@@ -16,7 +16,7 @@ non-Inertia clients.
 
 ```tsx
 import { Form, usePage } from '@inertiajs/react'
-import type { ModeView } from 'adonisjs-masquerade/types'
+import type { ModeView } from '@kevinjohn/adonisjs-masquerade/types'
 
 type SharedProps = { masquerade?: ModeView }
 

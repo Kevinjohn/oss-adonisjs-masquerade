@@ -65,19 +65,19 @@ test('applies optional Account Kit host route imports and other wiring', async (
     const session = await readFile(join(patchedApp, 'config/session.ts'), 'utf8')
     assert.include(
       session,
-      "import { protectManagedSessionConfig } from 'adonisjs-account-kit/http'"
+      "import { protectManagedSessionConfig } from '@kevinjohn/adonisjs-account-kit/http'"
     )
     assert.include(session, 'export default protectManagedSessionConfig(sessionConfig, {')
     const kernel = await readFile(join(patchedApp, 'start/kernel.ts'), 'utf8')
     assert.include(kernel, '@adonisjs/auth/initialize_auth_middleware')
-    assert.include(kernel, 'adonisjs-masquerade/account-kit/middleware')
+    assert.include(kernel, '@kevinjohn/adonisjs-masquerade/account-kit/middleware')
     assert.include(kernel, '#middleware/account_kit_admission_middleware')
     assert.isBelow(
       kernel.indexOf('@adonisjs/auth/initialize_auth_middleware'),
-      kernel.indexOf('adonisjs-masquerade/account-kit/middleware')
+      kernel.indexOf('@kevinjohn/adonisjs-masquerade/account-kit/middleware')
     )
     assert.isBelow(
-      kernel.indexOf('adonisjs-masquerade/account-kit/middleware'),
+      kernel.indexOf('@kevinjohn/adonisjs-masquerade/account-kit/middleware'),
       kernel.indexOf('#middleware/account_kit_admission_middleware')
     )
     assert.include(
@@ -86,7 +86,7 @@ test('applies optional Account Kit host route imports and other wiring', async (
     )
     assert.include(
       await readFile(join(patchedApp, 'adonisrc.ts'), 'utf8'),
-      "() => import('adonisjs-account-kit/admission/provider')"
+      "() => import('@kevinjohn/adonisjs-account-kit/admission/provider')"
     )
 
     const alternateApp = await createHost(root)

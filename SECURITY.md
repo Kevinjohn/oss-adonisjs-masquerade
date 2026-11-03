@@ -19,7 +19,7 @@ The release notes include the SHA-256 digest for the attached tarball. Check a d
 against that digest before installing it:
 
 ```sh
-shasum -a 256 adonisjs-masquerade-<version>.tgz
+shasum -a 256 kevinjohn-adonisjs-masquerade-<version>.tgz
 ```
 
 ## Security model

@@ -1,4 +1,4 @@
-import { createManagedGuard } from 'adonisjs-account-kit/http'
+import { createManagedGuard } from '@kevinjohn/adonisjs-account-kit/http'
 
 const loadUser = async () => (await import('#models/user')).default
 export const tokenGuard = createManagedGuard({ strategy: 'access_tokens', name: 'api', loadUser })

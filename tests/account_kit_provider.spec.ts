@@ -13,7 +13,7 @@ import { hasVerifiedAccountKitBlocker } from '../src/integration/account_kit_sta
 function canLoadKit(): boolean {
   if (process.env.ACCOUNT_KIT_SOURCE) return true
   try {
-    import.meta.resolve('adonisjs-account-kit/http')
+    import.meta.resolve('@kevinjohn/adonisjs-account-kit/http')
     return true
   } catch {
     return false
@@ -24,7 +24,8 @@ if (process.env.ACCOUNT_KIT_SOURCE) {
   const entry = pathToFileURL(resolve(process.env.ACCOUNT_KIT_SOURCE, 'build/http/main.js')).href
   registerHooks({
     resolve(specifier, context, nextResolve) {
-      if (specifier === 'adonisjs-account-kit/http') return { url: entry, shortCircuit: true }
+      if (specifier === '@kevinjohn/adonisjs-account-kit/http')
+        return { url: entry, shortCircuit: true }
       return nextResolve(specifier, context)
     },
   })
@@ -36,7 +37,7 @@ async function register(
   strategy = 'session',
   group?: string
 ): Promise<void> {
-  const packagePath = 'adonisjs-account-kit/http'
+  const packagePath = '@kevinjohn/adonisjs-account-kit/http'
   const kit = await import(packagePath)
   const mount = () =>
     kit.registerManagedRoutes(router, {
@@ -286,7 +287,7 @@ test.group('Account Kit provider', () => {
     test(`rejects a registered route with a changed ${field}`, async ({ assert }) => {
       const host = await fixture()
       try {
-        const packagePath = 'adonisjs-account-kit/http'
+        const packagePath = '@kevinjohn/adonisjs-account-kit/http'
         const { managedRouteRegistration } = await import(packagePath)
         const registration = managedRouteRegistration(host.router)!
         const route = registration.routes[0] as { method: string; path: string }

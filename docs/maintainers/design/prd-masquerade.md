@@ -323,8 +323,8 @@ v1.2 status from deferred proposal to accepted product scope; implementation and
 not yet claimed. The complete technical contract is [SPEC §15](spec-masquerade.md#15-v12-account-kit-integration),
 and delivery sequencing is in the [development plan](development-plan.md#accepted-v12-change).
 
-- Ship the optional adapter as `adonisjs-masquerade/account-kit`, with its provider at
-  `adonisjs-masquerade/account-kit/provider` and an optional peer dependency pinned to the
+- Ship the optional adapter as `@kevinjohn/adonisjs-masquerade/account-kit`, with its provider at
+  `@kevinjohn/adonisjs-masquerade/account-kit/provider` and an optional peer dependency pinned to the
   released Account Kit alpha. Core remains usable without resolving Account Kit, and there is no
   separate adapter package.
 - Use Account Kit's coherent `inspectAccountAccess` snapshot for actor and target eligibility and
@@ -332,8 +332,8 @@ and delivery sequencing is in the [development plan](development-plan.md#accepte
   Masquerade issues no target credential and adds no Account Kit storage.
 - Revalidate the actor through both the native raw guard and Account Kit's configured managed
   guard. Account Kit credential rejection remains unauthenticated behavior. Admission is a
-  separate `AccountAdmission` service exported from `adonisjs-account-kit/admission`, with DI
-  binding from `adonisjs-account-kit/admission/provider`. Hosts import `admissionMiddleware` from
+  separate `AccountAdmission` service exported from `@kevinjohn/adonisjs-account-kit/admission`, with DI
+  binding from `@kevinjohn/adonisjs-account-kit/admission/provider`. Hosts import `admissionMiddleware` from
   the admission entry and apply
   `admissionMiddleware({ admission: async () => app.container.make(AccountAdmission), guard: managedGuard })`
   to selected Masquerade control/business routes before `masqueradeContext`, which otherwise may

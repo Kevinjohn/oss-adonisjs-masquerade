@@ -1,11 +1,11 @@
 # Custom control stores
 
 The [`API entry-point map`](../reference/README.md#supported-package-imports) links the
-`ControlStore` contract under `adonisjs-masquerade/types`, the built-in adapter under the optional
-`adonisjs-masquerade/stores/lucid` path, and the conformance helper under
-`adonisjs-masquerade/testing`.
+`ControlStore` contract under `@kevinjohn/adonisjs-masquerade/types`, the built-in adapter under the optional
+`@kevinjohn/adonisjs-masquerade/stores/lucid` path, and the conformance helper under
+`@kevinjohn/adonisjs-masquerade/testing`.
 
-Masquerade stores one mode per owner and appends an audit event for each committed transition. The public `ControlStore` type is exported from `adonisjs-masquerade/types`; a reusable behavioral suite is exported from `adonisjs-masquerade/testing`.
+Masquerade stores one mode per owner and appends an audit event for each committed transition. The public `ControlStore` type is exported from `@kevinjohn/adonisjs-masquerade/types`; a reusable behavioral suite is exported from `@kevinjohn/adonisjs-masquerade/testing`.
 
 ## Contract
 
@@ -33,7 +33,11 @@ Denials and no-ops inside the control-audit boundary append their event while le
 The interface is small, but each method needs database-level semantics. A typical adapter uses a unique constraint over the owner tuple, a transaction for the conditional row write and event insert, and driver-aware handling for a commit whose acknowledgement is uncertain. This outline shows where the checks belong; adapt it to your database and keep the operation atomic:
 
 ```ts
-import type { CompareAndSetInput, ControlStore, OwnerKey } from 'adonisjs-masquerade/types'
+import type {
+  CompareAndSetInput,
+  ControlStore,
+  OwnerKey,
+} from '@kevinjohn/adonisjs-masquerade/types'
 
 export class DatabaseControlStore implements ControlStore {
   async read(owner: OwnerKey) {
@@ -74,7 +78,7 @@ Add a test that supplies a newly created, isolated store each time. For a SQL ad
 
 ```ts
 import { test } from '@japa/runner'
-import { assertControlStoreConformance } from 'adonisjs-masquerade/testing'
+import { assertControlStoreConformance } from '@kevinjohn/adonisjs-masquerade/testing'
 import { createTestDatabase, migrateTestDatabase } from './helpers/database.js'
 import { DatabaseControlStore } from '../app/stores/database_control_store.js'
 

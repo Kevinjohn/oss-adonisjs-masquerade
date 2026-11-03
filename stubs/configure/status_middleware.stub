@@ -3,7 +3,7 @@
 }}}
 import type { HttpContext } from '@adonisjs/core/http'
 import type { NextFn } from '@adonisjs/core/types/http'
-import type { MasqueradeRuntime } from 'adonisjs-masquerade/masquerade_provider'
+import type { MasqueradeRuntime } from '@kevinjohn/adonisjs-masquerade/masquerade_provider'
 
 type SharedContext = HttpContext & {
   view?: { share(values: Record<string, unknown>): unknown }

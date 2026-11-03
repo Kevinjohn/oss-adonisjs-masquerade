@@ -11,7 +11,7 @@ import { apiClient } from '@japa/api-client'
 import { authApiClient } from '@adonisjs/auth/plugins/api_client'
 import { sessionApiClient } from '@adonisjs/session/plugins/api_client'
 import { shieldApiClient } from '@adonisjs/shield/plugins/api_client'
-import { masqueradeApiClient } from 'adonisjs-masquerade/plugins/api_client'
+import { masqueradeApiClient } from '@kevinjohn/adonisjs-masquerade/plugins/api_client'
 
 /**
  * This file is imported by the "bin/test.ts" entrypoint file

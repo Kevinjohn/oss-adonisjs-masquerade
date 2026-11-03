@@ -2,7 +2,7 @@
   exports({ to: app.makePath('start/masquerade_routes.ts') })
 }}}
 import router from '@adonisjs/core/services/router'
-import { masqueradeRoutes } from 'adonisjs-masquerade/http'
+import { masqueradeRoutes } from '@kevinjohn/adonisjs-masquerade/http'
 import { middleware } from '#start/kernel'
 import { startMasqueradeLimiter, stopMasqueradeLimiter } from '#start/masquerade_limiter'
 

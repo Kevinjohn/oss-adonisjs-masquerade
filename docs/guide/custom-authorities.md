@@ -1,7 +1,7 @@
 # Custom authorities
 
-The native adapter and its exported contract are documented under `adonisjs-masquerade/native`;
-shared package types such as `NativeAuthority` are available from `adonisjs-masquerade/types` in the
+The native adapter and its exported contract are documented under `@kevinjohn/adonisjs-masquerade/native`;
+shared package types such as `NativeAuthority` are available from `@kevinjohn/adonisjs-masquerade/types` in the
 [API entry-point map](../reference/README.md#supported-package-imports).
 
 The built-in native-session authority is the recommended integration. If you provide a custom
@@ -21,7 +21,7 @@ Derive both values from one persisted account epoch. For example, if the host st
 `securityEpoch` on the account row:
 
 ```ts
-import type { AccountSnapshot, NativeAuthority } from 'adonisjs-masquerade/types'
+import type { AccountSnapshot, NativeAuthority } from '@kevinjohn/adonisjs-masquerade/types'
 
 type User = {
   id: string

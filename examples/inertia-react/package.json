@@ -1,5 +1,5 @@
 {
-  "name": "adonisjs-masquerade-inertia-react-example",
+  "name": "@kevinjohn/adonisjs-masquerade-inertia-react-example",
   "version": "0.0.0",
   "private": true,
   "type": "module",
@@ -78,7 +78,7 @@
     "@adonisjs/bouncer": "^4.0.1",
     "@adonisjs/limiter": "^3.0.1",
     "@japa/api-client": "^3.2.1",
-    "adonisjs-masquerade": "file:../../tmp/native-session-package.tgz"
+    "@kevinjohn/adonisjs-masquerade": "file:../../tmp/native-session-package.tgz"
   },
   "hotHook": {
     "boundaries": [

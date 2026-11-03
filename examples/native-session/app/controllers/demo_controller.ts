@@ -3,7 +3,7 @@ import { demoAccounts } from '#services/demo_accounts'
 import { Bouncer } from '@adonisjs/bouncer'
 import type { HttpContext } from '@adonisjs/core/http'
 import db from '@adonisjs/lucid/services/db'
-import { shareMasquerade } from 'adonisjs-masquerade/http'
+import { shareMasquerade } from '@kevinjohn/adonisjs-masquerade/http'
 import MasqueradeFormController from '#controllers/masquerade_form_controller'
 import type { MasqueradeFormFlash } from '#controllers/masquerade_form_controller'
 

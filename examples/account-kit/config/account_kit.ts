@@ -4,7 +4,7 @@ import {
   createLucidAdapter,
   createLogNotifications,
   defineConfig,
-} from 'adonisjs-account-kit'
+} from '@kevinjohn/adonisjs-account-kit'
 
 const strategy =
   process.env.ACCOUNT_KIT_AUTH_STRATEGY === 'access_tokens' ? 'access_tokens' : 'session'

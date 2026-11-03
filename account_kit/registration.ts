@@ -6,7 +6,7 @@ export interface ManagedRegistration {
 export async function managedRegistration(
   router: unknown
 ): Promise<ManagedRegistration | undefined> {
-  const packagePath = 'adonisjs-account-kit/http'
+  const packagePath = '@kevinjohn/adonisjs-account-kit/http'
   const { managedRouteRegistration } = (await import(packagePath)) as {
     managedRouteRegistration(value: unknown): ManagedRegistration | undefined
   }
