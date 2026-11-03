@@ -61,8 +61,7 @@ and recipe; use it when one shared run covers those, such as a batch of pull req
 workflow: Prettier, lint, typecheck, build, the built-export test and coverage on SQLite and PostgreSQL. The `e2e`
 workflow runs the demo launcher, recipe and browser checks on pull requests that change `examples/`,
 `http/`, `stubs/` or `docs/guide/`; `docs` builds the site when `docs/` changes. `e2e` and
-`account-kit` also run nightly, and both run with `consumer` before every release; `account-kit` and
-`consumer` cover PostgreSQL as well. `bin/check_profiles.ts`
+`account-kit` also run nightly; `account-kit` and `consumer` cover PostgreSQL as well. `bin/check_profiles.ts`
 lists the steps, and a test fails if CI runs a script that no profile covers.
 
 `pnpm test:pg` needs PostgreSQL 16 binaries (`brew install postgresql@16` on macOS). To use your
