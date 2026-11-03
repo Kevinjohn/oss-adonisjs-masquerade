@@ -127,8 +127,10 @@ latest 7.6.0/10.1.0/4.0.1/22.4.2/8.3.0/6.0.3.
 ## V1.2 Account Kit acceptance (T-KIT and T-KIT-HTTP)
 
 **Matrix status:** The optional peer declares the scoped `@kevinjohn/adonisjs-account-kit` `0.2.0`
-only. The scoped `0.1.5` passed all 16 floor/latest cells against its GitHub release artifact in the
-hosted `compat` workflow ([run 41642918567](https://github.com/Kevinjohn/oss-adonisjs-masquerade/actions/runs/41642918567))
+only. All 16 floor/latest cells passed against its GitHub release artifact in the hosted `compat`
+workflow ([run 41731431285](https://github.com/Kevinjohn/oss-adonisjs-masquerade/actions/runs/41731431285))
+on 3 November 2026 at `f40d95a9eecdc68fbcdc0c039fb23a8dae6b0f39`. The scoped `0.1.5` passed the same
+cells in [run 41642918567](https://github.com/Kevinjohn/oss-adonisjs-masquerade/actions/runs/41642918567)
 on 3 November 2026 at `c12e91801ba50927f54ddd1fb9d5eb314aa759fd`. The unscoped `0.1.4` evidence is in
 [Account Kit 0.1.4 matrix](#account-kit-014-matrix--3-november-2026); the 27 October 2026 evidence
 covers `0.1.3`, and the 22 October 2026 evidence covers `0.1.1`; none of these versions is declared
