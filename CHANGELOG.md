@@ -14,6 +14,12 @@
   tarball; replace `adonisjs-masquerade` with `@kevinjohn/adonisjs-masquerade` in imports; change the provider
   line in `adonisrc.ts` to `@kevinjohn/adonisjs-masquerade/masquerade_provider`.
 
+- Support the scoped Account Kit `0.1.5`. The optional `@kevinjohn/adonisjs-account-kit` peer now
+  declares `0.1.5` in place of the unscoped `adonisjs-account-kit` `0.1.4`. Account Kit hosts
+  install the scoped `0.1.5` release tarball, replace `adonisjs-account-kit` with
+  `@kevinjohn/adonisjs-account-kit` in imports and `adonisrc.ts` provider entries, and use the
+  scoped name with `node ace configure`.
+
 ## 0.1.4-alpha - 2026-11-03
 
 - Support Account Kit `0.1.4`. The optional `adonisjs-account-kit` peer now declares `0.1.4` in

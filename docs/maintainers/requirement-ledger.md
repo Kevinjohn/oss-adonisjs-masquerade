@@ -126,11 +126,13 @@ latest 7.6.0/10.1.0/4.0.1/22.4.2/8.3.0/6.0.3.
 
 ## V1.2 Account Kit acceptance (T-KIT and T-KIT-HTTP)
 
-**Matrix status:** All 16 floor/latest cells pass against the Account Kit `0.1.4` GitHub release
-artifact on 3 November 2026; see
-[Account Kit 0.1.4 matrix](#account-kit-014-matrix--3-november-2026). The optional peer declares
-`0.1.4` only. The 27 October 2026 evidence covers `0.1.3`, and the 22 October 2026 evidence covers
-`0.1.1`; neither version is declared any longer.
+**Matrix status:** The optional peer declares the scoped `@kevinjohn/adonisjs-account-kit` `0.1.5`
+only. All 16 floor/latest cells passed against its GitHub release artifact in the hosted `compat`
+workflow ([run 41642918567](https://github.com/Kevinjohn/oss-adonisjs-masquerade/actions/runs/41642918567))
+on 3 November 2026 at `c12e91801ba50927f54ddd1fb9d5eb314aa759fd`. The unscoped `0.1.4` evidence is in
+[Account Kit 0.1.4 matrix](#account-kit-014-matrix--3-november-2026); the 27 October 2026 evidence
+covers `0.1.3`, and the 22 October 2026 evidence covers `0.1.1`; none of these versions is declared
+any longer.
 
 The owner accepted D1–D13 on 22 October 2026. The technical contract is
 [SPEC §15](design/spec-masquerade.md#15-v12-account-kit-integration), and the product boundary is
@@ -139,7 +141,12 @@ The six deliverables are implemented in open, unmerged PRs #100–#105 for issue
 The authority, blocker, consumer and documentation PRs remain drafts. Independent reviews are
 complete with reported findings resolved.
 
-Account Kit `0.1.4` is pinned to the GitHub release artifact with SHA-256
+Scoped Account Kit `0.1.5` is pinned to the GitHub release artifact with SHA-256
+`1efdb5bcda9aeb1dd78e71293d1af0471335cb44e25661ea58dc26540e8a69d5`, built from source commit
+`4aebc86950139b5ad173e67e21da01b53135bc86` (tag `v0.1.5`). It renames the package to
+`@kevinjohn/adonisjs-account-kit`; Masquerade changed only its import specifiers for this pin.
+
+The previous pin, unscoped Account Kit `0.1.4`, had SHA-256
 `5fa51b3f892d03e9f4e4776c40a33bc1eff2e4e884e4e6d2f528bbf99ef44d6b`, built from source commit
 `fae423198ae2d591cdf3bc89ee1b3e47258dfb99` (tag `v0.1.4`). Its release notes report no new
 migrations or config changes from `0.1.3`; it changes `configure` provider detection, reloads the
