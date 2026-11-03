@@ -52,8 +52,8 @@ permissions:
   contents: read
 
 concurrency:
-  # Pull request builds get their own group so they never cancel a Pages deployment from main.
-  group: ${{ github.event_name == 'pull_request' && format('docs-{0}', github.ref) || 'pages' }}
+  # Each PR build has its own queue; deployments share the Pages queue.
+  group: ${{ github.event_name == 'pull_request' && format('pages-pr-{0}', github.event.pull_request.number) || 'pages' }}
   cancel-in-progress: true
 
 jobs:

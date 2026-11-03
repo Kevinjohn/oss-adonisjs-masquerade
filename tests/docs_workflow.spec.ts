@@ -8,8 +8,9 @@ test('pull request docs builds do not share the Pages deployment concurrency gro
   assert,
 }) => {
   const group = workflow.match(/^concurrency:\n(?:\s+#.*\n)*\s+group: (.+)$/m)?.[1]
-  assert.isDefined(group)
-  assert.include(group!, "github.event_name == 'pull_request'")
-  assert.include(group!, 'github.ref')
-  assert.include(group!, "'pages'")
+  // The same expression as Account Kit's docs workflow: one queue per PR, deployments share 'pages'.
+  assert.equal(
+    group,
+    "${{ github.event_name == 'pull_request' && format('pages-pr-{0}', github.event.pull_request.number) || 'pages' }}"
+  )
 })
