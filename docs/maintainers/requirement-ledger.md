@@ -126,12 +126,11 @@ latest 7.6.0/10.1.0/4.0.1/22.4.2/8.3.0/6.0.3.
 
 ## V1.2 Account Kit acceptance (T-KIT and T-KIT-HTTP)
 
-**Matrix status:** All 16 floor/latest cells pass against the Account Kit `0.1.3` GitHub release
-artifact on 27 October 2026; see
-[Account Kit 0.1.3 matrix](#account-kit-013-matrix--27-october-2026). The optional peer declares
-`0.1.3` only. The 22 October 2026 evidence covers `0.1.1`, which is no longer declared; for that
-run, the final packed archive added only `@vinejs/vine` `^4.4.0` as a development dependency to the
-tested Masquerade matrix archive.
+**Matrix status:** All 16 floor/latest cells pass against the Account Kit `0.1.4` GitHub release
+artifact on 3 November 2026; see
+[Account Kit 0.1.4 matrix](#account-kit-014-matrix--3-november-2026). The optional peer declares
+`0.1.4` only. The 27 October 2026 evidence covers `0.1.3`, and the 22 October 2026 evidence covers
+`0.1.1`; neither version is declared any longer.
 
 The owner accepted D1–D13 on 22 October 2026. The technical contract is
 [SPEC §15](../design/SPEC-masquerade.md#15-v12-account-kit-integration), and the product boundary is
@@ -140,13 +139,12 @@ The six deliverables are implemented in open, unmerged PRs #100–#105 for issue
 The authority, blocker, consumer and documentation PRs remain drafts. Independent reviews are
 complete with reported findings resolved.
 
-Account Kit `0.1.3` is pinned to the GitHub release artifact with SHA-256
-`1ca53538256c360cb87ddbadfaf00f2364a453fea349f6bb8757e58756ed9e7f`, built from source commit
-`4b3be3878c7f1cede6080273d84b8841345a3b3a` (tag `v0.1.3`). Its release notes report no runtime
-change from `0.1.2`, which added `authentication.withCurrent`, an optional
-`onSessionsRevokedTransaction` hook and an in-transaction invitation re-check. Its peer
-dependency declarations are identical to `0.1.1`. Masquerade runtime code did not change for this
-pin.
+Account Kit `0.1.4` is pinned to the GitHub release artifact with SHA-256
+`5fa51b3f892d03e9f4e4776c40a33bc1eff2e4e884e4e6d2f528bbf99ef44d6b`, built from source commit
+`fae423198ae2d591cdf3bc89ee1b3e47258dfb99` (tag `v0.1.4`). Its release notes report no new
+migrations or config changes from `0.1.3`; it changes `configure` provider detection, reloads the
+actor inside invitation resend/revoke authorization, and fixes reference examples and docs.
+Masquerade runtime code did not change for this pin.
 
 The previous pin, Account Kit `0.1.1`, had SHA-256
 `38fd950b08990a95b780d3077ad65f3a98bb898cb858b7b2f9eaabaae236a3d2` and source commit
@@ -203,6 +201,31 @@ Account Kit.
 | T-KIT                          | Floor/latest packed credential, eligibility, admission and journey suites pass on both databases/strategies and management settings. `tests/account_kit_authority.spec.ts` and `tests/account_kit_service.spec.ts` cover stamp capture/null encoding, incarnation callback and controlled operational-error propagation. Real host tests exercise SQLite revision-read and PostgreSQL incomparable-ID SQL failures. Post-commit failure mapping uses controlled error injection; an actual Account Kit post-commit hook failure was not induced. |
 | T-KIT-HTTP                     | Floor/latest packed routes/journey suites and root blocker/provider/lifecycle tests pass, including all mounted methods, custom prefix/omissions, no-ability token blocking, canonical owner isolation, store-free exceptions, outage behavior and missing installation/registration.                                                                                                                                                                                                                                                            |
 | GitHub release artifact matrix | Passed: exact release pin and SHA verified; floor and latest each pass on SQLite/PostgreSQL with session and access-token strategies and session management on/off. Public registry publication is a separate release step, not an acceptance gate.                                                                                                                                                                                                                                                                                              |
+
+### Account Kit 0.1.4 matrix — 3 November 2026
+
+The runner downloaded Account Kit `0.1.4` from its GitHub release, verified SHA-256
+`5fa51b3f892d03e9f4e4776c40a33bc1eff2e4e884e4e6d2f528bbf99ef44d6b` and the packed
+`package.json` version, and packed Masquerade `0.1.3-alpha` from the candidate branch with the
+`0.1.4` peer declaration. The tested Masquerade archive SHA-256 is
+`268bf8e6090a91978f06ca654972b71ec96942ae67310f33b8cc0abb0f41e0bd`. Node was `24.22.1`, pnpm
+`11.23.0`, and PostgreSQL `16.15` ran natively. Floor resolved Core `7.0.0`, Auth `10.0.0`,
+Session `8.1.0`, Bouncer `4.0.0`, Lucid `22.4.2` and TypeScript `5.9.3`; latest resolved Core
+`7.6.0`, Auth `10.1.0`, Session `8.3.0`, Bouncer `4.0.1`, Lucid `22.4.2` and TypeScript `6.0.3`.
+
+| Database | Strategy      | Session management | Floor passed/skipped | Latest passed/skipped |
+| -------- | ------------- | ------------------ | -------------------- | --------------------- |
+| sqlite   | session       | on                 | 22 / 2               | 22 / 2                |
+| sqlite   | session       | off                | 17 / 7               | 17 / 7                |
+| sqlite   | access_tokens | on                 | 22 / 2               | 22 / 2                |
+| sqlite   | access_tokens | off                | 18 / 6               | 18 / 6                |
+| pg       | session       | on                 | 21 / 3               | 21 / 3                |
+| pg       | session       | off                | 16 / 8               | 16 / 8                |
+| pg       | access_tokens | on                 | 21 / 3               | 21 / 3                |
+| pg       | access_tokens | off                | 17 / 7               | 17 / 7                |
+
+The counts match the `0.1.3` run. Floor records `codegen` as unsupported at Core `7.0.0`;
+configure, migration, typecheck, route report and all six suites passed in every cell.
 
 ### Account Kit 0.1.3 matrix — 27 October 2026
 
