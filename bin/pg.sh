@@ -23,9 +23,14 @@ for path in "$ROOT/tmp" "$DATA"; do
     [ "$(cd "$path" && pwd -P)" = "$path" ] || fail "ambiguous managed directory: $path"
   fi
 done
-missing() { fail 'PostgreSQL 16 not found: brew install postgresql@16, or run DB_CLIENT=pg pnpm quick:test against your own PostgreSQL 16 (see docs/maintainers/conventions.md#external-postgresql)'; }
-if prefix="$(brew --prefix --installed postgresql@16 2>/dev/null)"; then
+missing() { fail 'PostgreSQL 16 not found: brew install postgresql@16, apt install postgresql-16 (from apt.postgresql.org), or set PG_BIN to its bin directory; or run DB_CLIENT=pg pnpm quick:test against your own PostgreSQL 16 (see docs/maintainers/conventions.md#external-postgresql)'; }
+if [ -n "${PG_BIN:-}" ]; then
+  BIN="$PG_BIN"
+elif prefix="$(brew --prefix --installed postgresql@16 2>/dev/null)"; then
   BIN="$prefix/bin"
+elif [ -x /usr/lib/postgresql/16/bin/pg_ctl ]; then
+  # Debian and Ubuntu postgresql-16 packages keep the server binaries off PATH.
+  BIN=/usr/lib/postgresql/16/bin
 elif ctl="$(command -v pg_ctl)"; then
   BIN="$(dirname "$ctl")"
 else missing; fi

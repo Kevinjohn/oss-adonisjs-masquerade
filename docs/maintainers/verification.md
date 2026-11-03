@@ -13,8 +13,11 @@ The full profile adds PostgreSQL 16, coverage, the documented recipe, the docs
 build, and packed native-session and Account Kit consumers. `bin/check_profiles.ts` defines the
 steps. `pnpm check:changed [base]` selects checks while working; it does not replace the full gate.
 
-`pnpm test:pg` starts a disposable PostgreSQL 16 cluster. Set `DB_PORT` to an unused port when
-another local cluster is running. For an existing server, set `DB_CLIENT=pg`, `DB_HOST`,
+`pnpm test:pg` starts a disposable PostgreSQL 16 cluster. It uses Homebrew `postgresql@16`, the
+Debian or Ubuntu `postgresql-16` package in `/usr/lib/postgresql/16/bin` (from
+[apt.postgresql.org](https://wiki.postgresql.org/wiki/Apt) where the distribution ships a newer
+major version), or `pg_ctl` on `PATH`; set `PG_BIN` to use another bin directory. Set `DB_PORT`
+to an unused port when another local cluster is running. For an existing server, set `DB_CLIENT=pg`, `DB_HOST`,
 `DB_PORT`, `DB_USER`, `DB_PASSWORD`, and `DB_DATABASE`, then run `pnpm quick:test`.
 
 Prepare the native-session example before running the browser profile:
