@@ -1,9 +1,7 @@
+# Common to the Kevinjohn AdonisJS packages
 node_modules
 .pnpm-store/
 coverage
-.stryker-tmp/
-/reports/mutation/
-.playwright-mcp/
 .DS_Store
 .idea
 .vscode/
@@ -11,20 +9,33 @@ coverage
 build
 dist
 package-lock.json
-
 .env
 .env.*
 !.env.example
-!examples/native-session/.env.test
-!examples/inertia-react/.env.test
-!examples/inertia-vue/.env.test
 *.tgz
 /tmp/
-
-# Private planning and ideation documents, never committed or packed
+# Private planning and review documents, never committed or packed
 PLAN*.md
-docs/PRD*.md
-docs/reviews/
-docs/api
+__*.md
+/plans/
+docs/maintainers/design/prd*.md
+docs/maintainers/reviews/
+docs/reference/api
 docs/.vitepress/cache
 docs/.vitepress/dist
+
+# Repository-specific
+# example env fixtures
+!examples/native-session/.env.test
+# example env fixtures
+!examples/inertia-react/.env.test
+# example env fixtures
+!examples/inertia-vue/.env.test
+# Playwright MCP scratch
+.playwright-mcp/
+# until the docs move (WP-7)
+docs/PRD*.md
+# until the docs move (WP-7)
+docs/reviews/
+# until the docs move (WP-7)
+docs/api
