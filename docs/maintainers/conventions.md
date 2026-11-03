@@ -5,6 +5,17 @@ roles, permissions, tenant rules, route sensitivity, limiter policy and audit re
 [development plan](../design/DEVELOPMENT-PLAN.md) controls v1 scope; this repository does not target
 AdonisJS Plus compatibility.
 
+## Distribution
+
+Releases are distributed as GitHub release artifacts. Until the release workflow is added, nothing
+runs the release gates for you: dispatch the `e2e` and `account-kit` workflows and run
+`pnpm test:consumer` locally (the `consumer` workflow has no caller until then). Then build and
+pack the package and create the GitHub release manually:
+
+```sh
+pnpm build && pnpm pack && gh release create
+```
+
 ## Architecture and boundaries
 
 - Core depends on explicit ports: `ControlStore`, `NativeAuthority` and `MasqueradePolicy`.
@@ -95,19 +106,19 @@ the same suite directly against your server; it does not start or stop that serv
 - M4's packed consumer evidence includes native session at floor/latest on SQLite and PostgreSQL,
   root optional-import isolation, canonical numeric/string/UUID identifiers and an alternate users
   table.
-- The release workflow runs the packed native-session consumer matrix at floor/latest on SQLite and
-  PostgreSQL before publishing. Private-repository push and pull-request checks remain gated, while
-  manual and release-triggered checks run.
+- The `consumer` workflow holds the packed native-session consumer matrix at floor/latest on SQLite
+  and PostgreSQL. It has no caller until the release workflow is added; see
+  [Distribution](#distribution). Private-repository push and pull-request checks remain gated, while
+  manual checks run.
 - The `checks` database matrix retains its SQLite and PostgreSQL status names. Both cells run the
   c8-wrapped root suite; the SQLite cell runs typechecking, the clean-host recipe, and built-export
   tests, then builds the docs and runs the example browser suite twice on pull requests. The
   recipe's `pnpm build` invokes lint once; `test:coverage` avoids the `pretest` lint hook in both
   database cells. Repositories that require these existing status names for branch protection
-  will continue to require the new SQLite steps in that context. The release-only four-cell
-  consumer matrix retains floor/latest compatibility coverage. PR verification has read-only
-  repository permissions and never uploads or deploys Pages artifacts. Reusable checks retain the
-  caller's event context, so the release workflow's manual dispatch runs checks for private
-  repositories while their automatic push and pull-request checks remain gated.
+  will continue to require the new SQLite steps in that context. The four-cell consumer
+  matrix retains floor/latest compatibility coverage. PR verification has read-only
+  repository permissions and never uploads or deploys Pages artifacts. Manual dispatch runs checks
+  for private repositories while their automatic push and pull-request checks remain gated.
 - Do not publish, tag, merge, or rename as part of a release-candidate implementation task unless
   separately authorized by the owner.
 
