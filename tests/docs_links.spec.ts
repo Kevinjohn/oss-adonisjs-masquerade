@@ -36,6 +36,29 @@ test('every relative Markdown link points at a tracked path', async ({ assert })
   assert.deepEqual(broken, [])
 })
 
+test('every link to this repository on main points at a tracked path', async ({ assert }) => {
+  const listed = spawnSync('git', ['ls-files', '-z'], { cwd: repoRoot, encoding: 'utf8' })
+  if (listed.status !== 0) throw new Error(listed.stderr)
+  const paths = listed.stdout.split('\0').filter(Boolean)
+  const broken: string[] = []
+  let checked = 0
+  // The changelog's links are live too, so it is checked here.
+  for (const document of trackedMarkdown(['**/*.md'])) {
+    const source = await readFile(join(repoRoot, document), 'utf8')
+    const links = source.matchAll(
+      /github\.com\/Kevinjohn\/oss-adonisjs-masquerade\/(?:blob|tree)\/main\/([^)\s#]+)/g
+    )
+    for (const [, path] of links) {
+      checked++
+      const target = decodeURIComponent(path).replace(/\/$/, '')
+      if (!paths.some((name) => name === target || name.startsWith(`${target}/`)))
+        broken.push(`${document}: ${path}`)
+    }
+  }
+  assert.isAbove(checked, 0)
+  assert.deepEqual(broken, [])
+})
+
 /** GitHub's heading anchors: lowercase, punctuation dropped, spaces as hyphens. */
 async function headingAnchors(document: string): Promise<Set<string>> {
   const source = await readFile(join(repoRoot, document), 'utf8')

@@ -208,5 +208,5 @@ Add a native-session starter fixture that proves the effective guard, raw actor 
 lazy Bouncer resolution, silent authentication, native error rendering, Japa login and operator
 isolation before package implementation.
 
-Repository scaffold. No package behaviour yet; see [DEVELOPMENT-PLAN.md](https://github.com/Kevinjohn/oss-adonisjs-masquerade/blob/main/docs/design/DEVELOPMENT-PLAN.md) for
+Repository scaffold. No package behaviour yet; see [DEVELOPMENT-PLAN.md](https://github.com/Kevinjohn/oss-adonisjs-masquerade/blob/main/docs/maintainers/design/development-plan.md) for
 the milestones.
