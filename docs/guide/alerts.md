@@ -1,10 +1,8 @@
 # Alert on masquerade activity
 
-After each committed transition the package emits one AdonisJS event. Observer events represent
-transitions only; denied controls and no-op controls are recorded in the audit ledger without
-being emitted:
-`masquerade:started`, `masquerade:stopped`, `masquerade:expired` or `masquerade:invalidated`. Each
-listener receives an `ObserverEvent`:
+After each committed transition the package emits one AdonisJS event: `masquerade:started`,
+`masquerade:stopped`, `masquerade:expired` or `masquerade:invalidated`. Denied and no-op controls
+are recorded in the audit ledger but not emitted. Each listener receives an `ObserverEvent`:
 
 | Field                           | Meaning                                                        |
 | ------------------------------- | -------------------------------------------------------------- |
