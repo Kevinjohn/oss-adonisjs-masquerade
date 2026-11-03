@@ -2,10 +2,17 @@
 
 ## Unreleased
 
+## 0.1.4-alpha (2026-11-03)
+
 - Support Account Kit `0.1.4`. The optional `adonisjs-account-kit` peer now declares `0.1.4` in
   place of `0.1.3`, and the Account Kit consumer matrix, demo and guide use the `0.1.4` GitHub
   release artifact. All 16 floor/latest SQLite/PostgreSQL cells pass for both strategies with
   session management on and off. No runtime code changed.
+
+## 0.1.3-alpha (2026-11-02)
+
+- Dependency update scans now fail on operational GitHub release lookup errors before creating
+  or editing issues, and use pnpm for package repository metadata.
 - `pnpm check` and the `checks` workflow now start with `pnpm format:check`, which runs
   `prettier --check` on the files git tracks, so formatting fails before lint and the tests run.
   Untracked local files are not checked. Edge templates and the Edge client guide are
@@ -13,11 +20,6 @@
 - The `dependency-issues` workflow now opens minor and major update issues monthly instead of
   weekly. Dependabot still opens patch pull requests weekly.
 - Shorten the README to the pitch, install, a route example and links to the guides.
-
-## 0.1.3-alpha (2026-11-02)
-
-- Dependency update scans now fail on operational GitHub release lookup errors before creating
-  or editing issues, and use pnpm for package repository metadata.
 
 ## 0.1.2-alpha (2026-11-02)
 
