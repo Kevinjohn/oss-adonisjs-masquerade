@@ -5,6 +5,15 @@ roles, permissions, tenant rules, route sensitivity, limiter policy and audit re
 [development plan](../design/DEVELOPMENT-PLAN.md) controls v1 scope; this repository does not target
 AdonisJS Plus compatibility.
 
+## Distribution
+
+Releases are distributed as GitHub release artifacts. Until the release workflow is added, build
+and pack the package, then create the GitHub release manually:
+
+```sh
+pnpm build && pnpm pack && gh release create
+```
+
 ## Architecture and boundaries
 
 - Core depends on explicit ports: `ControlStore`, `NativeAuthority` and `MasqueradePolicy`.
