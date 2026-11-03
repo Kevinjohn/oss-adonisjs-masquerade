@@ -254,9 +254,9 @@ interface ControlStore {
     owner: OwnerKey
     expected: Revision | null
     next: ModeRow
-    event: AuditEvent
+    event: TransitionEvent
   }): Promise<CasOutcome>
-  recordControlOutcome(event: AuditEvent): Promise<void>
+  recordControlOutcome(event: ControlOutcomeEvent): Promise<void>
   expiredBatch(input: { now: Instant; limit: number }): Promise<ModeRow[]>
   // At most limit active snapshots, oldest update first; operator commands re-read and use CAS.
   activeBatch(input: { limit: number }): Promise<ModeRow[]>
@@ -321,7 +321,7 @@ interface ControlStore {
 - Control, status and effective-user responses send `Cache-Control: no-store` and appropriate `Vary`.
 - Input: reject unknown fields, oversized bodies (8 KiB), fractional or out-of-range durations, and client-supplied expiry. The optional `access` field is specified in §14; this start-body clause is superseded by [§14](#14-view-only-default-and-per-start-edit-access-accepted-22-october-2026).
 - Reason normalization order (for a supplied reason, or any reason in required mode): trim with `String.prototype.trim()`, replace `\r\n` with `\n`, reject any C0 or C1 control except `\n` and `\t`, then require 1–500 Unicode code points and at most 2,000 UTF-8 bytes. Persist the normalized value; never truncate. Acceptable: `Ticket 4821: cannot see invoices`. Unacceptable: a tab-only string, or text containing `\u0007`.
-- JSON errors are `{ errors: [{ code, message }] }` with stable codes and English messages, except §14 defines the `blockedBy` field for `E_MASQUERADE_ACTION_BLOCKED`. The host exception handler localises; the package ships no translations, i18n lookup or JSON:API negotiation.
+- JSON errors are `{ errors: [{ code, message }] }` with stable codes, except §14 defines the `blockedBy` field for `E_MASQUERADE_ACTION_BLOCKED`. `message` is looked up as `errors.<code>` through the request's `@adonisjs/i18n` instance when the application has one, and uses English otherwise. No JSON:API negotiation.
 
 | HTTP | Code                            | Meaning                                                                           |
 | ---- | ------------------------------- | --------------------------------------------------------------------------------- |
@@ -563,7 +563,7 @@ The view-only check MUST use `access !== 'edit'`, so a missing or unknown access
 
 - Export `MasqueradeBlockedBy = 'sensitive' | 'view_only' | 'mutation_not_allowed'` from the package root.
 - `new MasqueradeError('E_MASQUERADE_ACTION_BLOCKED', { blockedBy })` requires `blockedBy`. `new MasqueradeError(code)` remains the constructor form for every other code and takes no second argument.
-- For `E_MASQUERADE_ACTION_BLOCKED`, `handle()` emits `{ errors: [{ code, message, blockedBy }] }`. Other errors remain `{ errors: [{ code, message }] }`. Messages remain stable English strings; the host localises.
+- For `E_MASQUERADE_ACTION_BLOCKED`, `handle()` emits `{ errors: [{ code, message, blockedBy }] }`. Other errors remain `{ errors: [{ code, message }] }`. `message` is looked up through `ctx.i18n` using the stable `errors.<code>` identifier and the English message for that code as fallback; if the context has no i18n instance, English is returned. The lookup key and fallback do not use `error.message` or an overridden identifier. The package ships no translation catalog, loader or locale setting.
 
 ### 14.5 Transition and test obligations
 

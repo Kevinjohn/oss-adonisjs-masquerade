@@ -1,12 +1,12 @@
 import { setTimeout } from 'node:timers/promises'
 import type { QueryClientContract, TransactionClientContract } from '@adonisjs/lucid/types/database'
-import { unavailable } from '../src/errors.js'
+import { unavailable } from '../src/error_helpers.js'
 import { validInstant, validateRow } from '../src/row_validation.js'
 import { validateTransition } from '../src/transition_validation.js'
 import type {
-  AuditEvent,
   CasOutcome,
   CompareAndSetInput,
+  ControlOutcomeEvent,
   ControlStore,
   Instant,
   ModeRow,
@@ -178,7 +178,7 @@ export class LucidControlStore implements ControlStore {
       }
     }
   }
-  async recordControlOutcome(event: AuditEvent): Promise<void> {
+  async recordControlOutcome(event: ControlOutcomeEvent): Promise<void> {
     this.#assertAvailable()
     await this.#client.knexQuery().table('masquerade_events').insert(eventRecord(event))
   }

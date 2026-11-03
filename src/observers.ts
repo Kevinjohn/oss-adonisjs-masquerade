@@ -1,5 +1,5 @@
 import type {
-  AuditEvent,
+  TransitionEvent,
   DiagnosticCategory,
   DiagnosticEvent,
   DiagnosticOperation,
@@ -38,7 +38,7 @@ function reportFailure(dependencies: ObserverDependencies, error: unknown): void
 }
 
 /** Never await untrusted observers, including the failure reporter itself. */
-export function observe(dependencies: ObserverDependencies, event: AuditEvent): void {
+export function observe(dependencies: ObserverDependencies, event: TransitionEvent): void {
   const safe = { ...event }
   delete safe.reason
   const projection = Object.freeze(safe)

@@ -1,4 +1,4 @@
-import { unavailable } from '../src/errors.js'
+import { unavailable } from '../src/error_helpers.js'
 import { boundedString } from '../src/bounded_string.js'
 import { validateRow } from '../src/row_validation.js'
 import type { AuditEvent, ModeRow, OwnerKey } from '../src/types.js'

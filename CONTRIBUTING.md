@@ -16,8 +16,9 @@ Every change follows these principles.
 - **Built for everyone who uses AdonisJS.** Follow the open-source AdonisJS packages and starter
   kits for names, shapes and behavior. Match AdonisJS Plus only where that costs nothing; Plus
   compatibility is not a goal and never outweighs consistency for open-source users.
-- **The application owns its language.** Errors carry stable codes and English messages. The host
-  exception handler localizes; the package ships no translations, loader or locale setting.
+- **The application owns its language.** Errors carry stable codes and English fallback messages.
+  If the request context has `i18n`, Masquerade looks up `errors.<code>` there; the package ships no
+  translations, loader or locale setting.
 - **The actor stays authenticated.** Masquerade never logs in as the target, mints a target
   credential or combines actor and target permissions. See the
   [technical contract](docs/maintainers/design/spec-masquerade.md) for the invariants.

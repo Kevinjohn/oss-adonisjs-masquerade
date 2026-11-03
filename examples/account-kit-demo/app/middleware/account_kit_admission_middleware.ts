@@ -4,6 +4,19 @@ import { AccountAdmission } from '@kevinjohn/adonisjs-account-kit/admission'
 import { Exception } from '@adonisjs/core/exceptions'
 
 const gated = ['/dashboard', '/support', '/masquerade', '/api/masquerade']
+const admissionCode = 'E_ACCOUNT_KIT_ADMISSION_REQUIRED'
+const admissionMessage = 'Account access requires approval.'
+
+/** Keep JSON stable while the host exception handler retains HTML recovery pages. */
+class AdmissionRequiredError extends Exception {
+  constructor() {
+    super(admissionMessage, { status: 403, code: admissionCode })
+  }
+
+  handle(_error: unknown, ctx: HttpContext): void {
+    ctx.response.status(403).json({ errors: [{ code: admissionCode, message: admissionMessage }] })
+  }
+}
 
 /** Admit the raw signed-in operator before context selection can query modes or events. */
 export default class AccountKitAdmissionMiddleware {
@@ -14,10 +27,7 @@ export default class AccountKitAdmissionMiddleware {
     const operator = ctx.auth.use('web').getUserOrFail()
     const admission = await app.container.make(AccountAdmission)
     if (!(await admission.isAdmitted(operator.id))) {
-      throw new Exception('Account access requires approval.', {
-        status: 403,
-        code: 'E_ACCOUNT_KIT_ADMISSION_REQUIRED',
-      })
+      throw new AdmissionRequiredError()
     }
     return next()
   }

@@ -1,4 +1,4 @@
-import { unavailable } from './errors.js'
+import { unavailable } from './error_helpers.js'
 import { boundedString } from './bounded_string.js'
 import { normalizeReason } from './reason.js'
 import type { ModeRow, OwnerKey } from './types.js'

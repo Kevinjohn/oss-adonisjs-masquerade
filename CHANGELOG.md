@@ -2,6 +2,25 @@
 
 ## Unreleased
 
+### Changed
+
+- Breaking: `MasqueradeError` extends AdonisJS `Exception` and carries a stable `identifier`;
+  `MasqueradeSetupError` extends `RuntimeException` instead of `TypeError`. The root export gains
+  an `errors` namespace containing the two error classes.
+- Breaking: invalid arguments at public entry points throw `InvalidArgumentsException` instead
+  of `TypeError`, with the existing messages preserved.
+- Breaking (types): observer and compare-and-set events accept transition kinds only;
+  `recordControlOutcome` accepts `ControlOutcomeEvent`. Custom control stores may need narrower
+  method signatures.
+- Error JSON messages use the host request's `i18n` lookup at `errors.<code>` when present, with
+  fixed English fallbacks. No translations, loader, or locale setting are shipped.
+- The Account Kit demo's admission denial uses the `{ errors: [...] }` JSON envelope and keeps
+  its existing HTML recovery pages.
+- Runtime and command logger adapters add fixed English messages for transitions, diagnostics,
+  and observer failures.
+- Test fixtures reject unsupported `DB_CLIENT` values, and the test runner shares Account Kit's
+  timeout for V8 coverage instrumentation.
+
 ## 0.1.5 - 2026-11-03
 
 ### Changed

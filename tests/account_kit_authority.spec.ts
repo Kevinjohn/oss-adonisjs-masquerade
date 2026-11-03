@@ -3,6 +3,7 @@
 // Each test builds inline provider and kit fakes; errorCode() is in tests/helpers/core.ts.
 import { test } from '@japa/runner'
 import { errors, symbols } from '@adonisjs/auth'
+import { InvalidArgumentsException } from '@adonisjs/core/exceptions'
 import type { HttpContext } from '@adonisjs/core/http'
 import { accountKitAuthority } from '../account_kit/main.js'
 import { errorCode } from './helpers/core.js'
@@ -486,7 +487,7 @@ test('Account Kit authority rejects invalid runtime option families', ({ assert 
     { ...base, managedGuard: { ...base.managedGuard, strategy: 'access_tokens' } },
   ]
   for (const options of invalid)
-    assert.throws(() => accountKitAuthority(options as never), TypeError)
+    assert.throws(() => accountKitAuthority(options as never), InvalidArgumentsException)
 })
 
 test('Account Kit token ability denial precedes managed and kit access', async ({ assert }) => {

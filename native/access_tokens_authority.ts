@@ -1,11 +1,13 @@
 import { errors } from '@adonisjs/auth'
+import { InvalidArgumentsException } from '@adonisjs/core/exceptions'
 import type { AccessTokensUserProviderContract } from '@adonisjs/auth/types/access_tokens'
 import type { GuardContract } from '@adonisjs/auth/types'
 import type { HttpContext } from '@adonisjs/core/http'
 import type { NativeRuntimeAdapter } from '../src/integration/native_binding.js'
 import type { NativeAuthority, Subject } from '../src/types.js'
 import { boundedString } from '../src/bounded_string.js'
-import { MasqueradeError, unavailable } from '../src/errors.js'
+import { MasqueradeError } from '../src/errors.js'
+import { unavailable } from '../src/error_helpers.js'
 
 interface AccessTokensAuthorityBase<User> {
   guard: string
@@ -58,7 +60,7 @@ export function accessTokensAuthority<User>(
     !boundedString(options.ability, 128) ||
     !options.ability.trim()
   )
-    throw new TypeError('Invalid native access tokens authority')
+    throw new InvalidArgumentsException('Invalid native access tokens authority')
 
   const { guard, provider, ability } = options
   let authority: NativeAuthority<User>
@@ -69,7 +71,7 @@ export function accessTokensAuthority<User>(
       Object.hasOwn(options, 'securityStamp') ||
       Object.hasOwn(options, 'isActive')
     )
-      throw new TypeError('Invalid native access tokens authority')
+      throw new InvalidArgumentsException('Invalid native access tokens authority')
     authority = options.authority
     if (
       !boundedString(authority.namespace, 128) ||
@@ -78,10 +80,10 @@ export function accessTokensAuthority<User>(
       typeof authority.securityStamp !== 'function' ||
       typeof authority.inspectAccount !== 'function'
     )
-      throw new TypeError('Invalid native access tokens authority')
+      throw new InvalidArgumentsException('Invalid native access tokens authority')
   } else {
     if (Object.hasOwn(options, 'authority'))
-      throw new TypeError('Invalid native access tokens authority')
+      throw new InvalidArgumentsException('Invalid native access tokens authority')
     const standalone = options as StandaloneAuthorityOptions<User>
     if (
       !boundedString(standalone.namespace, 128) ||
@@ -89,7 +91,7 @@ export function accessTokensAuthority<User>(
       typeof standalone.isActive !== 'function' ||
       !(standalone.incarnation === 'id' || typeof standalone.incarnation === 'function')
     )
-      throw new TypeError('Invalid native access tokens authority')
+      throw new InvalidArgumentsException('Invalid native access tokens authority')
 
     const namespace = standalone.namespace
     const incarnation =

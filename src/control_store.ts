@@ -1,4 +1,5 @@
-import { MasqueradeSetupError, unavailable } from './errors.js'
+import { MasqueradeSetupError } from './errors.js'
+import { unavailable } from './error_helpers.js'
 import type { MasqueradeSetupErrorField } from './errors.js'
 import type { ControlStore } from './types.js'
 

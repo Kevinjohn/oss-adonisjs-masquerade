@@ -1,5 +1,6 @@
 import type {
   AuditEvent,
+  ControlOutcomeEvent,
   CompareAndSetInput,
   ControlStore,
   Instant,
@@ -33,7 +34,7 @@ export class MemoryControlStore implements ControlStore {
     this.#events.push(event)
     return { status: 'applied', transitionId: event.id }
   }
-  async recordControlOutcome(event: AuditEvent): Promise<void> {
+  async recordControlOutcome(event: ControlOutcomeEvent): Promise<void> {
     this.#events.push(structuredClone(event))
   }
   async expiredBatch(input: { now: Instant; limit: number }): Promise<ModeRow[]> {

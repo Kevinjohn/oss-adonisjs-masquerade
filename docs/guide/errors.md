@@ -1,10 +1,26 @@
 # Recover from errors
 
 The default JSON error item carries `code` and `message`, plus `blockedBy` exactly for
-`E_MASQUERADE_ACTION_BLOCKED`; package messages are
-English. A host exception handler may choose how to present errors, but this guide does not assume
-that it translates them. For HTML, render a message and recovery link rather than retrying behind
-the operator's back.
+`E_MASQUERADE_ACTION_BLOCKED`. Messages use `errors.<code>` through the request's `ctx.i18n` when
+the application has an i18n instance, with the English text as fallback. Without one, the response
+uses the English text. Masquerade ships no translations, loader or locale setting. For HTML, render
+a message and recovery link rather than retrying behind the operator's back.
+
+Add these English entries to the host application's `errors.json` locale file if it uses
+`@adonisjs/i18n`:
+
+```json
+{
+  "E_MASQUERADE_UNAUTHENTICATED": "Actor authentication required",
+  "E_MASQUERADE_NOT_ALLOWED": "Masquerade is not allowed",
+  "E_MASQUERADE_ACTION_BLOCKED": "Action is blocked while masquerading",
+  "E_MASQUERADE_ALREADY_ACTIVE": "Masquerade is already active",
+  "E_MASQUERADE_CONTEXT_CHANGED": "Masquerade context changed",
+  "E_MASQUERADE_INVALID_INPUT": "Invalid masquerade input",
+  "E_MASQUERADE_CONTEXT_REQUIRED": "Masquerade context required",
+  "E_MASQUERADE_UNAVAILABLE": "Masquerade is unavailable"
+}
+```
 
 | Situation                                                         | Response                            | Recovery                                                                                                        |
 | ----------------------------------------------------------------- | ----------------------------------- | --------------------------------------------------------------------------------------------------------------- |
@@ -50,9 +66,9 @@ export async function handleBlockedAction(
 }
 ```
 
-In the host exception handler, call `if (await handleBlockedAction(error, ctx)) return` before
+In the application's error handler, call `if (await handleBlockedAction(error, ctx)) return` before
 `super.handle(error, ctx)`. The default path preserves the package JSON response. The host owns
-its wording, flash rendering, redirect destination and templates; no package translation is used.
+its wording, flash rendering, redirect destination and templates; no package translation catalog is used.
 
 The native-session browser fixture keeps status and stop on the raw actor guard so an operator can
 inspect or end a recorded mode if the target, actor eligibility, or start permission changes. A

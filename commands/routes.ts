@@ -1,3 +1,4 @@
+import { InvalidArgumentsException } from '@adonisjs/core/exceptions'
 import { BaseCommand } from '@adonisjs/core/ace'
 import { MasqueradeController } from '../http/controllers.js'
 import type { MasqueradeConfig } from '../src/types.js'
@@ -17,7 +18,7 @@ export default class RoutesCommand extends BaseCommand {
   async run(): Promise<void> {
     const config = this.app.config.get('masquerade') as
       MasqueradeConfig<unknown, object> | undefined
-    if (!config) throw new TypeError('Masquerade configuration is required')
+    if (!config) throw new InvalidArgumentsException('Masquerade configuration is required')
     const router = await this.app.container.make('router')
     const auth = await this.app.container.make('auth.manager')
     const effectiveGuardNames = Object.entries(auth.config.guards)

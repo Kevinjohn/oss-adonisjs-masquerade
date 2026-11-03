@@ -55,13 +55,14 @@ test('provider binds a singleton real runtime and native emitter error handling 
     return read(owner)
   }
   const observations: unknown[] = []
-  const logs: unknown[] = []
+  const logs: unknown[][] = []
   f.app.container.bindValue('logger', {
-    info: (event: unknown) => {
-      logs.push(event)
+    info: (...args: unknown[]) => {
+      logs.push(args)
+      return Promise.reject(new Error('private logger failure'))
     },
-    error: (event: unknown) => {
-      logs.push(event)
+    error: (...args: unknown[]) => {
+      logs.push(args)
     },
   } as never)
   try {
@@ -90,6 +91,23 @@ test('provider binds a singleton real runtime and native emitter error handling 
     })
     assert.isTrue(active.isMasquerading)
     await new Promise((resolve) => setImmediate(resolve))
+    assert.include(
+      logs.map((args) => args[1]),
+      'Masquerade transition'
+    )
+    assert.include(
+      logs.map((args) => args[1]),
+      'Masquerade observer failed'
+    )
+    sql.store.read = async () => {
+      throw new Error('private database failure')
+    }
+    await assert.rejects(() => runtime.service.status(ctx))
+    await new Promise((resolve) => setImmediate(resolve))
+    assert.include(
+      logs.map((args) => args[1]),
+      'Masquerade diagnostic'
+    )
     assert.lengthOf(observations, 1)
     assert.notInclude(JSON.stringify([observations, logs]), 'private')
     assert.notInclude(JSON.stringify(observations), 'secret-')

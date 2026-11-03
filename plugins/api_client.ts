@@ -1,4 +1,5 @@
 import { ApiClient, ApiRequest } from '@japa/api-client'
+import { InvalidArgumentsException, RuntimeException } from '@adonisjs/core/exceptions'
 import type { ApiResponse } from '@japa/api-client'
 import type { PluginFn } from '@japa/runner/types'
 import type { ModeAccess } from '../src/types.js'
@@ -56,7 +57,8 @@ export function masqueradeApiClient(pluginOptions: MasqueradeApiClientOptions = 
       const data = request.masqueradingData
       if (!data) return
       const authData = (request as { authData?: unknown }).authData
-      if (!authData) throw new Error('masquerading() requires loginAs() on the same request')
+      if (!authData)
+        throw new InvalidArgumentsException('masquerading() requires loginAs() on the same request')
       const prefix = data.options.prefix ?? pluginOptions.prefix ?? '/masquerade'
       const control = (method: 'GET' | 'POST', path: string) => {
         const nested = new ApiClient(request.config.baseUrl).request(`${prefix}${path}`, method)
@@ -98,7 +100,7 @@ export function masqueradeApiClient(pluginOptions: MasqueradeApiClientOptions = 
 function targetId(target: MasqueradeTarget): string {
   const id = typeof target === 'object' && target !== null ? target.id : target
   if (!['string', 'number', 'bigint'].includes(typeof id) || String(id) === '')
-    throw new TypeError('masquerading() requires a target with an id')
+    throw new InvalidArgumentsException('masquerading() requires a target with an id')
   return String(id)
 }
 
@@ -112,7 +114,7 @@ async function expectMode(
     typeof body?.isMasquerading !== 'boolean' ||
     typeof body.contextToken !== 'string'
   )
-    throw new Error(
+    throw new RuntimeException(
       `masquerading() ${control} control returned ${response.status()}: ${JSON.stringify(body)}`
     )
   return { isMasquerading: body.isMasquerading, contextToken: body.contextToken }

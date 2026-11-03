@@ -1,5 +1,6 @@
 import type { HttpContext } from '@adonisjs/core/http'
-import { unavailable, MasqueradeError } from '../src/errors.js'
+import { MasqueradeError } from '../src/errors.js'
+import { unavailable } from '../src/error_helpers.js'
 import { boundedString } from '../src/bounded_string.js'
 import { runtimeFor } from '../src/integration/runtime.js'
 import type { AccountKitAdapter } from './main.js'

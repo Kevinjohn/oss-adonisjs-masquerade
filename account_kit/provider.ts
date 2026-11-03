@@ -1,3 +1,4 @@
+import { InvalidArgumentsException } from '@adonisjs/core/exceptions'
 import type { ApplicationService } from '@adonisjs/core/types'
 import { AccountKitBlocker } from './middleware.js'
 import type { AccountKitAdapter } from './main.js'
@@ -48,10 +49,10 @@ export default class AccountKitProvider {
       'masquerade.native'
     )) as AccountKitAdapter<unknown>
     if (!adapter.kit || !adapter.managedGuard)
-      throw new TypeError('Account Kit native adapter required')
+      throw new InvalidArgumentsException('Account Kit native adapter required')
     const kit = await adapter.kit()
     if (!kit.managedHttp?.assertGuard)
-      throw new TypeError('Account Kit managed HTTP service required')
+      throw new InvalidArgumentsException('Account Kit managed HTTP service required')
     kit.managedHttp.assertGuard(adapter.managedGuard)
     const router = await this.app.container.make('router')
     const registration = await managedRegistration(router)
@@ -69,7 +70,7 @@ export default class AccountKitProvider {
       .some((route) => route.name?.startsWith('accountKit.'))
     if (!mounted) return
     if (!(await installed(domains)))
-      throw new TypeError('Account Kit blocker middleware is missing')
+      throw new InvalidArgumentsException('Account Kit blocker middleware is missing')
     recordAccountKitBlocker(this.app)
   }
 }

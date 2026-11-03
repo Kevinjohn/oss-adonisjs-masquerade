@@ -1,4 +1,5 @@
 import { createHash } from 'node:crypto'
+import { InvalidArgumentsException } from '@adonisjs/core/exceptions'
 
 /** A value `stampFrom` can hash; convert dates and other objects to a stable string first. */
 export type StampField = string | number | boolean | bigint | null
@@ -13,7 +14,7 @@ export function stampFrom<User>(
   return (user) => {
     const fields: unknown = select(user)
     if (!Array.isArray(fields) || fields.length === 0)
-      throw new TypeError('Security stamp selector must return at least one field')
+      throw new InvalidArgumentsException('Security stamp selector must return at least one field')
 
     const hash = createHash('sha256')
     for (const field of fields) {
@@ -30,17 +31,20 @@ export function stampFrom<User>(
 function encodeField(value: unknown): [tag: string, value: string] {
   if (value === null) return ['l', '']
   if (value === undefined)
-    throw new TypeError('Security stamp fields must not be undefined; use null for an empty value')
+    throw new InvalidArgumentsException(
+      'Security stamp fields must not be undefined; use null for an empty value'
+    )
   if (typeof value === 'string') {
     if (!value.isWellFormed())
-      throw new TypeError('Security stamp fields must be well-formed strings')
+      throw new InvalidArgumentsException('Security stamp fields must be well-formed strings')
     return ['s', value]
   }
   if (typeof value === 'number') {
-    if (!Number.isFinite(value)) throw new TypeError('Security stamp fields must be finite numbers')
+    if (!Number.isFinite(value))
+      throw new InvalidArgumentsException('Security stamp fields must be finite numbers')
     return ['n', Object.is(value, -0) ? '-0' : String(value)]
   }
   if (typeof value === 'boolean') return ['b', value ? '1' : '0']
   if (typeof value === 'bigint') return ['i', String(value)]
-  throw new TypeError('Security stamp fields must be scalar values')
+  throw new InvalidArgumentsException('Security stamp fields must be scalar values')
 }

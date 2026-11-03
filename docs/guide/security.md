@@ -180,10 +180,10 @@ If the database loses the commit acknowledgement, the service returns 503 and lo
 ID; use `GET /masquerade` to recover the current state. Do not retry a start using the old intent.
 Status returns only the authenticated owner's safe mode view and sends `Cache-Control: no-store`.
 When the store is unavailable, status and stop return 503; login and logout still use native auth and
-do not read mode state. Package errors reach the host exception handler with stable codes and English
-messages so the host can localize or render them. If the host does not provide custom rendering, the
-error's default handler returns the generic JSON envelope and status with `Cache-Control: no-store`.
-The package ships no translation catalog.
+do not read mode state. Package errors carry stable codes and fixed English fallbacks. The default JSON handler looks
+up `errors.<code>` through the request's i18n instance when present, while the host owns custom
+presentation. The handler keeps the generic JSON envelope and status with `Cache-Control: no-store`.
+The package ships no translation catalog or loader.
 
 ## Jobs, external effects and audit
 

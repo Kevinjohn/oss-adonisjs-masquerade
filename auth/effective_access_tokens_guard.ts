@@ -1,5 +1,5 @@
 import { errors, symbols } from '@adonisjs/auth'
-import { RuntimeException } from '@adonisjs/core/exceptions'
+import { InvalidArgumentsException, RuntimeException } from '@adonisjs/core/exceptions'
 import type { GuardContract } from '@adonisjs/auth/types'
 import type { HttpContext } from '@adonisjs/core/http'
 import { runtimeFor } from '../src/integration/runtime.js'
@@ -23,7 +23,7 @@ export class EffectiveAccessTokensGuard<RawUser> implements GuardContract<
     private rawName: string
   ) {
     if (raw.driverName !== 'access_tokens')
-      throw new TypeError('Masquerade requires a native access_tokens guard')
+      throw new InvalidArgumentsException('Masquerade requires a native access_tokens guard')
     this.driverName = raw.driverName
   }
   getUserOrFail(): EffectiveAccessTokensUser<RawUser> {

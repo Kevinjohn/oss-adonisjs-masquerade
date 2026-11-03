@@ -1,4 +1,5 @@
 import { test } from '@japa/runner'
+import { RuntimeException } from '@adonisjs/core/exceptions'
 import { createMasqueradeService, defineConfig, MasqueradeSetupError } from '../index.js'
 import { fixture } from './helpers/core.js'
 
@@ -138,7 +139,7 @@ test('reports safe, stable field categories for invalid configuration', ({ asser
       error = caught
     }
     assert.instanceOf(error, MasqueradeSetupError)
-    assert.instanceOf(error, TypeError)
+    assert.instanceOf(error, RuntimeException)
     assert.equal((error as { code?: string }).code, 'E_MASQUERADE_INVALID_CONFIGURATION')
     assert.equal((error as { field?: string }).field, field)
     assert.equal((error as Error).message, 'Invalid masquerade configuration')

@@ -1,11 +1,12 @@
 import { errors } from '@adonisjs/auth'
+import { InvalidArgumentsException } from '@adonisjs/core/exceptions'
 import type { HttpContext } from '@adonisjs/core/http'
 import type {} from '@adonisjs/auth/initialize_auth_middleware'
 import type { GuardContract } from '@adonisjs/auth/types'
 import type { SessionUserProviderContract } from '@adonisjs/auth/types/session'
 import type { NativeAuthority, Subject } from '../src/types.js'
 import { boundedString } from '../src/bounded_string.js'
-import { unavailable } from '../src/errors.js'
+import { unavailable } from '../src/error_helpers.js'
 
 /** Options for `sessionAuthority`. */
 export interface SessionAuthorityOptions<User> {
@@ -39,7 +40,7 @@ export function sessionAuthority<User>(
     typeof options.securityStamp !== 'function' ||
     !(options.incarnation === 'id' || typeof options.incarnation === 'function')
   )
-    throw new TypeError('Invalid native session authority')
+    throw new InvalidArgumentsException('Invalid native session authority')
   const { namespace, guard, provider } = options
   const incarnation = options.incarnation === 'id' ? 'id' : options.incarnation.bind(options)
   const securityStamp = options.securityStamp.bind(options)

@@ -1,3 +1,4 @@
+import { InvalidArgumentsException } from '@adonisjs/core/exceptions'
 import type { HttpContext } from '@adonisjs/core/http'
 import type { GuardConfigProvider, GuardContract } from '@adonisjs/auth/types'
 import type { symbols } from '@adonisjs/auth'
@@ -20,11 +21,13 @@ export function effectiveAccessTokensGuard<User>(
   options: { guard: string }
 ): GuardConfigProvider<(ctx: HttpContext) => EffectiveAccessTokensGuard<User>> {
   if (!options?.guard || typeof options.guard !== 'string')
-    throw new TypeError('A raw access-token guard name is required')
+    throw new InvalidArgumentsException('A raw access-token guard name is required')
   return {
     async resolver(name, app) {
       if (name === options.guard)
-        throw new TypeError('Configure distinct raw and effective access-token guards')
+        throw new InvalidArgumentsException(
+          'Configure distinct raw and effective access-token guards'
+        )
       const rawFactory = await raw.resolver(options.guard, app)
       return markEffectiveFactory(
         (ctx: HttpContext) => new EffectiveAccessTokensGuard(ctx, rawFactory(ctx), options.guard),

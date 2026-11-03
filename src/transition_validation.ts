@@ -1,4 +1,4 @@
-import { unavailable } from './errors.js'
+import { unavailable } from './error_helpers.js'
 import type { CompareAndSetInput, ModeRow } from './types.js'
 
 /** Checks that the audit record describes the state change carried by the CAS. */

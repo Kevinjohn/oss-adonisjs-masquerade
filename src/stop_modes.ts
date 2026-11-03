@@ -1,5 +1,6 @@
 import { randomUUID } from 'node:crypto'
-import { MasqueradeError, unavailable } from './errors.js'
+import { MasqueradeError } from './errors.js'
+import { unavailable } from './error_helpers.js'
 import { boundedString } from './bounded_string.js'
 import { commitTransition, idleAfterTransition } from './mode_transition.js'
 import { validateRow } from './row_validation.js'
@@ -7,11 +8,11 @@ import { activeCandidate, openOperatorStore } from './active_modes.js'
 import type { ObserverDependencies } from './observers.js'
 import type {
   ActiveModeRow,
-  AuditEvent,
   ControlStore,
   MasqueradeConfig,
   ModeRow,
   OwnerKey,
+  TransitionEvent,
 } from './types.js'
 
 /** Outcome code of an invalidation requested through `masquerade:stop`. */
@@ -57,7 +58,7 @@ async function invalidate(
     actorId: current.actorId,
     actorIncarnation: current.actorIncarnation,
   }
-  const event: AuditEvent = {
+  const event: TransitionEvent = {
     ...owner,
     id: randomUUID(),
     modeId: current.modeId,

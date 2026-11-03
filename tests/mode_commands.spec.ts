@@ -4,7 +4,11 @@ import { getCommand, getMetaData } from '../commands/main.js'
 import { OPERATOR_STOP_OUTCOME } from '../src/stop_modes.js'
 import { fixture } from './helpers/core.js'
 
-async function ace(config: unknown, argv: string[]) {
+async function ace(
+  config: unknown,
+  argv: string[],
+  logger?: { info(...args: unknown[]): void; error(...args: unknown[]): void }
+) {
   const ignitor = new IgnitorFactory()
     .withCoreProviders()
     .withCoreConfig()
@@ -21,6 +25,7 @@ async function ace(config: unknown, argv: string[]) {
   await kernel
     .configure(async (app) => {
       await app.boot()
+      if (logger) app.container.bindValue('logger', logger as never)
     })
     .handle(argv)
   exitCode = process.exitCode as number | undefined
@@ -54,7 +59,16 @@ test.group('masquerade:status and masquerade:stop Ace commands', () => {
     const service = await f.create()
     await f.start(service)
     assert.notEqual(await ace(f.config, ['masquerade:status']), 1)
-    assert.notEqual(await ace(f.config, ['masquerade:stop', '--actor=a']), 1)
+    const loggerCalls: unknown[][] = []
+    const logger = {
+      info: (...args: unknown[]) => loggerCalls.push(args),
+      error: (...args: unknown[]) => loggerCalls.push(args),
+    }
+    assert.notEqual(await ace(f.config, ['masquerade:stop', '--actor=a'], logger), 1)
+    assert.include(
+      loggerCalls.map((args) => args[1]),
+      'Masquerade transition'
+    )
     const row = await f.store.read(f.owner)
     assert.equal(row?.state, 'idle')
     assert.equal(f.store.events.at(-1)?.outcomeCode, OPERATOR_STOP_OUTCOME)
