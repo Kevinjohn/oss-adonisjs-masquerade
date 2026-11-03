@@ -54,7 +54,7 @@ importers:
         specifier: ^10.1.1
         version: 10.1.1(@types/node@24.19.2)
       '@types/luxon':
-        specifier: ^3.7.6
+        specifier: ^3.0.0
         version: 3.7.6
       '@types/node':
         specifier: ^24.19.2
@@ -81,7 +81,7 @@ importers:
         specifier: ^10.0.3
         version: 10.13.0(jiti@2.7.0)(supports-color@10.2.2)
       luxon:
-        specifier: ^3.7.2
+        specifier: ^3.0.0
         version: 3.7.2
       node:
         specifier: runtime:^24.0.0
