@@ -24,6 +24,9 @@ docs/.vitepress/cache
 docs/.vitepress/dist
 
 # Repository-specific
+# private reviews and generated API pages kept locally from before the docs moved
+docs/reviews/
+docs/api/
 # example env fixtures
 !examples/native-session/.env.test
 # example env fixtures
