@@ -17,6 +17,7 @@
     "build",
     "!build/bin",
     "!build/tests",
+    "README-AGENTS.md",
     "SECURITY.md",
     "CHANGELOG.md"
   ],
@@ -85,6 +86,14 @@
   ],
   "author": "Kevinjohn Gallagher",
   "license": "MIT",
+  "homepage": "https://kevinjohn.github.io/oss-adonisjs-masquerade/",
+  "bugs": {
+    "url": "https://github.com/Kevinjohn/oss-adonisjs-masquerade/issues"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Kevinjohn/oss-adonisjs-masquerade.git"
+  },
   "devDependencies": {
     "@adonisjs/assembler": "^8.6.0",
     "@adonisjs/auth": "^10.0.0",
@@ -117,7 +126,7 @@
     "tsdown": "^0.23.4",
     "typedoc": "^0.28.20",
     "typedoc-plugin-markdown": "^4.14.1",
-    "typescript": "5.9.3",
+    "typescript": "^5.9.3",
     "vitepress": "^1.6.4"
   },
   "peerDependencies": {
@@ -150,10 +159,6 @@
       "optional": true
     }
   },
-  "publishConfig": {
-    "access": "public",
-    "provenance": true
-  },
   "tsdown": {
     "entry": [
       "./index.ts",
@@ -182,6 +187,23 @@
     "sourcemaps": false,
     "target": "esnext"
   },
+  "c8": {
+    "reporter": [
+      "text",
+      "html"
+    ],
+    "exclude": [
+      "tests/**"
+    ],
+    "check-coverage": true,
+    "lines": 93,
+    "branches": 87
+  },
+  "prettier": "@adonisjs/prettier-config",
+  "publishConfig": {
+    "access": "public",
+    "provenance": true
+  },
   "release-it": {
     "hooks": {
       "before:bump": "pnpm version ${version} --no-git-tag-version --allow-same-version",
@@ -206,23 +228,6 @@
         }
       }
     }
-  },
-  "c8": {
-    "reporter": [
-      "text",
-      "html"
-    ],
-    "exclude": [
-      "tests/**"
-    ],
-    "check-coverage": true,
-    "lines": 93,
-    "branches": 87
-  },
-  "prettier": "@adonisjs/prettier-config",
-  "repository": {
-    "type": "git",
-    "url": "git+https://github.com/Kevinjohn/oss-adonisjs-masquerade.git"
   },
   "packageManager": "pnpm@11.23.0"
 }
