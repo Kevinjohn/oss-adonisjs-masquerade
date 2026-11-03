@@ -9,8 +9,8 @@ pnpm add https://github.com/Kevinjohn/oss-adonisjs-account-kit/releases/download
 ```
 
 The artifact SHA-256 is
-`1ca53538256c360cb87ddbadfaf00f2364a453fea349f6bb8757e58756ed9e7f` and its source commit is
-`4b3be3878c7f1cede6080273d84b8841345a3b3a`. This pin supports local development from the GitHub
+`5fa51b3f892d03e9f4e4776c40a33bc1eff2e4e884e4e6d2f528bbf99ef44d6b` and its source commit is
+`fae423198ae2d591cdf3bc89ee1b3e47258dfb99`. This pin supports local development from the GitHub
 release artifact; a future public registry publication is a separate release step.
 
 Account Kit's HTTP integration requires the host-provided `@vinejs/vine` `^4.4.0` dependency. The
