@@ -29,11 +29,13 @@ async function releaseCheck(changelog: string) {
     await writeFile(join(directory, 'CHANGELOG.md'), changelog)
     const environment: NodeJS.ProcessEnv = { ...process.env, GITHUB_REPOSITORY: 'owner/repo' }
     delete environment.GITHUB_ENV
-    return spawnSync('bash', [join(repoRoot, 'bin/release_check.sh')], {
+    const result = spawnSync('bash', [join(repoRoot, 'bin/release_check.sh')], {
       cwd: directory,
       encoding: 'utf8',
       env: environment,
     })
+    const notes = await readFile(join(directory, 'tmp/release/notes.md'), 'utf8').catch(() => '')
+    return { ...result, notes }
   } finally {
     await rm(directory, { recursive: true, force: true })
   }
@@ -57,4 +59,21 @@ test('release gate refuses entries under Unreleased, which the tarball would shi
   )
   assert.notEqual(result.status, 0)
   assert.include(result.stderr, "entries under '## Unreleased'")
+})
+
+test('release gate matches the version heading literally', async ({ assert }) => {
+  const result = await releaseCheck(
+    '# Changelog\n\n## Unreleased\n\n## 9x9x9 - 2026-01-01\n\n- A\n'
+  )
+  assert.notEqual(result.status, 0)
+  assert.include(result.stderr, "no '## 9.9.9 - YYYY-MM-DD' heading")
+})
+
+test('release notes take only the exact version section', async ({ assert }) => {
+  const result = await releaseCheck(
+    '# Changelog\n\n## Unreleased\n\n## 9.9.9 - 2026-01-01\n\n- Current\n\n## 9a9a9 - 2025-01-01\n\n- Other\n'
+  )
+  assert.equal(result.status, 0, result.stderr)
+  assert.include(result.notes, '- Current')
+  assert.notInclude(result.notes, '- Other')
 })
