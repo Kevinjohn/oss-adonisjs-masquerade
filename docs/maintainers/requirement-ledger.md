@@ -126,9 +126,11 @@ latest 7.6.0/10.1.0/4.0.1/22.4.2/8.3.0/6.0.3.
 
 ## V1.2 Account Kit acceptance (T-KIT and T-KIT-HTTP)
 
-**Matrix status:** The optional peer declares the scoped `@kevinjohn/adonisjs-account-kit` `0.1.5`
+**Matrix status:** The optional peer declares the scoped `@kevinjohn/adonisjs-account-kit` `0.2.0`
 only. All 16 floor/latest cells passed against its GitHub release artifact in the hosted `compat`
-workflow ([run 41642918567](https://github.com/Kevinjohn/oss-adonisjs-masquerade/actions/runs/41642918567))
+workflow ([run 41731431285](https://github.com/Kevinjohn/oss-adonisjs-masquerade/actions/runs/41731431285))
+on 3 November 2026 at `f40d95a9eecdc68fbcdc0c039fb23a8dae6b0f39`. The scoped `0.1.5` passed the same
+cells in [run 41642918567](https://github.com/Kevinjohn/oss-adonisjs-masquerade/actions/runs/41642918567)
 on 3 November 2026 at `c12e91801ba50927f54ddd1fb9d5eb314aa759fd`. The unscoped `0.1.4` evidence is in
 [Account Kit 0.1.4 matrix](#account-kit-014-matrix--3-november-2026); the 27 October 2026 evidence
 covers `0.1.3`, and the 22 October 2026 evidence covers `0.1.1`; none of these versions is declared
@@ -141,10 +143,16 @@ The six deliverables are implemented in open, unmerged PRs #100–#105 for issue
 The authority, blocker, consumer and documentation PRs remain drafts. Independent reviews are
 complete with reported findings resolved.
 
-Scoped Account Kit `0.1.5` is pinned to the GitHub release artifact with SHA-256
+Scoped Account Kit `0.2.0` is pinned to the GitHub release artifact with SHA-256
+`3c25f5888c2d0f7fd1a0a987e2c84e489e8cfd3ba19e97f1aa117b52371a461d`, built from source commit
+`81949782d87b426d3b094ac2cb45f08722697fe4` (tag `v0.2.0`). It carries the Account Kit
+code-standardisation changes. The error classes Masquerade reads, `AccountAccessDeniedError` and
+`InvalidSessionError`, keep their names and codes; Masquerade runtime code did not change for this pin.
+
+The previous pin, scoped Account Kit `0.1.5`, had SHA-256
 `1efdb5bcda9aeb1dd78e71293d1af0471335cb44e25661ea58dc26540e8a69d5`, built from source commit
-`4aebc86950139b5ad173e67e21da01b53135bc86` (tag `v0.1.5`). It renames the package to
-`@kevinjohn/adonisjs-account-kit`; Masquerade changed only its import specifiers for this pin.
+`4aebc86950139b5ad173e67e21da01b53135bc86` (tag `v0.1.5`). It renamed the package to
+`@kevinjohn/adonisjs-account-kit`; Masquerade changed only its import specifiers for that pin.
 
 The previous pin, unscoped Account Kit `0.1.4`, had SHA-256
 `5fa51b3f892d03e9f4e4776c40a33bc1eff2e4e884e4e6d2f528bbf99ef44d6b`, built from source commit
@@ -162,14 +170,14 @@ the runner invoked an unsupported `codegen` Ace command at Core `7.0.0`; the cor
 treated that command as unsupported and all eight floor cells passed. Public registry publication
 is not a prerequisite for this GitHub-artifact integration evidence.
 
-| Decision range | Implementation and evidence                                                                                                                                                                                                                                                           |
-| -------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| D1–D3          | Lazy optional subpaths, coherent active snapshot, captured equality-only revision stamp, native provider identity and denial/error mapping are implemented. The optional peer is pinned to GitHub release `0.1.3`; authority/service tests and all 16 floor/latest packed cells pass. |
-| D4–D5          | Raw credential plus Kit current validation and separate host-owned actor/target admission pass in the real HTTP credential and admission suites.                                                                                                                                      |
-| D6–D8          | Global managed-route blocker, exemptions, store outage, mounted-method/custom-prefix coverage and verified route-report classifications pass in provider/blocker tests and the packed routes suite.                                                                                   |
-| D9, D12        | SQLite and PostgreSQL pass with both strategies and session management on/off at floor and latest peers. Each host configures one transport. MySQL and a second composed transport remain outside scope.                                                                              |
-| D10–D11        | Contract pointers and the existing service's symbol-keyed validated row accessor are implemented; no second store or mode mutation is introduced. Accessor and HTTP tests cover active, expired, absent, malformed and unavailable rows.                                              |
-| D13            | Provider guard identity/strategy, committed registration and actual blocker installation are verified. Console readiness explicitly commits routes; lifecycle/provider regressions and packed route reports pass.                                                                     |
+| Decision range | Implementation and evidence                                                                                                                                                                                                                                                                                  |
+| -------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| D1–D3          | Lazy optional subpaths, coherent active snapshot, captured equality-only revision stamp, native provider identity and denial/error mapping are implemented. The optional peer is pinned to the GitHub release in the matrix status above; authority/service tests and all 16 floor/latest packed cells pass. |
+| D4–D5          | Raw credential plus Kit current validation and separate host-owned actor/target admission pass in the real HTTP credential and admission suites.                                                                                                                                                             |
+| D6–D8          | Global managed-route blocker, exemptions, store outage, mounted-method/custom-prefix coverage and verified route-report classifications pass in provider/blocker tests and the packed routes suite.                                                                                                          |
+| D9, D12        | SQLite and PostgreSQL pass with both strategies and session management on/off at floor and latest peers. Each host configures one transport. MySQL and a second composed transport remain outside scope.                                                                                                     |
+| D10–D11        | Contract pointers and the existing service's symbol-keyed validated row accessor are implemented; no second store or mode mutation is introduced. Accessor and HTTP tests cover active, expired, absent, malformed and unavailable rows.                                                                     |
+| D13            | Provider guard identity/strategy, committed registration and actual blocker installation are verified. Console readiness explicitly commits routes; lifecycle/provider regressions and packed route reports pass.                                                                                            |
 
 **T-KIT obligations:** prove null and timestamp revisions encode differently and start stores the
 inspection snapshot's stamp. Missing, restricted and inactive targets are indistinguishable 403s
