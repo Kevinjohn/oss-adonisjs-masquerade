@@ -1,3 +1,4 @@
+import { InvalidArgumentsException } from '@adonisjs/core/exceptions'
 import type {} from '@adonisjs/auth/auth_provider'
 import type { HttpContext } from '@adonisjs/core/http'
 import type { ApplicationService } from '@adonisjs/core/types'
@@ -43,11 +44,15 @@ export async function runtimeConfiguration(app: ApplicationService): Promise<Run
     native.authority?.namespace !== config.authority.namespace ||
     native.authority.guard !== config.authority.guard
   )
-    throw new TypeError('Native masquerade binding must match configured namespace and guard')
+    throw new InvalidArgumentsException(
+      'Native masquerade binding must match configured namespace and guard'
+    )
   const auth = await app.container.make('auth.manager')
   const primaryRaw = native.guard ?? native.authority.guard
   if (primaryRaw !== config.authority.guard)
-    throw new TypeError('Native masquerade binding must match configured namespace and guard')
+    throw new InvalidArgumentsException(
+      'Native masquerade binding must match configured namespace and guard'
+    )
   const rawAdapters =
     native.adapters ??
     Object.freeze(
@@ -57,7 +62,9 @@ export async function runtimeConfiguration(app: ApplicationService): Promise<Run
       >
     )
   if (!Object.hasOwn(rawAdapters, primaryRaw))
-    throw new TypeError('Native masquerade adapter map must include the primary guard')
+    throw new InvalidArgumentsException(
+      'Native masquerade adapter map must include the primary guard'
+    )
   for (const [guard, adapter] of Object.entries(rawAdapters)) {
     if (
       !guard ||
@@ -66,12 +73,12 @@ export async function runtimeConfiguration(app: ApplicationService): Promise<Run
       (adapter.guard ?? adapter.authority.guard) !== guard ||
       typeof adapter.authenticateActor !== 'function'
     )
-      throw new TypeError('Native masquerade adapter map is invalid')
+      throw new InvalidArgumentsException('Native masquerade adapter map is invalid')
     if (
       !Object.hasOwn(auth.config.guards, guard) ||
       typeof (auth.config.guards as Record<string, unknown>)[guard] !== 'function'
     )
-      throw new TypeError(
+      throw new InvalidArgumentsException(
         guard === primaryRaw
           ? 'The configured raw guard must be registered'
           : `The configured raw guard ${guard} must be registered`
@@ -79,13 +86,17 @@ export async function runtimeConfiguration(app: ApplicationService): Promise<Run
   }
   const effectiveGuardName = String(auth.defaultGuard)
   if (!isEffectiveFactory(auth.config.guards[auth.defaultGuard]))
-    throw new TypeError('The default auth guard must be an effective masquerade guard')
+    throw new InvalidArgumentsException(
+      'The default auth guard must be an effective masquerade guard'
+    )
   const effectiveRawGuards: Record<string, string> = Object.create(null)
   for (const [name, factory] of Object.entries(auth.config.guards)) {
     if (!isEffectiveFactory(factory)) continue
     const raw = effectiveFactoryRawGuard(factory)
     if (!raw || !Object.hasOwn(rawAdapters, raw))
-      throw new TypeError(`Effective masquerade guard ${name} has no registered raw adapter`)
+      throw new InvalidArgumentsException(
+        `Effective masquerade guard ${name} has no registered raw adapter`
+      )
     effectiveRawGuards[name] = raw
   }
   const effectiveGuardNames = Object.freeze(
@@ -134,10 +145,14 @@ export async function createRuntime(
       return adapter.authenticateActor(ctx)
     },
     emitter: { emit: (name, event) => emitter.emit(name as TransitionName, event) },
-    logger: { info: (event) => logger.info(event), error: (event) => logger.error(event) },
+    logger: {
+      info: (event) => logger.info(event, 'Masquerade transition'),
+      error: (event) => logger.error(event, 'Masquerade diagnostic'),
+    },
     // Native emitter.emit dispatches listener rejection to its registered onError handler.
     // A failed logger, missing handler or throwing handler reaches this safe diagnostic fallback.
-    observerErrorHandler: () => logger.error({ code: 'E_MASQUERADE_OBSERVER_FAILED' }),
+    observerErrorHandler: () =>
+      logger.error({ code: 'E_MASQUERADE_OBSERVER_FAILED' }, 'Masquerade observer failed'),
   })
   const internal = service as typeof service & {
     [admission](ctx: HttpContext): Promise<RequestAdmission<unknown>>

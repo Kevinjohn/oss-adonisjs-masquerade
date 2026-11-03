@@ -152,7 +152,7 @@ test.group('Lucid control store', () => {
       )
       assert.deepEqual(await f.store.read(a.owner), a.next)
       assert.lengthOf(await f.client.from('masquerade_events'), 1)
-      await assert.rejects(() => f.store.recordControlOutcome(a.event))
+      await assert.rejects(() => f.store.recordControlOutcome({ ...a.event, kind: 'control_noop' }))
       assert.deepEqual(await f.store.read(a.owner), a.next)
     } finally {
       await f.cleanup()

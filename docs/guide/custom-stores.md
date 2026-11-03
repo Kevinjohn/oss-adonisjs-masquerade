@@ -22,6 +22,10 @@ Each mode row stores `access` as nullable `string(8)`: active rows use `'view'` 
 | `activeBatch({ limit })`         | Return at most `limit` active row snapshots, oldest `updatedAt` first, regardless of expiry. Operator commands re-read each candidate and use CAS before ending it.                   |
 | `pruneEvents({ before, limit })` | Delete at most `limit` events strictly older than `before`; do not delete mode rows, including idle rows.                                                                             |
 
+`compareAndSet` accepts a `TransitionEvent` (`started`, `stopped`, `expired`, or `invalidated`).
+`recordControlOutcome` accepts a `ControlOutcomeEvent` (`start_denied`, `stop_denied`, or `control_noop`).
+Persisted audit rows still use `AuditEvent` because the table contains both event groups.
+
 For a successful CAS, `next.revision` and the event revision agree and advance exactly once from the expected revision (an absent owner starts at revision 1). The event must describe the same owner and the transition represented by the row: transition ID, mode ID, state, target and incarnation, access, outcome, and reason where applicable. An active row's reason is null, and its `started` event has no reason, when the host's reason policy is optional and none was given. Validate persisted rows and incoming transition/event pairs canonically, including revision progression and event projection. Malformed persisted state must fail closed; do not return a row that the service could interpret as valid.
 
 `applied` means the row and event committed together. `conflict` means the expected revision did not match and this attempt did not commit. `indeterminate` means the commit acknowledgement was lost and the transaction may have committed; preserve and return its transition ID. The caller reports the operation as unavailable and recovers through status. Never turn an uncertain result into a definite failure or retry it as if nothing committed.
@@ -35,6 +39,7 @@ The interface is small, but each method needs database-level semantics. A typica
 ```ts
 import type {
   CompareAndSetInput,
+  ControlOutcomeEvent,
   ControlStore,
   OwnerKey,
 } from '@kevinjohn/adonisjs-masquerade/types'
@@ -52,7 +57,7 @@ export class DatabaseControlStore implements ControlStore {
     // when commit may have succeeded but its acknowledgement is unknown.
   }
 
-  async recordControlOutcome(event) {
+  async recordControlOutcome(event: ControlOutcomeEvent) {
     // Validate and append the event without changing a mode row.
   }
 

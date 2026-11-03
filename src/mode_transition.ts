@@ -1,5 +1,6 @@
 import { randomBytes } from 'node:crypto'
-import { MasqueradeError, unavailable } from './errors.js'
+import { MasqueradeError } from './errors.js'
+import { unavailable } from './error_helpers.js'
 import { observe, reportUnknown } from './observers.js'
 import type { ObserverDependencies } from './observers.js'
 import type {

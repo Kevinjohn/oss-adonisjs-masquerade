@@ -49,8 +49,15 @@ export function transition(revision = 1): CompareAndSetInput {
   }
 }
 export async function sqlFixture(options: { poolMax?: number } = {}) {
+  const selectedClient = process.env.DB_CLIENT
+  if (
+    selectedClient !== undefined &&
+    selectedClient !== 'better-sqlite3' &&
+    selectedClient !== 'pg'
+  )
+    throw new Error(`Unsupported DB_CLIENT: ${selectedClient}; use pg or better-sqlite3`)
   const directory = await mkdtemp(join(tmpdir(), 'masquerade_sql_'))
-  const pg = process.env.DB_CLIENT === 'pg'
+  const pg = selectedClient === 'pg'
   const schema = `store_${randomUUID().replaceAll('-', '')}`
   const databases: Database[] = []
   function database() {

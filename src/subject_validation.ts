@@ -1,4 +1,4 @@
-import { unavailable } from './errors.js'
+import { unavailable } from './error_helpers.js'
 import { boundedString } from './bounded_string.js'
 import type { Subject, NativeAuthority } from './types.js'
 

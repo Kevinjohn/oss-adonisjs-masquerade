@@ -1,12 +1,18 @@
 import { randomUUID } from 'node:crypto'
 import { defineConfig } from './define_config.js'
-import { unavailable } from './errors.js'
+import { unavailable } from './error_helpers.js'
 import { boundedString } from './bounded_string.js'
 import { openControlStore } from './control_store.js'
 import { commitTransition, idleAfterTransition } from './mode_transition.js'
 import { validateRow } from './row_validation.js'
 import type { ObserverDependencies } from './observers.js'
-import type { ActiveModeRow, AuditEvent, ControlStore, MasqueradeConfig, ModeRow } from './types.js'
+import type {
+  ActiveModeRow,
+  ControlStore,
+  MasqueradeConfig,
+  ModeRow,
+  TransitionEvent,
+} from './types.js'
 
 export const DEFAULT_PRUNE_BATCH_SIZE = 100
 export const MAX_PRUNE_BATCH_SIZE = 1000
@@ -109,7 +115,7 @@ export async function pruneMasquerade<User, Request>(
       continue
 
     const id = randomUUID()
-    const event: AuditEvent = {
+    const event: TransitionEvent = {
       ...owner,
       id,
       modeId: current.modeId,

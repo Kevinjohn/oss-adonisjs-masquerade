@@ -1,5 +1,6 @@
 import { test } from '@japa/runner'
 import { assertControlStoreConformance, MemoryControlStore } from '../testing/main.js'
+import type { TransitionEvent } from '../src/types.js'
 import { fixture } from './helpers/core.js'
 
 test('memory store satisfies exported isolated ControlStore conformance', async () => {
@@ -13,7 +14,7 @@ test('memory CAS clones inputs/outputs, commits one event and preserves row on e
   const service = await f.create()
   await f.start(service)
   const row = (await f.store.read(f.owner))!
-  const event = f.store.events[0]
+  const event = f.store.events[0] as TransitionEvent
   const next = { ...row, revision: 2 }
   await assert.rejects(() =>
     f.store.compareAndSet({
@@ -38,7 +39,7 @@ test('memory CAS rejects transition identity and projection mismatches without m
   const service = await f.create()
   await f.start(service)
   const row = (await f.store.read(f.owner))!
-  const event = f.store.events[0]
+  const event = f.store.events[0] as TransitionEvent
   const attempts = [
     {
       owner: f.owner,

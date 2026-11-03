@@ -1,6 +1,7 @@
 import { test } from '@japa/runner'
+import { Exception, RuntimeException } from '@adonisjs/core/exceptions'
 import type { MasqueradeBlockedBy } from '../index.js'
-import { MasqueradeError } from '../src/errors.js'
+import { MasqueradeError, MasqueradeSetupError } from '../src/errors.js'
 import { fixture } from './helpers/core.js'
 import { requestContext } from './helpers/http_context.js'
 
@@ -20,6 +21,56 @@ const blockedError = new MasqueradeError('E_MASQUERADE_ACTION_BLOCKED', {
 blockedError.blockedBy = 'view_only'
 
 test.group('MasqueradeError', () => {
+  test('uses the Adonis exception base and exposes a stable identifier', ({ assert }) => {
+    const error = new MasqueradeError('E_MASQUERADE_NOT_ALLOWED')
+
+    assert.instanceOf(error, Exception)
+    assert.equal(error.identifier, 'errors.E_MASQUERADE_NOT_ALLOWED')
+    assert.equal(error.status, 403)
+    assert.equal(error.code, 'E_MASQUERADE_NOT_ALLOWED')
+  })
+
+  test('uses the Adonis runtime exception base for setup errors', ({ assert }) => {
+    const setupError = new MasqueradeSetupError('E_MASQUERADE_INVALID_CONFIGURATION', 'config')
+
+    assert.instanceOf(setupError, RuntimeException)
+    assert.isFalse(setupError instanceof TypeError)
+  })
+
+  test('looks up a stable code with the English fallback even after error fields change', ({
+    assert,
+  }) => {
+    const { ctx, responseState } = requestContext(fixture(), {})
+    let lookup: { id: string; fallback: string } | undefined
+    ;(ctx as unknown as { i18n: unknown }).i18n = {
+      t: (id: string, _data: Record<string, unknown>, fallback: string) => {
+        lookup = { id, fallback }
+        return 'translated'
+      },
+    }
+    const error = new MasqueradeError('E_MASQUERADE_CONTEXT_REQUIRED')
+    Object.defineProperty(error, 'identifier', { value: 'errors.mutable' })
+    error.message = 'mutable message'
+
+    error.handle(error, ctx)
+
+    assert.deepEqual(lookup, {
+      id: 'errors.E_MASQUERADE_CONTEXT_REQUIRED',
+      fallback: 'Masquerade context required',
+    })
+    assert.deepEqual(responseState.json, {
+      errors: [{ code: 'E_MASQUERADE_CONTEXT_REQUIRED', message: 'translated' }],
+    })
+  })
+
+  test('uses the English message when the context has no i18n instance', ({ assert }) => {
+    const { ctx, responseState } = requestContext(fixture(), {})
+    new MasqueradeError('E_MASQUERADE_CONTEXT_REQUIRED').handle(undefined, ctx)
+    assert.deepEqual(responseState.json, {
+      errors: [{ code: 'E_MASQUERADE_CONTEXT_REQUIRED', message: 'Masquerade context required' }],
+    })
+  })
+
   test('includes the blocked cause and preserves no-store cache headers', ({ assert }) => {
     const { ctx, responseState } = requestContext(fixture(), {})
     const error = new MasqueradeError('E_MASQUERADE_ACTION_BLOCKED', {

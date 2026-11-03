@@ -1,3 +1,4 @@
+import { InvalidArgumentsException } from '@adonisjs/core/exceptions'
 import { BaseCommand, flags } from '@adonisjs/core/ace'
 import { DEFAULT_ACTIVE_MODE_LIMIT, listActiveModes } from '../src/active_modes.js'
 import type { MasqueradeConfig } from '../src/types.js'
@@ -15,7 +16,7 @@ export default class StatusCommand extends BaseCommand {
     const limit = this.limit ?? DEFAULT_ACTIVE_MODE_LIMIT
     const config = this.app.config.get('masquerade') as
       MasqueradeConfig<unknown, object> | undefined
-    if (!config) throw new TypeError('Masquerade configuration is required')
+    if (!config) throw new InvalidArgumentsException('Masquerade configuration is required')
     const modes = await listActiveModes(
       config,
       { environment: this.app.getEnvironment() },

@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict'
 import { randomUUID } from 'node:crypto'
-import type { AuditEvent, ControlStore, IdleModeRow, OwnerKey } from '../src/types.js'
+import type { ControlStore, IdleModeRow, OwnerKey, TransitionEvent } from '../src/types.js'
 
 /** Run against a fresh, isolated store. SQL connection/race and rollback tests supplement this contract. */
 export async function assertControlStoreConformance(
@@ -12,7 +12,7 @@ export async function assertControlStoreConformance(
     actorId: randomUUID(),
     actorIncarnation: 'original',
   }
-  const event: AuditEvent = {
+  const event: TransitionEvent = {
     ...owner,
     id: randomUUID(),
     modeId: randomUUID(),

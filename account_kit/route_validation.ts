@@ -1,3 +1,4 @@
+import { InvalidArgumentsException } from '@adonisjs/core/exceptions'
 interface MountedRoute {
   name?: string
   methods: string[]
@@ -33,10 +34,13 @@ export function assertManagedRouteRegistration(
         !route.methods.includes(entry.method) ||
         route.methods.some((method) => !allowed.includes(method))
       )
-        throw new TypeError(`Account Kit managed route ${route.name} is not registered`)
+        throw new InvalidArgumentsException(
+          `Account Kit managed route ${route.name} is not registered`
+        )
       mounted.add(route.name)
     }
   }
   for (const name of expected.keys())
-    if (!mounted.has(name)) throw new TypeError(`Account Kit managed route ${name} is not mounted`)
+    if (!mounted.has(name))
+      throw new InvalidArgumentsException(`Account Kit managed route ${name} is not mounted`)
 }

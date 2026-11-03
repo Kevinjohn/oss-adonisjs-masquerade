@@ -1,5 +1,5 @@
 import { errors, symbols } from '@adonisjs/auth'
-import { RuntimeException } from '@adonisjs/core/exceptions'
+import { InvalidArgumentsException, RuntimeException } from '@adonisjs/core/exceptions'
 import type { GuardContract } from '@adonisjs/auth/types'
 import type { HttpContext } from '@adonisjs/core/http'
 import type {} from '@adonisjs/auth/initialize_auth_middleware'
@@ -21,7 +21,7 @@ export class EffectiveSessionGuard<User> implements GuardContract<User> {
     private raw: GuardContract<User>
   ) {
     if (raw.driverName !== 'session')
-      throw new TypeError('Masquerade requires a native session guard')
+      throw new InvalidArgumentsException('Masquerade requires a native session guard')
     this.driverName = raw.driverName
   }
   getUserOrFail(): User {

@@ -1,3 +1,4 @@
+import { InvalidArgumentsException } from '@adonisjs/core/exceptions'
 import type { Router } from '@adonisjs/core/http'
 import type { MiddlewareFn, ParsedNamedMiddleware } from '@adonisjs/core/types/http'
 import { MasqueradeController } from './controllers.js'
@@ -37,21 +38,26 @@ export function masqueradeRoutes<Guard extends string>(
     as = 'masquerade',
   } = options ?? ({} as MasqueradeRoutesOptions<Guard>)
   if (!boundedString(guard, 128))
-    throw new TypeError('masqueradeRoutes requires the raw guard name')
+    throw new InvalidArgumentsException('masqueradeRoutes requires the raw guard name')
   if (typeof auth !== 'function')
-    throw new TypeError('masqueradeRoutes requires the host auth middleware')
+    throw new InvalidArgumentsException('masqueradeRoutes requires the host auth middleware')
   if (!isMiddleware(startLimiter) || !isMiddleware(stopLimiter))
-    throw new TypeError('masqueradeRoutes requires a start limiter and a stop limiter')
+    throw new InvalidArgumentsException(
+      'masqueradeRoutes requires a start limiter and a stop limiter'
+    )
   if (startLimiter === stopLimiter)
-    throw new TypeError('masqueradeRoutes requires separate start and stop limiters')
+    throw new InvalidArgumentsException(
+      'masqueradeRoutes requires separate start and stop limiters'
+    )
   if (typeof prefix !== 'string' || !prefix.startsWith('/'))
-    throw new TypeError('masqueradeRoutes prefix must start with /')
-  if (!boundedString(as, 128)) throw new TypeError('masqueradeRoutes route name prefix is invalid')
+    throw new InvalidArgumentsException('masqueradeRoutes prefix must start with /')
+  if (!boundedString(as, 128))
+    throw new InvalidArgumentsException('masqueradeRoutes route name prefix is invalid')
 
   const authMiddleware = auth({ guards: [guard] })
   const guards = routeGuards({ middleware: { all: () => [authMiddleware] } }, '')
   if (guards.length !== 1 || guards[0] !== guard)
-    throw new TypeError('masqueradeRoutes auth must be the named auth middleware')
+    throw new InvalidArgumentsException('masqueradeRoutes auth must be the named auth middleware')
 
   return router
     .group(() => {

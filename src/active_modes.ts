@@ -1,5 +1,5 @@
 import { defineConfig } from './define_config.js'
-import { unavailable } from './errors.js'
+import { unavailable } from './error_helpers.js'
 import { boundedString } from './bounded_string.js'
 import { openControlStore } from './control_store.js'
 import { validateRow } from './row_validation.js'

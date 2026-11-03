@@ -1,5 +1,5 @@
 import { createHash } from 'node:crypto'
-import { unavailable } from './errors.js'
+import { unavailable } from './error_helpers.js'
 
 export function stampHash(value: unknown): string {
   if (

@@ -28,6 +28,8 @@ if (process.env.TEST_BUILT_EXPORTS === '1') {
     assert.equal(typeof root, 'object')
     assert.isFunction(root.configure)
     assert.isFunction(root.MasqueradeSetupError)
+    assert.equal(root.errors.MasqueradeError, root.MasqueradeError)
+    assert.deepEqual(Object.keys(root.errors).sort(), ['MasqueradeError', 'MasqueradeSetupError'])
     assert.isString(root.stubsRoot)
     assert.isTrue(existsSync(join(root.stubsRoot, 'migrations/create_masquerade_tables.stub')))
     assert.lengthOf(Object.keys(types), 0)
@@ -74,7 +76,7 @@ if (process.env.TEST_BUILT_EXPORTS === '1') {
           import { registerHooks } from 'node:module'
           registerHooks({
             resolve(specifier, context, nextResolve) {
-              if (/^@adonisjs\\//.test(specifier) || /account[-_]kit/i.test(specifier)) {
+              if ((/^@adonisjs\\//.test(specifier) && specifier !== '@adonisjs/core/exceptions') || /account[-_]kit/i.test(specifier)) {
                 throw new Error('Optional integration resolved: ' + specifier)
               }
               return nextResolve(specifier, context)

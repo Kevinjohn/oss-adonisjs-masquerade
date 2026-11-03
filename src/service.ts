@@ -1,8 +1,10 @@
 import { randomBytes, randomUUID } from 'node:crypto'
+import { InvalidArgumentsException } from '@adonisjs/core/exceptions'
 import { defineConfig } from './define_config.js'
 import { contextToken, requireContext } from './context_token.js'
 import { admittedProjection, modeView } from './mode_projection.js'
-import { invalidInput, MasqueradeError, unavailable } from './errors.js'
+import { MasqueradeError } from './errors.js'
+import { invalidInput, unavailable } from './error_helpers.js'
 import { openControlStore } from './control_store.js'
 import { parseStartSelection, validateStartInputShape } from './start_input.js'
 import { stampHash } from './security_stamp.js'
@@ -21,6 +23,7 @@ import type { RequestAdmission } from './request_admission.js'
 import type {
   ActiveModeRow,
   AuditEvent,
+  ControlOutcomeKind,
   ControlStore,
   EventKind,
   IdleModeRow,
@@ -35,6 +38,7 @@ import type {
   Subject,
   AccountSnapshot,
   ResolvedContext,
+  TransitionEvent,
 } from './types.js'
 
 /**
@@ -49,7 +53,7 @@ import type {
  * @throws {MasqueradeSetupError} `E_MASQUERADE_INVALID_CONFIGURATION` for an invalid config, or
  *   `E_MASQUERADE_INVALID_STORE` for a store that is missing methods or test-only outside tests.
  * @throws {MasqueradeError} `E_MASQUERADE_UNAVAILABLE` when the store factory throws.
- * @throws {TypeError} When `authenticateActor` or an observer or diagnostic port is missing.
+ * @throws {InvalidArgumentsException} When `authenticateActor` or an observer or diagnostic port is missing.
  */
 export async function createMasqueradeService<User, Request extends object>(
   config: MasqueradeConfig<User, Request>,
@@ -76,14 +80,14 @@ export async function createMasqueradeService<User, Request extends object>(
     throw error
   }
   if (typeof dependencies.authenticateActor !== 'function')
-    throw new TypeError('Actor authentication resolver required')
+    throw new InvalidArgumentsException('Actor authentication resolver required')
   if (
     typeof dependencies.emitter?.emit !== 'function' ||
     typeof dependencies.logger?.info !== 'function' ||
     typeof dependencies.logger?.error !== 'function' ||
     typeof dependencies.observerErrorHandler !== 'function'
   )
-    throw new TypeError('Observer and diagnostic ports required')
+    throw new InvalidArgumentsException('Observer and diagnostic ports required')
   return new CoreService(validated, dependencies, store)
 }
 
@@ -144,13 +148,13 @@ class CoreService<User, Request extends object> implements MasqueradeService<Req
     const row = await this.read(owner)
     return row?.state === 'active' && this.now() < row.expiresAt
   }
-  private event(
+  private event<Kind extends EventKind>(
     owner: OwnerKey,
     row: ModeRow | null,
-    kind: EventKind,
+    kind: Kind,
     outcomeCode: string,
     reason?: string
-  ): AuditEvent {
+  ): AuditEvent & { kind: Kind } {
     return {
       ...owner,
       id: randomUUID(),
@@ -168,7 +172,7 @@ class CoreService<User, Request extends object> implements MasqueradeService<Req
   private async outcome(
     owner: OwnerKey,
     row: ModeRow | null,
-    kind: EventKind,
+    kind: ControlOutcomeKind,
     code: string
   ): Promise<void> {
     try {
@@ -187,7 +191,7 @@ class CoreService<User, Request extends object> implements MasqueradeService<Req
     owner: OwnerKey,
     previous: ModeRow | null,
     next: ModeRow,
-    event: AuditEvent
+    event: TransitionEvent
   ): Promise<void> {
     let outcome: 'applied' | 'conflict'
     try {

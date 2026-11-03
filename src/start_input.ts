@@ -1,5 +1,5 @@
 import { boundedString } from './bounded_string.js'
-import { invalidInput } from './errors.js'
+import { invalidInput } from './error_helpers.js'
 import { parseStartReason } from './reason.js'
 import type { ReasonPolicy } from './reason.js'
 import type { ModeAccess, StartInput } from './types.js'

@@ -38,6 +38,10 @@ test.group('Account Kit demo admission', (group) => {
     }
     client.on('query', listener)
     try {
+      const html = await http.request('/support', { headers: { accept: 'text/html' } })
+      assert.equal(html.status, 403)
+      assert.include(html.headers.get('content-type') ?? '', 'text/html')
+      assert.include(await html.text(), 'Access was denied')
       const requests: { path: string; method: 'GET' | 'POST'; body?: Record<string, string> }[] = [
         { path: '/support', method: 'GET' },
         { path: '/support/customer', method: 'GET' },
@@ -62,8 +66,18 @@ test.group('Account Kit demo admission', (group) => {
             ? await http.request(item.path, { headers })
             : await http.json(item.path, 'POST', item.body ?? {}, headers)
         assert.equal(result.status, 403, item.path)
-        const errorBody = (await result.json()) as { code: string }
-        assert.equal(errorBody.code, 'E_ACCOUNT_KIT_ADMISSION_REQUIRED', item.path)
+        assert.deepEqual(
+          await result.json(),
+          {
+            errors: [
+              {
+                code: 'E_ACCOUNT_KIT_ADMISSION_REQUIRED',
+                message: 'Account access requires approval.',
+              },
+            ],
+          },
+          item.path
+        )
       }
       assert.deepEqual(queries, [])
       assert.deepEqual(await db.from('users').where('id', actor.id).first(), userBefore)

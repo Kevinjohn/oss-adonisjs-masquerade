@@ -103,15 +103,12 @@ export interface ActiveModeRow extends RowBase {
 }
 /** One actor's persisted mode, idle or active. */
 export type ModeRow = IdleModeRow | ActiveModeRow
-/** Audit event kinds: committed transitions and recorded control outcomes. */
-export type EventKind =
-  | 'started'
-  | 'stopped'
-  | 'expired'
-  | 'invalidated'
-  | 'start_denied'
-  | 'stop_denied'
-  | 'control_noop'
+/** Audit event kinds written when a mode changes. */
+export type TransitionKind = 'started' | 'stopped' | 'expired' | 'invalidated'
+/** Audit event kinds written for denied or no-op controls. */
+export type ControlOutcomeKind = 'start_denied' | 'stop_denied' | 'control_noop'
+/** All event kinds persisted in the audit ledger. */
+export type EventKind = TransitionKind | ControlOutcomeKind
 /** One `masquerade_events` record, written with its transition or as a control outcome. */
 export interface AuditEvent extends OwnerKey {
   id: string
@@ -126,8 +123,12 @@ export interface AuditEvent extends OwnerKey {
   revision: Revision
   reason?: string
 }
-/** The audit event passed to emitter and logger observers, without the start reason. */
-export type ObserverEvent = Readonly<Omit<AuditEvent, 'reason'>>
+/** An audit event written atomically with a mode transition. */
+export type TransitionEvent = AuditEvent & { kind: TransitionKind }
+/** An audit event written without changing a mode row. */
+export type ControlOutcomeEvent = AuditEvent & { kind: ControlOutcomeKind }
+/** The transition event passed to emitter and logger observers, without the start reason. */
+export type ObserverEvent = Readonly<Omit<TransitionEvent, 'reason'>>
 /** The subsystem a diagnostic describes. */
 export type DiagnosticCategory =
   'configuration' | 'store' | 'authority' | 'policy' | 'control' | 'observer'
@@ -163,7 +164,7 @@ export interface CompareAndSetInput {
   owner: OwnerKey
   expected: Revision | null
   next: ModeRow
-  event: AuditEvent
+  event: TransitionEvent
 }
 /**
  * Durable mode and audit storage. An implementation must pass the conformance suite in
@@ -177,7 +178,7 @@ export interface ControlStore {
   /** Atomically match the expected revision (null means absent), replace the row and append its event. */
   compareAndSet(input: CompareAndSetInput): Promise<CasOutcome>
   /** Append a required denial/no-op outcome without changing the owner's row or revision. */
-  recordControlOutcome(event: AuditEvent): Promise<void>
+  recordControlOutcome(event: ControlOutcomeEvent): Promise<void>
   /** At most limit expired active snapshots; pruning re-reads and uses CAS before clearing each. */
   expiredBatch(input: { now: Instant; limit: number }): Promise<ModeRow[]>
   /** At most limit active snapshots, oldest update first; operator commands re-read and use CAS. */

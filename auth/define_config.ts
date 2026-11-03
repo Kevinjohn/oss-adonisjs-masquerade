@@ -1,3 +1,4 @@
+import { InvalidArgumentsException } from '@adonisjs/core/exceptions'
 import type { HttpContext } from '@adonisjs/core/http'
 import type { GuardConfigProvider, GuardContract } from '@adonisjs/auth/types'
 import type { MasqueradeConfig } from '../src/types.js'
@@ -12,7 +13,7 @@ export function effectiveSessionGuard<User>(
     async resolver(name, app) {
       const config = app.config.get<MasqueradeConfig<User, HttpContext>>('masquerade')
       if (!config?.authority?.guard || config.authority.guard === name)
-        throw new TypeError('Configure distinct raw and effective session guards')
+        throw new InvalidArgumentsException('Configure distinct raw and effective session guards')
       const rawFactory = await raw.resolver(config.authority.guard, app)
       return markEffectiveFactory(
         (ctx: HttpContext) =>

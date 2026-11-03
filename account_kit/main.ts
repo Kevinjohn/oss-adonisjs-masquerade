@@ -1,10 +1,12 @@
 import { errors } from '@adonisjs/auth'
+import { InvalidArgumentsException } from '@adonisjs/core/exceptions'
 import type { HttpContext } from '@adonisjs/core/http'
 import type { GuardContract } from '@adonisjs/auth/types'
 import type { NativeRuntimeAdapter } from '../src/integration/native_binding.js'
 import type { NativeAuthority, Subject } from '../src/types.js'
 import { boundedString } from '../src/bounded_string.js'
-import { MasqueradeError, unavailable } from '../src/errors.js'
+import { MasqueradeError } from '../src/errors.js'
+import { unavailable } from '../src/error_helpers.js'
 
 type Identifier = string | number | bigint
 type AccountInput = {
@@ -110,7 +112,7 @@ export function accountKitAuthority<User>(
       (!boundedString(options.ability, 128) || !options.ability?.trim())) ||
     (options.managedGuard.strategy === 'session' && options.ability !== undefined)
   )
-    throw new TypeError('Invalid Account Kit authority')
+    throw new InvalidArgumentsException('Invalid Account Kit authority')
 
   const { provider, kit } = options
   const guard = options.managedGuard.name

@@ -1,3 +1,4 @@
+import { InvalidArgumentsException } from '@adonisjs/core/exceptions'
 import { BaseCommand, flags } from '@adonisjs/core/ace'
 import { MasqueradeError } from '../src/errors.js'
 import { stopActiveModes } from '../src/stop_modes.js'
@@ -42,7 +43,7 @@ export default class StopCommand extends BaseCommand {
     }
     const config = this.app.config.get('masquerade') as
       MasqueradeConfig<unknown, object> | undefined
-    if (!config) throw new TypeError('Masquerade configuration is required')
+    if (!config) throw new InvalidArgumentsException('Masquerade configuration is required')
 
     const [emitterService, logger] = await Promise.all([
       this.app.container.make('emitter'),
@@ -59,10 +60,11 @@ export default class StopCommand extends BaseCommand {
           environment: this.app.getEnvironment(),
           emitter: { emit: (name, event) => emitter.emit(name, event) },
           logger: {
-            info: (event) => logger.info(event),
-            error: (event) => logger.error(event),
+            info: (event) => logger.info(event, 'Masquerade transition'),
+            error: (event) => logger.error(event, 'Masquerade diagnostic'),
           },
-          observerErrorHandler: () => logger.error({ code: 'E_MASQUERADE_OBSERVER_FAILED' }),
+          observerErrorHandler: () =>
+            logger.error({ code: 'E_MASQUERADE_OBSERVER_FAILED' }, 'Masquerade observer failed'),
         },
         this.all ? { all: true } : { actorId: this.actor, actorIncarnation: this.incarnation }
       )

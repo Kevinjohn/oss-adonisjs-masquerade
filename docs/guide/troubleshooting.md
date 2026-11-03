@@ -1,7 +1,7 @@
 # Troubleshooting
 
-Masquerade package errors have stable codes and English messages. The host exception handler owns
-localization and presentation. Native authentication, Shield CSRF, and host rate limiting also run
+Masquerade package errors have stable codes and fixed English fallbacks. JSON messages use the
+request's i18n instance when the application provides one; the host owns presentation. Native authentication, Shield CSRF, and host rate limiting also run
 in the request path; their responses are not Masquerade package errors and keep the host's normal
 behavior.
 

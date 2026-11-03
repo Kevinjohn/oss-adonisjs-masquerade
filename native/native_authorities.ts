@@ -1,4 +1,5 @@
 import type { HttpContext } from '@adonisjs/core/http'
+import { InvalidArgumentsException } from '@adonisjs/core/exceptions'
 import type { NativeRuntimeAdapter } from '../src/integration/native_binding.js'
 import { boundedString } from '../src/bounded_string.js'
 
@@ -12,9 +13,10 @@ export interface NativeAuthorityComposition<Primary extends NativeRuntimeAdapter
 
 function adapterGuard(adapter: NativeRuntimeAdapter): string {
   if (!adapter || !adapter.authority || typeof adapter.authenticateActor !== 'function')
-    throw new TypeError('Invalid native adapter guard')
+    throw new InvalidArgumentsException('Invalid native adapter guard')
   const guard = adapter.guard ?? adapter.authority.guard
-  if (!boundedString(guard, 128)) throw new TypeError('Invalid native adapter guard')
+  if (!boundedString(guard, 128))
+    throw new InvalidArgumentsException('Invalid native adapter guard')
   return guard
 }
 
@@ -31,16 +33,18 @@ export function nativeAuthorities<Primary extends NativeRuntimeAdapter>(
     !boundedString(authority.namespace, 128) ||
     !boundedString(authority.guard, 128)
   )
-    throw new TypeError('Invalid native adapter guard')
+    throw new InvalidArgumentsException('Invalid native adapter guard')
   if (primary.adapters || additional.some((adapter) => adapter?.adapters))
-    throw new TypeError('Native adapter compositions cannot be nested')
+    throw new InvalidArgumentsException('Native adapter compositions cannot be nested')
 
   for (const adapter of [primary, ...additional]) {
     const guard = adapterGuard(adapter)
     if (adapter !== primary && adapter.authority !== authority)
-      throw new TypeError('Additional native adapters must share the primary authority')
+      throw new InvalidArgumentsException(
+        'Additional native adapters must share the primary authority'
+      )
     if (Object.hasOwn(adapters, guard))
-      throw new TypeError('Native adapters must use unique guards')
+      throw new InvalidArgumentsException('Native adapters must use unique guards')
     adapters[guard] = adapter
   }
 
