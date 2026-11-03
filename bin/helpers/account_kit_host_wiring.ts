@@ -2,10 +2,10 @@ import { cp, mkdir, readdir, readFile, writeFile } from 'node:fs/promises'
 import { join } from 'node:path'
 
 export const kitReleaseUrl =
-  'https://github.com/Kevinjohn/oss-adonisjs-account-kit/releases/download/v0.1.3/adonisjs-account-kit-0.1.3.tgz'
-export const kitReleaseSha256 = '1ca53538256c360cb87ddbadfaf00f2364a453fea349f6bb8757e58756ed9e7f'
-export const kitReleaseVersion = '0.1.3'
-export const kitSourceRevision = '4b3be3878c7f1cede6080273d84b8841345a3b3a'
+  'https://github.com/Kevinjohn/oss-adonisjs-account-kit/releases/download/v0.1.4/adonisjs-account-kit-0.1.4.tgz'
+export const kitReleaseSha256 = '5fa51b3f892d03e9f4e4776c40a33bc1eff2e4e884e4e6d2f528bbf99ef44d6b'
+export const kitReleaseVersion = '0.1.4'
+export const kitSourceRevision = 'fae423198ae2d591cdf3bc89ee1b3e47258dfb99'
 
 export async function overlay(sourceDir: string, destinationDir: string): Promise<void> {
   for (const entry of await readdir(sourceDir, { withFileTypes: true })) {

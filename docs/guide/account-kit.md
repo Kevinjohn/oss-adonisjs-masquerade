@@ -1,16 +1,16 @@
 # Account Kit integration preview
 
 This page describes the Account Kit adapter planned for Masquerade v1.2. It is a prerelease
-integration preview using Account Kit alpha `0.1.3`, available as a GitHub release artifact. The
+integration preview using Account Kit alpha `0.1.4`, available as a GitHub release artifact. The
 package is not published to a public package registry. Install the pinned release tarball with pnpm:
 
 ```sh
-pnpm add https://github.com/Kevinjohn/oss-adonisjs-account-kit/releases/download/v0.1.3/adonisjs-account-kit-0.1.3.tgz
+pnpm add https://github.com/Kevinjohn/oss-adonisjs-account-kit/releases/download/v0.1.4/adonisjs-account-kit-0.1.4.tgz
 ```
 
 The artifact SHA-256 is
-`1ca53538256c360cb87ddbadfaf00f2364a453fea349f6bb8757e58756ed9e7f` and its source commit is
-`4b3be3878c7f1cede6080273d84b8841345a3b3a`. This pin supports local development from the GitHub
+`5fa51b3f892d03e9f4e4776c40a33bc1eff2e4e884e4e6d2f528bbf99ef44d6b` and its source commit is
+`fae423198ae2d591cdf3bc89ee1b3e47258dfb99`. This pin supports local development from the GitHub
 release artifact; a future public registry publication is a separate release step.
 
 Account Kit's HTTP integration requires the host-provided `@vinejs/vine` `^4.4.0` dependency. The
@@ -281,8 +281,8 @@ Ace command it commits the router itself first, and it never commits in other en
 commit the routes as `<group>.accountKit.*`, which the blocker does not match, so startup fails with
 `is not mounted`.
 
-This prerelease interface works with Account Kit `0.1.3`, the only version the optional peer
-declares. The complete Masquerade matrix passed against the pinned `0.1.3` GitHub release artifact
+This prerelease interface works with Account Kit `0.1.4`, the only version the optional peer
+declares. The complete Masquerade matrix passed against the pinned `0.1.4` GitHub release artifact
 for both strategies, with session management on and off, on SQLite and PostgreSQL at the declared
 floor and latest compatible peers. Other Account Kit versions, MySQL and a second composed
 Masquerade transport are not tested. Account Kit `0.1.1` and later resolve `configProvider` through
