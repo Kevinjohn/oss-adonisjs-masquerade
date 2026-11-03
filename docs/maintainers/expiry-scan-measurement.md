@@ -15,7 +15,7 @@ index on disposable databases. It does not compare a proposed replacement index.
 
 ## Method
 
-Run `bin/measure_expiry_scan.mjs` on Node 24 through `pnpm exec`. Each backend uses 100,000 owner
+Run `bin/measure_expiry_scan.ts` on Node 24 through `pnpm exec`. Each backend uses 100,000 owner
 rows: 10,000 active and 90,000 idle. Three scenarios mark 100, 1,000, or 8,000 active rows expired;
 the remaining active rows expire in the future. The query requests a batch of 100. Expiry dates
 span 720 days, and `updated_at` values are spread deterministically so expiry order and sort order
@@ -36,11 +36,11 @@ probe creates a random schema and drops it in `finally`. The SQLite probe uses a
 removes it in `finally`. No application or customer database is read.
 
 ```sh
-pnpm exec node bin/measure_expiry_scan.mjs sqlite
+pnpm exec node --import=@poppinss/ts-exec --enable-source-maps bin/measure_expiry_scan.ts sqlite
 
 DB_PORT=55539 pnpm pg:start
-DB_HOST=127.0.0.1 DB_PORT=55539 DB_USER=account_kit DB_DATABASE=account_kit_test \
-  pnpm exec node bin/measure_expiry_scan.mjs postgres
+DB_HOST=127.0.0.1 DB_PORT=55539 DB_USER=account_kit DB_DATABASE=package_test \
+  pnpm exec node --import=@poppinss/ts-exec --enable-source-maps bin/measure_expiry_scan.ts postgres
 DB_PORT=55539 pnpm pg:stop
 ```
 

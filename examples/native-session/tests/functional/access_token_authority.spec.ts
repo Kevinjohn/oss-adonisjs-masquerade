@@ -8,7 +8,7 @@ import {
   masqueradeFixtureDiagnostics,
   resetMasqueradeReadCount,
   setAuthorityCallbacksThrow,
-} from '#services/masquerade_test_boundary'
+} from '#services/masquerade_fixture_boundary'
 
 test.group('native access-token authority', (group) => {
   group.setup(() => testUtils.db().migrate())

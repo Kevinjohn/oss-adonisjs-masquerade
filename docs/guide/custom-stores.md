@@ -1,6 +1,6 @@
 # Custom control stores
 
-The [`API entry-point map`](../api-reference.md#supported-package-imports) links the
+The [`API entry-point map`](../reference/README.md#supported-package-imports) links the
 `ControlStore` contract under `adonisjs-masquerade/types`, the built-in adapter under the optional
 `adonisjs-masquerade/stores/lucid` path, and the conformance helper under
 `adonisjs-masquerade/testing`.

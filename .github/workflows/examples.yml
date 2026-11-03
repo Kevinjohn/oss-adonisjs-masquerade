@@ -1,4 +1,4 @@
-name: e2e
+name: examples
 
 on:
   pull_request:
@@ -7,9 +7,9 @@ on:
       - 'http/**'
       - 'stubs/**'
       - 'docs/guide/**'
-      - '.github/workflows/e2e.yml'
+      - '.github/workflows/examples.yml'
   schedule:
-    - cron: '0 3 * * *'
+    - cron: '0 3 * * 1'
   workflow_dispatch:
   workflow_call:
 
@@ -17,11 +17,11 @@ permissions:
   contents: read
 
 concurrency:
-  group: e2e-${{ github.event_name }}-${{ github.ref }}
+  group: examples-${{ github.event_name }}-${{ github.ref }}
   cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 jobs:
-  e2e:
+  examples:
     # Pull request and scheduled runs start once the repository is public, where hosted minutes
     # are free. Manual and release runs always start.
     if: ${{ github.event_name == 'workflow_dispatch' || !github.event.repository.private }}
@@ -42,7 +42,7 @@ jobs:
             examples/inertia-vue/pnpm-lock.yaml
       - run: pnpm install --frozen-lockfile
       - name: Test demo launcher
-        run: pnpm test:demo
+        run: pnpm quick:test --files=tests/tooling/demo_launcher.spec.ts --files=tests/tooling/demo_account_kit_launcher.spec.ts
       - name: Check documented native-session recipe
         run: pnpm test:recipe --database=sqlite
       - name: Install native-session example

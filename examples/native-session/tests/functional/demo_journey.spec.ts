@@ -3,7 +3,7 @@ import testUtils from '@adonisjs/core/services/test_utils'
 import db from '@adonisjs/lucid/services/db'
 import limiter from '@adonisjs/limiter/services/main'
 import { cleanUsers, createUsers } from '#tests/helpers/users'
-import { setMasqueradeStoreUnavailable } from '#services/masquerade_test_boundary'
+import { setMasqueradeStoreUnavailable } from '#services/masquerade_fixture_boundary'
 
 test.group('support operator browser journey', (group) => {
   group.setup(() => testUtils.db().migrate())

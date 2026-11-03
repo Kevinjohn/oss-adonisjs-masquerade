@@ -1,0 +1,191 @@
+name: compat
+
+on:
+  schedule:
+    - cron: '0 3 * * 1'
+  workflow_dispatch:
+  workflow_call:
+  pull_request:
+    paths:
+      - package.json
+      - pnpm-lock.yaml
+      - pnpm-workspace.yaml
+      - index.ts
+      - configure.ts
+      - 'providers/**'
+      - 'stubs/**'
+      - 'commands/**'
+      - bin/test_consumer.ts
+      - 'bin/helpers/consumer/**'
+      - 'bin/helpers/consumer_*.ts'
+      - .github/workflows/compat.yml
+
+permissions:
+  contents: read
+
+concurrency:
+  group: compat-${{ github.event_name }}-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+jobs:
+  min-peers:
+    if: ${{ github.event_name == 'workflow_dispatch' || !github.event.repository.private }}
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: package_test
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+    env:
+      DB_CLIENT: pg
+      DB_HOST: 127.0.0.1
+      DB_PORT: 5432
+      DB_USER: postgres
+      DB_PASSWORD: postgres
+      DB_DATABASE: package_test
+    steps:
+      - uses: actions/checkout@v7
+      - uses: pnpm/action-setup@v6
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 24
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - name: Install minimum peers
+        run: |
+          PEERS=$(node -e '
+            const p=require("./package.json"); const dev=p.devDependencies||{};
+            for (const [n,r] of Object.entries(p.peerDependencies||{})) {
+              if (n==="typescript") continue;                 // compiler peer
+              if (/^https?:/.test(dev[n]||"")) continue;      // tarball peer
+              process.stdout.write(n+"@"+r.replace(/^[\^~]/,"").split(" ")[0]+" ");
+            }')
+          pnpm add -D $PEERS
+          pnpm list --depth 0 $(echo $PEERS | sed 's/@[^ @]*\( \|$\)/ /g')
+      - run: pnpm test
+      - run: pnpm build
+
+  latest-peers:
+    if: ${{ github.event_name == 'workflow_dispatch' || !github.event.repository.private }}
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: pnpm/action-setup@v6
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 24
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - name: Update peers within declared ranges
+        run: |
+          PEERS=$(node -e '
+            const p=require("./package.json"); const dev=p.devDependencies||{};
+            for (const [n,r] of Object.entries(p.peerDependencies||{})) {
+              if (n==="typescript") continue;
+              if (/^https?:/.test(dev[n]||"")) continue;
+              process.stdout.write(n+" ");
+            }')
+          pnpm update $PEERS
+      - run: pnpm test
+      - run: pnpm build
+
+  consumer:
+    if: ${{ github.event_name == 'workflow_dispatch' || !github.event.repository.private }}
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        profile: [floor, latest]
+        database: [sqlite, pg]
+    services:
+      postgres:
+        image: ${{ matrix.database == 'pg' && 'postgres:16' || '' }}
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: package_test
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+    env:
+      CONSUMER_PG_EXTERNAL: '1'
+      DB_HOST: 127.0.0.1
+      DB_PORT: 5432
+      DB_USER: postgres
+      DB_PASSWORD: postgres
+      DB_DATABASE: package_test
+    steps:
+      - uses: actions/checkout@v7
+      - uses: pnpm/action-setup@v6
+        with:
+          version: 11.23.0
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 24
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - name: Test packed native-session consumer
+        run: pnpm test:consumer --profile=${{ matrix.profile }} --database=${{ matrix.database }}
+
+  account-kit:
+    if: ${{ github.event_name == 'workflow_dispatch' || !github.event.repository.private }}
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        database: [pg, better-sqlite3]
+    env:
+      DB_CLIENT: ${{ matrix.database }}
+      DB_HOST: 127.0.0.1
+      DB_PORT: 5432
+      DB_USER: postgres
+      DB_PASSWORD: postgres
+      DB_DATABASE: package_test
+    services:
+      postgres:
+        image: ${{ matrix.database == 'pg' && 'postgres:16' || '' }}
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: package_test
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+    steps:
+      - uses: actions/checkout@v7
+      - uses: pnpm/action-setup@v6
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 24
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - name: Exercise packed Account Kit consumer
+        env:
+          ACCOUNT_KIT_EVIDENCE_DIR: ${{ github.workspace }}/tmp/account-kit-evidence-${{ matrix.database }}
+        run: pnpm test:account-kit --profile=all --database=${{ matrix.database == 'pg' && 'pg' || 'sqlite' }} --strategy=all --session-management=all
+      - name: Upload Account Kit consumer evidence
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: account-kit-${{ matrix.database }}
+          path: |
+            tmp/account-kit-evidence-${{ matrix.database }}/evidence.json
+            tmp/account-kit-evidence-${{ matrix.database }}/logs/**
+          if-no-files-found: warn

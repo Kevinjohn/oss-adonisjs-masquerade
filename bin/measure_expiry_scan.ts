@@ -5,6 +5,9 @@ import { randomBytes } from 'node:crypto'
 import { performance } from 'node:perf_hooks'
 import Database from 'better-sqlite3'
 import pg from 'pg'
+import type { Client as PgClient } from 'pg'
+
+type DatabaseInstance = InstanceType<typeof Database>
 
 const { Client } = pg
 const totalOwners = 100_000
@@ -22,11 +25,11 @@ const query = `
   LIMIT ?
 `
 
-function instant(offsetMilliseconds) {
+function instant(offsetMilliseconds: number): string {
   return new Date(Date.parse('2029-12-01T00:00:00.000Z') + offsetMilliseconds).toISOString()
 }
 
-function ownerRow(index) {
+function ownerRow(index: number): (string | number | null)[] {
   const active = index < activeOwners
   const actorId = `actor-${String(index).padStart(6, '0')}`
   const updatedOffset = ((index * 7_919) % 1_728_000) * 1_000
@@ -69,7 +72,7 @@ const columns = [
   'updated_at',
 ]
 
-function createTableSql(tableName) {
+function createTableSql(tableName: string): string {
   return `CREATE TABLE ${tableName} (
     authority_namespace VARCHAR(128) NOT NULL,
     actor_id VARCHAR(255) NOT NULL,
@@ -91,16 +94,16 @@ function createTableSql(tableName) {
   )`
 }
 
-function createIndexSql(tableName) {
+function createIndexSql(tableName: string): string {
   return `CREATE INDEX masquerade_modes_expiry_index
     ON ${tableName} (state, expires_at, updated_at)`
 }
 
-function quantile(values, fraction) {
+function quantile(values: number[], fraction: number): number {
   return values[Math.ceil(values.length * fraction) - 1]
 }
 
-function summarize(values) {
+function summarize(values: number[]): { medianMs: number; p95Ms: number } {
   const sorted = [...values].sort((left, right) => left - right)
   return {
     medianMs: Number(quantile(sorted, 0.5).toFixed(3)),
@@ -108,7 +111,7 @@ function summarize(values) {
   }
 }
 
-function sqliteBulkExpired(db, backlog) {
+function sqliteBulkExpired(db: DatabaseInstance, backlog: number): void {
   const statement = db.prepare('UPDATE masquerade_modes SET expires_at = ? WHERE actor_id = ?')
   const update = db.transaction(() => {
     db.prepare("UPDATE masquerade_modes SET expires_at = ? WHERE state = 'active'").run(future)
@@ -121,12 +124,16 @@ function sqliteBulkExpired(db, backlog) {
   update()
 }
 
-async function postgresBulkExpired(client, tableName, backlog) {
+async function postgresBulkExpired(
+  client: PgClient,
+  tableName: string,
+  backlog: number
+): Promise<void> {
   await client.query(`UPDATE ${tableName} SET expires_at = $1 WHERE state = 'active'`, [future])
   for (let offset = 0; offset < backlog; offset += 500) {
     const chunk = Math.min(500, backlog - offset)
-    const values = []
-    const parameters = []
+    const values: string[] = []
+    const parameters: (string | number)[] = []
     for (let index = 0; index < chunk; index++) {
       const ownerIndex = offset + index
       const base = index * 2
@@ -163,19 +170,22 @@ async function measureSqlite() {
     load()
     db.exec('ANALYZE')
     const loadMs = Number((performance.now() - loadStart).toFixed(1))
-    const version = db.prepare('SELECT sqlite_version() AS version').get().version
+    const version = (db.prepare('SELECT sqlite_version() AS version').get() as { version: string })
+      .version
     const scenarios = []
 
     for (const backlog of expiredBacklogs) {
       sqliteBulkExpired(db, backlog)
       db.exec('ANALYZE masquerade_modes')
-      const plan = db.prepare(`EXPLAIN QUERY PLAN ${query}`).all(now, batchSize)
+      const plan = db.prepare(`EXPLAIN QUERY PLAN ${query}`).all(now, batchSize) as {
+        detail: string
+      }[]
       const timedQuery = db.prepare(query)
       const firstStart = performance.now()
       const firstRows = timedQuery.all(now, batchSize)
       const firstRunMs = Number((performance.now() - firstStart).toFixed(3))
       for (let index = 0; index < warmups; index++) timedQuery.all(now, batchSize)
-      const times = []
+      const times: number[] = []
       for (let index = 0; index < repetitions; index++) {
         const started = performance.now()
         timedQuery.all(now, batchSize)
@@ -214,7 +224,7 @@ async function measurePostgres() {
     port: Number(process.env.DB_PORT ?? 55539),
     user: process.env.DB_USER ?? 'account_kit',
     password: process.env.DB_PASSWORD || undefined,
-    database: process.env.DB_DATABASE ?? 'account_kit_test',
+    database: process.env.DB_DATABASE ?? 'package_test',
   })
   const schema = `expiry_measurement_${randomBytes(5).toString('hex')}`
   await client.connect()
@@ -261,7 +271,7 @@ async function measurePostgres() {
       const firstResult = await client.query(sql, [now, batchSize])
       const firstRunMs = Number((performance.now() - firstStart).toFixed(3))
       for (let index = 0; index < warmups; index++) await client.query(sql, [now, batchSize])
-      const times = []
+      const times: number[] = []
       for (let index = 0; index < repetitions; index++) {
         const started = performance.now()
         await client.query(sql, [now, batchSize])
@@ -306,7 +316,7 @@ async function measurePostgres() {
 
 const backend = process.argv[2]
 if (!['sqlite', 'postgres'].includes(backend)) {
-  console.error('Usage: node bin/measure_expiry_scan.mjs <sqlite|postgres>')
+  console.error('Usage: node bin/measure_expiry_scan.ts <sqlite|postgres>')
   process.exitCode = 2
 } else {
   const result = backend === 'sqlite' ? await measureSqlite() : await measurePostgres()

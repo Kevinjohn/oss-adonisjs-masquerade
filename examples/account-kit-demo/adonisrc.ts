@@ -55,7 +55,7 @@ export default defineConfig({
     () => import('@adonisjs/lucid/database_provider'),
     () => import('@adonisjs/auth/auth_provider'),
     () => import('#providers/masquerade_native_provider'),
-    () => import('adonisjs-masquerade/providers/masquerade_provider'),
+    () => import('adonisjs-masquerade/masquerade_provider'),
   ],
 
   /*

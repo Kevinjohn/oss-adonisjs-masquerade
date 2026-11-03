@@ -1,7 +1,7 @@
 # Maintainer source map
 
 Start with the owning module and its focused test. Read the relevant technical contract section
-when changing behavior; the accepted [development plan](../design/DEVELOPMENT-PLAN.md) controls v1
+when changing behavior; the accepted [development plan](design/development-plan.md) controls v1
 scope. Historical milestone results establish prior evidence, not the current implementation map.
 
 ## Package tasks
@@ -25,7 +25,7 @@ scope. Historical milestone results establish prior evidence, not the current im
 | Interpret guards and route markers                      | [route guards](../../src/integration/route_guards.ts), [route selection](../../src/integration/route_guard_selection.ts), [route markers](../../src/integration/route_markers.ts)                           | [compatibility entry](../../src/integration/route_metadata.ts)                                                                                                 | [route metadata](../../tests/route_metadata.spec.ts), [route selection](../../tests/route_guard_selection.spec.ts)                                                                                                                    |
 | Report route coverage                                   | [route command](../../commands/routes.ts)                                                                                                                                                                   | [route metadata entry](../../src/integration/route_metadata.ts)                                                                                                | [route command tests](../../tests/routes_command.spec.ts)                                                                                                                                                                             |
 | Scaffold host integration                               | [configure](../../configure.ts)                                                                                                                                                                             | [templates](../../stubs/main.ts)                                                                                                                               | [direct scaffold](../../tests/configure.spec.ts), [native Ace](../../tests/configure_ace.spec.ts), [package exports](../../tests/package_exports.spec.ts)                                                                             |
-| Verify packed compatibility                             | [consumer harness](../../bin/test_consumer.ts)                                                                                                                                                              | [consumer workflow](../../.github/workflows/consumer.yml)                                                                                                      | [alternate identity](../../examples/native-session/tests/functional/alternate_identity.spec.ts), [native credentials](../../examples/native-session/tests/credentials/native_credentials.spec.ts)                                     |
+| Verify packed compatibility                             | [consumer harness](../../bin/test_consumer.ts)                                                                                                                                                              | [compatibility workflow](../../.github/workflows/compat.yml)                                                                                                   | [alternate identity](../../examples/native-session/tests/functional/alternate_identity.spec.ts), [native credentials](../../examples/native-session/tests/credentials/native_credentials.spec.ts)                                     |
 
 The package root and narrow `main.ts` entry points define supported imports. Internal module
 extractions preserve these entry points. Store CAS, audit persistence and uncertain-commit cleanup
@@ -34,7 +34,7 @@ remain one protocol; service control and admission ordering remain one lifecycle
 **Account Kit integration:** the [adapter](../../account_kit/main.ts),
 [blocker middleware](../../account_kit/middleware.ts), and [provider](../../account_kit/provider.ts)
 own identity inspection, actor checks and managed-route blocking. See
-[SPEC §15](../design/SPEC-masquerade.md#15-v12-account-kit-integration) and the
+[SPEC §15](design/spec-masquerade.md#15-v12-account-kit-integration) and the
 [integration guide](../guide/account-kit.md). Focused
 checks are [authority](../../tests/account_kit_authority.spec.ts),
 [blocker](../../tests/account_kit_blocker.spec.ts), and

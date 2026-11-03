@@ -233,6 +233,10 @@ in `canAccess`.
 
 ## Install the provider and blocker
 
+The provider example below follows the unreleased Masquerade source. For the published
+`0.1.4-alpha` tarball, use `adonisjs-masquerade/providers/masquerade_provider` for the Masquerade core
+provider entry instead. The installed configure hook registers its matching provider path.
+
 Register the Account Kit provider subpath and its global middleware in the host. The middleware
 must run after session setup and `initialize_auth`, and before application middleware that calls
 `auth.check()`. The provider validates the selected managed guard and checks the registered
@@ -250,7 +254,7 @@ providers: [
   () => import('adonisjs-account-kit/account_kit_provider'),
   () => import('adonisjs-account-kit/admission/provider'),
   () => import('#providers/masquerade_native_provider'),
-  () => import('adonisjs-masquerade/providers/masquerade_provider'),
+  () => import('adonisjs-masquerade/masquerade_provider'),
   () => import('adonisjs-masquerade/account-kit/provider'),
 ]
 ```

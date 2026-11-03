@@ -2,6 +2,12 @@
 
 ## Unreleased
 
+### Changed
+
+- Move the public provider import to `adonisjs-masquerade/masquerade_provider`. Update the
+  provider entry in `adonisrc.ts` and any runtime type imports from
+  `adonisjs-masquerade/providers/masquerade_provider`; the former subpath is no longer exported.
+
 ## 0.1.4-alpha (2026-11-03)
 
 - Support Account Kit `0.1.4`. The optional `adonisjs-account-kit` peer now declares `0.1.4` in

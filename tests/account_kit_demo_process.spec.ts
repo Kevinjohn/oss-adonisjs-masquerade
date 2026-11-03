@@ -80,8 +80,8 @@ test.group('Account Kit demo process', (group) => {
     const childPidFile = join(directory, 'descendant.pid')
     const parentPidFile = join(directory, 'parent.pid')
     const readyFile = join(directory, 'descendant.ready')
-    const descendant = join(directory, 'descendant.mjs')
-    const parent = join(directory, 'parent.mjs')
+    const descendant = join(directory, 'descendant.ts')
+    const parent = join(directory, 'parent.ts')
     await writeFile(
       descendant,
       `import { writeFileSync } from 'node:fs'; process.on('SIGTERM', () => {}); writeFileSync(${JSON.stringify(readyFile)}, 'ready'); setInterval(() => {}, 1000);\n`
@@ -163,8 +163,8 @@ test.group('Account Kit demo process', (group) => {
       const parentPidFile = join(directory, 'parent.pid')
       const childPidFile = join(directory, 'descendant.pid')
       const readyFile = join(directory, 'descendant.ready')
-      const descendant = join(directory, 'descendant.mjs')
-      const parent = join(directory, 'parent.mjs')
+      const descendant = join(directory, 'descendant.ts')
+      const parent = join(directory, 'parent.ts')
       await writeFile(
         descendant,
         `import { writeFileSync } from 'node:fs'; process.on('SIGTERM', () => {}); writeFileSync(${JSON.stringify(readyFile)}, 'ready'); setInterval(() => {}, 1000);`

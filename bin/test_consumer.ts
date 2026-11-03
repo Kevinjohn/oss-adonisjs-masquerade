@@ -159,6 +159,16 @@ async function verifyConfigure(app: string, profileName: string): Promise<void> 
 
 const rootProbe = `import { registerHooks } from 'node:module'; import { access } from 'node:fs/promises'; import { join } from 'node:path'; registerHooks({resolve(specifier, context, next) { if (specifier.startsWith('@adonisjs/') || /account.?kit/i.test(specifier)) throw new Error('optional runtime import: '+specifier); return next(specifier, context) }}); const api = await import('adonisjs-masquerade'); for (const name of ['defineConfig','createMasqueradeService','configure']) if (typeof api[name] !== 'function') throw new Error('missing root export: '+name); if(typeof api.stubsRoot !== 'string') throw new Error('missing stubsRoot'); await access(join(api.stubsRoot,'migrations/create_masquerade_tables.stub')); await access(join(api.stubsRoot,'configure/masquerade_config.stub'));`
 
+const providerProbe = `
+  import assert from 'node:assert/strict'
+  const provider = await import('adonisjs-masquerade/masquerade_provider')
+  assert.equal(typeof provider.default, 'function')
+  await assert.rejects(
+    import('adonisjs-masquerade/providers/masquerade_provider'),
+    { code: 'ERR_PACKAGE_PATH_NOT_EXPORTED' }
+  )
+`
+
 const pgEnv = {
   ...baseEnv,
   DB_CLIENT: 'pg',
@@ -166,7 +176,7 @@ const pgEnv = {
   DB_PORT: process.env.DB_PORT ?? '55432',
   DB_USER: process.env.DB_USER ?? 'account_kit',
   DB_PASSWORD: process.env.DB_PASSWORD ?? '',
-  DB_DATABASE: process.env.DB_DATABASE ?? 'account_kit_test',
+  DB_DATABASE: process.env.DB_DATABASE ?? 'package_test',
 }
 async function schema(cwd: string, name: string, action: 'create' | 'drop') {
   const sql =
@@ -275,6 +285,11 @@ try {
       app,
       ['exec', 'node', '--input-type=module', '--eval', rootProbe],
       `${selected}_optional_import`
+    )
+    await run(
+      app,
+      ['exec', 'node', '--input-type=module', '--eval', providerProbe],
+      `${selected}_provider_exports`
     )
     await verifyConfigure(app, selected)
     if (args.has('scaffold-only')) {

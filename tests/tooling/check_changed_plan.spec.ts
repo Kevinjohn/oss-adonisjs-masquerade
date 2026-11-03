@@ -59,7 +59,9 @@ test('lockfile and workspace changes run lint and typecheck', ({ assert }) => {
   }
 })
 
-test('the e2e workflow paths, configure and the manifest run the SQLite recipe', ({ assert }) => {
+test('the examples workflow paths, configure and the manifest run the SQLite recipe', ({
+  assert,
+}) => {
   for (const path of [
     'stubs/configure/masquerade_config.stub',
     'src/configure_wiring.ts',
@@ -78,7 +80,14 @@ test('the e2e workflow paths, configure and the manifest run the SQLite recipe',
 })
 
 test('the docs workflow inputs build the docs and require a clean tree', ({ assert }) => {
-  for (const path of ['docs/guide/route-report.md', 'typedoc.json', 'src/service.ts', 'index.ts']) {
+  for (const path of [
+    'docs/guide/route-report.md',
+    'typedoc.json',
+    'src/service.ts',
+    'index.ts',
+    'account_kit/provider.ts',
+    'plugins/api_client.ts',
+  ]) {
     assert.deepInclude(
       planChangedChecks(changed(path)).find((step) => step.label === 'docs build'),
       { command: ['pnpm', 'docs:build'], requiresCleanTree: true },

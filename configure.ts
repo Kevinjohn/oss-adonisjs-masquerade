@@ -141,7 +141,7 @@ export async function configure(command: Configure): Promise<void> {
     addCommand(command: string): unknown
   }) => {
     rcFile.addProvider('#providers/masquerade_native_provider')
-    rcFile.addProvider('adonisjs-masquerade/providers/masquerade_provider')
+    rcFile.addProvider('adonisjs-masquerade/masquerade_provider')
     rcFile.addCommand('adonisjs-masquerade/commands')
   }) as RcFileUpdater)
   if (codemodError || (typeof command.exitCode === 'number' && command.exitCode !== 0)) {

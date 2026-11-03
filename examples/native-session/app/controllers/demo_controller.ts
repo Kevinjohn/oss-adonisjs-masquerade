@@ -114,7 +114,7 @@ function noStore(ctx: HttpContext) {
 
 async function now() {
   if (process.env.NODE_ENV === 'test') {
-    const { masqueradeNow } = await import('#services/masquerade_test_boundary')
+    const { masqueradeNow } = await import('#services/masquerade_fixture_boundary')
     return masqueradeNow()
   }
   return Date.now()

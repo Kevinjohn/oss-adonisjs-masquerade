@@ -1,7 +1,14 @@
 import { spawnSync } from 'node:child_process'
 import { test } from '@japa/runner'
 
-const rootFiles = ['package.json', 'README.md', 'LICENSE.md', 'CHANGELOG.md', 'SECURITY.md']
+const rootFiles = [
+  'package.json',
+  'README.md',
+  'README-AGENTS.md',
+  'LICENSE.md',
+  'CHANGELOG.md',
+  'SECURITY.md',
+]
 
 function packedFiles(): string[] {
   const pack = spawnSync('pnpm', ['pack', '--dry-run', '--json'], { encoding: 'utf8' })

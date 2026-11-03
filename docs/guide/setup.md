@@ -5,17 +5,17 @@ business routes, the selected account becomes the effective principal. The packa
 a target login or credential. For token-only or mixed session/token transport, see the
 [opaque access-token guide](access-tokens.md). Also see [security](security.md) for the identity
 boundary and [custom authorities](custom-authorities.md) for the native authority contract. The
-[API entry-point map](../api-reference.md#supported-package-imports) links supported imports.
+[API entry-point map](../reference/README.md#supported-package-imports) links supported imports.
 Hosts using Account Kit should also read the [Account Kit integration preview](account-kit.md).
 
 ## Generate the starter files
 
 Use Node 24 and pnpm. Masquerade is not published to a package registry. The alpha
-`0.1.1-alpha` is a [GitHub prerelease](https://github.com/Kevinjohn/oss-adonisjs-masquerade/releases/tag/v0.1.1-alpha)
+`0.1.4-alpha` is a [GitHub prerelease](https://github.com/Kevinjohn/oss-adonisjs-masquerade/releases/tag/v0.1.4-alpha)
 with the packed tarball attached. Install it directly in the AdonisJS application:
 
 ```sh
-pnpm add https://github.com/Kevinjohn/oss-adonisjs-masquerade/releases/download/v0.1.1-alpha/adonisjs-masquerade-0.1.1-alpha.tgz
+pnpm add https://github.com/Kevinjohn/oss-adonisjs-masquerade/releases/download/v0.1.4-alpha/adonisjs-masquerade-0.1.4-alpha.tgz
 ```
 
 The release notes list the tarball SHA-256 and source commit. To build the same version yourself,
@@ -23,8 +23,8 @@ check out the annotated tag in a clean worktree so the source and lockfile stay 
 
 ```sh
 git fetch origin --tags
-git worktree add --detach ../masquerade-v0.1.1-alpha v0.1.1-alpha
-cd ../masquerade-v0.1.1-alpha
+git worktree add --detach ../masquerade-v0.1.4-alpha v0.1.4-alpha
+cd ../masquerade-v0.1.4-alpha
 nvm use
 pnpm install --frozen-lockfile
 pnpm build
@@ -49,6 +49,11 @@ pnpm add @adonisjs/lucid
 node ace configure adonisjs-masquerade --namespace=my_app --guard=web
 ```
 
+The configure hook uses the provider path supported by the installed package. Published
+`0.1.4-alpha` registers `adonisjs-masquerade/providers/masquerade_provider`; the unreleased
+source uses `adonisjs-masquerade/masquerade_provider`. When building from source, replace the
+former path in existing `adonisrc.ts` entries and provider type imports.
+
 The two install commands are needed only if those dependencies are absent. Configure
 itself does not install packages or run the generated migration.
 
@@ -66,7 +71,7 @@ manual step for anything it leaves alone:
   value, and that guard is the starter's `sessionGuard` with a `sessionUserProvider` for
   `#models/user`, configure moves the factory to a constant that uses the generated `userProvider`
   (`webGuard` for `--guard=web`), adds `web_effective: effectiveSessionGuard(webGuard)` and makes
-  `web_effective` the default. Any other shape, including a guard you already customised, is not
+  `web_effective` the default. Any other shape, including a guard you already customized, is not
   changed.
 - **`start/kernel.ts`**: configure inserts the context middleware directly after
   `initialize_auth_middleware` in `router.use`. It skips the edit when `initialize_auth` is missing

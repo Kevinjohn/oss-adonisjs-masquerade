@@ -4,7 +4,7 @@ import { controlInput } from '#services/support_control_input'
 import { Bouncer } from '@adonisjs/bouncer'
 import type { HttpContext } from '@adonisjs/core/http'
 import db from '@adonisjs/lucid/services/db'
-import type { MasqueradeRuntime } from 'adonisjs-masquerade/providers/masquerade_provider'
+import type { MasqueradeRuntime } from 'adonisjs-masquerade/masquerade_provider'
 
 export default class DemoController {
   async workspace(ctx: HttpContext) {

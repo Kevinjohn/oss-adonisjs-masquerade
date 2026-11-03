@@ -3,7 +3,7 @@ import { mock } from 'node:test'
 import testUtils from '@adonisjs/core/services/test_utils'
 import db from '@adonisjs/lucid/services/db'
 import { cleanUsers, createUsers } from '#tests/helpers/users'
-import { setMasqueradeStoreUnavailable } from '#services/masquerade_test_boundary'
+import { setMasqueradeStoreUnavailable } from '#services/masquerade_fixture_boundary'
 
 test.group('Inertia Vue support journey', (group) => {
   group.setup(() => testUtils.db().migrate())

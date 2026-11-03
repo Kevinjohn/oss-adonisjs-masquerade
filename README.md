@@ -3,41 +3,38 @@
 [![checks](https://github.com/Kevinjohn/oss-adonisjs-masquerade/actions/workflows/checks.yml/badge.svg?branch=main)](https://github.com/Kevinjohn/oss-adonisjs-masquerade/actions/workflows/checks.yml)
 [![Node.js 24+](https://img.shields.io/badge/node-%3E%3D24-339933)](package.json)
 [![AdonisJS 7](https://img.shields.io/badge/AdonisJS-7-5a45ff)](https://adonisjs.com)
-[![License: MIT](https://img.shields.io/badge/license-MIT-blue)](LICENSE.md)
 
 > Pre-release. Installed from GitHub releases; not on npm.
 
-**See your app exactly as another user sees it, without their password.**
+## What you get
 
-A customer reports a problem you can't reproduce from your own account. Masquerade lets an
-authorized user, such as an admin, use the application as that customer for a fixed time while
-staying signed in as themselves. Also known as user impersonation.
+Masquerade lets an authorized operator use the application as another account for a fixed time
+while staying signed in as themselves. It never logs in as the target or creates a target
+credential.
 
-![The customer view with a support banner naming the operator, the customer, the access level and the deadline.](docs/assets/walkthrough/support_customer_active.png)
-
-## Why use it
-
-- **You decide who can view whom.** Your `canMasquerade` policy approves each pair, on every request.
-- **No credential for the customer.** The admin stays signed in; the customer never logs in.
-- **Read-only by default.** Edits need **Can edit** and your `canEdit` policy; `sensitive()`
-  routes stay blocked.
-- **Time-boxed.** 15 minutes by default, one hour at most, with an explicit stop.
-- **Sessions and access tokens.** Works with native AdonisJS sessions and opaque access tokens.
+- Your `canMasquerade` policy approves each operator and target.
+- Access is read-only by default; edit access requires an explicit policy approval.
+- Sensitive routes stay blocked while a mode is active.
+- The mode expires automatically and can be stopped explicitly.
+- Native AdonisJS sessions and opaque access tokens are supported.
 
 ## Install
 
-Masquerade needs Node.js 24+ and AdonisJS 7. Alpha builds are GitHub prereleases:
+Masquerade requires Node.js 24+ and AdonisJS 7. Install the current prerelease from GitHub:
 
 ```sh
-pnpm add https://github.com/Kevinjohn/oss-adonisjs-masquerade/releases/download/v0.1.1-alpha/adonisjs-masquerade-0.1.1-alpha.tgz
+pnpm add https://github.com/Kevinjohn/oss-adonisjs-masquerade/releases/download/v0.1.4-alpha/adonisjs-masquerade-0.1.4-alpha.tgz
 node ace configure adonisjs-masquerade --namespace=my_app --guard=web
 ```
 
-[Install and configure](docs/guide/setup.md) covers the peers and the generated files.
+The release asset is `adonisjs-masquerade-0.1.4-alpha.tgz` (SHA-256
+`f7bea1f2d869093296467fa28f6082b77872a2c3f7dbbdf6830703b87695a739`). See the
+[setup guide](docs/guide/setup.md) for peer dependencies and generated files.
 
-## Quick win
+## Quick example
 
-Routes on the effective guard run as the customer. Mark the ones that need care:
+Use the effective guard for customer-facing routes. Mark routes that allow edits or must remain
+blocked during masquerade:
 
 ```ts
 import router from '@adonisjs/core/services/router'
@@ -46,33 +43,36 @@ import { allowMutation, sensitive } from 'adonisjs-masquerade/http'
 
 const asCustomer = middleware.auth({ guards: ['web_effective'] })
 
-// Readable as the customer
 router.get('/orders', [OrdersController, 'index']).use(asCustomer)
-
-// Editable when the mode was started with Can edit
 router.post('/orders/:id/notes', [OrdersController, 'note']).use(allowMutation()).use(asCustomer)
-
-// Rejected before the handler runs while any mode is active
 router.post('/account/password', [AccountController, 'update']).use(sensitive()).use(asCustomer)
 ```
 
-## Try it
+## Tested against
 
-From this checkout, with Node 24 and pnpm, run `nvm use` and `pnpm demo`, then open
-<http://127.0.0.1:3333>. The [demo instructions](examples/native-session/README.md#one-command-demo)
-list the fictional accounts, and the [walkthrough](docs/guide/walkthrough.md) shows the journey.
-
-## Status
-
-Early alpha: expect breaking changes before 1.0. It has not had an independent security review,
-so do not rely on it in production yet.
+|                         | Every pull request | Weekly and before each release          |
+| ----------------------- | ------------------ | --------------------------------------- |
+| Node.js                 | 24                 | 24                                      |
+| AdonisJS core           | locked version     | lowest supported (7.0.0) and latest 7.x |
+| Lucid                   | locked version     | lowest supported and latest 22.x        |
+| SQLite (better-sqlite3) | yes                | yes                                     |
+| PostgreSQL 16           | yes                | yes                                     |
 
 ## Documentation
 
-[Getting started](docs/guide/getting-started.md) · [Usage](docs/guide/usage.md) ·
-[Access tokens](docs/guide/access-tokens.md) · [Security](docs/guide/security.md) ·
-[Troubleshooting](docs/guide/troubleshooting.md) · [All guides](docs/README.md) ·
-[API reference](docs/api-reference.md)
+- [Getting started](docs/guide/getting-started.md)
+- [Install and configure](docs/guide/setup.md)
+- [Usage](docs/guide/usage.md)
+- [Security model](docs/guide/security.md)
+- [Troubleshooting](docs/guide/troubleshooting.md)
+- [API reference](docs/reference/README.md)
+- [Masquerade notes for coding agents](README-AGENTS.md)
 
-[Contributing](CONTRIBUTING.md) · [Security policy](SECURITY.md) · [Changelog](CHANGELOG.md) ·
-[MIT licence](LICENSE.md)
+## Contributing
+
+Bug reports and documentation fixes are welcome. Read [CONTRIBUTING.md](CONTRIBUTING.md) before
+opening a pull request. Report vulnerabilities privately as described in [SECURITY.md](SECURITY.md).
+
+## License
+
+[MIT](LICENSE.md)

@@ -1,8 +1,21 @@
-import { test } from 'node:test'
+import { test } from '@japa/runner'
 import assert from 'node:assert/strict'
-import { initJsonClient } from '../../resources/js/demo_json.js'
+import {
+  initJsonClient,
+  type ClientRequest,
+  type ClientElement,
+  type ClientListener,
+} from '../../resources/js/demo_json.js'
 
-function fixture(fetchRef, now = () => 1000) {
+interface FixtureElement extends ClientElement {
+  listeners: Record<string, ClientListener>
+  focused: boolean
+}
+
+function fixture(
+  fetchRef: (path: string, options: ClientRequest) => Promise<Response>,
+  now = () => 1000
+) {
   const selectedAccess = { value: 'view' }
   const ids = [
     'json-client',
@@ -21,7 +34,7 @@ function fixture(fetchRef, now = () => 1000) {
     'json-target',
     'json-reason',
   ]
-  const elements = Object.fromEntries(
+  const elements: Record<string, FixtureElement> = Object.fromEntries(
     ids.map((id) => [
       id,
       {
@@ -30,12 +43,12 @@ function fixture(fetchRef, now = () => 1000) {
         disabled: false,
         textContent: '',
         value: '',
-        listeners: {},
+        listeners: {} as FixtureElement['listeners'],
         focused: false,
-        addEventListener(name, callback) {
+        addEventListener(name: string, callback: FixtureElement['listeners'][string]) {
           this.listeners[name] = callback
         },
-        focus() {
+        focus(this: FixtureElement) {
           this.focused = true
         },
         reset() {
@@ -47,14 +60,14 @@ function fixture(fetchRef, now = () => 1000) {
   )
   const documentRef = {
     visibilityState: 'visible',
-    listeners: {},
-    getElementById(id) {
+    listeners: {} as FixtureElement['listeners'],
+    getElementById(id: string) {
       return elements[id]
     },
     querySelector() {
       return selectedAccess
     },
-    addEventListener(name, callback) {
+    addEventListener(name: string, callback: FixtureElement['listeners'][string]) {
       this.listeners[name] = callback
     },
   }
@@ -62,14 +75,14 @@ function fixture(fetchRef, now = () => 1000) {
   return { elements, documentRef, selectedAccess }
 }
 
-function json(data, status = 200) {
+function json(data: unknown, status = 200) {
   return new Response(JSON.stringify(data), {
     status,
     headers: { 'content-type': 'application/json' },
   })
 }
 
-function active(token, targetId = '2') {
+function active(token: string, targetId = '2') {
   return {
     isMasquerading: true,
     contextToken: token,
@@ -78,7 +91,7 @@ function active(token, targetId = '2') {
   }
 }
 
-function customer(token, email) {
+function customer(token: string, email: string) {
   return {
     actor: { email: 'operator@example.test' },
     customer: { email },
@@ -88,10 +101,10 @@ function customer(token, email) {
   }
 }
 
-const tick = () => new Promise((resolve) => setImmediate(resolve))
+const tick = () => new Promise<void>((resolve) => setImmediate(resolve))
 
 test('captures context and Shield CSRF with the constructed preference intent', async () => {
-  const requests = []
+  const requests: { path: string; options: ClientRequest }[] = []
   const { elements } = fixture(async (path, options) => {
     requests.push({ path, options })
     if (path === '/masquerade') return json(active('revision-1'))
@@ -104,16 +117,17 @@ test('captures context and Shield CSRF with the constructed preference intent', 
   elements['json-preference'].listeners.submit({ preventDefault() {} })
   await tick()
   const mutation = requests.find(({ path }) => path === '/support/json/customer/preference')
+  assert.ok(mutation)
   assert.equal(mutation.options.credentials, 'same-origin')
   assert.equal(mutation.options.headers.Accept, 'application/json')
   assert.equal(mutation.options.headers['X-CSRF-TOKEN'], 'shield-token')
   assert.equal(mutation.options.headers['X-Masquerade-Context'], 'revision-1')
-  assert.deepEqual(JSON.parse(mutation.options.body), { emailUpdates: '1' })
+  assert.deepEqual(JSON.parse(mutation.options.body!), { emailUpdates: '1' })
 })
 
 test('ignores a delayed customer A response after a newer context loads customer B', async () => {
-  let releaseA
-  const delayedA = new Promise((resolve) => {
+  let releaseA!: (response: Response) => void
+  const delayedA = new Promise<Response>((resolve) => {
     releaseA = resolve
   })
   let reads = 0
@@ -125,7 +139,7 @@ test('ignores a delayed customer A response after a newer context loads customer
     throw new Error(path)
   })
   await tick()
-  elements['json-refresh'].listeners.click()
+  elements['json-refresh'].listeners.click({ preventDefault() {} })
   await tick()
   assert.match(elements['json-customer'].textContent, /customer-two@example.test/)
   releaseA(json(customer('A', 'customer-one@example.test')))
@@ -135,7 +149,7 @@ test('ignores a delayed customer A response after a newer context loads customer
 })
 
 test('reads status after an uncertain transition without replaying the old start', async () => {
-  const requests = []
+  const requests: { path: string; options: ClientRequest }[] = []
   const { elements, selectedAccess } = fixture(async (path, options) => {
     requests.push({ path, options })
     if (path === '/masquerade') return json({ isMasquerading: false, contextToken: 'idle' })
@@ -151,14 +165,14 @@ test('reads status after an uncertain transition without replaying the old start
     requests.map(({ path }) => path),
     ['/masquerade', '/masquerade/start', '/masquerade']
   )
-  assert.equal(JSON.parse(requests[1].options.body).access, 'edit')
+  assert.equal(JSON.parse(requests[1].options.body!).access, 'edit')
   assert.match(elements['json-notice'].textContent, /may have completed/)
   assert.equal(elements['json-target'].value, '')
   assert.equal(elements['json-reason'].value, '')
 })
 
 test('keeps raw stop usable when the stored mode has reached its fixed deadline', async () => {
-  const requests = []
+  const requests: { path: string; options: ClientRequest }[] = []
   const { elements } = fixture(
     async (path, options) => {
       requests.push({ path, options })
@@ -170,9 +184,10 @@ test('keeps raw stop usable when the stored mode has reached its fixed deadline'
   await tick()
   assert.equal(elements['json-preference'].hidden, true)
   assert.equal(elements['json-stop'].disabled, false)
-  elements['json-stop'].listeners.click()
+  elements['json-stop'].listeners.click({ preventDefault() {} })
   await tick()
   const stop = requests.find(({ path }) => path === '/masquerade/stop')
+  assert.ok(stop)
   assert.equal(stop.options.headers['X-Masquerade-Context'], 'expired-context')
 })
 
@@ -197,7 +212,7 @@ test('does not claim completion when a successful POST is followed by a failed s
 })
 
 test('a Shield redirect gives session and CSRF recovery without replaying the request', async () => {
-  const requests = []
+  const requests: string[] = []
   const { elements } = fixture(async (path) => {
     requests.push(path)
     if (path === '/masquerade') return json(active('current'))

@@ -271,7 +271,7 @@ export interface MasqueradeService<Request> {
    */
   resolve(request: Request): Promise<ResolvedContext>
 }
-/** Runtime dependencies are ports, never serialisable application configuration. */
+/** Runtime dependencies are ports, never serializable application configuration. */
 export interface ServiceDependencies<User, Request> {
   environment: string
   /** Authenticate the actor through the raw native guard; native errors pass through unchanged. */

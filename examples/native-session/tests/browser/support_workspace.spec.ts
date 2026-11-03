@@ -11,7 +11,7 @@ import { demoAccounts, resetDemoAccounts, seedDemoAccounts } from '#services/dem
 import {
   setMasqueradeStoreUnavailable,
   setMasqueradeTestTime,
-} from '#services/masquerade_test_boundary'
+} from '#services/masquerade_fixture_boundary'
 
 type BrowserPage = Awaited<ReturnType<TestContext['browserContext']['newPage']>>
 

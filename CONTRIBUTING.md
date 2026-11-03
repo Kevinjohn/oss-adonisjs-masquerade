@@ -1,32 +1,31 @@
 # Contributing
 
-Thanks for helping. Bug reports, documentation fixes and store adapters are all welcome.
+Thanks for helping. Bug reports and documentation fixes are welcome.
 
 ## Before you start
 
-- For a bug, open an issue with a reproduction first, unless the fix is a one-line change.
-- For a new feature or a behaviour change, open an issue to agree the shape before writing code.
-  Masquerade keeps a small public surface on purpose, and the
-  [development plan](docs/design/DEVELOPMENT-PLAN.md) records what v1 deliberately leaves out.
-- Report security problems privately, as described in [SECURITY.md](SECURITY.md). Do not open a
+- For a bug, open an issue with a reproduction first, unless the fix is one line.
+- For a feature or behavior change, open an issue to agree on the shape before writing code.
+- Report security problems privately as described in [SECURITY.md](SECURITY.md). Do not open a
   public issue.
 
 ## Project principles
 
-Every change follows these.
+Every change follows these principles.
 
 - **Built for everyone who uses AdonisJS.** Follow the open-source AdonisJS packages and starter
-  kits for names, shapes and behaviour. Match AdonisJS Plus only where that costs nothing; Plus
+  kits for names, shapes and behavior. Match AdonisJS Plus only where that costs nothing; Plus
   compatibility is not a goal and never outweighs consistency for open-source users.
 - **The application owns its language.** Errors carry stable codes and English messages. The host
-  exception handler localises; the package ships no translations, loader or locale setting.
+  exception handler localizes; the package ships no translations, loader or locale setting.
 - **The actor stays authenticated.** Masquerade never logs in as the target, mints a target
-  credential or unions actor and target permissions. Section 3 of
-  [SPEC-masquerade.md](docs/design/SPEC-masquerade.md) lists the invariants; a pull request that weakens one is a product change, not a fix.
+  credential or combines actor and target permissions. See the
+  [technical contract](docs/maintainers/design/spec-masquerade.md) for the invariants.
 
 ## Local setup
 
-You need Node.js 24 and pnpm. The repository pins Node 24 in `.nvmrc`, and `package.json` requires it.
+You need Node.js 24 and pnpm. The repository pins Node 24 in `.nvmrc`; `better-sqlite3` is compiled
+for it and the tests fail under another Node version.
 
 ```sh
 nvm use
@@ -34,84 +33,64 @@ pnpm install
 pnpm quick:test
 ```
 
-To skip local setup, open the repository in GitHub Codespaces. The dev container installs Node 24,
-pnpm and the dependencies; run `pnpm quick:test` once it is ready.
-
 ## Checks
 
-Run the repository scripts, not the bare tools. They carry the flags the release gate uses.
-`pnpm check` runs them in order and stops at the first failure:
+Run the repository scripts, not bare tools. They carry the flags used by the release gate.
 
-| Command                | What it adds                                                                                                     |
-| ---------------------- | ---------------------------------------------------------------------------------------------------------------- |
-| `pnpm check`           | Prettier on tracked files, lint, typecheck, the SQLite test suite, build and the built-export test               |
-| `pnpm check --full`    | PostgreSQL suite, coverage, recipe, demo launcher, docs build, packed consumer and Account Kit consumer (SQLite) |
-| `pnpm check --browser` | Account Kit demo, native-session browser suite, Inertia React and Vue examples                                   |
+| Command                   | What it does                                               |
+| ------------------------- | ---------------------------------------------------------- |
+| `pnpm format:check`       | Checks tracked files with Prettier without writing changes |
+| `pnpm lint`               | Runs ESLint                                                |
+| `pnpm typecheck`          | Type-checks without emitting files                         |
+| `pnpm quick:test`         | Runs the Japa suite against SQLite                         |
+| `pnpm test`               | Runs the SQLite suite with coverage thresholds             |
+| `pnpm test:pg`            | Runs the suite against local PostgreSQL 16                 |
+| `pnpm build`              | Compiles the package to `build/`                           |
+| `pnpm test:built-exports` | Checks package exports from the compiled output            |
+| `pnpm test:consumer`      | Installs the packed package in a consumer application      |
+| `pnpm docs:build`         | Builds the documentation site and checks links             |
 
-Run `pnpm check` before every pull request, and add `--full` for changes to the store, the
-packaging or the docs. While working on a branch, `pnpm check:changed [base]` runs only the
-checks the files changed since the merge-base with `base` (default `origin/main`) need, including
-uncommitted and untracked files: Prettier on those files, lint, typecheck, the changed specs or the
-full SQLite suite, build and built exports, the recipe, and the docs build. It prints one
-`pass`, `fail` or `skip` line per step and does not replace `pnpm check`. With `--static`
-(`pnpm check:changed --static [base]`) it keeps Prettier, lint, typecheck, the changed specs on
-their own and the docs build, and prints a `skip` line for the full suite, build, built exports
-and recipe; use it when one shared run covers those, such as a batch of pull requests. `--browser` needs the native-session example's dependencies and Chromium
-(`pnpm install` and `pnpm dlx playwright install chromium` in `examples/native-session`). The flags combine. Every pull request runs the `checks`
-workflow: Prettier, lint, typecheck, build, the built-export test and coverage on SQLite and PostgreSQL. The `e2e`
-workflow runs the demo launcher, recipe and browser checks on pull requests that change `examples/`,
-`http/`, `stubs/` or `docs/guide/`; `docs` builds the site when `docs/` changes. `e2e` and
-`account-kit` also run nightly; `account-kit` and `consumer` cover PostgreSQL as well. `bin/check_profiles.ts`
-lists the steps, and a test fails if CI runs a script that no profile covers.
+`pnpm test:pg` needs PostgreSQL 16. To use your own server, set `DB_CLIENT=pg`, `DB_HOST`,
+`DB_PORT`, `DB_USER`, `DB_PASSWORD` and `DB_DATABASE`, then run `pnpm quick:test`.
 
-`pnpm test:pg` needs PostgreSQL 16 binaries (`brew install postgresql@16` on macOS). To use your
-own server instead, set `DB_CLIENT=pg` plus `DB_HOST`, `DB_PORT`, `DB_USER`, `DB_PASSWORD` and
-`DB_DATABASE`, then run `pnpm quick:test`.
+Changes to the control store or migrations should pass on both SQLite and PostgreSQL. The `checks`
+workflow runs both for every pull request.
 
-`pnpm test` and `pnpm test:coverage` fail when line or branch coverage drops below the thresholds
-in the `c8` block of `package.json`.
-
-Changes to the control store or its migrations should pass on both SQLite and PostgreSQL. The
-`checks` workflow runs both on every pull request.
+The _Tested against_ table in `README.md` mirrors `.github/workflows/checks.yml` and
+`compat.yml`; change them in the same PR.
 
 ## Code layout
 
-The layout follows [SPEC-masquerade.md](docs/design/SPEC-masquerade.md) section 2.
+- `src/` holds the core service, policy, context token, errors and internal integration wiring.
+- `auth/`, `http/`, and `native/` hold the effective guard, controllers and native authority.
+- `stores/`, `testing/`, and `plugins/` hold the optional Lucid store, test support and API client.
+- `providers/`, `commands/`, and `stubs/` hold the provider, Ace commands and configure templates.
+- `tests/` mirrors the source. Shared fixtures live in `tests/helpers/`.
 
-- `src/` holds the core: state machine, policy, context token, expiry, errors. One responsibility
-  per file.
-- `auth/` holds the effective guard, `http/` the controllers, middleware and markers, `native/`
-  the native session authority.
-- `stores/` holds the optional Lucid control store, `providers/` the AdonisJS provider and
-  `testing/` the memory store and conformance suite.
-- `commands/` holds the Ace commands, `configure.ts` and `stubs/` the configure scaffold,
-  `plugins/` the Japa API client plugin, `account_kit/` the Account Kit preview adapter and
-  `src/integration/` internal wiring shared by the guards, middleware and providers.
-- `tests/` mirrors the source: one spec per module. Shared fixtures live in `tests/helpers/`.
+See the [maintainer source map](docs/maintainers/README.md) for module ownership and focused tests.
+[AGENTS.md](AGENTS.md) describes the file responsibility and folder rules.
 
-[The maintainer source map](docs/maintainers/source-map.md) maps common tasks to their owning
-modules, contracts and focused tests. Start there before loading the implementation history.
+## Planning files
 
-[AGENTS.md](AGENTS.md#single-responsibility-principle-files) describes the responsibility and file-splitting rules the codebase follows.
-[docs/maintainers/conventions.md](docs/maintainers/conventions.md) records where every convention
-comes from.
+The accepted product and technical contracts live in
+[`docs/maintainers/design/`](docs/maintainers/design/). Private working plans belong in the local,
+gitignored `plans/` directory; do not commit them.
 
 ## Pull requests
 
-- Keep each pull request to one change.
+- Keep each pull request focused on one change.
 - Add or update tests. A bug fix should include a test that fails without the fix.
-- Give every public export a JSDoc block. `pnpm docs:api` fails on an undocumented class, function,
-  interface, type alias or variable.
-- Update the relevant page in `docs/` and add a line under `## Unreleased` in
-  [CHANGELOG.md](CHANGELOG.md) when behaviour visible to users changes.
-- Write commit messages in the imperative mood, describing the change ("Reject a stale stop
-  against a newer mode").
+- Document user-facing changes and add a line under `## Unreleased` in [CHANGELOG.md](CHANGELOG.md).
+- Keep public error codes stable; changing one requires a breaking changelog entry.
+- Write imperative commit messages that describe the change.
 
-## Store adapters
+## Repository-specific
 
-A control store for another database is a good first contribution. The conformance suite in
-`adonisjs-masquerade/testing` checks a store against the same behaviour the Lucid store passes,
-including compare-and-swap under concurrent connections.
+### Store adapters
+
+A control store for another database is a useful first contribution. The conformance suite in
+`adonisjs-masquerade/testing` checks a store against the behavior of the Lucid store, including
+compare-and-swap behavior with concurrent connections.
 
 ## Code of conduct
 

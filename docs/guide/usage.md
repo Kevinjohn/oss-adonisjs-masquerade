@@ -8,7 +8,7 @@ customer never signs in, and the operator's permissions are never added to the c
 Install and configure the provider, raw and effective guards, policy, session, and Shield first as
 described in [Install and configure](setup.md). Keep login, logout, and support controls on the raw
 actor guard. Keep customer business routes on the effective guard. See the
-[API entry-point map](../api-reference.md#supported-package-imports) for the HTTP entry point,
+[API entry-point map](../reference/README.md#supported-package-imports) for the HTTP entry point,
 `MasqueradeController`, `masqueradeContext`, and the route markers used below.
 
 ## Mount the JSON controls
@@ -113,7 +113,7 @@ like this:
 
 Omitting `access` selects view. Choose **Can edit** deliberately in the start form and send
 `access: 'edit'` when the host's `canEdit` policy permits it. The level stays fixed until stop;
-restart to choose another level. See the [access contract](https://github.com/Kevinjohn/oss-adonisjs-masquerade/blob/main/docs/design/SPEC-masquerade.md#14-view-only-default-and-per-start-edit-access-accepted-22-october-2026).
+restart to choose another level. See the [access contract](https://github.com/Kevinjohn/oss-adonisjs-masquerade/blob/main/docs/maintainers/design/spec-masquerade.md#14-view-only-default-and-per-start-edit-access-accepted-22-october-2026).
 
 The default duration is 900 seconds and the default maximum is 3600 seconds. A host can configure
 a shorter duration and maximum. When duration is omitted, the configured default is used;

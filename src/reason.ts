@@ -7,7 +7,7 @@ export function normalizeReason(value: unknown): string {
   const reason = value.trim().replace(/\r\n/g, '\n')
   if (
     !reason ||
-    // Only LF and TAB are permitted inside a normalised reason.
+    // Only LF and TAB are permitted inside a normalized reason.
     // eslint-disable-next-line no-control-regex
     /[\u0000-\u0008\u000b-\u001f\u007f-\u009f]/u.test(reason) ||
     [...reason].length > 500 ||
@@ -17,7 +17,7 @@ export function normalizeReason(value: unknown): string {
   return reason
 }
 
-/** An optional reason that is absent, null or blank is stored as null; any other value is normalised. */
+/** An optional reason that is absent, null or blank is stored as null; any other value is normalized. */
 export function parseStartReason(value: unknown, policy: ReasonPolicy): string | null {
   if (
     policy === 'optional' &&

@@ -10,7 +10,7 @@ import app from '@adonisjs/core/services/app'
 import { Database } from '@adonisjs/lucid/database'
 import type User from '#models/user'
 import { accessTokenUserProvider, userProvider } from '#services/web_guard'
-import { shouldThrowFromAuthorityCallbacks } from '#services/masquerade_test_boundary'
+import { shouldThrowFromAuthorityCallbacks } from '#services/masquerade_fixture_boundary'
 
 const securityStamp = stampFrom<User>((user) => {
   if (shouldThrowFromAuthorityCallbacks()) throw new Error('Test security-stamp callback fault')
@@ -64,7 +64,7 @@ const config = defineConfig({
     const store = new LucidControlStore(database.connection())
     if (process.env.NODE_ENV !== 'test') return store
 
-    const { withFixtureControlStore } = await import('#services/masquerade_test_boundary')
+    const { withFixtureControlStore } = await import('#services/masquerade_fixture_boundary')
     return withFixtureControlStore(store)
   },
   contextEnforcement:

@@ -55,7 +55,7 @@ export default defineConfig({
     () => import('@adonisjs/lucid/database_provider'),
     () => import('@adonisjs/auth/auth_provider'),
     () => import('#providers/masquerade_native_provider'),
-    () => import('adonisjs-masquerade/providers/masquerade_provider'),
+    () => import('adonisjs-masquerade/masquerade_provider'),
   ],
 
   /*
@@ -91,6 +91,11 @@ export default defineConfig({
         files: ['tests/unit/**/*.spec.ts'],
         name: 'unit',
         timeout: 2000,
+      },
+      {
+        files: ['tests/ui/**/*.spec.ts'],
+        name: 'ui',
+        timeout: 30000,
       },
       {
         files: ['tests/functional/**/*.spec.ts'],

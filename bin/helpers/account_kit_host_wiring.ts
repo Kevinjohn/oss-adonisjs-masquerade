@@ -97,7 +97,7 @@ export async function wireShield(app: string): Promise<void> {
 export async function wireProviders(app: string): Promise<void> {
   await replace(
     join(app, 'adonisrc.ts'),
-    "    () => import('adonisjs-masquerade/providers/masquerade_provider'),",
-    "    () => import('adonisjs-masquerade/providers/masquerade_provider'),\n    () => import('adonisjs-masquerade/account-kit/provider'),\n    () => import('adonisjs-account-kit/admission/provider'),"
+    "    () => import('adonisjs-masquerade/masquerade_provider'),",
+    "    () => import('adonisjs-masquerade/masquerade_provider'),\n    () => import('adonisjs-masquerade/account-kit/provider'),\n    () => import('adonisjs-account-kit/admission/provider'),"
   )
 }

@@ -1,17 +1,17 @@
 import assert from 'node:assert/strict'
-import { spawn } from 'node:child_process'
+import { spawn, type ChildProcess } from 'node:child_process'
 import { createHash } from 'node:crypto'
 import { once } from 'node:events'
 import { createServer } from 'node:net'
 import { mkdtemp, mkdir, readFile, rm, writeFile } from 'node:fs/promises'
 import os from 'node:os'
 import path from 'node:path'
-import test from 'node:test'
+import { test } from '@japa/runner'
 import { fileURLToPath } from 'node:url'
-import { assertNodeVersion } from '../../bin/demo.mjs'
+import { assertNodeVersion } from '../../bin/demo.js'
 
 const repoRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../..')
-const launcherPath = path.join(repoRoot, 'bin/demo.mjs')
+const launcherPath = path.join(repoRoot, 'bin/demo.ts')
 const currentNode = process.execPath
 
 test('requires Node 24 before demo setup', () => {
@@ -19,21 +19,44 @@ test('requires Node 24 before demo setup', () => {
   assert.doesNotThrow(() => assertNodeVersion('25.2.1'))
   assert.throws(() => assertNodeVersion('23.11.0'), /requires Node\.js 24 or newer/)
   assert.throws(() => assertNodeVersion('unknown'), /requires Node\.js 24 or newer/)
-})
+}).timeout(30_000)
 
-async function freePort() {
+async function freePort(): Promise<number> {
   const server = createServer()
-  await new Promise((resolve, reject) =>
+  await new Promise<void>((resolve, reject) =>
     server.listen(0, '127.0.0.1', resolve).once('error', reject)
   )
-  const { port } = server.address()
-  await new Promise((resolve, reject) =>
+  const address = server.address()
+  if (!address || typeof address === 'string') throw new Error('Expected a TCP port address')
+  await new Promise<void>((resolve, reject) =>
     server.close((error) => (error ? reject(error) : resolve()))
   )
-  return port
+  return address.port
 }
 
-async function fixture(options = {}) {
+type FixtureOptions = {
+  port?: number
+  env?: string
+  server?: boolean
+  envOverrides?: NodeJS.ProcessEnv
+  failAt?: string
+  startupFail?: boolean
+  startupDelay?: number
+  badPage?: boolean
+  seedDelay?: number
+}
+
+type DemoFixture = {
+  directory: string
+  root: string
+  example: string
+  port: number
+  env: NodeJS.ProcessEnv
+  logPath: string
+  firstEnv?: string
+}
+
+async function fixture(options: FixtureOptions = {}): Promise<DemoFixture> {
   const directory = await mkdtemp(path.join(os.tmpdir(), 'masquerade-demo-'))
   const root = path.join(directory, 'checkout')
   const example = path.join(root, 'examples/native-session')
@@ -42,7 +65,7 @@ async function fixture(options = {}) {
   await mkdir(bin, { recursive: true })
   await mkdir(path.join(root, 'bin'), { recursive: true })
   await mkdir(path.join(root, 'tmp'), { recursive: true })
-  await writeFile(path.join(root, 'bin/demo.mjs'), await readFile(launcherPath))
+  await writeFile(path.join(root, 'bin/demo.ts'), await readFile(launcherPath))
   await writeFile(path.join(root, 'pnpm-lock.yaml'), 'lockfileVersion: 9\n')
   const port = options.port ?? (await freePort())
   const envExample = `NODE_ENV=development\nPORT=${port}\nHOST=localhost\nAPP_URL=http://\${HOST}:\${PORT}\nAPP_KEY=replace_me_with_node_ace_generate_key\n`
@@ -63,7 +86,7 @@ async function fixture(options = {}) {
   if (options.env !== undefined) await writeFile(path.join(example, '.env'), options.env)
   if (options.server !== false) {
     await writeFile(
-      path.join(example, 'server.mjs'),
+      path.join(example, 'server.js'),
       `
       import { createServer } from 'node:http'
       import { writeFile } from 'node:fs/promises'
@@ -87,7 +110,7 @@ async function fixture(options = {}) {
     )
   }
   await writeFile(
-    path.join(example, 'orphan.mjs'),
+    path.join(example, 'orphan.js'),
     "import { createServer } from 'node:http'\nimport { writeFile } from 'node:fs/promises'\nconst server = createServer((_request, response) => response.end('orphan'))\nawait writeFile('orphan.pid', String(process.pid))\nserver.listen(Number(process.env.PORT), '127.0.0.1')\n"
   )
   await writeFile(
@@ -122,7 +145,7 @@ await writeFile(logPath, (await import('node:fs/promises').then(({readFile}) => 
 if (process.env.DEMO_TEST_FAIL_AT && command.includes(process.env.DEMO_TEST_FAIL_AT)) {
   if (args[0] === 'build') {
     const example = path.join(process.cwd(), 'examples/native-session')
-    spawn(process.execPath, [path.join(example, 'orphan.mjs')], { cwd: example, env: process.env, stdio: 'ignore' })
+    spawn(process.execPath, [path.join(example, 'orphan.js')], { cwd: example, env: process.env, stdio: 'ignore' })
     for (let attempt = 0; attempt < 100; attempt++) {
       if (await readFile(path.join(example, 'orphan.pid'), 'utf8').catch(() => '')) break
       await new Promise((resolve) => setTimeout(resolve, 20))
@@ -136,7 +159,7 @@ if (args[0] === 'pack:fixture') {
 }
 if (args[0] === 'dev') {
   if (process.env.DEMO_TEST_STARTUP_FAIL === '1') process.exit(19)
-  const child = spawn(process.execPath, ['server.mjs'], { cwd: process.cwd(), env: process.env, stdio: 'inherit' })
+  const child = spawn(process.execPath, ['server.js'], { cwd: process.cwd(), env: process.env, stdio: 'inherit' })
   process.on('SIGTERM', () => child.kill('SIGTERM'))
   process.on('SIGINT', () => child.kill('SIGINT'))
   child.on('exit', (code) => process.exit(code ?? 1))
@@ -144,10 +167,11 @@ if (args[0] === 'dev') {
 `
   const pnpmPath = path.join(bin, 'pnpm')
   await writeFile(pnpmPath, pnpmScript, { mode: 0o755 })
-  const env = {
+  const logPath = path.join(directory, 'commands.log')
+  const env: NodeJS.ProcessEnv = {
     ...process.env,
     PATH: `${bin}:${process.env.PATH}`,
-    DEMO_TEST_LOG: path.join(directory, 'commands.log'),
+    DEMO_TEST_LOG: logPath,
   }
   for (const name of ['NODE_ENV', 'PORT', 'APP_KEY', 'DB_CLIENT', 'HOST']) delete env[name]
   Object.assign(env, options.envOverrides)
@@ -156,34 +180,37 @@ if (args[0] === 'dev') {
   if (options.startupDelay) env.DEMO_TEST_STARTUP_DELAY = String(options.startupDelay)
   if (options.badPage) env.DEMO_TEST_BAD_PAGE = '1'
   if (options.seedDelay) env.DEMO_TEST_SEED_DELAY = String(options.seedDelay)
-  return { directory, root, example, port, env, logPath: env.DEMO_TEST_LOG }
+  return { directory, root, example, port, env, logPath }
 }
 
-function launch(fixture, args = []) {
-  return spawn(currentNode, [path.join(fixture.root, 'bin/demo.mjs'), ...args], {
-    cwd: fixture.root,
-    env: fixture.env,
+function launch(demo: DemoFixture, args: string[] = []): ChildProcess {
+  return spawn(currentNode, [path.join(demo.root, 'bin/demo.ts'), ...args], {
+    cwd: demo.root,
+    env: demo.env,
     stdio: ['ignore', 'pipe', 'pipe'],
   })
 }
 
-async function outputOf(child) {
+async function outputOf(child: ChildProcess): Promise<{ text: () => string }> {
   let output = ''
-  child.stdout.setEncoding('utf8').on('data', (chunk) => {
+  child.stdout!.setEncoding('utf8').on('data', (chunk: string) => {
     output += chunk
   })
-  child.stderr.setEncoding('utf8').on('data', (chunk) => {
+  child.stderr!.setEncoding('utf8').on('data', (chunk: string) => {
     output += chunk
   })
   return { text: () => output }
 }
 
-async function collectExit(child, output) {
-  const [code, signal] = await once(child, 'exit')
+async function collectExit(
+  child: ChildProcess,
+  output: { text: () => string }
+): Promise<{ code: number | null; signal: NodeJS.Signals | null; text: string }> {
+  const [code, signal] = (await once(child, 'exit')) as [number | null, NodeJS.Signals | null]
   return { code, signal, text: output.text() }
 }
 
-async function waitForFile(filePath, timeoutMs = 5000) {
+async function waitForFile(filePath: string, timeoutMs = 5000): Promise<string> {
   const deadline = Date.now() + timeoutMs
   while (Date.now() < deadline) {
     try {
@@ -194,7 +221,11 @@ async function waitForFile(filePath, timeoutMs = 5000) {
   throw new Error(`Timed out waiting for ${filePath}`)
 }
 
-async function waitForText(output, expected, timeoutMs = 5000) {
+async function waitForText(
+  output: { text: () => string },
+  expected: string,
+  timeoutMs = 5000
+): Promise<void> {
   const deadline = Date.now() + timeoutMs
   while (Date.now() < deadline) {
     if (output.text().includes(expected)) return
@@ -203,21 +234,23 @@ async function waitForText(output, expected, timeoutMs = 5000) {
   throw new Error(`Timed out waiting for output: ${expected}\n${output.text()}`)
 }
 
-async function isListening(port) {
+async function isListening(port: number): Promise<boolean> {
   return new Promise((resolve) => {
     const socket = createServer()
-    socket.once('error', (error) => resolve(error.code === 'EADDRINUSE'))
+    socket.once('error', (error) => resolve((error as NodeJS.ErrnoException).code === 'EADDRINUSE'))
     socket.listen({ host: '127.0.0.1', port, exclusive: true }, () =>
       socket.close(() => resolve(false))
     )
   })
 }
 
-test('bootstraps a clean checkout, serves its app, and preserves key and unrelated data on repeat launch', async (t) => {
+test('bootstraps a clean checkout, serves its app, and preserves key and unrelated data on repeat launch', async ({
+  cleanup,
+}) => {
   const demo = await fixture()
-  t.after(() => rm(demo.directory, { recursive: true, force: true }))
-  let activeChild
-  t.after(async () => {
+  cleanup(() => rm(demo.directory, { recursive: true, force: true }))
+  let activeChild: ChildProcess | undefined
+  cleanup(async () => {
     if (!activeChild || activeChild.exitCode !== null || activeChild.signalCode !== null) return
     activeChild.kill('SIGTERM')
     await once(activeChild, 'exit')
@@ -269,9 +302,9 @@ test('bootstraps a clean checkout, serves its app, and preserves key and unrelat
     assert.equal(await isListening(demo.port), false)
     activeChild = undefined
   }
-})
+}).timeout(30_000)
 
-test('refuses production and PostgreSQL settings before migration or seed', async (t) => {
+test('refuses production and PostgreSQL settings before migration or seed', async ({ cleanup }) => {
   for (const [label, envText] of [
     ['production', 'NODE_ENV=production\nPORT=3333\nAPP_KEY=base64:kept\n'],
     ['PostgreSQL', 'NODE_ENV=development\nPORT=3333\nDB_CLIENT=pg\nAPP_KEY=base64:kept\n'],
@@ -281,7 +314,7 @@ test('refuses production and PostgreSQL settings before migration or seed', asyn
     ],
   ]) {
     const demo = await fixture({ env: envText })
-    t.after(() => rm(demo.directory, { recursive: true, force: true }))
+    cleanup(() => rm(demo.directory, { recursive: true, force: true }))
     const child = launch(demo)
     const output = await outputOf(child)
     const result = await collectExit(child, output)
@@ -296,9 +329,11 @@ test('refuses production and PostgreSQL settings before migration or seed', asyn
       ''
     )
   }
-})
+}).timeout(30_000)
 
-test('resolves the documented APP_URL template in existing config without rewriting it', async (t) => {
+test('resolves the documented APP_URL template in existing config without rewriting it', async ({
+  cleanup,
+}) => {
   const port = await freePort()
   const originalEnv = `NODE_ENV=development\nPORT=12345\nHOST=localhost\nAPP_URL=http://\${HOST}:\${PORT}\nAPP_KEY=base64:preserve-this-key\n`
   const demo = await fixture({
@@ -306,7 +341,7 @@ test('resolves the documented APP_URL template in existing config without rewrit
     env: originalEnv,
     envOverrides: { HOST: '127.0.0.1', PORT: String(port) },
   })
-  t.after(() => rm(demo.directory, { recursive: true, force: true }))
+  cleanup(() => rm(demo.directory, { recursive: true, force: true }))
   const child = launch(demo)
   const output = await outputOf(child)
   await waitForFile(path.join(demo.example, 'server.pid'))
@@ -342,19 +377,21 @@ test('resolves the documented APP_URL template in existing config without rewrit
     await readFile(path.join(demo.example, 'state.json'), 'utf8'),
     /unrelated@example\.test/
   )
-})
+}).timeout(30_000)
 
 for (const ownerHost of ['127.0.0.1', '0.0.0.0', '::', '::1']) {
-  test(`reports a local port occupied on ${ownerHost} without stopping its owner or touching the database`, async (t) => {
+  test(`reports a local port occupied on ${ownerHost} without stopping its owner or touching the database`, async ({
+    cleanup,
+  }) => {
     const port = await freePort()
     const owner = createServer().listen(port, ownerHost)
     await once(owner, 'listening')
-    t.after(() => owner.close())
+    cleanup(() => new Promise<void>((resolve) => owner.close(() => resolve())))
     const demo = await fixture({
       port,
       env: `NODE_ENV=development\nPORT=${port}\nAPP_KEY=base64:kept\nAPP_URL=http://127.0.0.1:${port}\n`,
     })
-    t.after(() => rm(demo.directory, { recursive: true, force: true }))
+    cleanup(() => rm(demo.directory, { recursive: true, force: true }))
     const child = launch(demo)
     const output = await outputOf(child)
     const result = await collectExit(child, output)
@@ -365,34 +402,36 @@ for (const ownerHost of ['127.0.0.1', '0.0.0.0', '::', '::1']) {
       await readFile(path.join(demo.example, 'migrations-ran'), 'utf8').catch(() => ''),
       ''
     )
-  })
+  }).timeout(30_000)
 }
 
-test('reports a port taken during setup instead of starting the server', async (t) => {
+test('reports a port taken during setup instead of starting the server', async ({ cleanup }) => {
   const port = await freePort()
   const demo = await fixture({
     port,
     env: `NODE_ENV=development\nPORT=${port}\nAPP_KEY=base64:kept\nAPP_URL=http://127.0.0.1:${port}\n`,
     seedDelay: 1500,
   })
-  t.after(() => rm(demo.directory, { recursive: true, force: true }))
+  cleanup(() => rm(demo.directory, { recursive: true, force: true }))
   const child = launch(demo)
-  t.after(() => child.kill('SIGINT'))
+  cleanup(() => {
+    child.kill('SIGINT')
+  })
   const output = await outputOf(child)
   const exited = collectExit(child, output)
   await waitForFile(path.join(demo.example, 'migrations-ran'))
   const owner = createServer().listen(port, '0.0.0.0')
   await once(owner, 'listening')
-  t.after(() => owner.close())
+  cleanup(() => new Promise<void>((resolve) => owner.close(() => resolve())))
   const result = await exited
   assert.equal(result.code, 1, result.text)
   assert.match(result.text, new RegExp(`Port ${port} is already in use`))
   assert.equal(await readFile(path.join(demo.example, 'server.pid'), 'utf8').catch(() => ''), '')
-})
+}).timeout(30_000)
 
-test('reports setup failures and terminates its owned child process group', async (t) => {
+test('reports setup failures and terminates its owned child process group', async ({ cleanup }) => {
   const demo = await fixture({ failAt: 'build' })
-  t.after(() => rm(demo.directory, { recursive: true, force: true }))
+  cleanup(() => rm(demo.directory, { recursive: true, force: true }))
   const child = launch(demo)
   const output = await outputOf(child)
   const result = await collectExit(child, output)
@@ -408,14 +447,16 @@ test('reports setup failures and terminates its owned child process group', asyn
   assert.throws(() => process.kill(orphanPid, 0), { code: 'ESRCH' })
   assert.equal(await isListening(demo.port), false)
   assert.doesNotMatch(await readFile(demo.logPath, 'utf8'), /migration:run|demo:seed/)
-})
+}).timeout(30_000)
 
-test('stops the serving process on interruption and preserves a malformed configuration', async (t) => {
+test('stops the serving process on interruption and preserves a malformed configuration', async ({
+  cleanup,
+}) => {
   const port = await freePort()
   const demo = await fixture({
     env: `NODE_ENV=development\nPORT=${port}\nAPP_KEY=base64:kept\nAPP_URL=http://127.0.0.1:${port}\n`,
   })
-  t.after(() => rm(demo.directory, { recursive: true, force: true }))
+  cleanup(() => rm(demo.directory, { recursive: true, force: true }))
   const child = launch(demo)
   const output = await outputOf(child)
   const pid = Number(await waitForFile(path.join(demo.example, 'server.pid')))
@@ -426,7 +467,7 @@ test('stops the serving process on interruption and preserves a malformed config
   assert.throws(() => process.kill(pid, 0), { code: 'ESRCH' })
 
   const malformed = await fixture({ env: 'NODE_ENV development\nAPP_KEY=base64:kept\n' })
-  t.after(() => rm(malformed.directory, { recursive: true, force: true }))
+  cleanup(() => rm(malformed.directory, { recursive: true, force: true }))
   const malformedChild = launch(malformed)
   const malformedOutput = await outputOf(malformedChild)
   const malformedResult = await collectExit(malformedChild, malformedOutput)
@@ -437,11 +478,13 @@ test('stops the serving process on interruption and preserves a malformed config
     'NODE_ENV development\nAPP_KEY=base64:kept\n'
   )
   assert.equal(await readFile(malformed.logPath, 'utf8').catch(() => ''), '')
-})
+}).timeout(30_000)
 
-test('stops its process group when interrupted while the server is still starting', async (t) => {
+test('stops its process group when interrupted while the server is still starting', async ({
+  cleanup,
+}) => {
   const demo = await fixture({ startupDelay: 5000 })
-  t.after(() => rm(demo.directory, { recursive: true, force: true }))
+  cleanup(() => rm(demo.directory, { recursive: true, force: true }))
   const child = launch(demo)
   const output = await outputOf(child)
   const deadline = Date.now() + 8000
@@ -456,13 +499,13 @@ test('stops its process group when interrupted while the server is still startin
   assert.equal(result.code, 143)
   assert.equal(await isListening(demo.port), false)
   assert.equal(await readFile(path.join(demo.example, 'server.pid'), 'utf8').catch(() => ''), '')
-})
+}).timeout(30_000)
 
-test('does not report readiness for an unrelated successful listener', async (t) => {
+test('does not report readiness for an unrelated successful listener', async ({ cleanup }) => {
   const demo = await fixture({ badPage: true })
-  t.after(() => rm(demo.directory, { recursive: true, force: true }))
-  let activeChild
-  t.after(async () => {
+  cleanup(() => rm(demo.directory, { recursive: true, force: true }))
+  let activeChild: ChildProcess | undefined
+  cleanup(async () => {
     if (!activeChild || activeChild.exitCode !== null || activeChild.signalCode !== null) return
     activeChild.kill('SIGTERM')
     await once(activeChild, 'exit')
@@ -478,4 +521,4 @@ test('does not report readiness for an unrelated successful listener', async (t)
   activeChild.kill('SIGTERM')
   const result = await collectExit(activeChild, output)
   assert.equal(result.code, 143)
-})
+}).timeout(30_000)

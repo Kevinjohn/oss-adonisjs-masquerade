@@ -21,9 +21,8 @@ export const checkProfiles: Record<CheckProfile, CheckStep[]> = {
   ],
   full: [
     { script: 'test:pg' },
-    { script: 'test:coverage' },
+    { script: 'test' },
     { script: 'test:recipe', args: ['--database=sqlite'] },
-    { script: 'test:demo' },
     { script: 'docs:build' },
     { script: 'pack:fixture' },
     { script: 'test:consumer', args: ['--database=sqlite'] },

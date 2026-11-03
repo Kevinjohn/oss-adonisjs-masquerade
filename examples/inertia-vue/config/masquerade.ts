@@ -28,7 +28,7 @@ export default defineConfig({
     canUseRequest: async ({ actor, target, request }) => {
       if (process.env.NODE_ENV === 'test') {
         const { areCustomerRequestsUnavailable } =
-          await import('#services/masquerade_test_boundary')
+          await import('#services/masquerade_fixture_boundary')
         if (
           areCustomerRequestsUnavailable() &&
           (request as HttpContext).request.url() === '/support/customer'
@@ -42,7 +42,7 @@ export default defineConfig({
     const database = await app.container.make(Database)
     const store = new LucidControlStore(database.connection())
     if (process.env.NODE_ENV !== 'test') return store
-    const { withFixtureControlStore } = await import('#services/masquerade_test_boundary')
+    const { withFixtureControlStore } = await import('#services/masquerade_fixture_boundary')
     return withFixtureControlStore(store)
   },
   contextEnforcement: 'enforce',
