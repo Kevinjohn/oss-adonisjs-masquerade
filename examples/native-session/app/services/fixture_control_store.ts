@@ -1,5 +1,5 @@
-import type { ControlStore } from 'adonisjs-masquerade/types'
-import type { LucidControlStore } from 'adonisjs-masquerade/stores/lucid'
+import type { ControlStore } from '@kevinjohn/adonisjs-masquerade/types'
+import type { LucidControlStore } from '@kevinjohn/adonisjs-masquerade/stores/lucid'
 
 let modeReads = 0
 let storeUnavailable = false

@@ -1,4 +1,4 @@
-import { masqueradeContext } from 'adonisjs-masquerade/http'
+import { masqueradeContext } from '@kevinjohn/adonisjs-masquerade/http'
 import type { HttpContext } from '@adonisjs/core/http'
 import type { NextFn } from '@adonisjs/core/types/http'
 

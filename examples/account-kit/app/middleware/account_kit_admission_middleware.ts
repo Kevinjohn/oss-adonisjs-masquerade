@@ -1,6 +1,6 @@
 import app from '@adonisjs/core/services/app'
 import type { HttpContext } from '@adonisjs/core/http'
-import { AccountAdmission, admissionMiddleware } from 'adonisjs-account-kit/admission'
+import { AccountAdmission, admissionMiddleware } from '@kevinjohn/adonisjs-account-kit/admission'
 import { managedGuard } from '#services/account_kit_guard'
 
 /** Gate only the fixture's control and business routes before Masquerade context selection. */

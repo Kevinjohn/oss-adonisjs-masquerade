@@ -3,7 +3,7 @@ import testUtils from '@adonisjs/core/services/test_utils'
 import app from '@adonisjs/core/services/app'
 import db from '@adonisjs/lucid/services/db'
 import { DateTime } from 'luxon'
-import { AccountKit } from 'adonisjs-account-kit'
+import { AccountKit } from '@kevinjohn/adonisjs-account-kit'
 import User from '#models/user'
 import { AccountKitHttp } from '#tests/helpers/account_kit_http'
 import {

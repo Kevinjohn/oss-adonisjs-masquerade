@@ -14,7 +14,7 @@ test.group('Masquerade configure scaffold', () => {
     try {
       await mkdir(join(root, 'config'), { recursive: true })
       await mkdir(join(root, 'start'), { recursive: true })
-      await mkdir(join(root, 'node_modules'), { recursive: true })
+      await mkdir(join(root, 'node_modules/@kevinjohn'), { recursive: true })
       await writeFile(join(root, 'config/auth.ts'), 'export default {}')
       await writeFile(join(root, 'tsconfig.json'), '{"compilerOptions":{"strict":true}}\n')
       await writeFile(
@@ -30,7 +30,7 @@ export default defineConfig({
         join(root, 'node_modules/@adonisjs'),
         'dir'
       )
-      await symlink(process.cwd(), join(root, 'node_modules/adonisjs-masquerade'), 'dir')
+      await symlink(process.cwd(), join(root, 'node_modules/@kevinjohn/adonisjs-masquerade'), 'dir')
 
       const ignitor = new IgnitorFactory()
         .withCoreProviders()
@@ -41,22 +41,8 @@ export default defineConfig({
         .ace()
         .configure(async (app) => {
           app.import = async (specifier: string) => {
-            if (specifier === 'adonisjs-masquerade') return import('adonisjs-masquerade')
-            if (specifier === '@adonisjs/lucid') return import('@adonisjs/lucid')
-            if (specifier === '@adonisjs/assembler/code_transformer')
-              return import('@adonisjs/assembler/code_transformer')
-            throw new Error('Unexpected package import: ' + specifier)
-          }
-        })
-        .handle(['configure', 'adonisjs-masquerade', '--namespace=ace_app', '--guard=web'])
-      assert.equal(process.exitCode, 0)
-      process.exitCode = previousProcessExitCode
-
-      await ignitor
-        .ace()
-        .configure(async (app) => {
-          app.import = async (specifier: string) => {
-            if (specifier === 'adonisjs-masquerade') return import('adonisjs-masquerade')
+            if (specifier === '@kevinjohn/adonisjs-masquerade')
+              return import('@kevinjohn/adonisjs-masquerade')
             if (specifier === '@adonisjs/lucid') return import('@adonisjs/lucid')
             if (specifier === '@adonisjs/assembler/code_transformer')
               return import('@adonisjs/assembler/code_transformer')
@@ -65,7 +51,28 @@ export default defineConfig({
         })
         .handle([
           'configure',
-          'adonisjs-masquerade',
+          '@kevinjohn/adonisjs-masquerade',
+          '--namespace=ace_app',
+          '--guard=web',
+        ])
+      assert.equal(process.exitCode, 0)
+      process.exitCode = previousProcessExitCode
+
+      await ignitor
+        .ace()
+        .configure(async (app) => {
+          app.import = async (specifier: string) => {
+            if (specifier === '@kevinjohn/adonisjs-masquerade')
+              return import('@kevinjohn/adonisjs-masquerade')
+            if (specifier === '@adonisjs/lucid') return import('@adonisjs/lucid')
+            if (specifier === '@adonisjs/assembler/code_transformer')
+              return import('@adonisjs/assembler/code_transformer')
+            throw new Error('Unexpected package import: ' + specifier)
+          }
+        })
+        .handle([
+          'configure',
+          '@kevinjohn/adonisjs-masquerade',
           '--namespace=ace_app',
           '--guard=web',
           '--force',
@@ -87,10 +94,10 @@ export default defineConfig({
       assert.include(rcFile, "'#commands/host_command'")
       assert.isBelow(
         rcFile.indexOf('#providers/masquerade_native_provider'),
-        rcFile.indexOf('adonisjs-masquerade/masquerade_provider')
+        rcFile.indexOf('@kevinjohn/adonisjs-masquerade/masquerade_provider')
       )
-      assert.equal(rcFile.match(/adonisjs-masquerade\/masquerade_provider/g)?.length, 1)
-      assert.equal(rcFile.match(/adonisjs-masquerade\/commands/g)?.length, 1)
+      assert.equal(rcFile.match(/@kevinjohn\/adonisjs-masquerade\/masquerade_provider/g)?.length, 1)
+      assert.equal(rcFile.match(/@kevinjohn\/adonisjs-masquerade\/commands/g)?.length, 1)
       assert.include(rcFile, '#providers/masquerade_native_provider')
 
       const middlewareModule = await import(
@@ -163,7 +170,10 @@ export default defineConfig({
       assert.include(routes, "'start'")
       assert.include(routes, "'stop'")
       const jsonRoutes = await readFile(join(json, 'start/masquerade_routes.ts'), 'utf8')
-      assert.include(jsonRoutes, "import { masqueradeRoutes } from 'adonisjs-masquerade/http'")
+      assert.include(
+        jsonRoutes,
+        "import { masqueradeRoutes } from '@kevinjohn/adonisjs-masquerade/http'"
+      )
       assert.notInclude(jsonRoutes, 'MasqueradeFormController')
       assert.isFalse(existsSync(join(json, 'app/controllers/masquerade_form_controller.ts')))
       assert.include(
@@ -194,7 +204,7 @@ export default defineConfig({
 
 async function starterHost(): Promise<string> {
   const root = await mkdtemp(join(tmpdir(), 'masquerade-starter-configure-'))
-  for (const directory of ['config', 'start', 'node_modules'])
+  for (const directory of ['config', 'start', 'node_modules/@kevinjohn'])
     await mkdir(join(root, directory), { recursive: true })
   await writeFile(join(root, 'config/auth.ts'), starterAuthConfig)
   await writeFile(join(root, 'config/limiter.ts'), 'export default {}\n')
@@ -213,7 +223,7 @@ export default defineConfig({
     join(root, 'node_modules/@adonisjs'),
     'dir'
   )
-  await symlink(process.cwd(), join(root, 'node_modules/adonisjs-masquerade'), 'dir')
+  await symlink(process.cwd(), join(root, 'node_modules/@kevinjohn/adonisjs-masquerade'), 'dir')
   return root
 }
 
@@ -228,14 +238,21 @@ async function runConfigure(root: string, flags: string[] = []): Promise<number 
     .ace()
     .configure(async (app) => {
       app.import = async (specifier: string) => {
-        if (specifier === 'adonisjs-masquerade') return import('adonisjs-masquerade')
+        if (specifier === '@kevinjohn/adonisjs-masquerade')
+          return import('@kevinjohn/adonisjs-masquerade')
         if (specifier === '@adonisjs/lucid') return import('@adonisjs/lucid')
         if (specifier === '@adonisjs/assembler/code_transformer')
           return import('@adonisjs/assembler/code_transformer')
         throw new Error('Unexpected package import: ' + specifier)
       }
     })
-    .handle(['configure', 'adonisjs-masquerade', '--namespace=starter', '--guard=web', ...flags])
+    .handle([
+      'configure',
+      '@kevinjohn/adonisjs-masquerade',
+      '--namespace=starter',
+      '--guard=web',
+      ...flags,
+    ])
   return process.exitCode
 }
 

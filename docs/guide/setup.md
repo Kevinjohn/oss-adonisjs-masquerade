@@ -10,12 +10,12 @@ Hosts using Account Kit should also read the [Account Kit integration preview](a
 
 ## Generate the starter files
 
-Use Node 24 and pnpm. Masquerade is not published to a package registry. The alpha
-`0.1.4-alpha` is a [GitHub prerelease](https://github.com/Kevinjohn/oss-adonisjs-masquerade/releases/tag/v0.1.4-alpha)
-with the packed tarball attached. Install it directly in the AdonisJS application:
+Use Node 24 and pnpm. Masquerade is not published to a package registry. The planned
+`0.1.5` [GitHub release](https://github.com/Kevinjohn/oss-adonisjs-masquerade/releases/tag/v0.1.5)
+will carry the packed tarball. Once published, install it directly in the AdonisJS application:
 
 ```sh
-pnpm add https://github.com/Kevinjohn/oss-adonisjs-masquerade/releases/download/v0.1.4-alpha/adonisjs-masquerade-0.1.4-alpha.tgz
+pnpm add https://github.com/Kevinjohn/oss-adonisjs-masquerade/releases/download/v0.1.5/kevinjohn-adonisjs-masquerade-0.1.5.tgz
 ```
 
 The release notes list the tarball SHA-256 and source commit. To build the same version yourself,
@@ -23,8 +23,8 @@ check out the annotated tag in a clean worktree so the source and lockfile stay 
 
 ```sh
 git fetch origin --tags
-git worktree add --detach ../masquerade-v0.1.4-alpha v0.1.4-alpha
-cd ../masquerade-v0.1.4-alpha
+git worktree add --detach ../masquerade-v0.1.5 v0.1.5
+cd ../masquerade-v0.1.5
 nvm use
 pnpm install --frozen-lockfile
 pnpm build
@@ -46,13 +46,11 @@ Then add any missing peers and run the configure command:
 ```sh
 pnpm add -D @adonisjs/assembler
 pnpm add @adonisjs/lucid
-node ace configure adonisjs-masquerade --namespace=my_app --guard=web
+node ace configure @kevinjohn/adonisjs-masquerade --namespace=my_app --guard=web
 ```
 
-The configure hook uses the provider path supported by the installed package. Published
-`0.1.4-alpha` registers `adonisjs-masquerade/providers/masquerade_provider`; the unreleased
-source uses `adonisjs-masquerade/masquerade_provider`. When building from source, replace the
-former path in existing `adonisrc.ts` entries and provider type imports.
+The scoped `0.1.5` candidate registers `@kevinjohn/adonisjs-masquerade/masquerade_provider`.
+Replace the previous provider path in existing `adonisrc.ts` entries and provider type imports.
 
 The two install commands are needed only if those dependencies are absent. Configure
 itself does not install packages or run the generated migration.
@@ -152,7 +150,7 @@ export const memberGuard = sessionGuard({ useRememberMeTokens: false, provider: 
 
 ```ts
 import { defineConfig } from '@adonisjs/auth'
-import { effectiveSessionGuard } from 'adonisjs-masquerade/auth'
+import { effectiveSessionGuard } from '@kevinjohn/adonisjs-masquerade/auth'
 import { memberGuard } from '#services/member_guard'
 import { webGuard } from '#services/web_guard'
 import type { InferAuthenticators, InferAuthEvents, Authenticators } from '@adonisjs/auth/types'
@@ -202,7 +200,7 @@ advances when account-wide revocation is required, and the operator policy field
 // Relevant part of config/masquerade.ts
 import type User from '#models/user'
 import { userProvider } from '#services/masquerade_user_provider'
-import { sessionAuthority, stampFrom } from 'adonisjs-masquerade/native'
+import { sessionAuthority, stampFrom } from '@kevinjohn/adonisjs-masquerade/native'
 
 const nativeAdapter = sessionAuthority<User>({
   namespace: 'my_app',
@@ -233,7 +231,7 @@ export default defineConfig<User, HttpContext>({
 ```
 
 This is a configuration fragment; add `stampFrom` to the generated import from
-`adonisjs-masquerade/native`, and retain the other generated imports, store, and retention settings.
+`@kevinjohn/adonisjs-masquerade/native`, and retain the other generated imports, store, and retention settings.
 Set `contextEnforcement` to `enforce` when business forms carry a captured context token: the generated
 `report` setting logs stale tokens but allows the request to continue. Enforcement rejects every
 covered unsafe business request without the token with 428, including when no one is
@@ -339,7 +337,7 @@ with the raw guard so an active effective identity cannot replace the actor used
 
 ```ts
 // Fragment; keep your existing router and kernel imports and define the two limiters.
-import { masqueradeRoutes } from 'adonisjs-masquerade/http'
+import { masqueradeRoutes } from '@kevinjohn/adonisjs-masquerade/http'
 
 masqueradeRoutes(router, {
   auth: middleware.auth,

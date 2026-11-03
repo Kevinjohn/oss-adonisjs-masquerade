@@ -1,6 +1,6 @@
 import { BaseCommand } from '@adonisjs/core/ace'
 import app from '@adonisjs/core/services/app'
-import { AccountAdmission } from 'adonisjs-account-kit/admission'
+import { AccountAdmission } from '@kevinjohn/adonisjs-account-kit/admission'
 import User from '#models/user'
 import { demoAccounts, assertDemoEnvironmentAllowed } from '#services/demo_accounts'
 import env from '#start/env'

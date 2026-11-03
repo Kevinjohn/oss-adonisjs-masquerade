@@ -5,7 +5,7 @@ import { test } from '@japa/runner'
 import testUtils from '@adonisjs/core/services/test_utils'
 import db from '@adonisjs/lucid/services/db'
 import { demoAccounts } from '#services/demo_accounts'
-import { AccountAdmission } from 'adonisjs-account-kit/admission'
+import { AccountAdmission } from '@kevinjohn/adonisjs-account-kit/admission'
 import app from '@adonisjs/core/services/app'
 
 const execFile = promisify(execFileCallback)

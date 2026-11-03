@@ -231,11 +231,11 @@ try {
       execFileSync('tar', ['-xOf', kitArtifact, 'package/package.json'], { encoding: 'utf8' })
     ) as { name?: string; version?: string }
     if (
-      localManifest.name !== 'adonisjs-account-kit' ||
+      localManifest.name !== '@kevinjohn/adonisjs-account-kit' ||
       localManifest.version !== kitReleaseVersion
     )
       throw new Error(
-        `Expected local Account Kit adonisjs-account-kit@${kitReleaseVersion}, found ${localManifest.name}@${localManifest.version}`
+        `Expected local Account Kit @kevinjohn/adonisjs-account-kit@${kitReleaseVersion}, found ${localManifest.name}@${localManifest.version}`
       )
     evidence.accountKit = {
       url: null,
@@ -249,10 +249,10 @@ try {
     const manifest = JSON.parse(await readFile(join(root, 'package.json'), 'utf8')) as {
       devDependencies?: Record<string, string>
     }
-    const configuredUrl = manifest.devDependencies?.['adonisjs-account-kit']
+    const configuredUrl = manifest.devDependencies?.['@kevinjohn/adonisjs-account-kit']
     if (configuredUrl !== kitReleaseUrl)
       throw new Error(
-        `Expected devDependency adonisjs-account-kit to pin ${kitReleaseUrl}; found ${configuredUrl ?? 'missing'}`
+        `Expected devDependency @kevinjohn/adonisjs-account-kit to pin ${kitReleaseUrl}; found ${configuredUrl ?? 'missing'}`
       )
     const download = new AbortController()
     activeDownload = download
@@ -277,11 +277,11 @@ try {
       execFileSync('tar', ['-xOf', kitArtifact, 'package/package.json'], { encoding: 'utf8' })
     ) as { name?: string; version?: string }
     if (
-      releaseManifest.name !== 'adonisjs-account-kit' ||
+      releaseManifest.name !== '@kevinjohn/adonisjs-account-kit' ||
       releaseManifest.version !== kitReleaseVersion
     )
       throw new Error(
-        `Expected Account Kit adonisjs-account-kit@${kitReleaseVersion}, found ${releaseManifest.name}@${releaseManifest.version}`
+        `Expected Account Kit @kevinjohn/adonisjs-account-kit@${kitReleaseVersion}, found ${releaseManifest.name}@${releaseManifest.version}`
       )
     evidence.accountKit = {
       url: configuredUrl,
@@ -380,10 +380,16 @@ try {
             try {
               await run(app, ['install', '--no-frozen-lockfile'], `${label}_install`, env)
               const resolvedKit = JSON.parse(
-                await readFile(join(app, 'node_modules/adonisjs-account-kit/package.json'), 'utf8')
+                await readFile(
+                  join(app, 'node_modules/@kevinjohn/adonisjs-account-kit/package.json'),
+                  'utf8'
+                )
               ).version
               const resolvedMasquerade = JSON.parse(
-                await readFile(join(app, 'node_modules/adonisjs-masquerade/package.json'), 'utf8')
+                await readFile(
+                  join(app, 'node_modules/@kevinjohn/adonisjs-masquerade/package.json'),
+                  'utf8'
+                )
               ).version
               const resolvedPeers = Object.fromEntries(
                 await Promise.all(
@@ -430,7 +436,7 @@ try {
                   'node',
                   'ace.js',
                   'configure',
-                  'adonisjs-account-kit',
+                  '@kevinjohn/adonisjs-account-kit',
                   '--users-table=users',
                   '--user-id-type=integer',
                 ],

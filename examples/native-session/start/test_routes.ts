@@ -1,5 +1,5 @@
 import { Bouncer } from '@adonisjs/bouncer'
-import { allowMutation, sensitive, shareMasquerade } from 'adonisjs-masquerade/http'
+import { allowMutation, sensitive, shareMasquerade } from '@kevinjohn/adonisjs-masquerade/http'
 import { middleware } from '#start/kernel'
 import router from '@adonisjs/core/services/router'
 import type User from '#models/user'

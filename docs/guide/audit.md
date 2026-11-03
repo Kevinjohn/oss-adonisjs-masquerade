@@ -8,7 +8,7 @@ audit record. Include it in the host transaction when that audit must commit ato
 business change:
 
 ```ts
-import { masqueradeAuditFields } from 'adonisjs-masquerade/http'
+import { masqueradeAuditFields } from '@kevinjohn/adonisjs-masquerade/http'
 
 await businessAudit.record({
   action: 'customer.preference.updated',
@@ -84,7 +84,7 @@ AdonisJS's emitter:
 <!-- host-recipe:transition-observer -->
 
 ```ts
-import type { ObserverEvent } from 'adonisjs-masquerade/types'
+import type { ObserverEvent } from '@kevinjohn/adonisjs-masquerade/types'
 import emitter from '@adonisjs/core/services/emitter'
 import logger from '@adonisjs/core/services/logger'
 

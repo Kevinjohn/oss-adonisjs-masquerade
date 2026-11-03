@@ -25,7 +25,7 @@ enabled for cookie-authenticated POST requests.
 import { middleware } from '#start/kernel'
 import { startMasqueradeLimiter, stopMasqueradeLimiter } from '#start/masquerade_control_limiter'
 import router from '@adonisjs/core/services/router'
-import { masqueradeRoutes } from 'adonisjs-masquerade/http'
+import { masqueradeRoutes } from '@kevinjohn/adonisjs-masquerade/http'
 
 masqueradeRoutes(router, {
   auth: middleware.auth,
@@ -160,7 +160,7 @@ mode, even if a route also has `allowMutation()`.
 <!-- host-recipe:business-routes -->
 
 ```ts
-import { allowMutation, sensitive } from 'adonisjs-masquerade/http'
+import { allowMutation, sensitive } from '@kevinjohn/adonisjs-masquerade/http'
 import { middleware } from '#start/kernel'
 import router from '@adonisjs/core/services/router'
 

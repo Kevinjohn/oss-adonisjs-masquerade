@@ -305,11 +305,11 @@ async function refreshLocalTarballIntegrity() {
   ])
   const integrity = `sha512-${createHash('sha512').update(tarball).digest('base64')}`
   const localResolution =
-    /( {2}adonisjs-masquerade@file:\.\.\/\.\.\/tmp\/native-session-package\.tgz:\n {4}resolution: \{integrity: )sha512-[A-Za-z0-9+/=]+(, tarball: file:\.\.\/\.\.\/tmp\/native-session-package\.tgz\s*\})/g
+    /( {2}'@kevinjohn\/adonisjs-masquerade@file:\.\.\/\.\.\/tmp\/native-session-package\.tgz':\n {4}resolution: \{integrity: )sha512-[A-Za-z0-9+/=]+(, tarball: file:\.\.\/\.\.\/tmp\/native-session-package\.tgz\s*\})/g
   const matches = [...lockfile.matchAll(localResolution)]
   if (matches.length !== 1) {
     throw new Error(
-      `Expected one local adonisjs-masquerade tarball integrity entry in ${exampleLockPath}, found ${matches.length}. Restore the example lockfile before retrying.`
+      `Expected one local @kevinjohn/adonisjs-masquerade tarball integrity entry in ${exampleLockPath}, found ${matches.length}. Restore the example lockfile before retrying.`
     )
   }
   const updated = lockfile.replace(localResolution, `$1${integrity}$2`)

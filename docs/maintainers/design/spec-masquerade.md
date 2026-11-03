@@ -4,7 +4,7 @@
 **Version:** 0.3
 **Date:** 19 October 2026
 **Product requirements:** [prd-masquerade.md](prd-masquerade.md)
-**Working package label:** `adonisjs-masquerade`; registry name, repository name, version and publication are undecided.
+**Working package label:** `@kevinjohn/adonisjs-masquerade`; registry name, repository name, version and publication are undecided.
 
 ## 1. Reading contract and authority
 
@@ -409,7 +409,7 @@ opaque access tokens are supported. JWT remains out of scope, and Account Kit re
 
 ### 13.1 Native adapter and composition
 
-The public APIs are exported from `adonisjs-masquerade/native`:
+The public APIs are exported from `@kevinjohn/adonisjs-masquerade/native`:
 
 ```ts
 const tokens = accessTokensAuthority({
@@ -580,8 +580,8 @@ optional, and the core package must remain usable without resolving Account Kit.
 
 ### 15.1 Package and authority boundary
 
-- Export the adapter from `adonisjs-masquerade/account-kit` and its provider from
-  `adonisjs-masquerade/account-kit/provider`. Declare the Account Kit alpha as an optional peer
+- Export the adapter from `@kevinjohn/adonisjs-masquerade/account-kit` and its provider from
+  `@kevinjohn/adonisjs-masquerade/account-kit/provider`. Declare the Account Kit alpha as an optional peer
   dependency pinned to its released alpha version. Do not create a separate package.
 - Adapter construction accepts the host namespace, incarnation, lazy `kit` resolver, framework
   provider and Account Kit `managedGuard`; the access-token strategy also supplies its required
@@ -618,9 +618,9 @@ errors map to 503. There is no actor fallback. Account Kit's current check retai
 session-touch behavior.
 
 Account admission remains a separate host gate. Obtain `AccountAdmission` from
-`adonisjs-account-kit/admission`; its provider is `adonisjs-account-kit/admission/provider`.
+`@kevinjohn/adonisjs-account-kit/admission`; its provider is `@kevinjohn/adonisjs-account-kit/admission/provider`.
 The provider supplies the DI binding; import `admissionMiddleware` separately from
-`adonisjs-account-kit/admission`. On host-selected Masquerade control and business routes, register
+`@kevinjohn/adonisjs-account-kit/admission`. On host-selected Masquerade control and business routes, register
 `admissionMiddleware({ admission: async () => app.container.make(AccountAdmission), guard: managedGuard })`
 before `masqueradeContext`. The middleware calls the admission service's `.require`. The context
 middleware can read mode and admit business requests, so a route-level admission middleware placed

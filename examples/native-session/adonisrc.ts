@@ -26,7 +26,7 @@ export default defineConfig({
     () => import('@adonisjs/core/commands'),
     () => import('@adonisjs/lucid/commands'),
     () => import('@adonisjs/session/commands'),
-    () => import('adonisjs-masquerade/commands'),
+    () => import('@kevinjohn/adonisjs-masquerade/commands'),
   ],
 
   /*
@@ -55,7 +55,7 @@ export default defineConfig({
     () => import('@adonisjs/lucid/database_provider'),
     () => import('@adonisjs/auth/auth_provider'),
     () => import('#providers/masquerade_native_provider'),
-    () => import('adonisjs-masquerade/masquerade_provider'),
+    () => import('@kevinjohn/adonisjs-masquerade/masquerade_provider'),
   ],
 
   /*

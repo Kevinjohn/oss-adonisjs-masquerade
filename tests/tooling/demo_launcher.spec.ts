@@ -73,7 +73,7 @@ async function fixture(options: FixtureOptions = {}): Promise<DemoFixture> {
   await writeFile(
     path.join(example, 'pnpm-lock.yaml'),
     `
-  adonisjs-masquerade@file:../../tmp/native-session-package.tgz:
+  '@kevinjohn/adonisjs-masquerade@file:../../tmp/native-session-package.tgz':
     resolution: {integrity: sha512-old, tarball: file:../../tmp/native-session-package.tgz}
   unrelated@1.0.0:
     resolution: {integrity: sha512-preserve-this}

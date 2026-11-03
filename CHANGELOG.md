@@ -2,11 +2,23 @@
 
 ## Unreleased
 
+## 0.1.5 - 2026-11-03
+
 ### Changed
 
-- Move the public provider import to `adonisjs-masquerade/masquerade_provider`. Update the
+- Move the public provider import to `@kevinjohn/adonisjs-masquerade/masquerade_provider`. Update the
   provider entry in `adonisrc.ts` and any runtime type imports from
   `adonisjs-masquerade/providers/masquerade_provider`; the former subpath is no longer exported.
+
+- Package renamed to `@kevinjohn/adonisjs-masquerade`. Migration: reinstall from the new
+  tarball; replace `adonisjs-masquerade` with `@kevinjohn/adonisjs-masquerade` in imports; change the provider
+  line in `adonisrc.ts` to `@kevinjohn/adonisjs-masquerade/masquerade_provider`.
+
+- Support the scoped Account Kit `0.1.5`. The optional `@kevinjohn/adonisjs-account-kit` peer now
+  declares `0.1.5` in place of the unscoped `adonisjs-account-kit` `0.1.4`. Account Kit hosts
+  install the scoped `0.1.5` release tarball, replace `adonisjs-account-kit` with
+  `@kevinjohn/adonisjs-account-kit` in imports and `adonisrc.ts` provider entries, and use the
+  scoped name with `node ace configure`.
 
 ## 0.1.4-alpha - 2026-11-03
 

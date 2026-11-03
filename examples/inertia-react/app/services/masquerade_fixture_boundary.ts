@@ -1,4 +1,4 @@
-import type { LucidControlStore } from 'adonisjs-masquerade/stores/lucid'
+import type { LucidControlStore } from '@kevinjohn/adonisjs-masquerade/stores/lucid'
 import {
   FixtureControlStore,
   masqueradeFixtureDiagnostics,

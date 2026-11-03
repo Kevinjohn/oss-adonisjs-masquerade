@@ -76,7 +76,7 @@ async function isKitDenial(error: unknown, name: string, code: string): Promise<
   if ((error as { code?: unknown }).code === code) return true
   try {
     // Only an Account Kit error path resolves the optional peer; core and construction stay lazy.
-    const path = 'adonisjs-account-kit/errors'
+    const path = '@kevinjohn/adonisjs-account-kit/errors'
     const kitErrors = (await import(path)) as Record<string, unknown>
     const errorClass = kitErrors[name]
     return typeof errorClass === 'function' && error instanceof errorClass

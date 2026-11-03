@@ -1,8 +1,8 @@
 import app from '@adonisjs/core/services/app'
 import router from '@adonisjs/core/services/router'
 import vine from '@vinejs/vine'
-import { AccountKit } from 'adonisjs-account-kit'
-import { AccountAdmission, admissionMiddleware } from 'adonisjs-account-kit/admission'
+import { AccountKit } from '@kevinjohn/adonisjs-account-kit'
+import { AccountAdmission, admissionMiddleware } from '@kevinjohn/adonisjs-account-kit/admission'
 import { managedGuard } from '#services/account_kit_guard'
 
 const changePasswordValidator = vine.compile(

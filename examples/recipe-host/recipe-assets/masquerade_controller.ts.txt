@@ -1,1 +1,1 @@
-export { MasqueradeController as default } from 'adonisjs-masquerade/http'
+export { MasqueradeController as default } from '@kevinjohn/adonisjs-masquerade/http'

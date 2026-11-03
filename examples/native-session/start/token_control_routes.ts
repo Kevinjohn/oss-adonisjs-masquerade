@@ -1,6 +1,6 @@
 import { Bouncer } from '@adonisjs/bouncer'
-import { MasqueradeError } from 'adonisjs-masquerade'
-import { masqueradeRoutes } from 'adonisjs-masquerade/http'
+import { MasqueradeError } from '@kevinjohn/adonisjs-masquerade'
+import { masqueradeRoutes } from '@kevinjohn/adonisjs-masquerade/http'
 import { middleware } from '#start/kernel'
 import {
   startTokenMasqueradeLimiter,

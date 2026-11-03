@@ -1,7 +1,7 @@
 import app from '@adonisjs/core/services/app'
 import router from '@adonisjs/core/services/router'
-import { AccountKit } from 'adonisjs-account-kit'
-import { registerManagedRoutes } from 'adonisjs-account-kit/http'
+import { AccountKit } from '@kevinjohn/adonisjs-account-kit'
+import { registerManagedRoutes } from '@kevinjohn/adonisjs-account-kit/http'
 import { sessionGuard } from '#services/account_kit_guard'
 import { validateProfile } from '#validators/account_kit_profile'
 

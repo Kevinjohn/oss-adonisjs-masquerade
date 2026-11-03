@@ -2,10 +2,10 @@ import { cp, mkdir, readdir, readFile, writeFile } from 'node:fs/promises'
 import { join } from 'node:path'
 
 export const kitReleaseUrl =
-  'https://github.com/Kevinjohn/oss-adonisjs-account-kit/releases/download/v0.1.4/adonisjs-account-kit-0.1.4.tgz'
-export const kitReleaseSha256 = '5fa51b3f892d03e9f4e4776c40a33bc1eff2e4e884e4e6d2f528bbf99ef44d6b'
-export const kitReleaseVersion = '0.1.4'
-export const kitSourceRevision = 'fae423198ae2d591cdf3bc89ee1b3e47258dfb99'
+  'https://github.com/Kevinjohn/oss-adonisjs-account-kit/releases/download/v0.1.5/kevinjohn-adonisjs-account-kit-0.1.5.tgz'
+export const kitReleaseSha256 = '1efdb5bcda9aeb1dd78e71293d1af0471335cb44e25661ea58dc26540e8a69d5'
+export const kitReleaseVersion = '0.1.5'
+export const kitSourceRevision = '4aebc86950139b5ad173e67e21da01b53135bc86'
 
 export async function overlay(sourceDir: string, destinationDir: string): Promise<void> {
   for (const entry of await readdir(sourceDir, { withFileTypes: true })) {
@@ -33,8 +33,8 @@ export async function rewriteManifest(
   for (const [name, version] of Object.entries(versions))
     (name === 'typescript' ? manifest.devDependencies : manifest.dependencies)[name] = version
   if (selectedProfile === 'floor') manifest.dependencies['@adonisjs/vite'] = '6.0.1'
-  manifest.dependencies['adonisjs-masquerade'] = 'file:./masquerade.tgz'
-  manifest.dependencies['adonisjs-account-kit'] = 'file:./account-kit.tgz'
+  manifest.dependencies['@kevinjohn/adonisjs-masquerade'] = 'file:./masquerade.tgz'
+  manifest.dependencies['@kevinjohn/adonisjs-account-kit'] = 'file:./account-kit.tgz'
   await writeFile(join(app, 'package.json'), JSON.stringify(manifest, null, 2) + '\n')
   await writeFile(
     join(app, 'pnpm-workspace.yaml'),
@@ -66,7 +66,7 @@ export async function wireSessionImports(app: string): Promise<void> {
   await replace(
     join(app, 'config/session.ts'),
     "import { defineConfig, stores } from '@adonisjs/session'",
-    "import { defineConfig, stores } from '@adonisjs/session'\nimport { protectManagedSessionConfig } from 'adonisjs-account-kit/http'"
+    "import { defineConfig, stores } from '@adonisjs/session'\nimport { protectManagedSessionConfig } from '@kevinjohn/adonisjs-account-kit/http'"
   )
 }
 
@@ -82,7 +82,7 @@ export async function wireKernel(app: string): Promise<void> {
   await replace(
     join(app, 'start/kernel.ts'),
     "  () => import('@adonisjs/auth/initialize_auth_middleware'),",
-    "  () => import('@adonisjs/auth/initialize_auth_middleware'),\n  () => import('adonisjs-masquerade/account-kit/middleware'),\n  () => import('#middleware/account_kit_admission_middleware'),"
+    "  () => import('@adonisjs/auth/initialize_auth_middleware'),\n  () => import('@kevinjohn/adonisjs-masquerade/account-kit/middleware'),\n  () => import('#middleware/account_kit_admission_middleware'),"
   )
 }
 
@@ -97,7 +97,7 @@ export async function wireShield(app: string): Promise<void> {
 export async function wireProviders(app: string): Promise<void> {
   await replace(
     join(app, 'adonisrc.ts'),
-    "    () => import('adonisjs-masquerade/masquerade_provider'),",
-    "    () => import('adonisjs-masquerade/masquerade_provider'),\n    () => import('adonisjs-masquerade/account-kit/provider'),\n    () => import('adonisjs-account-kit/admission/provider'),"
+    "    () => import('@kevinjohn/adonisjs-masquerade/masquerade_provider'),",
+    "    () => import('@kevinjohn/adonisjs-masquerade/masquerade_provider'),\n    () => import('@kevinjohn/adonisjs-masquerade/account-kit/provider'),\n    () => import('@kevinjohn/adonisjs-account-kit/admission/provider'),"
   )
 }

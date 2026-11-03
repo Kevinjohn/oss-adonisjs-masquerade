@@ -24,7 +24,7 @@ export const webGuard = sessionGuard({
 ```ts
 // config/auth.ts
 import { defineConfig } from '@adonisjs/auth'
-import { effectiveSessionGuard } from 'adonisjs-masquerade/auth'
+import { effectiveSessionGuard } from '@kevinjohn/adonisjs-masquerade/auth'
 import { webGuard } from '#services/web_guard'
 
 export default defineConfig({
@@ -112,7 +112,7 @@ non-Inertia clients.
 import { computed } from 'vue'
 import { Form } from '@adonisjs/inertia/vue'
 import { usePage } from '@inertiajs/vue3'
-import type { ModeView } from 'adonisjs-masquerade/types'
+import type { ModeView } from '@kevinjohn/adonisjs-masquerade/types'
 
 type SharedProps = { masquerade?: ModeView }
 const page = usePage<SharedProps>()

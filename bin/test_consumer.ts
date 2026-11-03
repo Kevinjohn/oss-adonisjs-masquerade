@@ -129,7 +129,7 @@ async function verifyConfigure(app: string, profileName: string): Promise<void> 
         'node',
         join(check, 'ace.js'),
         'configure',
-        'adonisjs-masquerade',
+        '@kevinjohn/adonisjs-masquerade',
         '--namespace=consumer_check',
         '--guard=web',
       ],
@@ -157,14 +157,14 @@ async function verifyConfigure(app: string, profileName: string): Promise<void> 
   }
 }
 
-const rootProbe = `import { registerHooks } from 'node:module'; import { access } from 'node:fs/promises'; import { join } from 'node:path'; registerHooks({resolve(specifier, context, next) { if (specifier.startsWith('@adonisjs/') || /account.?kit/i.test(specifier)) throw new Error('optional runtime import: '+specifier); return next(specifier, context) }}); const api = await import('adonisjs-masquerade'); for (const name of ['defineConfig','createMasqueradeService','configure']) if (typeof api[name] !== 'function') throw new Error('missing root export: '+name); if(typeof api.stubsRoot !== 'string') throw new Error('missing stubsRoot'); await access(join(api.stubsRoot,'migrations/create_masquerade_tables.stub')); await access(join(api.stubsRoot,'configure/masquerade_config.stub'));`
+const rootProbe = `import { registerHooks } from 'node:module'; import { access } from 'node:fs/promises'; import { join } from 'node:path'; registerHooks({resolve(specifier, context, next) { if (specifier.startsWith('@adonisjs/') || /account.?kit/i.test(specifier)) throw new Error('optional runtime import: '+specifier); return next(specifier, context) }}); const api = await import('@kevinjohn/adonisjs-masquerade'); for (const name of ['defineConfig','createMasqueradeService','configure']) if (typeof api[name] !== 'function') throw new Error('missing root export: '+name); if(typeof api.stubsRoot !== 'string') throw new Error('missing stubsRoot'); await access(join(api.stubsRoot,'migrations/create_masquerade_tables.stub')); await access(join(api.stubsRoot,'configure/masquerade_config.stub'));`
 
 const providerProbe = `
   import assert from 'node:assert/strict'
-  const provider = await import('adonisjs-masquerade/masquerade_provider')
+  const provider = await import('@kevinjohn/adonisjs-masquerade/masquerade_provider')
   assert.equal(typeof provider.default, 'function')
   await assert.rejects(
-    import('adonisjs-masquerade/providers/masquerade_provider'),
+    import('@kevinjohn/adonisjs-masquerade/providers/masquerade_provider'),
     { code: 'ERR_PACKAGE_PATH_NOT_EXPORTED' }
   )
 `
@@ -229,7 +229,7 @@ try {
     }
     // Vite 6.0.2 requires Core >=7.5; 6.0.1 declares compatibility with Core 7.0.
     if (selected === 'floor') manifest.dependencies['@adonisjs/vite'] = '6.0.1'
-    manifest.dependencies['adonisjs-masquerade'] = 'file:./package.tgz'
+    manifest.dependencies['@kevinjohn/adonisjs-masquerade'] = 'file:./package.tgz'
     await writeFile(
       join(app, 'pnpm-workspace.yaml'),
       JSON.stringify({ overrides: versions, allowBuilds: manifest.allowScripts }, null, 2) + '\n'

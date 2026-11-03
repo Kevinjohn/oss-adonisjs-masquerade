@@ -1,5 +1,5 @@
 import app from '@adonisjs/core/services/app'
-import { AccountAdmission } from 'adonisjs-account-kit/admission'
+import { AccountAdmission } from '@kevinjohn/adonisjs-account-kit/admission'
 import User from '#models/user'
 
 export async function approveUsers(...users: User[]) {

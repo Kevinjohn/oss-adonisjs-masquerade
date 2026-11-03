@@ -1,7 +1,7 @@
 import app from '@adonisjs/core/services/app'
 import { type HttpContext, ExceptionHandler } from '@adonisjs/core/http'
 import type { StatusPageRange, StatusPageRenderer } from '@adonisjs/core/types/http'
-import { MasqueradeError, type MasqueradeBlockedBy } from 'adonisjs-masquerade'
+import { MasqueradeError, type MasqueradeBlockedBy } from '@kevinjohn/adonisjs-masquerade'
 import { errors as limiterErrors } from '@adonisjs/limiter'
 
 const blockedActionPresentations: Record<MasqueradeBlockedBy, { title: string; message: string }> =

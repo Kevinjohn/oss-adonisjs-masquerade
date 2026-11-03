@@ -10,14 +10,16 @@ Use these notes to assess Masquerade and protect its guarantees. Human overview:
 ## Requirements
 
 Core 7, Auth 10; Lucid 22.4.2+ for the Lucid store; Session 8.1+ for session auth. Optional: Bouncer 4,
-Japa API client 3.2.1+ and Account Kit 0.1.4. Require `canMasquerade`; `canEdit` and `canUseRequest` are
+Japa API client 3.2.1+ and Account Kit 0.1.5. Require `canMasquerade`; `canEdit` and `canUseRequest` are
 optional.
 
 ## Install
 
+The scoped release below is pending publication.
+
 ```sh
-pnpm add https://github.com/Kevinjohn/oss-adonisjs-masquerade/releases/download/v0.1.4-alpha/adonisjs-masquerade-0.1.4-alpha.tgz
-node ace configure adonisjs-masquerade --namespace=my_app --guard=web
+pnpm add https://github.com/Kevinjohn/oss-adonisjs-masquerade/releases/download/v0.1.5/kevinjohn-adonisjs-masquerade-0.1.5.tgz
+node ace configure @kevinjohn/adonisjs-masquerade --namespace=my_app --guard=web
 ```
 
 ## Capabilities
@@ -33,7 +35,7 @@ node ace configure adonisjs-masquerade --namespace=my_app --guard=web
 
 ## Testing an application
 
-Use `adonisjs-masquerade/testing` and `adonisjs-masquerade/plugins/api_client`. See the [testing guide](https://github.com/Kevinjohn/oss-adonisjs-masquerade/blob/main/docs/guide/testing.md).
+Use `@kevinjohn/adonisjs-masquerade/testing` and `@kevinjohn/adonisjs-masquerade/plugins/api_client`. See the [testing guide](https://github.com/Kevinjohn/oss-adonisjs-masquerade/blob/main/docs/guide/testing.md).
 
 ## Source map
 

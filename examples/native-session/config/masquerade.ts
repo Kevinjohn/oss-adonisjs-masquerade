@@ -1,11 +1,11 @@
-import { defineConfig } from 'adonisjs-masquerade'
+import { defineConfig } from '@kevinjohn/adonisjs-masquerade'
 import {
   accessTokensAuthority,
   nativeAuthorities,
   sessionAuthority,
   stampFrom,
-} from 'adonisjs-masquerade/native'
-import { LucidControlStore } from 'adonisjs-masquerade/stores/lucid'
+} from '@kevinjohn/adonisjs-masquerade/native'
+import { LucidControlStore } from '@kevinjohn/adonisjs-masquerade/stores/lucid'
 import app from '@adonisjs/core/services/app'
 import { Database } from '@adonisjs/lucid/database'
 import type User from '#models/user'

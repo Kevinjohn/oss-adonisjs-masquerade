@@ -40,7 +40,10 @@ test.group('configure wiring', (group) => {
       assert.equal(await wireContextMiddleware(h.project(), h.kernel), 'wired')
       const auth = await readFile(h.auth, 'utf8')
       assert.include(auth, "import { sessionGuard } from '@adonisjs/auth/session'")
-      assert.include(auth, "import { effectiveSessionGuard } from 'adonisjs-masquerade/auth'")
+      assert.include(
+        auth,
+        "import { effectiveSessionGuard } from '@kevinjohn/adonisjs-masquerade/auth'"
+      )
       assert.include(auth, "import { userProvider } from '#services/masquerade_user_provider'")
       assert.match(auth, /const webGuard = sessionGuard\(\{[\s\S]*provider: userProvider,\n\}\)/)
       assert.include(auth, "default: 'web_effective',")

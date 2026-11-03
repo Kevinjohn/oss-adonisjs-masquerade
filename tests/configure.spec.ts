@@ -55,8 +55,8 @@ test.group('Masquerade configure scaffold', (group) => {
       assert.include(output.migration, 'async down()')
       assert.deepEqual(f.registered, [
         '#providers/masquerade_native_provider',
-        'adonisjs-masquerade/masquerade_provider',
-        'adonisjs-masquerade/commands',
+        '@kevinjohn/adonisjs-masquerade/masquerade_provider',
+        '@kevinjohn/adonisjs-masquerade/commands',
       ])
       assert.isTrue(first.messages.some((message) => message.includes('effectiveSessionGuard')))
       assert.isTrue(

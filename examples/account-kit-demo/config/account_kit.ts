@@ -5,7 +5,7 @@ import {
   createLucidAdapter,
   createLogNotifications,
   defineConfig,
-} from 'adonisjs-account-kit'
+} from '@kevinjohn/adonisjs-account-kit'
 import { mapProfileFields } from '#validators/account_kit_profile'
 
 const baseUrl = env.get('APP_URL')
