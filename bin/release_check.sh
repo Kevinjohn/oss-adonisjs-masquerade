@@ -7,6 +7,10 @@ if git rev-parse -q --verify "refs/tags/v$VERSION" >/dev/null; then
   echo "tag v$VERSION already exists" >&2; exit 1; fi
 grep -qE "^## $VERSION - [0-9]{4}-[0-9]{2}-[0-9]{2}$" CHANGELOG.md \
   || { echo "CHANGELOG.md has no '## $VERSION - YYYY-MM-DD' heading" >&2; exit 1; }
+# The tarball is built from HEAD, so anything still under Unreleased would ship undocumented.
+if awk '/^## Unreleased$/ {u=1; next} /^## / {u=0} u && NF {found=1} END {exit !found}' CHANGELOG.md; then
+  echo "CHANGELOG.md has entries under '## Unreleased'; move them into the $VERSION section or bump the version" >&2
+  exit 1; fi
 pnpm build
 rm -rf tmp/release && mkdir -p tmp/release
 pnpm pack --pack-destination tmp/release >/dev/null
