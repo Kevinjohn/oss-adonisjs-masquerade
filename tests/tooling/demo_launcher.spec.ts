@@ -43,6 +43,7 @@ type FixtureOptions = {
   startupFail?: boolean
   startupDelay?: number
   badPage?: boolean
+  probeGate?: boolean
   seedDelay?: number
   failReap?: boolean
   termResistantOrphan?: boolean
@@ -97,10 +98,24 @@ async function fixture(options: FixtureOptions = {}): Promise<DemoFixture> {
       import { writeFile } from 'node:fs/promises'
       const port = Number(process.env.PORT)
       const startupDelay = Number(process.env.DEMO_TEST_STARTUP_DELAY ?? 0)
+      let releaseProbe = () => {}
+      let probeCount = 0
+      const probeGate = new Promise((resolve) => { releaseProbe = resolve })
       const server = createServer((request, response) => {
         if (request.url === '/') {
-          response.writeHead(200, { 'content-type': 'text/html' })
-          response.end(process.env.DEMO_TEST_BAD_PAGE === '1' ? '<h1>Different application</h1>' : '<span>Server ready</span><p>Welcome to the power of a Hypermedia app.</p>')
+          void (async () => {
+            if (process.env.DEMO_TEST_PROBE_GATE === '1') {
+              await writeFile('probe-started', 'pending')
+              await probeGate
+            }
+            response.writeHead(200, { 'content-type': 'text/html' })
+            response.end(process.env.DEMO_TEST_BAD_PAGE === '1' ? '<h1>Different application</h1>' : '<span>Server ready</span><p>Welcome to the power of a Hypermedia app.</p>')
+            probeCount++
+            if (probeCount === 2) await writeFile('probe-retried', 'yes')
+          })()
+        } else if (request.url === '/release-probe') {
+          releaseProbe()
+          response.end('released')
         } else { response.writeHead(404).end() }
       })
       setTimeout(() => server.listen(port, '127.0.0.1', async () => {
@@ -219,6 +234,7 @@ if (args[0] === 'dev') {
   if (options.startupFail) env.DEMO_TEST_STARTUP_FAIL = '1'
   if (options.startupDelay) env.DEMO_TEST_STARTUP_DELAY = String(options.startupDelay)
   if (options.badPage) env.DEMO_TEST_BAD_PAGE = '1'
+  if (options.probeGate) env.DEMO_TEST_PROBE_GATE = '1'
   if (options.seedDelay) env.DEMO_TEST_SEED_DELAY = String(options.seedDelay)
   if (options.failReap) {
     const shimPath = path.join(directory, 'fail-reap.cjs')
@@ -253,12 +269,9 @@ function launch(
 
 async function outputOf(child: ChildProcess): Promise<{ text: () => string }> {
   let output = ''
-  child.stdout!.setEncoding('utf8').on('data', (chunk: string) => {
-    output += chunk
-  })
-  child.stderr!.setEncoding('utf8').on('data', (chunk: string) => {
-    output += chunk
-  })
+  const capture = (chunk: string) => (output += chunk)
+  child.stdout!.setEncoding('utf8').on('data', capture)
+  child.stderr!.setEncoding('utf8').on('data', capture)
   return { text: () => output }
 }
 
@@ -561,8 +574,10 @@ test('stops its process group when interrupted while the server is still startin
   assert.equal(await readFile(path.join(demo.example, 'server.pid'), 'utf8').catch(() => ''), '')
 }).timeout(30_000)
 
-test('does not report readiness for an unrelated successful listener', async ({ cleanup }) => {
-  const demo = await fixture({ badPage: true })
+test('does not report readiness before the application identity probe completes', async ({
+  cleanup,
+}) => {
+  const demo = await fixture({ badPage: true, probeGate: true })
   cleanup(() => rm(demo.directory, { recursive: true, force: true }))
   let activeChild: ChildProcess | undefined
   cleanup(async () => {
@@ -573,10 +588,11 @@ test('does not report readiness for an unrelated successful listener', async ({ 
   activeChild = launch(demo)
   const output = await outputOf(activeChild)
   await waitForFile(path.join(demo.example, 'server.pid'))
-  const response = await fetch(`http://127.0.0.1:${demo.port}/`)
-  assert.equal(response.status, 200)
-  assert.match(await response.text(), /Different application/)
-  await new Promise((resolve) => setTimeout(resolve, 400))
+  await waitForFile(path.join(demo.example, 'probe-started'))
+  assert.doesNotMatch(output.text(), /Demo ready:/)
+  const release = await fetch(`http://127.0.0.1:${demo.port}/release-probe`)
+  assert.equal(release.status, 200)
+  await waitForFile(path.join(demo.example, 'probe-retried'))
   assert.doesNotMatch(output.text(), /Demo ready:/)
   activeChild.kill('SIGTERM')
   const result = await collectExit(activeChild, output)

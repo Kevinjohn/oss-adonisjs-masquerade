@@ -14,6 +14,40 @@ test.group('Masquerade configure scaffold', (group) => {
   // configure now wires the host through a ts-morph project, which is slow on CI runners.
   group.each.timeout(30_000)
 
+  test('scaffold inspection rethrows filesystem errors other than missing paths', async ({
+    assert,
+  }) => {
+    const readFailureRoot = await mkdtemp(join(tmpdir(), 'masquerade-configure-read-failure-'))
+    try {
+      const path = join(readFailureRoot, 'app/services/masquerade_user_provider.ts')
+      await mkdir(path, { recursive: true })
+      let readError: unknown
+      try {
+        await listScaffoldPaths(readFailureRoot)
+      } catch (error) {
+        readError = error
+      }
+      assert.equal((readError as NodeJS.ErrnoException | undefined)?.code, 'EISDIR')
+    } finally {
+      await rm(readFailureRoot, { recursive: true, force: true })
+    }
+
+    const readdirFailureRoot = await mkdtemp(join(tmpdir(), 'masquerade-configure-list-failure-'))
+    try {
+      await mkdir(join(readdirFailureRoot, 'database'), { recursive: true })
+      await writeFile(join(readdirFailureRoot, 'database/migrations'), 'not a directory')
+      let readdirError: unknown
+      try {
+        await listScaffoldPaths(readdirFailureRoot)
+      } catch (error) {
+        readdirError = error
+      }
+      assert.equal((readdirError as NodeJS.ErrnoException | undefined)?.code, 'ENOTDIR')
+    } finally {
+      await rm(readdirFailureRoot, { recursive: true, force: true })
+    }
+  })
+
   test('generates fail-closed files and additive wiring, skips existing files, and force replaces them', async ({
     assert,
   }) => {
@@ -437,11 +471,17 @@ async function listScaffoldPaths(root: string): Promise<string[]> {
     try {
       await readFile(join(root, file))
       paths.push(file)
-    } catch {
-      // An empty result proves fail-closed preflight created nothing.
+    } catch (error) {
+      if ((error as NodeJS.ErrnoException).code !== 'ENOENT') throw error
     }
   }
-  const migrations = await readdir(join(root, 'database/migrations')).catch(() => [])
+  let migrations: string[]
+  try {
+    migrations = await readdir(join(root, 'database/migrations'))
+  } catch (error) {
+    if ((error as NodeJS.ErrnoException).code !== 'ENOENT') throw error
+    migrations = []
+  }
   paths.push(...migrations.map((file) => 'database/migrations/' + file))
   return paths
 }
@@ -456,18 +496,16 @@ async function readScaffold(root: string) {
     userProvider: await read('app/services/masquerade_user_provider.ts'),
     nativeProvider: await read('providers/masquerade_native_provider.ts'),
     middleware: await read('app/middleware/masquerade_context_middleware.ts'),
-    statusMiddleware: await optionalRead('app/middleware/share_masquerade_status_middleware.ts'),
-    banner: await optionalRead('resources/views/components/masquerade/banner.edge'),
-    formController: await optionalRead('app/controllers/masquerade_form_controller.ts'),
+    statusMiddleware: paths.includes('app/middleware/share_masquerade_status_middleware.ts')
+      ? await read('app/middleware/share_masquerade_status_middleware.ts')
+      : undefined,
+    banner: paths.includes('resources/views/components/masquerade/banner.edge')
+      ? await read('resources/views/components/masquerade/banner.edge')
+      : undefined,
+    formController: paths.includes('app/controllers/masquerade_form_controller.ts')
+      ? await read('app/controllers/masquerade_form_controller.ts')
+      : undefined,
     migration: await read(migrationPath),
-  }
-
-  async function optionalRead(file: string): Promise<string | undefined> {
-    try {
-      return await read(file)
-    } catch {
-      return undefined
-    }
   }
 }
 
