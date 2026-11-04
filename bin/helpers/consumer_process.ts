@@ -15,6 +15,7 @@ type ActiveCommand = {
   cleanupAllowed: boolean
   spawnError?: Error
   output: string
+  failCleanup?: () => void
 }
 
 export class ConsumerCommandError extends Error {
@@ -159,7 +160,7 @@ export class ConsumerProcessRunner {
       return
     }
     active.cleanupPromise = terminateOwnedGroup(active.child)
-    void active.cleanupPromise.catch(() => {})
+    void active.cleanupPromise.catch(() => active.failCleanup?.())
   }
 
   async run(
@@ -204,10 +205,20 @@ export class ConsumerProcessRunner {
 
     try {
       return await new Promise<string>((resolve, reject) => {
-        child.once('close', (code, signal) => {
+        let finishing = false
+        const finish = (code: number | null, signal: NodeJS.Signals | null) => {
+          if (finishing) return
+          finishing = true
           clearTimeout(active.timeout)
           void this.finish(active, code, signal).then(resolve, reject)
-        })
+        }
+        active.failCleanup = () => {
+          child.stdout?.destroy()
+          child.stderr?.destroy()
+          child.unref()
+          finish(null, null)
+        }
+        child.once('close', finish)
       })
     } finally {
       if (this.active === active) this.active = undefined
@@ -220,7 +231,7 @@ export class ConsumerProcessRunner {
     signal: NodeJS.Signals | null
   ): Promise<string> {
     const cleanupErrors: unknown[] = []
-    if ((active.timedOut || this.firstSignal) && !active.cleanupPromise) this.terminate(active)
+    if (!active.cleanupPromise) this.terminate(active)
     if (active.cleanupPromise) {
       try {
         await active.cleanupPromise
@@ -239,21 +250,36 @@ export class ConsumerProcessRunner {
       primaryError = new Error(`exited with code ${code}, signal ${signal}`)
     }
 
-    if (primaryError !== undefined || cleanupErrors.length) {
-      const error = new ConsumerCommandError(
-        active.name,
-        active.output,
-        primaryError,
-        cleanupErrors,
-        join(this.logDirectory, `${active.name}.log`)
-      )
+    const logPath = join(this.logDirectory, `${active.name}.log`)
+    const commandError = () =>
+      new ConsumerCommandError(active.name, active.output, primaryError, cleanupErrors, logPath)
+    try {
       await writeFile(
-        join(this.logDirectory, `${active.name}.log`),
-        `${active.output}${active.output.endsWith('\n') || !active.output ? '' : '\n'}RUNNER ERROR: ${error.message}\n`
+        logPath,
+        primaryError !== undefined || cleanupErrors.length
+          ? `${active.output}\nRUNNER ERROR: ${commandError().message}\n`
+          : active.output
       )
-      throw error
+    } catch (error) {
+      cleanupErrors.push(error)
     }
-    await writeFile(join(this.logDirectory, `${active.name}.log`), active.output)
+    // A signal may arrive while the asynchronous evidence write is pending.
+    if (active.cleanupPromise) {
+      try {
+        await active.cleanupPromise
+      } catch (error) {
+        if (!cleanupErrors.includes(error)) cleanupErrors.push(error)
+      }
+    }
+    cleanupErrors.push(...this.signalErrors.splice(0))
+    if (this.firstSignal && !active.cleanupAllowed) {
+      const interruption = new Error(`Interrupted by ${this.firstSignal}`)
+      if (primaryError === undefined) primaryError = interruption
+      else if (!(primaryError instanceof Error) || primaryError.message !== interruption.message) {
+        cleanupErrors.push(interruption)
+      }
+    }
+    if (primaryError !== undefined || cleanupErrors.length) throw commandError()
     return active.output
   }
 }

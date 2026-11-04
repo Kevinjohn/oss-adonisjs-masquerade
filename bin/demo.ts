@@ -20,6 +20,7 @@ const reservedEmails = [
 ]
 const reservedPasswords = ['demo-operator-2026', 'demo-customer-one-2026', 'demo-customer-two-2026']
 const children = new Set<ChildProcess>()
+const abandonChildren = new Map<ChildProcess, (error: unknown) => void>()
 const ownedGroups = new Set<number>()
 const groupCleanupPromises = new Map<number, Promise<void>>()
 let interruptedBy: NodeJS.Signals | null = null
@@ -288,9 +289,15 @@ function run(
     const finish = (error?: unknown) => {
       if (settled) return
       settled = true
+      abandonChildren.delete(child)
       if (error) reject(error)
       else resolve()
     }
+    abandonChildren.set(child, (error) => {
+      child.unref()
+      children.delete(child)
+      finish(combineErrors(new Error(`Interrupted by ${interruptedBy}`), [error]))
+    })
     child.once('error', async (error) => {
       children.delete(child)
       try {
@@ -436,6 +443,15 @@ async function startServer(environment: NodeJS.ProcessEnv): Promise<void> {
     signal: NodeJS.Signals | null
     error?: Error
   }>((resolve) => {
+    abandonChildren.set(child, (error) => {
+      child.unref()
+      children.delete(child)
+      resolve({
+        code: null,
+        signal: null,
+        error: error instanceof Error ? error : new Error(String(error)),
+      })
+    })
     child.once('error', (error) => resolve({ code: null, signal: null, error }))
     child.once('exit', (code, signal) => resolve({ code, signal }))
   })
@@ -447,6 +463,7 @@ async function startServer(environment: NodeJS.ProcessEnv): Promise<void> {
   })
   const exitCleanup = exitPromise.then(async () => {
     children.delete(child)
+    abandonChildren.delete(child)
     try {
       await cleanupProcessGroup(child.pid)
     } catch (error) {
@@ -554,6 +571,7 @@ if (invokedPath && realpathSync(invokedPath) === realpathSync(fileURLToPath(impo
       interruptedBy = signal
       void cleanupOwnedProcesses()
         .catch((error) => {
+          for (const abandon of abandonChildren.values()) abandon(error)
           console.error(`Demo cleanup failed: ${describeError(error)}`)
         })
         .finally(() => {

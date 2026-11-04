@@ -15,6 +15,7 @@ let active: ChildProcess | undefined
 let interruptedBy: NodeJS.Signals | undefined
 let interruptionCleanup: Promise<void> | undefined
 const signalErrors: unknown[] = []
+let abandonActive: ((error: unknown) => void) | undefined
 
 function describeError(error: unknown): string {
   if (error instanceof AggregateError) {
@@ -109,7 +110,7 @@ function interrupt(signal: NodeJS.Signals): void {
     interruptedBy = signal
     const child = active
     interruptionCleanup = child ? terminateOwnedProcess(child) : Promise.resolve()
-    void interruptionCleanup.catch(() => {})
+    void interruptionCleanup.catch((error) => abandonActive?.(error))
     return
   }
 
@@ -179,9 +180,22 @@ function run(
     child.once('error', (error) => {
       spawnError = error
     })
-    child.once('close', async (status, signal) => {
+    let settled = false
+    abandonActive = (error) => {
+      child.stdout.destroy()
+      child.stderr.destroy()
+      child.unref()
+      void finish(null, null, error)
+    }
+    const finish = async (
+      status: number | null,
+      signal: NodeJS.Signals | null,
+      terminalError?: unknown
+    ) => {
+      if (settled) return
+      settled = true
       clearTimeout(timer)
-      let cleanupError: unknown
+      let cleanupError: unknown = terminalError
       if (interruptedBy && interruptionCleanup) {
         try {
           await interruptionCleanup
@@ -190,12 +204,14 @@ function run(
         }
       }
       if (active === child) active = undefined
+      abandonActive = undefined
       if (spawnError) output += `\n[check:changed] spawn failed: ${spawnError.message}\n`
       if (cleanupError !== undefined) {
         output += `\n[check:changed] cleanup failed: ${describeError(cleanupError)}\n`
       }
       resolve({ status: timedOut || signal ? null : status, output, cleanupError })
-    })
+    }
+    child.once('close', (status, signal) => void finish(status, signal))
   })
 }
 

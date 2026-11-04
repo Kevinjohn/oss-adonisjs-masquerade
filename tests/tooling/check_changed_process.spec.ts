@@ -215,3 +215,39 @@ test('reports failed final reap and retains the first signal result', async ({ c
   assert.doesNotMatch(await readFile(f.log, 'utf8'), /pnpm lint|pnpm typecheck/)
   assert.doesNotMatch(result.text, /UnhandledPromiseRejection|unhandledRejection/)
 }).timeout(20_000)
+
+test('interrupt settles a never-closing owned child and releases its live local handles', async ({
+  cleanup,
+}) => {
+  const f = await fixture()
+  cleanup(() => rm(f.directory, { recursive: true, force: true }))
+  const hook = path.join(f.directory, 'never-close.cjs')
+  await writeFile(
+    hook,
+    `
+const cp = require('node:child_process')
+const { EventEmitter } = require('node:events')
+const { PassThrough } = require('node:stream')
+cp.spawn = () => {
+ const child = new EventEmitter(); child.pid = 99999999; child.exitCode = child.signalCode = null
+ child.stdout = new PassThrough(); child.stderr = new PassThrough()
+ const liveHandle = setInterval(() => {}, 1000)
+ child.unref = () => { clearInterval(liveHandle); console.log('LOCAL_HANDLE_RELEASED') }
+ setImmediate(() => { child.stdout.write('partial output'); process.emit('SIGTERM') })
+ return child
+}
+process.kill = () => true
+let clock = 0; Date.now = () => (clock += 6000)
+require('node:module').syncBuiltinESMExports()
+`
+  )
+  f.env.NODE_OPTIONS = `${f.env.NODE_OPTIONS ?? ''} --require=${hook}`
+  const child = launch(f)
+  const output = await outputOf(child)
+  const result = await collectExit(child, output)
+  assert.equal(result.code, 143, result.text)
+  assert.match(result.text, /did not exit after SIGKILL/)
+  assert.match(result.text, /partial output/)
+  assert.match(result.text, /LOCAL_HANDLE_RELEASED/)
+  assert.equal(await readFile(f.log, 'utf8'), '')
+}).timeout(10_000)

@@ -695,3 +695,38 @@ test('settles a server spawn failure during readiness without an unhandled rejec
   assert.match(result.text, /Could not start the demo server: spawn pnpm ENOENT/)
   assert.doesNotMatch(result.text, /UnhandledPromiseRejection|unhandledRejection/)
 }).timeout(30_000)
+
+test('signal cleanup settles a never-exiting setup child and releases its local handle', async ({
+  cleanup,
+}) => {
+  const f = await fixture()
+  cleanup(() => rm(f.directory, { recursive: true, force: true }))
+  const hook = path.join(f.directory, 'never-exit.cjs')
+  await writeFile(
+    hook,
+    `
+const cp = require('node:child_process')
+const { EventEmitter } = require('node:events')
+cp.spawn = () => {
+ const child = new EventEmitter(); child.pid = 99999999; child.exitCode = child.signalCode = null
+ const liveHandle = setInterval(() => {}, 1000)
+ child.unref = () => { clearInterval(liveHandle); console.log('LOCAL_HANDLE_RELEASED') }
+ setImmediate(() => process.emit('SIGTERM'))
+ return child
+}
+process.kill = () => true
+let clock = 0; Date.now = () => (clock += 6000)
+require('node:module').syncBuiltinESMExports()
+`
+  )
+  f.env.NODE_OPTIONS = `${f.env.NODE_OPTIONS ?? ''} --require=${hook}`
+  const child = launch(f)
+  let output = ''
+  child.stdout!.on('data', (chunk) => (output += chunk))
+  child.stderr!.on('data', (chunk) => (output += chunk))
+  const [code] = await once(child, 'close')
+  assert.equal(code, 143, output)
+  assert.match(output, /Failed to reap/)
+  assert.match(output, /LOCAL_HANDLE_RELEASED/)
+  assert.equal(await readFile(f.logPath, 'utf8'), '')
+}).timeout(10_000)

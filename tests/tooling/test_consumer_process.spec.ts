@@ -18,8 +18,9 @@ const processHelperPath = path.join(repoRoot, 'bin/helpers/consumer_process.ts')
 const artifactHelperPath = path.join(repoRoot, 'bin/helpers/consumer_artifact.ts')
 
 type FixtureOptions = {
-  mode?: 'normal' | 'late-output' | 'hang' | 'timeout'
+  mode?: 'normal' | 'late-output' | 'hang' | 'timeout' | 'silent-descendant'
   hook?: 'record-term' | 'fail-reap'
+  failStartupLog?: boolean
   externalPostgres?: boolean
 }
 
@@ -164,12 +165,13 @@ if (args[0] === 'test' && args[1] === 'functional' && process.env.CONSUMER_FIXTU
   process.stdout.write('parent exiting before trailing summary\\n')
   process.exit(0)
 }
-if (args[0] === 'test' && args[1] === 'functional' && ['hang', 'timeout'].includes(process.env.CONSUMER_FIXTURE_MODE || '')) {
+if (args[0] === 'test' && args[1] === 'functional' && ['hang', 'timeout', 'silent-descendant'].includes(process.env.CONSUMER_FIXTURE_MODE || '')) {
   spawn(process.execPath, ['term-resistant.js'], { cwd: process.cwd(), stdio: 'ignore' })
   for (let attempt = 0; attempt < 250; attempt++) {
     if (await readFile(${JSON.stringify(ready)}, 'utf8').catch(() => '')) break
     await new Promise((resolve) => setTimeout(resolve, 20))
   }
+  if (process.env.CONSUMER_FIXTURE_MODE === 'silent-descendant') process.exit(0)
   setInterval(() => {}, 1000)
 }
 if (args[0] === 'test' || ['test:report', 'test:credentials'].includes(args[0])) process.stdout.write('3 passed\\n')
@@ -178,7 +180,7 @@ if (args[0] === 'test' || ['test:report', 'test:credentials'].includes(args[0]))
   const hookPath = path.join(directory, 'process-hook.cjs')
   await writeFile(
     hookPath,
-    `const original = process.kill.bind(process)\nlet killedGroup = null\nprocess.kill = (pid, signal) => {\n  if (pid < 0 && signal === 'SIGTERM' && process.env.CONSUMER_TEST_TERM_MARKER) require('node:fs').writeFileSync(process.env.CONSUMER_TEST_TERM_MARKER, 'yes')\n  if (pid < 0 && signal === 'SIGKILL') { killedGroup = pid; return original(pid, signal) }\n  if (process.env.CONSUMER_TEST_FAIL_REAP === '1' && pid === killedGroup && signal === 0) return true\n  return original(pid, signal)\n}\n`
+    `if (process.env.CONSUMER_TEST_FAIL_STARTUP_LOG) { const fs = require('node:fs/promises'); const write = fs.writeFile; fs.writeFile = (file, ...args) => String(file).endsWith('postgres_start.log') ? Promise.reject(new Error('startup evidence write failed')) : write(file, ...args); require('node:module').syncBuiltinESMExports() }\nconst original = process.kill.bind(process)\nlet killedGroup = null\nprocess.kill = (pid, signal) => {\n  if (pid < 0 && signal === 'SIGTERM' && process.env.CONSUMER_TEST_TERM_MARKER) require('node:fs').writeFileSync(process.env.CONSUMER_TEST_TERM_MARKER, 'yes')\n  if (pid < 0 && signal === 'SIGKILL') { killedGroup = pid; return original(pid, signal) }\n  if (process.env.CONSUMER_TEST_FAIL_REAP === '1' && pid === killedGroup && signal === 0) return true\n  return original(pid, signal)\n}\n`
   )
   const env: NodeJS.ProcessEnv = {
     ...process.env,
@@ -189,7 +191,9 @@ if (args[0] === 'test' || ['test:report', 'test:credentials'].includes(args[0]))
     CONSUMER_TEST_RELEASE: release,
     CONSUMER_TEST_TERM_MARKER: options.hook ? termSent : '',
   }
-  if (options.hook) env.NODE_OPTIONS = `${env.NODE_OPTIONS ?? ''} --require=${hookPath}`.trim()
+  if (options.failStartupLog) env.CONSUMER_TEST_FAIL_STARTUP_LOG = '1'
+  if (options.hook || options.failStartupLog)
+    env.NODE_OPTIONS = `${env.NODE_OPTIONS ?? ''} --require=${hookPath}`.trim()
   if (options.hook === 'fail-reap') env.CONSUMER_TEST_FAIL_REAP = '1'
   if (options.externalPostgres) env.CONSUMER_PG_EXTERNAL = '1'
   else delete env.CONSUMER_PG_EXTERNAL
@@ -354,4 +358,168 @@ test('uses a ten-minute timeout, reaps its command group, and preserves command 
     await readFile(path.join(f.root, 'timeout_probe.log'), 'utf8'),
     /RUNNER ERROR:.*timed out after 100ms/s
   )
+}).timeout(20_000)
+
+test('settles a never-closing command with partial output and releases local handles', async ({
+  cleanup,
+}) => {
+  const directory = await mkdtemp(path.join(os.tmpdir(), 'consumer-never-close-'))
+  cleanup(() => rm(directory, { recursive: true, force: true }))
+  const hook = path.join(directory, 'hook.cjs')
+  await writeFile(
+    hook,
+    `
+const { EventEmitter } = require('node:events')
+const { PassThrough } = require('node:stream')
+const cp = require('node:child_process')
+const { syncBuiltinESMExports } = require('node:module')
+const child = new EventEmitter()
+child.pid = 99999999
+child.exitCode = child.signalCode = null
+child.stdout = new PassThrough()
+child.stderr = new PassThrough()
+const localHandle = setInterval(() => {}, 1000)
+child.unref = () => { clearInterval(localHandle); child.released = true }
+cp.spawn = () => { queueMicrotask(() => child.stdout.write('partial startup output')); return child }
+process.kill = () => true
+let clock = 0
+Date.now = () => (clock += 6000)
+global.consumerChild = child
+syncBuiltinESMExports()
+`
+  )
+  const probe = path.join(directory, 'probe.mjs')
+  await writeFile(
+    probe,
+    `
+import { ConsumerProcessRunner } from ${JSON.stringify(processHelperPath)}
+const runner = new ConsumerProcessRunner(${JSON.stringify(directory)})
+const operation = runner.run('.', ['probe'], 'never_close', process.env)
+runner.interrupt('SIGTERM')
+try { await operation } catch (error) {
+ console.log('FIRST_SIGNAL=' + runner.interruptedBy)
+ console.log(JSON.stringify({message:error.message, released:global.consumerChild.released,
+ stdoutDestroyed:global.consumerChild.stdout.destroyed, stderrDestroyed:global.consumerChild.stderr.destroyed}))
+}
+`
+  )
+  const child = spawn(process.execPath, ['--require', hook, '--import=@poppinss/ts-exec', probe], {
+    cwd: repoRoot,
+    stdio: ['ignore', 'pipe', 'pipe'],
+  })
+  const output = await outputOf(child)
+  const result = await collectClose(child, output)
+  assert.equal(result.code, 0, result.text)
+  assert.match(result.text, /FIRST_SIGNAL=SIGTERM/)
+  assert.match(result.text, /partial startup output/)
+  assert.match(result.text, /did not exit after SIGKILL/)
+  assert.match(result.text, /"released":true,"stdoutDestroyed":true,"stderrDestroyed":true/)
+}).timeout(10_000)
+
+test('successful PostgreSQL startup with a failed log write retains actual owned-service recovery', async ({
+  cleanup,
+}) => {
+  const f = await fixture({ failStartupLog: true })
+  cleanup(() => rm(f.directory, { recursive: true, force: true }))
+  const child = launch(f, 'pg')
+  const output = await outputOf(child)
+  const result = await collectClose(child, output)
+  assert.equal(result.code, 1, result.text)
+  assert.match(result.text, /startup evidence write failed/)
+  assert.match(result.text, /server started/)
+  const commands = await readFile(f.commands, 'utf8')
+  assert.match(commands, /pg:start[\s\S]*pg:stop/)
+  assert.doesNotMatch(commands, /create schema/)
+}).timeout(30_000)
+
+for (const exitCode of [0, 7]) {
+  test(`rejoins interruption and cleanup failure across a pending log write after exit ${exitCode}`, async ({
+    cleanup,
+  }) => {
+    const directory = await mkdtemp(path.join(os.tmpdir(), 'consumer-write-race-'))
+    cleanup(() => rm(directory, { recursive: true, force: true }))
+    const hook = path.join(directory, 'hook.cjs')
+    await writeFile(
+      hook,
+      `
+const { EventEmitter } = require('node:events')
+const { PassThrough } = require('node:stream')
+const cp = require('node:child_process')
+const fs = require('node:fs/promises')
+const child = new EventEmitter()
+child.pid = 99999999
+child.exitCode = child.signalCode = null
+child.stdout = new PassThrough(); child.stderr = new PassThrough(); child.unref = () => {}
+cp.spawn = () => { queueMicrotask(() => { child.stdout.write('operation output'); child.emit('close', ${exitCode}, null) }); return child }
+process.kill = (pid, signal) => { if (signal === 'SIGTERM') throw new Error('TERM rejected'); const error = new Error('gone'); error.code='ESRCH'; throw error }
+fs.writeFile = async () => { await global.writeBarrier(); throw new Error('log write rejected') }
+require('node:module').syncBuiltinESMExports()
+`
+    )
+    const probe = path.join(directory, 'probe.mjs')
+    await writeFile(
+      probe,
+      `
+import { ConsumerProcessRunner } from ${JSON.stringify(processHelperPath)}
+const runner = new ConsumerProcessRunner(${JSON.stringify(directory)})
+let release, entered
+const barrier = new Promise(resolve => release = resolve)
+const writing = new Promise(resolve => entered = resolve)
+global.writeBarrier = async () => { entered(); await barrier }
+const operation = runner.run('.', ['probe'], 'failed_operation', process.env)
+await writing
+runner.interrupt('SIGTERM'); runner.interrupt('SIGINT'); release()
+try { await operation } catch (error) {
+ console.log(error.message)
+ console.log('FIRST_SIGNAL=' + runner.interruptedBy)
+ console.log('PRIMARY=' + error.primaryError.message)
+ console.log('CAUSES=' + error.cleanupErrors.length)
+}
+`
+    )
+    const child = spawn(
+      process.execPath,
+      ['--require', hook, '--import=@poppinss/ts-exec', probe],
+      {
+        cwd: repoRoot,
+        stdio: ['ignore', 'pipe', 'pipe'],
+      }
+    )
+    const output = await outputOf(child)
+    const result = await collectClose(child, output)
+    assert.equal(result.code, 0, result.text)
+    assert.match(result.text, /TERM rejected/)
+    assert.match(result.text, /log write rejected/)
+    assert.match(result.text, /operation output/)
+    assert.match(
+      result.text,
+      exitCode === 0 ? /PRIMARY=Interrupted by SIGTERM/ : /PRIMARY=exited with code 7/
+    )
+    assert.match(result.text, /FIRST_SIGNAL=SIGTERM/)
+    assert.match(result.text, exitCode === 0 ? /CAUSES=2/ : /CAUSES=3/)
+  }).timeout(10_000)
+}
+
+test('normal close cleans a silent owned descendant before allowing later work', async ({
+  cleanup,
+}) => {
+  const f = await fixture({ mode: 'silent-descendant' })
+  cleanup(() => rm(f.directory, { recursive: true, force: true }))
+  const runner = new ConsumerProcessRunner(f.root)
+  let laterWork = false
+  const operation = runner
+    .run(path.join(f.root, 'examples/native-session'), ['test', 'functional'], 'silent', f.env)
+    .then(
+      () => {
+        laterWork = true
+      },
+      (error) => {
+        assert.ok(error instanceof ConsumerCommandError)
+        assert.match(error.message, /did not exit after SIGKILL/)
+      }
+    )
+  const pid = Number(await waitForFixtureWorker(f))
+  assert.equal(laterWork, false)
+  await operation
+  assert.equal(await isAlive(pid), false)
 }).timeout(20_000)
