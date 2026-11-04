@@ -2,6 +2,11 @@
 
 ## Unreleased
 
+### Fixed
+
+- Report invalid service configuration as a configuration/unavailable diagnostic while preserving the setup exception and field.
+- Preserve invalid-store setup errors from pruning instead of converting them to operational unavailability. Throwing store factories still report unavailability.
+
 ## 0.1.5 - 2026-11-03
 
 ### Changed
