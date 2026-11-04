@@ -9,19 +9,122 @@ import {
 
 const root = fileURLToPath(new URL('../', import.meta.url))
 const stepLimitMs = 15 * 60 * 1000
+const termGraceMs = 5000
+const reapGraceMs = 5000
 let active: ChildProcess | undefined
+let interruptedBy: NodeJS.Signals | undefined
+let interruptionCleanup: Promise<void> | undefined
+const signalErrors: unknown[] = []
 
-// Steps run detached, so an interrupt does not reach them: stop the running group before exiting.
-for (const [signal, code] of [
-  ['SIGINT', 130],
-  ['SIGTERM', 143],
-] as const) {
-  process.on(signal, () => {
+function describeError(error: unknown): string {
+  if (error instanceof AggregateError) {
+    return [error.message, ...[...error.errors].map(describeError)].join('\n')
+  }
+  return error instanceof Error ? error.message : String(error)
+}
+
+function groupExists(groupId: number): boolean {
+  try {
+    process.kill(-groupId, 0)
+    return true
+  } catch (error) {
+    const code = (error as NodeJS.ErrnoException).code
+    if (code === 'EPERM') return true
+    if (code === 'ESRCH') return false
+    throw error
+  }
+}
+
+function signalOwnedProcess(child: ChildProcess, signal: NodeJS.Signals): void {
+  if (process.platform !== 'win32' && child.pid) {
     try {
-      if (active?.pid) process.kill(-active.pid, 'SIGTERM')
-    } catch {}
-    process.exit(code)
+      process.kill(-child.pid, signal)
+    } catch (error) {
+      if ((error as NodeJS.ErrnoException).code !== 'ESRCH') throw error
+    }
+    return
+  }
+  if (child.exitCode === null && child.signalCode === null && !child.kill(signal)) {
+    throw new Error(`Could not send ${signal} to the owned child process.`)
+  }
+}
+
+function waitForOwnedProcessExit(child: ChildProcess, timeoutMs: number): Promise<boolean> {
+  return new Promise<boolean>((resolve, reject) => {
+    const deadline = Date.now() + timeoutMs
+    const poll = setInterval(() => {
+      try {
+        const exists =
+          process.platform !== 'win32' && child.pid
+            ? groupExists(child.pid)
+            : child.exitCode === null && child.signalCode === null
+        if (!exists) {
+          clearInterval(poll)
+          resolve(true)
+        } else if (Date.now() >= deadline) {
+          clearInterval(poll)
+          resolve(false)
+        }
+      } catch (error) {
+        clearInterval(poll)
+        reject(error)
+      }
+    }, 40)
   })
+}
+
+async function terminateOwnedProcess(child: ChildProcess): Promise<void> {
+  const failures: unknown[] = []
+  try {
+    signalOwnedProcess(child, 'SIGTERM')
+  } catch (error) {
+    failures.push(error)
+  }
+
+  let stopped = false
+  try {
+    stopped = await waitForOwnedProcessExit(child, termGraceMs)
+  } catch (error) {
+    failures.push(error)
+  }
+  if (!stopped) {
+    try {
+      signalOwnedProcess(child, 'SIGKILL')
+    } catch (error) {
+      failures.push(error)
+    }
+    try {
+      stopped = await waitForOwnedProcessExit(child, reapGraceMs)
+    } catch (error) {
+      failures.push(error)
+    }
+    if (!stopped) failures.push(new Error('The owned process group did not exit after SIGKILL.'))
+  }
+  if (failures.length)
+    throw new AggregateError(failures, 'Could not clean up the owned process group.')
+}
+
+function interrupt(signal: NodeJS.Signals): void {
+  if (!interruptedBy) {
+    interruptedBy = signal
+    const child = active
+    interruptionCleanup = child ? terminateOwnedProcess(child) : Promise.resolve()
+    void interruptionCleanup.catch(() => {})
+    return
+  }
+
+  const child = active
+  if (!child) return
+  try {
+    signalOwnedProcess(child, 'SIGKILL')
+  } catch (error) {
+    signalErrors.push(error)
+  }
+}
+
+// Keep the first signal's exit code while cleanup observes the owned process group.
+for (const signal of ['SIGINT', 'SIGTERM'] as const) {
+  process.on(signal, () => interrupt(signal))
 }
 
 function misuse(message: string): never {
@@ -48,8 +151,10 @@ function changedFiles(base: string): ChangedFile[] {
   return changes
 }
 
-/** Run one step in its own process group so a timeout can stop the real test process too. */
-function run(step: ChangedCheckStep): Promise<{ status: number | null; output: string }> {
+/** Run one step in its own process group so an interrupt can stop descendants too. */
+function run(
+  step: ChangedCheckStep
+): Promise<{ status: number | null; output: string; cleanupError?: unknown }> {
   return new Promise((resolve) => {
     const child = spawn(step.command[0], step.command.slice(1), {
       cwd: root,
@@ -58,17 +163,38 @@ function run(step: ChangedCheckStep): Promise<{ status: number | null; output: s
     })
     active = child
     let output = ''
+    let spawnError: Error | undefined
+    let timedOut = false
     child.stdout.on('data', (chunk) => (output += chunk))
     child.stderr.on('data', (chunk) => (output += chunk))
     const timer = setTimeout(() => {
+      timedOut = true
       output += `\n[check:changed] stopped after ${stepLimitMs / 60000} minutes\n`
       try {
-        process.kill(-child.pid!, 'SIGKILL')
-      } catch {}
+        signalOwnedProcess(child, 'SIGKILL')
+      } catch (error) {
+        output += `[check:changed] timeout cleanup failed: ${describeError(error)}\n`
+      }
     }, stepLimitMs)
-    child.on('close', (status, signal) => {
+    child.once('error', (error) => {
+      spawnError = error
+    })
+    child.once('close', async (status, signal) => {
       clearTimeout(timer)
-      resolve({ status: signal ? null : status, output })
+      let cleanupError: unknown
+      if (interruptedBy && interruptionCleanup) {
+        try {
+          await interruptionCleanup
+        } catch (error) {
+          cleanupError = error
+        }
+      }
+      if (active === child) active = undefined
+      if (spawnError) output += `\n[check:changed] spawn failed: ${spawnError.message}\n`
+      if (cleanupError !== undefined) {
+        output += `\n[check:changed] cleanup failed: ${describeError(cleanupError)}\n`
+      }
+      resolve({ status: timedOut || signal ? null : status, output, cleanupError })
     })
   })
 }
@@ -90,6 +216,7 @@ const changes = changedFiles(base)
 console.log(`[check:changed] ${changes.length} changed files since the merge-base with ${base}`)
 let failed = false
 for (const step of planChangedChecks(changes, { static: flags.includes('--static') })) {
+  if (interruptedBy) break
   if ('skip' in step) {
     console.log(`skip ${step.label} (${step.skip})`)
     continue
@@ -100,11 +227,13 @@ for (const step of planChangedChecks(changes, { static: flags.includes('--static
   const problem =
     status !== 0
       ? `exit ${status ?? 'killed'}`
-      : step.requiresTests && tests === 0
-        ? 'no tests executed'
-        : step.requiresCleanTree && git(['status', '--porcelain']) !== before
-          ? 'left the worktree dirty'
-          : undefined
+      : interruptedBy
+        ? `interrupted by ${interruptedBy}`
+        : step.requiresTests && tests === 0
+          ? 'no tests executed'
+          : step.requiresCleanTree && git(['status', '--porcelain']) !== before
+            ? 'left the worktree dirty'
+            : undefined
   if (problem) {
     failed = true
     console.log(`fail ${step.label} (${problem}): ${step.command.join(' ')}`)
@@ -113,4 +242,17 @@ for (const step of planChangedChecks(changes, { static: flags.includes('--static
     console.log(`pass ${step.label}${tests === undefined ? '' : ` (${tests} tests)`}`)
   }
 }
-process.exit(failed ? 1 : 0)
+for (const error of signalErrors) {
+  failed = true
+  console.error(`[check:changed] signal escalation failed: ${describeError(error)}`)
+}
+if (interruptedBy && interruptionCleanup) {
+  try {
+    await interruptionCleanup
+  } catch (error) {
+    failed = true
+    console.error(`[check:changed] cleanup failed: ${describeError(error)}`)
+  }
+}
+process.exitCode =
+  interruptedBy === 'SIGINT' ? 130 : interruptedBy === 'SIGTERM' ? 143 : failed ? 1 : 0

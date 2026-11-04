@@ -622,9 +622,14 @@ test('maps only missing demo inputs and preserves unexpected filesystem failures
     await chmod(inaccessible.example, 0o755)
     await rm(inaccessible.directory, { recursive: true, force: true })
   })
+  const uid = process.getuid?.()
+  const gid = process.getgid?.()
+  const childIdentity =
+    uid === undefined || gid === undefined
+      ? {}
+      : { uid: uid === 0 ? 65534 : uid, gid: gid === 0 ? 65534 : gid }
   const inaccessibleChild = launch(inaccessible, [], {
-    uid: process.getuid() === 0 ? 65534 : process.getuid(),
-    gid: process.getgid() === 0 ? 65534 : process.getgid(),
+    ...childIdentity,
   })
   const inaccessibleOutput = await outputOf(inaccessibleChild)
   const inaccessibleResult = await collectExit(inaccessibleChild, inaccessibleOutput)
