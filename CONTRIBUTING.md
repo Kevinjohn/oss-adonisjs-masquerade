@@ -36,6 +36,12 @@ pnpm quick:test
 
 ## Checks
 
+`pnpm check` runs formatting, lint, types, SQLite tests, build and built exports. `--full` adds
+PostgreSQL, coverage, the SQLite recipe, docs build, fixture pack, SQLite consumer and the full
+SQLite Account Kit integration profile. `--browser` separately adds the Account Kit demo,
+native-session, React and Vue browser gates. Use both flags to select both additions; a full
+profile pass alone does not establish browser coverage.
+
 Run the repository scripts, not bare tools. They carry the flags used by the release gate.
 
 | Command                   | What it does                                               |

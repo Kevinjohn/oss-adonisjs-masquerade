@@ -4,6 +4,44 @@ Start with the owning module and its focused test. Read the relevant technical c
 when changing behavior; the accepted [development plan](design/development-plan.md) controls v1
 scope. Historical milestone results establish prior evidence, not the current implementation map.
 
+## Public entry points and reference coverage
+
+The `exports` map in [package.json](../../package.json) defines supported imports. Generated API
+routes below are relative to the documentation site's base. Run `pnpm docs:api` to regenerate
+their Markdown sources under `docs/reference/api/`.
+
+| Public subpath             | Source                             | Reference coverage                                                                  |
+| -------------------------- | ---------------------------------- | ----------------------------------------------------------------------------------- |
+| package root               | `index.ts`                         | `reference/api/index/index`, including types and errors through root reexports      |
+| `./types`                  | `src/types.ts`                     | `reference/api/src/types/index`                                                     |
+| `./masquerade_provider`    | `providers/masquerade_provider.ts` | `reference/api/providers/masquerade_provider/index`                                 |
+| `./commands`               | `commands/main.ts`                 | `reference/api/commands/main/index`                                                 |
+| `./auth`                   | `auth/main.ts`                     | `reference/api/auth/main/index`                                                     |
+| `./http`                   | `http/main.ts`                     | `reference/api/http/main/index`                                                     |
+| `./native`                 | `native/main.ts`                   | `reference/api/native/main/index`                                                   |
+| `./account-kit`            | `account_kit/main.ts`              | [Account Kit integration guide](../guide/account-kit.md); no separate TypeDoc entry |
+| `./account-kit/provider`   | `account_kit/provider.ts`          | Same integration guide covers provider setup; no separate TypeDoc entry             |
+| `./account-kit/middleware` | `account_kit/middleware.ts`        | Same integration guide covers managed-route blocking; no separate TypeDoc entry     |
+| `./stores/lucid`           | `stores/lucid.ts`                  | `reference/api/stores/lucid/index`                                                  |
+| `./testing`                | `testing/main.ts`                  | `reference/api/testing/main/index`                                                  |
+| `./plugins/api_client`     | `plugins/api_client.ts`            | `reference/api/plugins/api_client/index`                                            |
+
+TypeDoc requires comments on classes, functions, interfaces, type aliases and variables. Methods
+and accessors are not selected by this local policy. Its configured internal/plumbing exclusions
+remain deliberate; compare the actual exported symbols and root reexports before calling a
+subpath undocumented. Comments should explain a contract, ordering or non-obvious constraint.
+Keep the current policy rather than adding filler comments for symmetry. Generated reference
+pages suppress source edit links; authored guides retain them.
+
+## Deliberate compatibility differences
+
+Masquerade's request-error union, `MasqueradeError`, `MasqueradeSetupError` and root `errors`
+namespace model its own request and setup boundaries. Account Kit's descriptive account errors
+and Soft Delete's lifecycle exceptions serve different domains. Keep existing error aliases and
+published imports; this package has no separate `./errors` entry or `./types/*` wildcard.
+Add a public alias only for a concrete compatibility use case. Preserve fallback message wording
+and punctuation during cosmetic cleanup, and preserve inherited legal notices and attribution.
+
 ## Package tasks
 
 | Task                                                    | Owning module                                                                                                                                                                                               | Related contract or helper                                                                                                                                     | Focused tests                                                                                                                                                                                                                         |
