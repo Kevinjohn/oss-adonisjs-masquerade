@@ -6,7 +6,8 @@ type Mode = { isMasquerading: boolean; contextToken: string; targetId?: string; 
 /** Reload the raw workspace when stored status has moved on or the fixed deadline passes. */
 export function useWorkspaceFreshness(mode: Mode, beforeDeadline: boolean) {
   const ready = ref(false)
-  let expired = false
+  // Raw status does not expire stored modes. An already-expired workspace stays available for Stop.
+  let expired = mode.isMasquerading && !beforeDeadline
   let generation = 0
   let controller: AbortController | undefined
   let timer: ReturnType<typeof setTimeout> | undefined

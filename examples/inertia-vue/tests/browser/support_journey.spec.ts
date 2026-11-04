@@ -372,12 +372,56 @@ test.group('Inertia Vue browser journey', (group) => {
         await navigationGate
         await route.fulfill({ response })
       })
+      await page.evaluate(() => {
+        ;(globalThis as any).deadlineVisits = 0
+        ;(globalThis as any).deadlineFinished = false
+        ;(globalThis as any).document.addEventListener('inertia:before', (event: any) => {
+          if (event.detail.visit.url.pathname === '/support') (globalThis as any).deadlineVisits++
+        })
+        ;(globalThis as any).document.addEventListener(
+          'inertia:finish',
+          () => {
+            ;(globalThis as any).deadlineFinished = true
+          },
+          { once: true }
+        )
+      })
       mock.timers.setTime(deadline + 1)
       await page.clock.runFor(deadline - now + 1)
       await navigationCaptured
       await releaseWorkspaceIdentity(page, 0)
       await assertWorkspaceHidden(page, assert)
       releaseNavigation()
+      await page.waitForFunction(() => (globalThis as any).deadlineFinished)
+      assert.equal(await page.evaluate(() => (globalThis as any).deadlineVisits), 1)
+      await page.locator('time').first().waitFor()
+      await assertWorkspaceHidden(page, assert)
+      assert.isTrue(await page.getByRole('button', { name: 'Stop support mode' }).isEnabled())
+      // A fresh document receives already-expired active props; raw status does not clear the mode.
+      await page.unrouteAll({ behavior: 'wait' })
+      await page.addInitScript(() => {
+        ;(globalThis as any).expiredMountVisits = 0
+        ;(globalThis as any).document.addEventListener('inertia:before', (event: any) => {
+          if (event.detail.visit.url.pathname === '/support')
+            (globalThis as any).expiredMountVisits++
+        })
+      })
+      await page.reload()
+      await assertWorkspaceHidden(page, assert)
+      await page.evaluate(() => {
+        ;(globalThis as any).expiredVisits = 0
+        ;(globalThis as any).document.addEventListener('inertia:before', (event: any) => {
+          if (event.detail.visit.url.pathname === '/support') (globalThis as any).expiredVisits++
+        })
+        ;(globalThis as any).document.dispatchEvent(new Event('visibilitychange'))
+        ;(globalThis as any).dispatchEvent(
+          new (globalThis as any).PageTransitionEvent('pageshow', { persisted: true })
+        )
+      })
+      assert.equal(await page.evaluate(() => (globalThis as any).expiredVisits), 0)
+      assert.equal(await page.evaluate(() => (globalThis as any).expiredMountVisits), 0)
+      await assertWorkspaceHidden(page, assert)
+      await page.getByRole('button', { name: 'Stop support mode' }).click()
       await page.getByRole('button', { name: 'Start support mode' }).waitFor()
     } finally {
       releaseNavigation()
@@ -403,9 +447,34 @@ test.group('Inertia Vue browser journey', (group) => {
     await triggerWorkspaceValidation(page, 1)
     await page.getByRole('link', { name: 'Home', exact: true }).click()
     await page.waitForURL(`${base()}/`)
-    await releaseWorkspaceIdentity(page, 0)
-    assert.equal(page.url(), `${base()}/`)
-    assert.equal(await page.locator('[data-workspace-identity="current"]').count(), 0)
+    await page.evaluate(() => {
+      ;(globalThis as any).returnVisits = 0
+      ;(globalThis as any).document.addEventListener('inertia:before', (event: any) => {
+        if (event.detail.visit.url.pathname === '/support') (globalThis as any).returnVisits++
+      })
+    })
+    let releaseReturn!: () => void
+    const returnGate = new Promise<void>((resolve) => {
+      releaseReturn = resolve
+    })
+    let returnRequests = 0
+    await page.route('**/support', async (route) => {
+      returnRequests++
+      await returnGate
+      await route.abort()
+    })
+    try {
+      await releaseWorkspaceIdentity(page, 0)
+      // The actual JSON has completed; its await continuation drains before this next browser task.
+      await page.waitForFunction(() => (globalThis as any).heldIdentity[0].parsed)
+      assert.equal(await page.evaluate(() => (globalThis as any).returnVisits), 0)
+      assert.equal(returnRequests, 0)
+      assert.equal(page.url(), `${base()}/`)
+      assert.equal(await page.locator('[data-workspace-identity="current"]').count(), 0)
+    } finally {
+      releaseReturn()
+      await page.unrouteAll({ behavior: 'wait' })
+    }
   })
 
   test('rechecks a captured customer A response after the account has switched to customer B', async ({
@@ -623,6 +692,7 @@ test.group('Inertia Vue browser journey', (group) => {
     assert.include(await page.locator('main').innerText(), 'may or may not have completed')
     await page.getByRole('link', { name: 'Check current status' }).click()
     await page.getByRole('button', { name: 'Stop support mode' }).waitFor()
+    await page.getByText(/Viewing Customer One/).waitFor()
     assert.include(await page.locator('main').innerText(), 'Customer One')
     setCustomerRequestsUnavailable(false)
     await page.getByRole('button', { name: 'Stop support mode' }).click()
@@ -685,14 +755,24 @@ async function holdWorkspaceIdentity(page: any) {
       // Capture the actual server result before publishing the response barrier.
       await response.clone().text()
       return new Promise<Response>((resolve, reject) => {
-        ;(globalThis as any).heldIdentity.push({
+        const held = {
+          parsed: false,
           release(failure?: string) {
             if (failure === 'network') reject(new TypeError('Controlled fetch failure'))
             else if (failure === 'non-ok') resolve(new Response('', { status: 503 }))
             else if (failure === 'parse') resolve(new Response('invalid json'))
             else resolve(response)
           },
+        }
+        const json = response.json.bind(response)
+        Object.defineProperty(response, 'json', {
+          value: async () => {
+            const body = await json()
+            held.parsed = true
+            return body
+          },
         })
+        ;(globalThis as any).heldIdentity.push(held)
       })
     }
   })
