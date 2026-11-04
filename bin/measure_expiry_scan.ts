@@ -6,6 +6,7 @@ import { performance } from 'node:perf_hooks'
 import Database from 'better-sqlite3'
 import pg from 'pg'
 import type { Client as PgClient } from 'pg'
+import { withPostgresMeasurement } from './helpers/postgres_measurement.js'
 
 type DatabaseInstance = InstanceType<typeof Database>
 
@@ -227,17 +228,14 @@ async function measurePostgres() {
     database: process.env.DB_DATABASE ?? 'package_test',
   })
   const schema = `expiry_measurement_${randomBytes(5).toString('hex')}`
-  await client.connect()
-  let transactionOpen = false
-  try {
+  return withPostgresMeasurement(client, schema, async ({ begin, commit }) => {
     await client.query(`CREATE SCHEMA ${schema}`)
     const tableName = `${schema}.masquerade_modes`
     await client.query(createTableSql(tableName))
     await client.query(createIndexSql(tableName))
     const insertSql = `INSERT INTO ${tableName} (${columns.join(',')}) VALUES `
     const loadStart = performance.now()
-    await client.query('BEGIN')
-    transactionOpen = true
+    await begin()
     for (let offset = 0; offset < totalOwners; offset += 1_000) {
       const chunk = Math.min(1_000, totalOwners - offset)
       const values = []
@@ -249,8 +247,7 @@ async function measurePostgres() {
       }
       await client.query(`${insertSql}${values.join(',')}`, parameters)
     }
-    await client.query('COMMIT')
-    transactionOpen = false
+    await commit()
     await client.query(`ANALYZE ${tableName}`)
     const loadMs = Number((performance.now() - loadStart).toFixed(1))
     const { rows: versionRows } = await client.query(
@@ -304,14 +301,7 @@ async function measurePostgres() {
       loadMs,
       scenarios,
     }
-  } finally {
-    if (transactionOpen) await client.query('ROLLBACK').catch(() => {})
-    try {
-      await client.query(`DROP SCHEMA IF EXISTS ${schema} CASCADE`)
-    } finally {
-      await client.end()
-    }
-  }
+  })
 }
 
 const backend = process.argv[2]
