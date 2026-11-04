@@ -46,31 +46,19 @@ test.group('masquerade HTTP boundary', () => {
     assert,
   }) => {
     const f = fixture()
-    const service = await f.create()
-    const mode = await service.status({})
     const body = {
       targetId: 'b',
       reason: 'support',
       _masqueradeContext: 123,
       _csrf: 'host-csrf-token',
     }
-    const { ctx, responseState } = requestContext(f, {
-      body,
-      header: mode.contextToken,
-      contentType: 'application/x-www-form-urlencoded',
-      raw: new URLSearchParams([
-        ['targetId', body.targetId],
-        ['reason', body.reason],
-        ['_masqueradeContext', String(body._masqueradeContext)],
-        ['_csrf', body._csrf],
-      ]).toString(),
-    })
+    const { ctx, responseState } = requestContext(f, { body, contentType: 'application/json' })
 
     await handleWithDefaultExceptionHandler(ctx, () => new MasqueradeController().start(ctx))
 
-    assert.equal(responseState.status, 409)
+    assert.equal(responseState.status, 428)
     assert.equal(f.store.events.at(-1)?.kind, 'start_denied')
-    assert.equal(f.store.events.at(-1)?.outcomeCode, 'E_MASQUERADE_CONTEXT_CHANGED')
+    assert.equal(f.store.events.at(-1)?.outcomeCode, 'E_MASQUERADE_CONTEXT_REQUIRED')
     assert.equal(f.state.inspectCount, 0)
   })
 
