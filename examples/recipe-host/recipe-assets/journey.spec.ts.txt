@@ -11,8 +11,6 @@ test.group('fresh host public recipe', (group) => {
     client,
     assert,
   }) => {
-    const hold = Number(process.env.RECIPE_TEST_HOLD_MS ?? 0)
-    if (hold > 0 && hold <= 60_000) await new Promise((resolve) => setTimeout(resolve, hold))
     const actor = await User.create({
       email: 'actor@example.test',
       accountIncarnation: 'actor-one',

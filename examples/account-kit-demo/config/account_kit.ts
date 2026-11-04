@@ -44,5 +44,4 @@ export default defineConfig({
     },
   }),
   notify: createLogNotifications({ brandName: 'Support demo', environment: 'development' }),
-  onCredentialsChangedTransaction: async () => {},
 })
