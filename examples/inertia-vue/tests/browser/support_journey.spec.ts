@@ -167,7 +167,9 @@ test.group('Inertia Vue browser journey', (group) => {
       assert.notInclude(await current.locator('main').innerText(), 'customer-one@example.test')
       await current.goForward()
       await current.waitForURL('**/support')
+      await current.getByText(/Viewing Customer Two/).waitFor()
       assert.include(await current.locator('main').innerText(), 'Customer Two')
+      assert.notInclude(await current.locator('main').innerText(), 'customer-one@example.test')
     } finally {
       await secondContext.close()
     }
