@@ -42,7 +42,12 @@ test.group('Inertia support journey', (group) => {
       ]
 
       for (const { payload, field } of malformedInputs) {
-        const response = await client.post('/login').redirects(0).withCsrfToken().json(payload)
+        const response = await client
+          .post('/login')
+          .redirects(0)
+          .withCsrfToken()
+          .accept('json')
+          .json(payload)
 
         response.assertStatus(422)
         assert.include(
