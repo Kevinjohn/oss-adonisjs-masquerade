@@ -9,6 +9,10 @@ export type EffectiveAccessTokensUser<User> = User extends { currentAccessToken:
   ? Omit<User, 'currentAccessToken'>
   : User
 
+/**
+ * Wraps the native token guard with effective-user admission.
+ * @internal
+ */
 export class EffectiveAccessTokensGuard<RawUser> implements GuardContract<
   EffectiveAccessTokensUser<RawUser>
 > {

@@ -43,10 +43,10 @@ test('exact expiry clears durably without stamp access and rejects the triggerin
   assert.equal(f.store.events.at(-1)!.kind, 'expired')
   assert.lengthOf(f.store.events, eventCount + 1)
   f.state.now -= 1000000
-  const observedResult4 = await service.resolve({})
-  assert.equal(observedResult4.effectiveId, 'a')
-  const observedResult5 = await service.status({})
-  assert.isFalse(observedResult5.isMasquerading)
+  const actorAfterExactExpiry = await service.resolve({})
+  assert.equal(actorAfterExactExpiry.effectiveId, 'a')
+  const statusAfterExactExpiry = await service.status({})
+  assert.isFalse(statusAfterExactExpiry.isMasquerading)
 })
 
 for (const invalidation of [
@@ -87,8 +87,8 @@ for (const invalidation of [
       f.store.events.at(-1)!.outcomeCode,
       invalidation === 'target_incarnation' ? 'target_ineligible' : invalidation
     )
-    const observedResult6 = await next.resolve({})
-    assert.equal(observedResult6.effectiveId, 'a')
+    const actorAfterInvalidation = await next.resolve({})
+    assert.equal(actorAfterInvalidation.effectiveId, 'a')
   })
 }
 
@@ -192,15 +192,15 @@ test('memoizes admission outcomes and freezes safe identity across later mode ch
   await service.stop({}, { expectedContext: active.contextToken })
   assert.strictEqual(await service.resolve(request), first)
   assert.equal(f.state.authenticateCount, count + 1)
-  const observedResult7 = await service.resolve({})
-  assert.equal(observedResult7.effectiveId, 'a')
+  const actorAfterStop = await service.resolve({})
+  assert.equal(actorAfterStop.effectiveId, 'a')
   const denied = { denied: true }
   await f.start(service)
   assert.equal(await errorCode(() => service.resolve(denied)), 'E_MASQUERADE_NOT_ALLOWED')
   denied.denied = false
   assert.equal(await errorCode(() => service.resolve(denied)), 'E_MASQUERADE_NOT_ALLOWED')
-  const observedResult8 = await service.resolve({})
-  assert.equal(observedResult8.effectiveId, 'b')
+  const actorAfterDeniedStart = await service.resolve({})
+  assert.equal(actorAfterDeniedStart.effectiveId, 'b')
 })
 
 for (const invalidation of ['expiry', 'stamp', 'policy'] as const) {

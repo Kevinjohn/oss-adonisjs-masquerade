@@ -30,8 +30,8 @@ test('indeterminate committed start logs a safe diagnostic and never emits or re
     f.store.events.map((event) => event.kind),
     ['started']
   )
-  const observedResult1 = await service.status({})
-  assert.isTrue(observedResult1.isMasquerading)
+  const statusAfterIndeterminateStart = await service.status({})
+  assert.isTrue(statusAfterIndeterminateStart.isMasquerading)
   assert.deepEqual(f.diagnostics, [
     {
       category: 'store',
@@ -64,8 +64,8 @@ test('indeterminate committed stop does not emit success or record a false denia
     f.store.events.map((event) => event.kind),
     ['started', 'stopped']
   )
-  const observedResult2 = await service.status({})
-  assert.isFalse(observedResult2.isMasquerading)
+  const statusAfterIndeterminateStop = await service.status({})
+  assert.isFalse(statusAfterIndeterminateStop.isMasquerading)
   assert.deepEqual(f.diagnostics, [
     {
       category: 'store',
@@ -131,8 +131,8 @@ test('observer sync throws, rejected promises and rejected reporter cannot alter
     throw new Error('reporter threw')
   }
   const service = await f.create()
-  const observedResult3 = await f.start(service)
-  assert.isTrue(observedResult3.isMasquerading)
+  const startedMode = await f.start(service)
+  assert.isTrue(startedMode.isMasquerading)
   await new Promise((resolve) => setImmediate(resolve))
   assert.deepEqual(f.failures, [failure, failure])
   assert.deepEqual(f.diagnostics, [
@@ -155,8 +155,8 @@ test('never-settling observers are not awaited', async ({ assert }) => {
   const f = fixture()
   f.dependencies.emitter = { emit: () => new Promise(() => {}) }
   f.dependencies.logger = { info: () => new Promise(() => {}), error: () => new Promise(() => {}) }
-  const observedResult4 = await f.start(await f.create())
-  assert.isTrue(observedResult4.isMasquerading)
+  const modeWithPendingObservers = await f.start(await f.create())
+  assert.isTrue(modeWithPendingObservers.isMasquerading)
 })
 
 test('authority and local-policy throws preserve mode without admitting or logging secrets', async ({
@@ -204,8 +204,8 @@ test('conflicting expiry cannot clear a newer committed selection', async ({ ass
   const request = {}
   assert.equal(await errorCode(() => service.resolve(request)), 'E_MASQUERADE_CONTEXT_CHANGED')
   assert.equal(await errorCode(() => service.resolve(request)), 'E_MASQUERADE_CONTEXT_CHANGED')
-  const observedResult5 = await service.resolve({})
-  assert.equal(observedResult5.effectiveId, 'c')
+  const selectionAfterConflictingExpiry = await service.resolve({})
+  assert.equal(selectionAfterConflictingExpiry.effectiveId, 'c')
   assert.lengthOf(
     f.store.events.filter((event) => event.kind === 'expired'),
     0
