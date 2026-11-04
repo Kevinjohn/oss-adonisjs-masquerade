@@ -3,7 +3,7 @@ import { spawn, type ChildProcess } from 'node:child_process'
 import { createHash } from 'node:crypto'
 import { once } from 'node:events'
 import { createServer } from 'node:net'
-import { mkdtemp, mkdir, readFile, rm, writeFile } from 'node:fs/promises'
+import { chmod, mkdtemp, mkdir, readFile, rm, symlink, writeFile } from 'node:fs/promises'
 import os from 'node:os'
 import path from 'node:path'
 import { test } from '@japa/runner'
@@ -44,6 +44,11 @@ type FixtureOptions = {
   startupDelay?: number
   badPage?: boolean
   seedDelay?: number
+  failReap?: boolean
+  termResistantOrphan?: boolean
+  serverExitFail?: boolean
+  missingAt?: 'root-lock' | 'env-example' | 'example-lock' | 'tarball'
+  filesystemFailure?: 'env-example-eacces' | 'example-lock-eio' | 'tarball-eio' | 'tarball-eacces'
 }
 
 type DemoFixture = {
@@ -114,6 +119,17 @@ async function fixture(options: FixtureOptions = {}): Promise<DemoFixture> {
     "import { createServer } from 'node:http'\nimport { writeFile } from 'node:fs/promises'\nconst server = createServer((_request, response) => response.end('orphan'))\nawait writeFile('orphan.pid', String(process.pid))\nserver.listen(Number(process.env.PORT), '127.0.0.1')\n"
   )
   await writeFile(
+    path.join(example, 'term-resistant.js'),
+    "import { writeFile } from 'node:fs/promises'\nprocess.on('SIGTERM', () => {})\nawait writeFile('orphan.pid', String(process.pid))\nsetInterval(() => {}, 1000)\n"
+  )
+  if (options.missingAt === 'root-lock') await rm(path.join(root, 'pnpm-lock.yaml'))
+  if (options.missingAt === 'env-example') await rm(path.join(example, '.env.example'))
+  if (options.missingAt === 'example-lock') await rm(path.join(example, 'pnpm-lock.yaml'))
+  if (options.filesystemFailure === 'example-lock-eio') {
+    await rm(path.join(example, 'pnpm-lock.yaml'))
+    await symlink('/proc/self/mem', path.join(example, 'pnpm-lock.yaml'))
+  }
+  await writeFile(
     path.join(example, 'ace'),
     `
     import { readFile, writeFile } from 'node:fs/promises'
@@ -127,6 +143,7 @@ async function fixture(options: FixtureOptions = {}): Promise<DemoFixture> {
     }
     if (command === 'migration:run') await writeFile('migrations-ran', 'yes')
     if (command === 'demo:seed') {
+      await writeFile('seed-started', 'yes')
       await new Promise((resolve) => setTimeout(resolve, Number(process.env.DEMO_TEST_SEED_DELAY ?? 0)))
       const state = JSON.parse(await readFile('state.json'))
       state.demoSeeded = true
@@ -145,7 +162,8 @@ await writeFile(logPath, (await import('node:fs/promises').then(({readFile}) => 
 if (process.env.DEMO_TEST_FAIL_AT && command.includes(process.env.DEMO_TEST_FAIL_AT)) {
   if (args[0] === 'build') {
     const example = path.join(process.cwd(), 'examples/native-session')
-    spawn(process.execPath, [path.join(example, 'orphan.js')], { cwd: example, env: process.env, stdio: 'ignore' })
+    const orphanScript = process.env.DEMO_TEST_RESISTANT_ORPHAN === '1' ? 'term-resistant.js' : 'orphan.js'
+    spawn(process.execPath, [path.join(example, orphanScript)], { cwd: example, env: process.env, stdio: 'ignore' })
     for (let attempt = 0; attempt < 100; attempt++) {
       if (await readFile(path.join(example, 'orphan.pid'), 'utf8').catch(() => '')) break
       await new Promise((resolve) => setTimeout(resolve, 20))
@@ -155,11 +173,32 @@ if (process.env.DEMO_TEST_FAIL_AT && command.includes(process.env.DEMO_TEST_FAIL
 }
 if (args[0] === 'pack:fixture') {
   await mkdir(path.join(process.cwd(), 'tmp'), { recursive: true })
-  await writeFile(path.join(process.cwd(), 'tmp/native-session-package.tgz'), 'tarball')
+  const tarball = path.join(process.cwd(), 'tmp/native-session-package.tgz')
+  if (process.env.DEMO_TEST_SKIP_TARBALL !== '1') await writeFile(tarball, 'tarball')
+  if (process.env.DEMO_TEST_TARBALL_EIO === '1') {
+    await import('node:fs/promises').then(({ rm, symlink }) => rm(tarball).then(() => symlink('/proc/self/mem', tarball)))
+  }
+  if (process.env.DEMO_TEST_TARBALL_EACCES === '1') {
+    await import('node:fs/promises').then(({ chmod }) => chmod(tarball, 0))
+  }
+  if (process.env.DEMO_TEST_LOCK_EIO === '1') {
+    const lockfile = path.join(process.cwd(), 'examples/native-session/pnpm-lock.yaml')
+    await import('node:fs/promises').then(({ rm, symlink }) => rm(lockfile).then(() => symlink('/proc/self/mem', lockfile)))
+  }
 }
 if (args[0] === 'dev') {
   if (process.env.DEMO_TEST_STARTUP_FAIL === '1') process.exit(19)
-  const child = spawn(process.execPath, ['server.js'], { cwd: process.cwd(), env: process.env, stdio: 'inherit' })
+  if (process.env.DEMO_TEST_SERVER_EXIT_FAIL === '1') {
+    const script = process.env.DEMO_TEST_RESISTANT_ORPHAN === '1' ? 'term-resistant.js' : 'orphan.js'
+    spawn(process.execPath, [script], { cwd: process.cwd(), env: process.env, stdio: 'ignore' })
+    for (let attempt = 0; attempt < 100; attempt++) {
+      if (await readFile(path.join(process.cwd(), 'orphan.pid'), 'utf8').catch(() => '')) break
+      await new Promise((resolve) => setTimeout(resolve, 20))
+    }
+    process.exit(17)
+  }
+  const serverScript = process.env.DEMO_TEST_RESISTANT_ORPHAN === '1' ? 'term-resistant.js' : 'server.js'
+  const child = spawn(process.execPath, [serverScript], { cwd: process.cwd(), env: process.env, stdio: 'inherit' })
   process.on('SIGTERM', () => child.kill('SIGTERM'))
   process.on('SIGINT', () => child.kill('SIGINT'))
   child.on('exit', (code) => process.exit(code ?? 1))
@@ -168,9 +207,10 @@ if (args[0] === 'dev') {
   const pnpmPath = path.join(bin, 'pnpm')
   await writeFile(pnpmPath, pnpmScript, { mode: 0o755 })
   const logPath = path.join(directory, 'commands.log')
+  await writeFile(logPath, '')
   const env: NodeJS.ProcessEnv = {
     ...process.env,
-    PATH: `${bin}:${process.env.PATH}`,
+    PATH: bin,
     DEMO_TEST_LOG: logPath,
   }
   for (const name of ['NODE_ENV', 'PORT', 'APP_KEY', 'DB_CLIENT', 'HOST']) delete env[name]
@@ -180,14 +220,34 @@ if (args[0] === 'dev') {
   if (options.startupDelay) env.DEMO_TEST_STARTUP_DELAY = String(options.startupDelay)
   if (options.badPage) env.DEMO_TEST_BAD_PAGE = '1'
   if (options.seedDelay) env.DEMO_TEST_SEED_DELAY = String(options.seedDelay)
+  if (options.failReap) {
+    const shimPath = path.join(directory, 'fail-reap.cjs')
+    await writeFile(
+      shimPath,
+      `const originalKill = process.kill.bind(process)\nlet finalGroup = null\nprocess.kill = (pid, signal) => {\n  if (pid < 0 && signal === 'SIGKILL') { finalGroup = pid; return originalKill(pid, signal) }\n  if (pid === finalGroup && signal === 0) return true\n  return originalKill(pid, signal)\n}\n`
+    )
+    env.NODE_OPTIONS = `${env.NODE_OPTIONS ?? ''} --require=${shimPath}`.trim()
+  }
+  if (options.termResistantOrphan) env.DEMO_TEST_RESISTANT_ORPHAN = '1'
+  if (options.serverExitFail) env.DEMO_TEST_SERVER_EXIT_FAIL = '1'
+  if (options.missingAt === 'tarball') env.DEMO_TEST_SKIP_TARBALL = '1'
+  if (options.filesystemFailure === 'tarball-eio') env.DEMO_TEST_TARBALL_EIO = '1'
+  if (options.filesystemFailure === 'tarball-eacces') env.DEMO_TEST_TARBALL_EACCES = '1'
+  if (options.filesystemFailure === 'example-lock-eio') env.DEMO_TEST_LOCK_EIO = '1'
+  if (options.filesystemFailure === 'env-example-eacces') await chmod(example, 0)
   return { directory, root, example, port, env, logPath }
 }
 
-function launch(demo: DemoFixture, args: string[] = []): ChildProcess {
+function launch(
+  demo: DemoFixture,
+  args: string[] = [],
+  options: { uid?: number; gid?: number } = {}
+): ChildProcess {
   return spawn(currentNode, [path.join(demo.root, 'bin/demo.ts'), ...args], {
     cwd: demo.root,
     env: demo.env,
     stdio: ['ignore', 'pipe', 'pipe'],
+    ...options,
   })
 }
 
@@ -521,4 +581,112 @@ test('does not report readiness for an unrelated successful listener', async ({ 
   activeChild.kill('SIGTERM')
   const result = await collectExit(activeChild, output)
   assert.equal(result.code, 143)
+}).timeout(30_000)
+
+test('maps only missing demo inputs and preserves unexpected filesystem failures', async ({
+  cleanup,
+}) => {
+  for (const [missingAt, expected] of [
+    ['root-lock', 'complete repository checkout'],
+    ['env-example', 'configuration template'],
+    ['example-lock', 'missing pnpm-lock.yaml'],
+    ['tarball', 'local package tarball was not created'],
+  ] as const) {
+    const demo = await fixture({ missingAt })
+    cleanup(() => rm(demo.directory, { recursive: true, force: true }))
+    const child = launch(demo)
+    const output = await outputOf(child)
+    const result = await collectExit(child, output)
+    assert.equal(result.code, 1, `${missingAt}\n${result.text}`)
+    assert.match(result.text, new RegExp(expected))
+  }
+
+  for (const [filesystemFailure, code] of [
+    ['example-lock-eio', 'EIO'],
+    ['tarball-eio', 'EIO'],
+    ['tarball-eacces', 'EACCES'],
+  ] as const) {
+    const demo = await fixture({ filesystemFailure })
+    cleanup(() => rm(demo.directory, { recursive: true, force: true }))
+    const child = launch(demo)
+    const output = await outputOf(child)
+    const result = await collectExit(child, output)
+    assert.equal(result.code, 1, `${filesystemFailure}\n${result.text}`)
+    assert.match(result.text, new RegExp(code))
+    assert.doesNotMatch(result.text, /missing pnpm-lock|local package tarball was not created/)
+  }
+
+  const inaccessible = await fixture({ filesystemFailure: 'env-example-eacces' })
+  await chmod(inaccessible.directory, 0o755)
+  cleanup(async () => {
+    await chmod(inaccessible.example, 0o755)
+    await rm(inaccessible.directory, { recursive: true, force: true })
+  })
+  const inaccessibleChild = launch(inaccessible, [], {
+    uid: process.getuid() === 0 ? 65534 : process.getuid(),
+    gid: process.getgid() === 0 ? 65534 : process.getgid(),
+  })
+  const inaccessibleOutput = await outputOf(inaccessibleChild)
+  const inaccessibleResult = await collectExit(inaccessibleChild, inaccessibleOutput)
+  assert.equal(inaccessibleResult.code, 1, inaccessibleResult.text)
+  assert.match(inaccessibleResult.text, /EACCES/)
+  assert.doesNotMatch(inaccessibleResult.text, /configuration template/)
+}).timeout(30_000)
+
+test('reports setup and server-exit reap failures alongside their primary errors', async ({
+  cleanup,
+}) => {
+  const setup = await fixture({ failAt: 'build', failReap: true, termResistantOrphan: true })
+  cleanup(() => rm(setup.directory, { recursive: true, force: true }))
+  const setupChild = launch(setup)
+  const setupOutput = await outputOf(setupChild)
+  const setupResult = await collectExit(setupChild, setupOutput)
+  assert.equal(setupResult.code, 1, setupResult.text)
+  assert.match(setupResult.text, /pnpm build exited with code 17/)
+  assert.match(setupResult.text, /Failed to reap owned process group/)
+  assert.doesNotMatch(setupResult.text, /UnhandledPromiseRejection|unhandledRejection/)
+
+  const server = await fixture({
+    serverExitFail: true,
+    failReap: true,
+    termResistantOrphan: true,
+  })
+  cleanup(() => rm(server.directory, { recursive: true, force: true }))
+  const serverChild = launch(server)
+  const serverOutput = await outputOf(serverChild)
+  const serverResult = await collectExit(serverChild, serverOutput)
+  assert.equal(serverResult.code, 1, serverResult.text)
+  assert.match(serverResult.text, /server exited before becoming ready/)
+  assert.match(serverResult.text, /Failed to reap owned process group/)
+  assert.doesNotMatch(serverResult.text, /UnhandledPromiseRejection|unhandledRejection/)
+}).timeout(30_000)
+
+test('reports signal cleanup reap failures and keeps the first signal exit code', async ({
+  cleanup,
+}) => {
+  const demo = await fixture({ failReap: true, termResistantOrphan: true })
+  cleanup(() => rm(demo.directory, { recursive: true, force: true }))
+  const child = launch(demo)
+  const output = await outputOf(child)
+  await waitForFile(path.join(demo.example, 'orphan.pid'))
+  child.kill('SIGTERM')
+  const result = await collectExit(child, output)
+  assert.equal(result.code, 143, result.text)
+  assert.match(result.text, /Demo cleanup failed:.*Failed to reap owned process group/s)
+  assert.doesNotMatch(result.text, /UnhandledPromiseRejection|unhandledRejection/)
+}).timeout(30_000)
+
+test('settles a server spawn failure during readiness without an unhandled rejection', async ({
+  cleanup,
+}) => {
+  const demo = await fixture({ seedDelay: 1000 })
+  cleanup(() => rm(demo.directory, { recursive: true, force: true }))
+  const child = launch(demo)
+  const output = await outputOf(child)
+  await waitForFile(path.join(demo.example, 'seed-started'))
+  await rm(path.join(demo.directory, 'bin/pnpm'))
+  const result = await collectExit(child, output)
+  assert.equal(result.code, 1, result.text)
+  assert.match(result.text, /Could not start the demo server: spawn pnpm ENOENT/)
+  assert.doesNotMatch(result.text, /UnhandledPromiseRejection|unhandledRejection/)
 }).timeout(30_000)
