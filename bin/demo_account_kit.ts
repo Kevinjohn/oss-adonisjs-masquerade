@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-// This launcher is written new so the native launcher and its fixture remain unchanged.
+// Runs the Account Kit demo in a separate generated workspace with the pinned release package.
 import { spawn, type ChildProcess } from 'node:child_process'
 import { createServer } from 'node:net'
 import { readdir, rm } from 'node:fs/promises'

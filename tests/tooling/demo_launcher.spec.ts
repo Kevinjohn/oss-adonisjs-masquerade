@@ -16,9 +16,9 @@ const currentNode = process.execPath
 
 test('requires Node 24 before demo setup', () => {
   assert.doesNotThrow(() => assertNodeVersion('24.0.0'))
-  assert.doesNotThrow(() => assertNodeVersion('25.2.1'))
-  assert.throws(() => assertNodeVersion('23.11.0'), /requires Node\.js 24 or newer/)
-  assert.throws(() => assertNodeVersion('unknown'), /requires Node\.js 24 or newer/)
+  assert.throws(() => assertNodeVersion('25.2.1'), /requires Node\.js 24;/)
+  assert.throws(() => assertNodeVersion('23.11.0'), /requires Node\.js 24;/)
+  assert.throws(() => assertNodeVersion('unknown'), /requires Node\.js 24;/)
 }).timeout(30_000)
 
 async function freePort(): Promise<number> {

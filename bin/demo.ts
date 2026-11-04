@@ -28,9 +28,9 @@ let cleanupPromise: Promise<void> | null = null
 
 export function assertNodeVersion(version: string = process.versions.node): void {
   const major = Number(version.split('.')[0])
-  if (!Number.isInteger(major) || major < 24) {
+  if (!Number.isInteger(major) || major !== 24) {
     throw new Error(
-      `The demo requires Node.js 24 or newer; found ${version}. Use the version in .nvmrc, then rerun pnpm demo.`
+      `The demo requires Node.js 24; found ${version}. Use the version in .nvmrc, then rerun pnpm demo.`
     )
   }
 }
