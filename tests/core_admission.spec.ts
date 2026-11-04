@@ -199,8 +199,8 @@ test('memoizes admission outcomes and freezes safe identity across later mode ch
   assert.equal(await errorCode(() => service.resolve(denied)), 'E_MASQUERADE_NOT_ALLOWED')
   denied.denied = false
   assert.equal(await errorCode(() => service.resolve(denied)), 'E_MASQUERADE_NOT_ALLOWED')
-  const actorAfterDeniedStart = await service.resolve({})
-  assert.equal(actorAfterDeniedStart.effectiveId, 'b')
+  const effectiveUserAfterDeniedAdmission = await service.resolve({})
+  assert.equal(effectiveUserAfterDeniedAdmission.effectiveId, 'b')
 })
 
 for (const invalidation of ['expiry', 'stamp', 'policy'] as const) {
