@@ -31,7 +31,13 @@ test.group('masquerade HTTP boundary', () => {
       const f = fixture()
       const service = await f.create()
       const mode = await service.status({})
-      const { ctx, responseState } = requestContext(f, { body, header: mode.contextToken })
+      const { ctx, responseState } = requestContext(f, {
+        body,
+        raw: JSON.stringify(body),
+        hasBody: true,
+        header: mode.contextToken,
+        contentType: 'application/json',
+      })
 
       await handleWithDefaultExceptionHandler(ctx, () => new MasqueradeController().start(ctx))
 
