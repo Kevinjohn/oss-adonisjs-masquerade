@@ -163,6 +163,44 @@ test.group('Inertia Vue support journey', (group) => {
       .where('user_id', customerB.id)
       .first()
     assert.isNull(preferenceForCustomerB)
+
+    const stopsBefore = await db
+      .from('masquerade_events')
+      .where('actor_id', String(actor.id))
+      .where('kind', 'stopped')
+    const staleStop = await client
+      .post('/support/stop')
+      .redirects(0)
+      .withCsrfToken()
+      .form({ _masqueradeContext: tokenA })
+      .loginAs(actor)
+    staleStop.assertStatus(409)
+    const freshStatus = await client.get('/support/identity').loginAs(actor)
+    freshStatus.assertStatus(200)
+    assert.isTrue(freshStatus.body().mode.isMasquerading)
+    assert.equal(freshStatus.body().mode.targetId, String(customerB.id))
+    const stopsAfterRejection = await db
+      .from('masquerade_events')
+      .where('actor_id', String(actor.id))
+      .where('kind', 'stopped')
+    assert.lengthOf(stopsAfterRejection, stopsBefore.length)
+    const stored = await db.from('masquerade_modes').where('actor_id', String(actor.id)).first()
+    assert.equal(stored.target_id, String(customerB.id))
+    // Only a newly chosen Stop with freshly observed B context may end B.
+    const newStop = await client
+      .post('/support/stop')
+      .redirects(0)
+      .withCsrfToken()
+      .form({ _masqueradeContext: freshStatus.body().mode.contextToken })
+      .loginAs(actor)
+    newStop.assertStatus(302)
+    const stopped = await client.get('/support/identity').loginAs(actor)
+    assert.isFalse(stopped.body().mode.isMasquerading)
+    const stopsAfterNewAction = await db
+      .from('masquerade_events')
+      .where('actor_id', String(actor.id))
+      .where('kind', 'stopped')
+    assert.lengthOf(stopsAfterNewAction, stopsBefore.length + 1)
   })
 
   test('view-only start blocks the edit and renders the host page', async ({ client, assert }) => {
