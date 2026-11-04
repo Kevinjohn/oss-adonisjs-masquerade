@@ -8,7 +8,7 @@ customer never signs in, and the operator's permissions are never added to the c
 Install and configure the provider, raw and effective guards, policy, session, and Shield first as
 described in [Install and configure](setup.md). Keep login, logout, and support controls on the raw
 actor guard. Keep customer business routes on the effective guard. See the
-[API entry-point map](../reference/README.md#supported-package-imports) for the HTTP entry point,
+[API entry-point map](https://kevinjohn.github.io/oss-adonisjs-masquerade/reference/index#supported-package-imports) for the HTTP entry point,
 `MasqueradeController`, `masqueradeContext`, and the route markers used below.
 
 ## Mount the JSON controls

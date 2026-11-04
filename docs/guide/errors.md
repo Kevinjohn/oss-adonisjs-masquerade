@@ -6,12 +6,16 @@ the application has an i18n instance, with the English text as fallback. Without
 uses the English text. Masquerade ships no translations, loader or locale setting. For HTML, render
 a message and recovery link rather than retrying behind the operator's back.
 
+Missing native authentication raises the host's `E_UNAUTHORIZED_ACCESS` exception. The host
+controls its response: ordinary JSON may contain only a message, JSON:API may include a code, and
+session HTML requests may redirect to sign-in. Use the host's authentication and translation
+configuration for that case; do not match a Masquerade authentication code in the response.
+
 Add these English entries to the host application's `errors.json` locale file if it uses
 `@adonisjs/i18n`:
 
 ```json
 {
-  "E_MASQUERADE_UNAUTHENTICATED": "Actor authentication required",
   "E_MASQUERADE_NOT_ALLOWED": "Masquerade is not allowed",
   "E_MASQUERADE_ACTION_BLOCKED": "Action is blocked while masquerading",
   "E_MASQUERADE_ALREADY_ACTIVE": "Masquerade is already active",

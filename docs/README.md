@@ -36,7 +36,7 @@ with real application screenshots.
   context, refreshed customer pages, and deliberate recovery.
 - [Inertia Vue](guide/clients/vue.md): run the fictional support workflow with Vue forms and
   page recovery after an identity change.
-- [Supported package imports](reference/README.md#supported-package-imports): map public package
+- [Supported package imports](https://kevinjohn.github.io/oss-adonisjs-masquerade/reference/index#supported-package-imports): map public package
   entry points to their API references.
 
 ## Security and operations
