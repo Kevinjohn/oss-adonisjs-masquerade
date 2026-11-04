@@ -37,12 +37,7 @@ const { ready } = useIdentityFreshness(props.mode, props.mode.expiresAt)
       <p>
         Customer email updates: <strong>{{ emailUpdates ? 'On' : 'Off' }}</strong>
       </p>
-      <ContextForm
-        v-if="canEdit"
-        route="demo.preference"
-        :context="mode.contextToken"
-        submit-label="Save preference"
-      >
+      <ContextForm v-if="canEdit" route="demo.preference" :context="mode.contextToken">
         <template #default="{ processing }">
           <label for="email-updates">Email updates</label>
           <select
@@ -58,11 +53,7 @@ const { ready } = useIdentityFreshness(props.mode, props.mode.expiresAt)
         </template>
       </ContextForm>
       <p v-else role="alert">This customer cannot change preferences.</p>
-      <ContextForm
-        route="demo.sensitive"
-        :context="mode.contextToken"
-        submit-label="Try sensitive account action"
-      >
+      <ContextForm route="demo.sensitive" :context="mode.contextToken">
         <template #default="{ processing }"
           ><button type="submit" :disabled="processing">
             Try sensitive account action
