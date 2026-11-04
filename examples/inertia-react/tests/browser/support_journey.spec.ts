@@ -142,6 +142,49 @@ test.group('React support browser journey', (group) => {
     )
   })
 
+  test('returns field validation for a malformed login email before credential lookup', async ({
+    browserContext,
+    assert,
+  }) => {
+    const page = await browserContext.newPage()
+    await page.goto(`${base()}/login`)
+
+    const validation = await page.evaluate(async () => {
+      const xsrf = document.cookie.split('; ').find((part) => part.startsWith('XSRF-TOKEN='))
+      if (!xsrf) throw new Error('XSRF cookie is missing')
+
+      const response = await fetch('/login', {
+        method: 'POST',
+        credentials: 'same-origin',
+        redirect: 'follow',
+        headers: {
+          'Accept': 'text/html, application/xhtml+xml',
+          'Content-Type': 'application/json',
+          'X-Inertia': 'true',
+          'X-Requested-With': 'XMLHttpRequest',
+          'X-XSRF-TOKEN': decodeURIComponent(xsrf.split('=')[1]),
+        },
+        body: JSON.stringify({ email: 'not-an-email', password: 'wrong-password' }),
+      })
+      const html = await response.text()
+      const encoded = html.match(/data-page="([^"]+)"/)?.[1]
+      if (!encoded) throw new Error('Inertia login page is missing')
+      const pageData = JSON.parse(
+        encoded.replaceAll('&quot;', '"').replaceAll('&amp;', '&').replaceAll('&#39;', "'")
+      )
+      return {
+        status: response.status,
+        component: pageData.component,
+        emailError: pageData.props.errors.email,
+      }
+    })
+
+    assert.equal(validation.status, 200)
+    assert.equal(validation.component, 'auth/login')
+    assert.isString(validation.emailError)
+    assert.isNotEmpty(validation.emailError)
+  })
+
   test('revalidates retained pages through A to B and independent operator sessions', async ({
     browser,
     browserContext,
