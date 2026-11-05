@@ -9,10 +9,11 @@ import { runtimeFor } from '../src/integration/runtime.js'
  */
 export async function shareMasquerade(ctx: HttpContext): Promise<ModeView> {
   const runtime = await runtimeFor(ctx)
-  const mode =
-    runtime.selectGuard(ctx).kind === 'effective'
-      ? (await runtime.admit(ctx)).view
-      : await runtime.service.status(ctx)
+  let mode: ModeView
+  if (runtime.selectGuard(ctx).kind === 'effective') {
+    const admitted = await runtime.admit(ctx)
+    mode = admitted.view
+  } else mode = await runtime.service.status(ctx)
   const edge = ctx as HttpContext & {
     view?: { share(values: Record<string, unknown>): unknown }
   }

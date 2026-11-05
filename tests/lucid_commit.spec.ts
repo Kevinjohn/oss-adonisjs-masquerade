@@ -71,7 +71,10 @@ if (process.env.DB_CLIENT === 'pg') {
   }) => {
     const f = await sqlFixture()
     const a = transition()
-    assert.equal((await f.store.compareAndSet(a)).status, 'applied')
+    assert.deepEqual(await f.store.compareAndSet(a), {
+      status: 'applied',
+      transitionId: a.event.id,
+    })
     const blocker = await f.client.transaction()
     try {
       await f.second.rawQuery(
