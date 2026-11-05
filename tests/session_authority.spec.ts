@@ -176,3 +176,28 @@ test('native adapter rejects an actual non-session raw guard before credential v
   assert.equal(await errorCode(() => native.authenticateActor(ctx)), 'E_MASQUERADE_UNAVAILABLE')
   assert.equal(authentications, 0)
 })
+
+test('native session inspection reports isActive exactly and rejects a non-boolean', async ({
+  assert,
+}) => {
+  const user = { key: 7 }
+  let active: unknown = false
+  const native = sessionAuthority({
+    namespace: 'users',
+    guard: 'web',
+    provider: {
+      [symbols.PROVIDER_REAL_USER]: undefined as unknown as typeof user,
+      createUserForGuard: async (model) => ({ getId: () => model.key, getOriginal: () => model }),
+      findById: async () => ({ getId: () => user.key, getOriginal: () => user }),
+    },
+    incarnation: 'id',
+    securityStamp: () => 'stamp',
+    isActive: async () => active as boolean,
+  })
+  assert.isFalse((await native.authority.inspectAccount('7'))!.active)
+  active = 'false'
+  assert.equal(
+    await errorCode(() => native.authority.inspectAccount('7')),
+    'E_MASQUERADE_UNAVAILABLE'
+  )
+})

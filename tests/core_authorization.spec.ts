@@ -1,5 +1,6 @@
 import { test } from '@japa/runner'
 import { fixture, errorCode } from './helpers/core.js'
+import type { Request } from './helpers/core.js'
 
 test('invalid access values are 422 with start_denied and no revision change', async ({
   assert,
@@ -440,4 +441,105 @@ test('explicit null start duration is rejected and audited instead of defaulted'
   )
   assert.isNull(await f.store.read(f.owner))
   assert.equal(f.store.events[0].kind, 'start_denied')
+})
+
+async function startResult(f: ReturnType<typeof fixture>, request: Request = {}) {
+  const service = await f.create()
+  return errorCode(async () => {
+    const idle = await service.status(request)
+    return service.start(request, {
+      targetId: 'b',
+      reason: 'case',
+      expectedContext: idle.contextToken,
+    })
+  })
+}
+
+test('start refuses an operator whose inspected account is inactive or a different account', async ({
+  assert,
+}) => {
+  for (const change of [{ active: false }, { id: 'c' }, { incarnation: 'replaced' }] as const) {
+    const f = fixture()
+    const inspect = f.config.authority.inspectAccount
+    f.config.authority.inspectAccount = async (id) => {
+      const result = await inspect(id)
+      if (id !== 'a' || !result) return result
+      if ('active' in change) return { ...result, active: false }
+      const user = { ...result.subject.user, ...change }
+      return { ...result, subject: { id: user.id, incarnation: user.incarnation, user } }
+    }
+    assert.equal(await startResult(f), 'E_MASQUERADE_NOT_ALLOWED', JSON.stringify(change))
+    assert.isNull(await f.store.read(f.owner))
+  }
+})
+
+test('a non-boolean active flag or an inconsistent inspected subject fails closed', async ({
+  assert,
+}) => {
+  for (const kind of ['active', 'subject', 'actor'] as const) {
+    const f = fixture()
+    const inspect = f.config.authority.inspectAccount
+    if (kind === 'active')
+      f.config.authority.inspectAccount = async (id) => {
+        const result = await inspect(id)
+        return result && ({ ...result, active: 'false' } as never)
+      }
+    if (kind === 'subject')
+      f.config.authority.inspectAccount = async (id) => {
+        const result = await inspect(id)
+        return result && { ...result, subject: { ...result.subject, incarnation: 'other' } }
+      }
+    if (kind === 'actor') {
+      const authenticate = f.dependencies.authenticateActor
+      f.dependencies.authenticateActor = async (request) => ({
+        ...(await authenticate(request)),
+        incarnation: 'other',
+      })
+    }
+    assert.equal(await startResult(f), 'E_MASQUERADE_UNAVAILABLE', kind)
+    assert.isNull(await f.store.read(f.owner))
+  }
+})
+
+test('start and admission require canUseRequest to return exactly true', async ({ assert }) => {
+  for (const value of [false, undefined, 1, 'yes']) {
+    const f = fixture()
+    f.config.policy.canUseRequest = async () => value as boolean
+    assert.equal(await startResult(f), 'E_MASQUERADE_NOT_ALLOWED', String(value))
+    assert.isNull(await f.store.read(f.owner))
+    assert.equal(f.store.events.at(-1)!.kind, 'start_denied')
+  }
+  const f = fixture()
+  let local: unknown = true
+  f.config.policy.canUseRequest = async () => local as boolean
+  const service = await f.create()
+  await f.start(service)
+  local = 'yes'
+  assert.equal(await errorCode(() => service.resolve({})), 'E_MASQUERADE_NOT_ALLOWED')
+  assert.equal((await f.store.read(f.owner))!.state, 'active')
+})
+
+test('admission invalidates a mode when inspection returns a different account', async ({
+  assert,
+}) => {
+  for (const [who, change, code] of [
+    ['a', { id: 'c' }, 'actor_ineligible'],
+    ['a', { incarnation: 'replaced' }, 'actor_ineligible'],
+    ['b', { id: 'c' }, 'target_ineligible'],
+  ] as const) {
+    const f = fixture()
+    let swap = false
+    const inspect = f.config.authority.inspectAccount
+    f.config.authority.inspectAccount = async (id) => {
+      const result = await inspect(id)
+      if (!swap || id !== who || !result) return result
+      const user = { ...result.subject.user, ...change }
+      return { ...result, subject: { id: user.id, incarnation: user.incarnation, user } }
+    }
+    const service = await f.create()
+    await f.start(service)
+    swap = true
+    assert.equal(await errorCode(() => service.resolve({})), 'E_MASQUERADE_CONTEXT_CHANGED')
+    assert.include(f.store.events.at(-1), { kind: 'invalidated', outcomeCode: code })
+  }
 })
