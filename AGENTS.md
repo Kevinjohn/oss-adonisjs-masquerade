@@ -82,14 +82,15 @@ bin/                        package scripts (.ts via ts-exec; .sh allowed)
 bin/helpers/                modules used only by bin/
 tests/                      flat Japa specs
 tests/helpers/              shared test helpers
-tests/fixtures/              static fixtures
-tests/tooling/               specs for bin/
-tests/types/                 type-level tests (.ts, not .spec.ts), where they exist
-examples/                    example apps
-docs/                        user and maintainer documentation
+tests/fixtures/             static fixtures, where they exist
+tests/tooling/              specs for bin/
+tests/types/                type-level tests (.ts, not .spec.ts), checked by `pnpm typecheck`
+examples/                   example apps
+docs/                       user and maintainer documentation
 ```
 
-1. A top-level folder exists only for an exported subpath. Anything else goes in `src/`.
+1. A top-level folder exists only for an exported subpath. It holds that subpath's entry and the
+   modules only that subpath uses; anything shared with other subpaths goes in `src/`.
 2. Scripts are TypeScript files under `bin/`, run with `node --import=@poppinss/ts-exec`.
 3. All tests run under one Japa config with `files: ['tests/**/*.spec.ts']` and no suites.
 4. Do not add a `scripts/` folder.

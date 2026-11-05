@@ -1,4 +1,4 @@
-import type { AccountKitAuthorityOptions } from '../account_kit/main.js'
+import type { AccountKitAuthorityOptions } from '../../account_kit/main.js'
 import type { SessionUserProviderContract } from '@adonisjs/auth/types/session'
 import type { AccessTokensUserProviderContract } from '@adonisjs/auth/types/access_tokens'
 
