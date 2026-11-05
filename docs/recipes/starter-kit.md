@@ -2,8 +2,9 @@
 
 This recipe takes the official AdonisJS 7 Hypermedia starter kit from `pnpm create adonisjs` to a
 working support mode: a support page where an operator picks a customer, a banner with a Stop
-button on customer pages, and a test that proves both. Every file below was applied to a fresh
-starter kit and passed its typecheck and tests.
+button on customer pages, and a test that proves both. In November 2026 every file below was
+applied by hand to a fresh starter kit with Masquerade 0.1.5 and passed its typecheck and tests. CI
+does not run this recipe, so check it against your versions.
 
 For the Inertia React or Vue starter kits, follow steps 1–5, then build the support page and banner
 with the [React](../guide/clients/react.md) or [Vue](../guide/clients/vue.md) client guide. For an
@@ -87,7 +88,7 @@ export default class extends BaseSchema {
 }
 ```
 
-Run both migrations:
+Run the pending migrations (the Masquerade tables, the limiter table and the new columns):
 
 ```sh
 node ace migration:run
@@ -224,6 +225,9 @@ export default class SupportController {
 ```edge
 @layouts.app({ title: 'Support' })
   @page()
+    @if(flashMessages.get('masquerade.type') === 'error')
+      <p role="alert">Support mode did not change: {{ flashMessages.get('masquerade.code') }}</p>
+    @end
     @if(mode.isMasquerading)
       <p>You are supporting account {{ mode.targetId }} until {{ mode.expiresAt }}.</p>
       @form({ route: 'masquerade.stop', method: 'POST' })
@@ -255,8 +259,9 @@ export default class SupportController {
 ```
 
 Each form carries the context token from the status it was rendered with, and `@form` adds the
-CSRF field. If the mode changes in another tab, the old form is rejected with 409 rather than
-acting on the wrong customer.
+CSRF field. If the mode changes in another tab, the old form is refused rather than acting on the
+wrong customer. A refused start or stop, such as a policy denial or a stale form, redirects back
+to `/support`, where the alert shows the error code, such as `E_MASQUERADE_CONTEXT_CHANGED`.
 
 In `app/controllers/masquerade_form_controller.ts`, set where the forms land:
 

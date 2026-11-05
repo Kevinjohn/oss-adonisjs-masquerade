@@ -6,8 +6,8 @@ ends with a test. New to the vocabulary? Read the [terms](../guide/glossary.md) 
 ## Start here
 
 **[Add support mode to a new AdonisJS app](starter-kit.md)**: from `pnpm create adonisjs` to a
-support page, a banner with Stop, and passing tests. Applied to a fresh Hypermedia starter kit and
-tested before publishing.
+support page, a banner with Stop, and passing tests. Tested by hand against a fresh Hypermedia
+starter kit with Masquerade 0.1.5 in November 2026; CI does not run it.
 
 ## Find a recipe by task
 

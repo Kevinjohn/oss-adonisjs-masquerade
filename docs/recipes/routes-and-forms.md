@@ -107,8 +107,9 @@ node ace masquerade:routes
 ```
 
 Customer routes appear under `web_effective` as `BUSINESS`, with their markers. Anything under the
-raw guard as `RAW-GUARD BUSINESS` should be an operator page or login/logout; anything
-`UNCLASSIFIED` is public. See [route coverage review](../guide/route-report.md).
+raw guard as `RAW-GUARD BUSINESS` should be an operator page or login/logout. `UNCLASSIFIED` routes
+have no auth guard and run no mode checks: each should be genuinely public, or move under
+`web_effective`. See [route coverage review](../guide/route-report.md).
 
 ## Test the markers
 

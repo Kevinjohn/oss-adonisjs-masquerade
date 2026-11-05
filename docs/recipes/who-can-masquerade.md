@@ -5,11 +5,11 @@ and with what access. Each example below is a complete `policy` (plus any other 
 needs) and type-checks against `defineConfig<User, HttpContext>`. Replace the field names with your
 own.
 
-| Callback        | Required | Runs                                        | `false` means                                    |
-| --------------- | -------- | ------------------------------------------- | ------------------------------------------------ |
-| `canMasquerade` | Yes      | At start and on every request during a mode | Start denied (403), or the whole mode ends (409) |
-| `canEdit`       | No       | At an edit start and on every edit request  | Edit denied; without it every mode is view-only  |
-| `canUseRequest` | No       | At start and on every request during a mode | Only this request is rejected (403)              |
+| Callback        | Required | Runs                                                      | `false` means                                                                            |
+| --------------- | -------- | --------------------------------------------------------- | ---------------------------------------------------------------------------------------- |
+| `canMasquerade` | Yes      | At start and on every request during a mode               | Start denied (403), or the whole mode ends (409)                                         |
+| `canEdit`       | No       | At an edit start and on every request during an edit mode | Edit start denied (403), or the edit mode ends (409); without it every mode is view-only |
+| `canUseRequest` | No       | At start and on every request during a mode               | Only this request is rejected (403)                                                      |
 
 Only a literal `true` allows. A callback that throws returns 503 and leaves the mode unchanged.
 
@@ -48,8 +48,8 @@ The operator chooses **View only** or **Can edit** when starting. An edit start 
 operator is denied; a view start still works.
 
 If a lead is demoted during an edit mode, the next request fails `canEdit` and the mode ends. Add
-`role` to the [security stamp](end-modes-on-account-changes.md) as well, so the change ends modes
-even before the next request checks the policy.
+`role` to the [security stamp](end-modes-on-account-changes.md) as well, so a role change also ends
+view-only modes, which never run `canEdit`.
 
 ## Teams: support only customers in your team
 
@@ -58,6 +58,8 @@ policy: {
   canMasquerade: ({ actor, target }) =>
     actor.user.role === 'support' &&
     target.user.role === 'customer' &&
+    // Two accounts without a team are not in the same team.
+    actor.user.teamId != null &&
     actor.user.teamId === target.user.teamId,
   // Team-scoped URLs such as /teams/:teamId/invoices must belong to the customer's team.
   canUseRequest: ({ target, request }) =>
