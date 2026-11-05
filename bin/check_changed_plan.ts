@@ -176,7 +176,7 @@ export function planChangedChecks(
 export function executedTests(output: string): number {
   // eslint-disable-next-line no-control-regex
   const summary = output.replace(/\u001b\[[0-9;]*m/g, '').match(/^\s*Tests\s+(.+)$/m)?.[1] ?? ''
-  return [...summary.matchAll(/(\d+) (passed|failed)/g)].reduce(
+  return [...summary.matchAll(/(\d+) (passed|failed|regression)/g)].reduce(
     (total, match) => total + Number(match[1]),
     0
   )

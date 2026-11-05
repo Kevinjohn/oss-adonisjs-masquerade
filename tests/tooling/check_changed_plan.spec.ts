@@ -178,6 +178,8 @@ test('--static plans a spec-only change exactly as the default does', ({ assert 
 test('counts executed tests from the Japa summary', ({ assert }) => {
   assert.equal(executedTests('\u001b[2mTests\u001b[22m  335 passed, 2 skipped (337)'), 335)
   assert.equal(executedTests('Tests  14 passed, 1 failed (15)'), 15)
+  assert.equal(executedTests('Tests  1 regression (1)'), 1)
+  assert.equal(executedTests('Tests  2 passed, 1 regression, 3 skipped (6)'), 3)
   assert.equal(executedTests(' NO TESTS EXECUTED '), 0)
 })
 
