@@ -26,6 +26,21 @@ Sign in with the fictional local operator account:
 | ----------------------- | -------------------- |
 | `operator@example.test` | `demo-operator-2026` |
 
+## Files to copy
+
+This folder is an overlay: the launcher copies `examples/native-session` and then these files over
+it, and `bin/helpers/account_kit_host_wiring.ts` adds the provider and active-mode blocker. Read
+them together with the [Account Kit integration guide](../../docs/guide/account-kit.md).
+
+| File                                                                                          | Shows                                                                |
+| --------------------------------------------------------------------------------------------- | -------------------------------------------------------------------- |
+| `config/masquerade.ts`                                                                        | `accountKitAuthority` and a policy that checks Account Kit admission |
+| `config/account_kit.ts`, `config/admission.ts`                                                | Account Kit and admission settings                                   |
+| `app/services/account_kit_guard.ts`                                                           | The Account Kit session guard and shared user provider               |
+| `app/middleware/account_kit_admission_middleware.ts`                                          | Admission gate that runs before the Masquerade context               |
+| `start/account_kit_routes.ts`                                                                 | Account Kit's managed routes mounted under `/kit`                    |
+| `app/controllers/support_account_controller.ts`, `resources/views/pages/support_account.edge` | The operator's own account page, on the raw guard                    |
+
 ## Try the support workflow
 
 1. Sign in at `/login` with the operator account above.

@@ -7,6 +7,11 @@ stopped. Token adapters preserve Auth 10 bearer validation and require a configu
 
 ## Get started
 
+New app? Follow [Add support mode to a new AdonisJS app](recipes/starter-kit.md): a tested,
+step-by-step path from the official starter kit to a working support page. For other tasks, the
+[recipes](recipes/index.md) are indexed by what you want to do, and [terms](guide/glossary.md)
+explains the vocabulary.
+
 Start with [Getting started](guide/getting-started.md) to choose a runnable demo or integrate
 Masquerade into an existing application. The [native-session demo](https://github.com/Kevinjohn/oss-adonisjs-masquerade/blob/main/examples/native-session/README.md)
 shows the operator as the authenticated actor, the customer as the effective identity, the fixed

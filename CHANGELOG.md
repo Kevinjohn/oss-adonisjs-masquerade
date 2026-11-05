@@ -2,8 +2,21 @@
 
 ## Unreleased
 
+### Added
+
+- Recipes: a step-by-step path from the AdonisJS 7 Hypermedia starter kit to a working support
+  page, plus recipes for policies, route markers and context tokens, and ending modes when an
+  account changes. A terms page explains the vocabulary, and each example README lists the files
+  to copy.
+
 ### Changed
 
+- The example apps and the Vue and Account Kit guide policies refuse a target that is itself an
+  operator. Before, an operator could start a mode, including edit access, for another operator.
+  If you copied an example policy, add `!target.user.masqueradeOperator` (or your equivalent) to
+  `canMasquerade` and `canEdit`.
+- The testing guide recommends `truncate()` over `withGlobalTransaction()`: on SQLite, requests
+  that read the Masquerade tables hang inside a global transaction.
 - `pnpm demo` requires Node 24, matching `.nvmrc`; it now refuses Node 25 and later.
 - The effective guards refuse an active-mode identity with 503 unless `masqueradeContext` ran for
   the request, so view-only, `sensitive()` and context checks cannot be skipped by a missing or

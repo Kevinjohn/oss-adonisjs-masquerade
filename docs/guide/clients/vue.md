@@ -57,10 +57,15 @@ const native = sessionAuthority({
 export default defineConfig({
   authority: native.authority,
   policy: {
+    // Operators may support active customers, never another operator.
     canMasquerade: ({ actor, target }) =>
-      Boolean(actor.user.isSupportOperator) && Boolean(target.user.active),
+      Boolean(actor.user.isSupportOperator) &&
+      !target.user.isSupportOperator &&
+      Boolean(target.user.active),
     canEdit: ({ actor, target }) =>
-      Boolean(actor.user.isSupportOperator) && Boolean(target.user.active),
+      Boolean(actor.user.isSupportOperator) &&
+      !target.user.isSupportOperator &&
+      Boolean(target.user.active),
     canUseRequest: ({ actor, target }) => Boolean(actor.user.active) && Boolean(target.user.active),
   },
   store: async () => new LucidControlStore((await app.container.make(Database)).connection()),

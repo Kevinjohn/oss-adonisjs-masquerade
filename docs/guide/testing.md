@@ -58,3 +58,26 @@ so a suite with a tight test limit should use a fresh operator per test.
 
 The native-session example's `tests/functional/masquerading_helper.spec.ts` covers a view-only
 denial, a `sensitive()` route, an allowed edit-mode mutation and a policy denial.
+
+## Reset the database between tests
+
+Use `testUtils.db().truncate()` rather than `withGlobalTransaction()`:
+
+```ts
+test.group('Support mode', (group) => {
+  group.each.setup(() => testUtils.db().truncate())
+})
+```
+
+On SQLite, a request that reads the Masquerade tables waits forever inside a global transaction,
+and the test times out. `truncate()` empties the tables after each test. The AdonisJS starter kits
+point tests at the development database, so give tests their own file in `config/database.ts`:
+
+```ts
+connection: {
+  filename: app.tmpPath(app.inTest ? 'test.sqlite3' : 'db.sqlite3'),
+},
+```
+
+The [starter-kit recipe](../recipes/starter-kit.md#step-8-test-it) shows a complete test setup, and
+each recipe ends with a test for its task.

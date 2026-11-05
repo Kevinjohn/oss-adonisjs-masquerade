@@ -35,6 +35,35 @@ From the dashboard, open the support workspace, choose a customer, enter a reaso
 customer's email and preference; edit mode also lets you change the reversible email-update
 preference. Return to the workspace and stop support mode when finished.
 
+## Files to copy
+
+Start from these when adding the same feature to your app. For a new app, the
+[starter-kit recipe](../../docs/recipes/starter-kit.md) is shorter.
+
+| File                                                                              | Shows                                                                                         |
+| --------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------- |
+| `config/masquerade.ts`                                                            | Session and token authorities, stamp, policy, Lucid store                                     |
+| `config/auth.ts`, `app/services/web_guard.ts`                                     | Raw and effective guards sharing one user provider                                            |
+| `database/migrations/1760918400000_add_masquerade_subject_state.ts`               | The account columns the policy and stamp read                                                 |
+| `start/kernel.ts`                                                                 | Context middleware between `initialize_auth` and `silent_auth`                                |
+| `start/masquerade_control_routes.ts`, `start/masquerade_control_limiter.ts`       | Session controls with separate start/stop limits                                              |
+| `app/controllers/masquerade_form_controller.ts`                                   | HTML start/stop forms with redirects and flash messages                                       |
+| `app/controllers/demo_controller.ts`                                              | Support workspace, customer chooser, a customer page and a mutation                           |
+| `start/demo_routes.ts`                                                            | Raw-guard workspace; effective-guard customer routes with `allowMutation()` and `sensitive()` |
+| `resources/views/pages/demo_workspace.edge`                                       | Start and stop forms with the context token                                                   |
+| `resources/views/pages/demo_customer.edge`                                        | Customer page, banner and an edit form                                                        |
+| `app/exceptions/handler.ts`, `resources/views/pages/errors/support_recovery.edge` | Turns Masquerade errors on HTML requests into a recovery page                                 |
+| `app/controllers/demo_json_controller.ts`, `resources/js/demo_json.js`            | Same-origin JSON client                                                                       |
+| `start/token_control_routes.ts`                                                   | Bearer-token controls under `/api/masquerade`                                                 |
+| `start/masquerade_alerts.ts`                                                      | Listener for start/stop alerts                                                                |
+| `tests/functional/masquerading_helper.spec.ts`                                    | Route tests with `masquerading()`                                                             |
+
+In `config/masquerade.ts`, delete the `shouldThrowFromAuthorityCallbacks()` lines and the
+`withFixtureControlStore` branch; they inject failures for this repository's tests. Do not copy
+`app/services/masquerade_fixture_boundary.ts`, `app/services/fixture_control_store.ts`,
+`start/test_routes.ts`, `start/token_test_routes.ts`, `start/member_routes.ts` or the `member*`
+files: they are test-only probes.
+
 ## Bearer API lifecycle
 
 The bearer API uses the seeded operator and customers from the running demo. Keep the server from

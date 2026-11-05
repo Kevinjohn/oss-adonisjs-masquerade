@@ -13,8 +13,13 @@ records the mode revision when the user's intent was created. If that token is m
 refresh the page and deliberately rebuild the action; never replace the token and replay the old
 intent automatically.
 
+The [terms](glossary.md) page explains actor, effective identity, context token, security stamp
+and the other words used below.
+
 ## Choose a path
 
+- **Start a new app.** Follow [Add support mode to a new AdonisJS app](../recipes/starter-kit.md)
+  from the official starter kit to a tested support page.
 - **Try the working demo.** Follow the [native-session demo instructions](https://github.com/Kevinjohn/oss-adonisjs-masquerade/blob/main/examples/native-session/README.md#one-command-demo)
   to run the fictional operator and customer application.
 - **Add support mode to an existing app.** Continue with [Install and configure](setup.md), then
@@ -60,6 +65,8 @@ intent automatically.
    business and raw-guard route, then verify start, stop, fixed expiry, stale forms, and the shared
    mode from two valid sessions. See [route coverage review](route-report.md) and
    [Use a support mode](usage.md).
+
+Task-by-task examples for each step are in the [recipes](../recipes/index.md).
 
 For identity boundaries, request-local denial, audit, and side-effect limits, see
 [Security and operations](security.md). For detailed control and Edge recipes, keep using

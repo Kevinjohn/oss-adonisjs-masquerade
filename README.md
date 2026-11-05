@@ -60,6 +60,8 @@ router.post('/account/password', [AccountController, 'update']).use(sensitive())
 
 ## Documentation
 
+- [Add support mode to a new AdonisJS app](docs/recipes/starter-kit.md): tested, step by step
+- [Recipes by task](docs/recipes/index.md) and [terms](docs/guide/glossary.md)
 - [Getting started](docs/guide/getting-started.md)
 - [Install and configure](docs/guide/setup.md)
 - [Usage](docs/guide/usage.md)

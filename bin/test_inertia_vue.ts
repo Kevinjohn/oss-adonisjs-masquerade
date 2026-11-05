@@ -29,7 +29,7 @@ function run(cwd: string, label: string, args: string[]) {
 
 run(root, 'build package', ['build'])
 mkdirSync(join(root, 'tmp'), { recursive: true })
-run(root, 'pack package', ['pack', '--out', 'tmp/inertia-vue-package.tgz'])
+run(root, 'pack package', ['pack:fixture'])
 run(example, 'install pinned example', ['install', '--force', '--no-frozen-lockfile'])
 run(example, 'lint', ['lint'])
 run(example, 'typecheck', ['typecheck'])

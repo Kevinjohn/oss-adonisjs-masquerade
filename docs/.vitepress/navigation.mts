@@ -9,6 +9,7 @@ export const sidebar = [
     text: 'Guide',
     items: [
       { text: 'Getting started', link: '/guide/getting-started' },
+      { text: 'Terms', link: '/guide/glossary' },
       { text: 'Setup', link: '/guide/setup' },
       { text: 'Usage', link: '/guide/usage' },
       { text: 'Security', link: '/guide/security' },
@@ -34,6 +35,16 @@ export const sidebar = [
           { text: 'Vue', link: '/guide/clients/vue' },
         ],
       },
+    ],
+  },
+  {
+    text: 'Recipes',
+    items: [
+      { text: 'All recipes', link: '/recipes/' },
+      { text: 'Starter kit to support mode', link: '/recipes/starter-kit' },
+      { text: 'Who can support whom', link: '/recipes/who-can-masquerade' },
+      { text: 'Mark routes and forms', link: '/recipes/routes-and-forms' },
+      { text: 'End support on account changes', link: '/recipes/end-modes-on-account-changes' },
     ],
   },
 ]
