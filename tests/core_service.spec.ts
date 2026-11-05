@@ -166,8 +166,8 @@ test('two devices starting at the same context produce one winner and no fallbac
     f.store.events.filter((event) => event.kind === 'started'),
     1
   )
-  const observedResult1 = await service.resolve({})
-  assert.equal(observedResult1.effectiveId, (await f.store.read(f.owner))!.targetId)
+  const winningEffectiveUser = await service.resolve({})
+  assert.equal(winningEffectiveUser.effectiveId, (await f.store.read(f.owner))!.targetId)
 })
 
 test('stop ignores target deletion, denied policies and failing stamp access', async ({

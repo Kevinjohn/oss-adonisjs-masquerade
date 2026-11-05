@@ -249,8 +249,8 @@ test('incarnation and namespace isolate rows and no-row contexts; client actor s
   const active = await f.start(service)
   f.config.authority.namespace = 'other'
   const other = await f.create()
-  const observedResult1 = await other.status({})
-  assert.isFalse(observedResult1.isMasquerading)
+  const statusInOtherNamespace = await other.status({})
+  assert.isFalse(statusInOtherNamespace.isMasquerading)
   assert.equal(
     await errorCode(() => other.stop({}, { expectedContext: active.contextToken })),
     'E_MASQUERADE_CONTEXT_CHANGED'
@@ -295,10 +295,10 @@ test('start policy receives reason/request and admission policy gets neither; lo
   assert.property(inputs[0], 'request')
   assert.notProperty(inputs[1], 'reason')
   assert.notProperty(inputs[1], 'request')
-  const observedResult2 = await service.status({})
-  assert.equal(observedResult2.contextToken, active.contextToken)
-  const observedResult3 = await service.resolve({})
-  assert.equal(observedResult3.effectiveId, 'b')
+  const statusAfterDeniedRequest = await service.status({})
+  assert.equal(statusAfterDeniedRequest.contextToken, active.contextToken)
+  const effectiveUserAfterAdmission = await service.resolve({})
+  assert.equal(effectiveUserAfterAdmission.effectiveId, 'b')
 })
 
 test('duration boundaries, host narrowing and invalid input audit do not leak rejected reason', async ({
