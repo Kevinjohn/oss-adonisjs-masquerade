@@ -181,7 +181,7 @@ used Playwright 1.60.0 / Chromium revision 1223 on Ubuntu 26.04 ARM64 with the p
 Ubuntu 24.04 ARM64 platform override: 7 tests passed and one assertion failed at
 `tests/browser/support_workspace.spec.ts:69` (expected customer select ID `2`, received an empty
 value). The failure cause remains unresolved. The unmodified local browser install rejected the
-Ubuntu 26.04 host. The [supported Ubuntu 24.04 hosted browser job](https://github.com/Kevinjohn/oss-adonisjs-masquerade/actions/runs/41996430076/job/127140624004) passed at candidate head `5583035407d024079b2f56e06578038ca53be678`: all eight native browser cases passed in both configurations, including the same keyboard-selection journey. The earlier local diagnostic discrepancy remains unexplained.
+Ubuntu 26.04 host. The [supported Ubuntu 24.04 hosted browser job](https://github.com/Kevinjohn/oss-adonisjs-masquerade/actions/runs/41996430076/job/127140624004) passed at candidate head `5583035407d024079b2f56e06578038ca53be678`: all eight native browser cases passed in two consecutive runs, including the same keyboard-selection journey. The earlier local diagnostic discrepancy remains unexplained.
 
 ### Applicability and audit limits
 
