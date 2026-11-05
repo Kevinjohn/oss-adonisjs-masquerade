@@ -71,8 +71,8 @@ it validates the excluded relative changelog links.
 
 ## Dependency advisory assessment
 
-Assessment date: 2026-11-05. This section records the current main snapshot and separately records
-open candidate pull requests. It covers the Masquerade root graph, its M E4 React example, M E5
+Assessment date: 2026-11-05. This section records main at `f32bd4e` and, separately, the candidate
+pull requests open on that date. Later merges do not update it. It covers the Masquerade root graph, its M E4 React example, M E5
 Vue example, and M E6 native-session example. Other repositories and example graphs are outside
 this assessment.
 
