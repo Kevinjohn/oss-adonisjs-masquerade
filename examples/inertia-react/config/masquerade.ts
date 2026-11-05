@@ -20,10 +20,15 @@ const config = defineConfig({
   // The support form asks for a reason; the server enforces it.
   reason: 'required',
   policy: {
+    // Operators may support active customers, never another operator.
     canMasquerade: ({ actor, target }) =>
-      Boolean(actor.user.masqueradeOperator) && Boolean(target.user.active),
+      Boolean(actor.user.masqueradeOperator) &&
+      !target.user.masqueradeOperator &&
+      Boolean(target.user.active),
     canEdit: ({ actor, target }) =>
-      Boolean(actor.user.masqueradeOperator) && Boolean(target.user.active),
+      Boolean(actor.user.masqueradeOperator) &&
+      !target.user.masqueradeOperator &&
+      Boolean(target.user.active),
     canUseRequest: ({ actor, target }) => Boolean(actor.user.active) && Boolean(target.user.active),
   },
   store: async () => {

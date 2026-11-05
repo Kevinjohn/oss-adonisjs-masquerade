@@ -20,11 +20,14 @@ export default defineConfig({
   authority: nativeAdapter.authority,
   policy: {
     canMasquerade: async ({ actor, target }) => {
-      if (!actor.user.masqueradeOperator || !target.user.active) return false
+      // Operators may support active customers, never another operator.
+      if (!actor.user.masqueradeOperator || target.user.masqueradeOperator) return false
+      if (!target.user.active) return false
       const admission = await app.container.make(AccountAdmission)
       return admission.isAdmitted(target.id)
     },
-    canEdit: ({ actor }) => Boolean(actor.user.masqueradeOperator),
+    canEdit: ({ actor, target }) =>
+      Boolean(actor.user.masqueradeOperator) && !target.user.masqueradeOperator,
     canUseRequest: ({ actor, target }) => Boolean(actor.user.active) && Boolean(target.user.active),
   },
   store: async () => {

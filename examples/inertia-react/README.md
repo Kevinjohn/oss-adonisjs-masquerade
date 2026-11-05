@@ -24,6 +24,26 @@ The package specifier `@kevinjohn/adonisjs-masquerade` resolves to `../../tmp/na
 
 The workspace uses the raw `web` guard for start, stop and status. Starting support mode requires choosing an access level: `View only` is preselected, and the host policy decides whether a `Can edit` request is accepted. The level stays fixed for the account-wide mode and appears in the customer and workspace banners. The customer route uses `web_effective`, its admitted view and customer Bouncer permissions. Every covered form owns a hidden context token created with that form, including while idle. Shield's XSRF cookie protects CSRF independently. After transitions the destination page clears Inertia history, and the client revalidates restored or visible pages before displaying customer data. Once this tab has shown a support page, Back, Forward and browser-cache restoration return to the raw workspace, including from public pages after logout. This conservative behavior prevents an old customer view from remounting between navigation and admission. A rejected old form opens a recovery page with a host-owned explanation; it is never replayed with a new token. If a transition returns 503, inspect raw status before creating another action.
 
+## Files to copy
+
+| File                                                                | Shows                                                                                                             |
+| ------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------- |
+| `config/masquerade.ts`                                              | Authority, policy and Lucid store (delete the `NODE_ENV === 'test'` fixture branches)                             |
+| `config/auth.ts`, `app/services/web_guard.ts`                       | Raw and effective guards sharing one user provider                                                                |
+| `database/migrations/1760918400000_add_masquerade_subject_state.ts` | The account columns the policy and stamp read                                                                     |
+| `start/kernel.ts`                                                   | Context middleware between `initialize_auth` and `silent_auth`                                                    |
+| `start/masquerade_control_limiter.ts`                               | Separate start and stop limits keyed by the operator                                                              |
+| `app/controllers/demo_controller.ts`, `start/demo_routes.ts`        | Workspace and Inertia start/stop on the raw guard; customer page, mutation and sensitive route on `web_effective` |
+| `app/services/support_control_input.ts`                             | Reads start/stop fields and the token captured with the form                                                      |
+| `inertia/pages/support/workspace.tsx`                               | Customer chooser with start and stop                                                                              |
+| `inertia/pages/support/customer.tsx`                                | Customer page and an edit form                                                                                    |
+| `inertia/pages/support/context_form.tsx`                            | Captures the context token when a form is created                                                                 |
+| `inertia/pages/support/use_identity_freshness.ts`                   | Re-checks identity before showing restored pages                                                                  |
+| `inertia/components/support_banner.tsx`                             | Banner with the deadline and Stop                                                                                 |
+| `inertia/pages/support/recovery.tsx`                                | Recovery page after a rejected action                                                                             |
+
+The [React client guide](../../docs/guide/clients/react.md) explains each piece.
+
 Run the focused integration gate from the repository root with `pnpm test:inertia-react`. Inside this app, `pnpm lint`, `pnpm typecheck`, `pnpm build`, `pnpm test functional` and `pnpm test:browser` are available. Browser tests require Playwright Chromium from the Japa browser client. The automated suite checks keyboard submission, named inputs, focus on recovery, live status and 320px horizontal overflow in Chromium; it does not certify screen-reader behavior, other browser engines or all assistive technology combinations.
 
 Login validates required email/password fields before credential lookup. Malformed input returns

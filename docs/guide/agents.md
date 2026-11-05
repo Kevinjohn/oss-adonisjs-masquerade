@@ -6,7 +6,9 @@ provider configuration and user-facing controls.
 
 ## Before editing the host application
 
-1. Read the [setup guide](./setup.md) and [security guide](./security.md).
+1. Read the [setup guide](./setup.md) and [security guide](./security.md). For a new app built
+   from an official starter kit, follow the [starter-kit recipe](../recipes/starter-kit.md) step
+   by step; the [recipe index](../recipes/index.md) maps other tasks to the files they change.
 2. Read generated configure output and inspect every generated callback. Never replace a host's
    user provider or guard without checking its current Auth configuration.
 3. Keep the exact same session user-provider instance in raw session auth and `sessionAuthority`.

@@ -5,11 +5,11 @@ customer's ordinary application view. The operator stays signed in, while the cu
 permissions decide what the support session can read or change. This gives support a way to reproduce
 an issue in context without asking for the customer's password or creating a customer login.
 
-This walkthrough follows the working [fictional native-session demo](https://github.com/Kevinjohn/oss-adonisjs-masquerade/tree/736b5d9327b56dd90b1b506b07fa7bad0e7fbb9b/examples/native-session). It uses AdonisJS 7, Auth 10 and Session 8. The demo uses a seeded operator and two fictional customers; its local-only credentials and setup are in the [demo README](https://github.com/Kevinjohn/oss-adonisjs-masquerade/blob/736b5d9327b56dd90b1b506b07fa7bad0e7fbb9b/examples/native-session/README.md).
+This walkthrough follows the working [fictional native-session demo](https://github.com/Kevinjohn/oss-adonisjs-masquerade/tree/main/examples/native-session). It uses AdonisJS 7, Auth 10 and Session 8. The demo uses a seeded operator and two fictional customers; its local-only credentials and setup are in the [demo README](https://github.com/Kevinjohn/oss-adonisjs-masquerade/blob/main/examples/native-session/README.md).
 
 ## Try the support journey
 
-Start the demo using its [local setup instructions](https://github.com/Kevinjohn/oss-adonisjs-masquerade/blob/736b5d9327b56dd90b1b506b07fa7bad0e7fbb9b/examples/native-session/README.md), then sign in as the seeded operator and open the support workspace. In this example, Customer One asks for help understanding email-update preferences.
+Start the demo using its [local setup instructions](https://github.com/Kevinjohn/oss-adonisjs-masquerade/blob/main/examples/native-session/README.md), then sign in as the seeded operator and open the support workspace. In this example, Customer One asks for help understanding email-update preferences.
 
 ![The signed-in operator's support workspace with a customer chooser, reason field and access-level choice defaulting to View only.](../assets/walkthrough/support_workspace.png)
 
@@ -54,7 +54,7 @@ is 15 minutes, with a one-hour maximum; an application may choose shorter limits
 
 ## Explore the delivered clients
 
-For an existing application, start with [Install and configure](setup.md) and follow [Use a support mode](usage.md). Its [Edge form recipe](clients/edge.md) matches the journey above; the [native-session demo](https://github.com/Kevinjohn/oss-adonisjs-masquerade/tree/736b5d9327b56dd90b1b506b07fa7bad0e7fbb9b/examples/native-session) is runnable and includes the fictional accounts.
+To build this journey in a new app, follow [Add support mode to a new AdonisJS app](../recipes/starter-kit.md). For an existing application, start with [Install and configure](setup.md) and follow [Use a support mode](usage.md). Its [Edge form recipe](clients/edge.md) matches the journey above; the [native-session demo](https://github.com/Kevinjohn/oss-adonisjs-masquerade/tree/main/examples/native-session) is runnable and includes the fictional accounts.
 
-For a same-origin browser client, follow the [JSON client guide](https://github.com/Kevinjohn/oss-adonisjs-masquerade/blob/736b5d9327b56dd90b1b506b07fa7bad0e7fbb9b/docs/guide/clients/json.md) and try it in the same [native-session example](https://github.com/Kevinjohn/oss-adonisjs-masquerade/tree/736b5d9327b56dd90b1b506b07fa7bad0e7fbb9b/examples/native-session) at `/support/json`. For React and Inertia, follow the [React client guide](https://github.com/Kevinjohn/oss-adonisjs-masquerade/blob/235ce0e44bc74fb088960ba91ea13a9a70cc71e3/docs/guide/clients/react.md) and run its [Inertia example](https://github.com/Kevinjohn/oss-adonisjs-masquerade/tree/235ce0e44bc74fb088960ba91ea13a9a70cc71e3/examples/inertia-react). The [Security and operations guide](security.md) explains authorization, expiry, account-wide
+For a same-origin browser client, follow the [JSON client guide](clients/json.md) and try it in the same [native-session example](https://github.com/Kevinjohn/oss-adonisjs-masquerade/tree/main/examples/native-session) at `/support/json`. For React and Inertia, follow the [React client guide](clients/react.md) and run its [Inertia example](https://github.com/Kevinjohn/oss-adonisjs-masquerade/tree/main/examples/inertia-react). For Vue and Inertia, follow the [Vue client guide](clients/vue.md) and run its [Vue example](https://github.com/Kevinjohn/oss-adonisjs-masquerade/tree/main/examples/inertia-vue). The [Security and operations guide](security.md) explains authorization, expiry, account-wide
 behavior, recovery and side effects.

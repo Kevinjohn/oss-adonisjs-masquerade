@@ -20,6 +20,14 @@ pnpm add https://github.com/Kevinjohn/oss-adonisjs-masquerade/releases/download/
 node ace configure @kevinjohn/adonisjs-masquerade --namespace=my_app --guard=web
 ```
 
+## Integrate
+
+Follow the [starter-kit recipe](https://github.com/Kevinjohn/oss-adonisjs-masquerade/blob/main/docs/recipes/starter-kit.md)
+for a new app: it lists every file to change, in order, with complete contents and a test. The
+[recipe index](https://github.com/Kevinjohn/oss-adonisjs-masquerade/blob/main/docs/recipes/index.md)
+maps tasks to files. Read the [integration notes for agents](https://github.com/Kevinjohn/oss-adonisjs-masquerade/blob/main/docs/guide/agents.md)
+before editing an existing app.
+
 ## Capabilities
 
 - Native sessions and opaque access tokens; Lucid store for SQLite and PostgreSQL.

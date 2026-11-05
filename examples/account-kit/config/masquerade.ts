@@ -28,9 +28,11 @@ export default defineConfig({
   policy: {
     canMasquerade: async ({ actor, target }) =>
       Boolean(actor.user.masqueradeOperator) &&
+      !target.user.masqueradeOperator &&
       Boolean(target.user.active) &&
       (await (await app.container.make(AccountAdmission)).isAdmitted(target.id)),
-    canEdit: ({ actor }) => Boolean(actor.user.masqueradeOperator),
+    canEdit: ({ actor, target }) =>
+      Boolean(actor.user.masqueradeOperator) && !target.user.masqueradeOperator,
     canUseRequest: ({ actor, target }) => Boolean(actor.user.active) && Boolean(target.user.active),
   },
   store: async () => new LucidControlStore((await app.container.make(Database)).connection()),
