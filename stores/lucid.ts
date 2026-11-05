@@ -159,6 +159,14 @@ export class LucidControlStore implements ControlStore {
             }
           }
         } catch (cleanupError) {
+          if (this.#client.dialect.name === 'postgres') {
+            // PostgreSQL discards an open transaction with its session, so a failed ROLLBACK
+            // retires only this connection (Knex destroys a disposed connection on release).
+            // The shared pool and this store stay available.
+            ;(connection as { __knex__disposed?: unknown }).__knex__disposed ??= cleanupError
+            if (unknownCommit) return { status: 'indeterminate', transitionId: command.event.id }
+            throw error
+          }
           this.#failed = true
           // Public destroy blocks new checkouts synchronously. Existing work
           // drains asynchronously: awaiting it here could deadlock a checkout

@@ -32,6 +32,40 @@ if (process.env.DB_CLIENT === 'pg') {
       await f.cleanup()
     }
   })
+  test('a PostgreSQL backend lost mid-transaction retires its connection, not the store or pool', async ({
+    assert,
+  }) => {
+    const f = await sqlFixture()
+    const blocker = await f.client.transaction()
+    try {
+      await blocker.rawQuery('LOCK TABLE masquerade_modes IN ACCESS EXCLUSIVE MODE')
+      const a = transition()
+      const pending = f.other.compareAndSet(a)
+      pending.catch(() => {})
+      // Wait for the CAS backend to queue behind the lock, then terminate it mid-transaction.
+      let pids: number[] = []
+      for (let attempt = 0; attempt < 100 && pids.length === 0; attempt++) {
+        await new Promise((resolve) => setTimeout(resolve, 50))
+        const waiting = await blocker.rawQuery(
+          'select pid from pg_locks where not granted and pid <> pg_backend_pid()'
+        )
+        pids = waiting.rows.map((row: { pid: number }) => row.pid)
+      }
+      assert.isNotEmpty(pids)
+      for (const pid of pids) await blocker.rawQuery('select pg_terminate_backend(?)', [pid])
+      await assert.rejects(() => pending)
+      await blocker.rollback()
+      assert.isNull(await f.other.read(a.owner))
+      assert.deepEqual(await f.other.compareAndSet(a), {
+        status: 'applied',
+        transitionId: a.event.id,
+      })
+      assert.deepEqual(await f.store.read(a.owner), a.next)
+    } finally {
+      if (!blocker.isCompleted) await blocker.rollback()
+      await f.cleanup()
+    }
+  }).timeout(10_000)
 } else {
   test('a real SQLite reader lock rejects writer COMMIT and cleans native transaction before reuse', async ({
     assert,
