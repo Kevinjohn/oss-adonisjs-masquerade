@@ -45,3 +45,15 @@ test('route selection rejects mixed, ambiguous and unknown explicit guards', ({ 
     { kind: 'ambiguous' }
   )
 })
+
+test('an auth middleware that names no usable guard fails closed', ({ assert }) => {
+  assert.throws(
+    () => selectRouteGuard(route([]), 'web_effective', effective, ['web', 'api']),
+    'Masquerade is unavailable'
+  )
+  const unnamed = { middleware: { all: () => [{ name: 'shield' }, () => {}] } }
+  assert.deepEqual(selectRouteGuard(unnamed, 'web_effective', effective, ['web', 'api']), {
+    kind: 'none',
+    raw: 'web',
+  })
+})
