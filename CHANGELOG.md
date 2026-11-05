@@ -2,6 +2,10 @@
 
 ## Unreleased
 
+### Changed
+
+- `pnpm demo` requires Node 24, matching `.nvmrc`; it now refuses Node 25 and later.
+
 ### Fixed
 
 - Validate React example login fields before credential lookup.
