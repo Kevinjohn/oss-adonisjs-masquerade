@@ -15,7 +15,8 @@ async function loadStub(directory: string) {
     .replace("'@kevinjohn/adonisjs-masquerade'", `'${join(root, 'index.ts')}'`)
   const file = join(directory, 'masquerade_form_controller.ts')
   await writeFile(file, source)
-  return (await import(pathToFileURL(file).href)).default
+  const module = await import(pathToFileURL(file).href)
+  return module.default
 }
 
 function formRequest(runtime: unknown, body: Record<string, unknown>) {
