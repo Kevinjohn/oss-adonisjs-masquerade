@@ -2,6 +2,7 @@ import { spawnSync } from 'node:child_process'
 import { mkdirSync } from 'node:fs'
 import { fileURLToPath } from 'node:url'
 import { join } from 'node:path'
+import { chromiumInstallArgs } from './helpers/example_chromium.js'
 
 const root = fileURLToPath(new URL('../', import.meta.url))
 const example = join(root, 'examples/inertia-vue')
@@ -35,12 +36,6 @@ run(example, 'typecheck', ['typecheck'])
 run(example, 'build', ['build'])
 run(example, 'functional tests', ['test', 'functional'])
 if (!noBrowser) {
-  run(example, 'install matching Chromium', [
-    'exec',
-    'playwright',
-    'install',
-    ...(process.platform === 'linux' ? ['--with-deps'] : []),
-    'chromium',
-  ])
+  run(example, 'install matching Chromium', chromiumInstallArgs(example))
   run(example, 'browser tests', ['test:browser'])
 }
