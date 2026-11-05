@@ -133,10 +133,8 @@ test.group('packed Account Kit eligibility inspection', (group) => {
         })
       }
       const session = await actorSession(actor)
-      const response = await startMode(
-        session,
-        kind === 'missing' ? target.id + 1000000 : target.id
-      )
+      const requested = kind === 'missing' ? target.id + 1000000 : target.id
+      const response = await startMode(session, requested)
       assert.equal(response.status, 403, `${kind} target`)
       const body = await json(response)
       assert.equal(body.errors?.[0]?.code, 'E_MASQUERADE_NOT_ALLOWED')
@@ -151,7 +149,9 @@ test.group('packed Account Kit eligibility inspection', (group) => {
       assert.lengthOf(events, 1)
       assert.equal(events[0].kind, 'start_denied')
       assert.equal(events[0].outcome_code, 'E_MASQUERADE_NOT_ALLOWED')
-      assert.isNull(events[0].target_id)
+      // The denial records the requested target, and no inspected incarnation.
+      assert.equal(events[0].target_id, String(requested))
+      assert.isNull(events[0].target_incarnation)
     }
 
     assert.deepEqual(denied[1], denied[0])
