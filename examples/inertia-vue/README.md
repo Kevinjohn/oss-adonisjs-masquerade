@@ -30,3 +30,9 @@ Choose **View only** or **Can edit** when starting support mode. View only is se
 The demo commands use `tmp/db.sqlite3`. Functional and browser tests use the separate `tmp/test.sqlite3`, so running the suites does not alter local demo accounts.
 
 Run app checks from this directory with `pnpm lint`, `pnpm typecheck`, `pnpm build`, `pnpm test functional`, and `pnpm test:browser`. From the repository root, `pnpm test:inertia-vue -- --no-browser` runs the local package build/pack, installs this fixture dependency, and runs the non-browser checks. The full root command also runs the Chromium suite. Browser coverage exercises Chromium and a 320px viewport; it does not certify screen-reader behavior, other browser engines, or every assistive-technology combination.
+
+While workspace identity is being revalidated, the previous customer name, email and banner stay
+hidden. A failed or mismatched response keeps those details hidden and leaves explicit Stop/status
+recovery available. After the fixed deadline the workspace says customer pages are blocked and
+keeps Stop available. A stale Stop cannot end a newer selection, and recovery never replays that
+old action with a new context token.

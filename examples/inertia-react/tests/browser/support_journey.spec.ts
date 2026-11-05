@@ -142,6 +142,25 @@ test.group('React support browser journey', (group) => {
     )
   })
 
+  test('renders an Inertia field error for a malformed login email', async ({
+    browserContext,
+    assert,
+  }) => {
+    const page = await browserContext.newPage()
+    await page.goto(`${base()}/login`)
+    await page
+      .locator('form[action="/login"]')
+      .evaluate((form) => form.setAttribute('novalidate', ''))
+    await page.getByLabel('Email').fill('not-an-email')
+    await page.getByLabel('Password').fill('wrong-password')
+    await page.getByRole('button', { name: 'Log in' }).click()
+    await page.locator('#email-error').waitFor()
+
+    assert.equal(await page.getByLabel('Email').getAttribute('aria-invalid'), 'true')
+    assert.isNotEmpty(await page.locator('#email-error').innerText())
+    assert.notInclude(await page.locator('main').innerText(), 'Email or password did not match.')
+  })
+
   test('revalidates retained pages through A to B and independent operator sessions', async ({
     browser,
     browserContext,

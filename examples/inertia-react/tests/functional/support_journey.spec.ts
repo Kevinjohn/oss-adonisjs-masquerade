@@ -1,5 +1,6 @@
 import { test } from '@japa/runner'
 import { mock } from 'node:test'
+import User from '#models/user'
 import testUtils from '@adonisjs/core/services/test_utils'
 import db from '@adonisjs/lucid/services/db'
 import limiter from '@adonisjs/limiter/services/main'
@@ -16,6 +17,69 @@ test.group('Inertia support journey', (group) => {
     setMasqueradeTestTime(undefined)
     await limiter.clear(['memory'])
     await cleanUsers()
+  })
+
+  test('validates login fields before credential lookup', async ({ client, assert }) => {
+    const { actor } = await createUsers()
+    const verifyCredentials = User.verifyCredentials.bind(User)
+    let lookupCount = 0
+    const lookup = mock.method(
+      User,
+      'verifyCredentials',
+      async (email: string, password: string) => {
+        lookupCount++
+        return verifyCredentials(email, password)
+      }
+    )
+
+    try {
+      const malformedInputs = [
+        { payload: { password: 'secret' }, field: 'email' },
+        { payload: { email: actor.email }, field: 'password' },
+        { payload: { email: 42, password: 'secret' }, field: 'email' },
+        { payload: { email: actor.email, password: ['secret'] }, field: 'password' },
+        { payload: { email: 'not-an-email', password: 'secret' }, field: 'email' },
+      ]
+
+      for (const { payload, field } of malformedInputs) {
+        const response = await client
+          .post('/login')
+          .redirects(0)
+          .withCsrfToken()
+          .accept('json')
+          .json(payload)
+
+        response.assertStatus(422)
+        assert.include(
+          (response.body().errors as Array<{ field: string }>).map((error) => error.field),
+          field
+        )
+        assert.equal(lookupCount, 0)
+      }
+
+      const invalidPassword = await client
+        .post('/login')
+        .redirects(0)
+        .withCsrfToken()
+        .form({ email: actor.email, password: 'wrong-password' })
+
+      invalidPassword.assertStatus(302)
+      invalidPassword.assertHeader('location', '/login')
+      invalidPassword.assertFlashMessage('error', 'Email or password did not match.')
+      assert.equal(lookupCount, 1)
+
+      const validLogin = await client
+        .post('/login')
+        .redirects(0)
+        .withCsrfToken()
+        .form({ email: actor.email, password: 'secret' })
+
+      validLogin.assertStatus(302)
+      validLogin.assertHeader('location', '/support')
+      assert.equal(lookupCount, 2)
+    } finally {
+      lookup.mock.restore()
+    }
   })
 
   test('uses raw controls and admitted customer data, and rejects sensitive or stale intent', async ({

@@ -25,7 +25,7 @@ const props = defineProps<{
   beforeDeadline: boolean
   targetAvailable: boolean
 }>()
-useWorkspaceFreshness(props.mode, props.beforeDeadline)
+const { ready, failed } = useWorkspaceFreshness(props.mode, props.beforeDeadline)
 </script>
 
 <template>
@@ -43,7 +43,7 @@ useWorkspaceFreshness(props.mode, props.beforeDeadline)
     </p>
 
     <SupportBanner
-      v-if="mode.isMasquerading && target && beforeDeadline"
+      v-if="ready && mode.isMasquerading && target && beforeDeadline"
       :actor="actor"
       :customer="target"
       :mode="mode"
@@ -51,10 +51,18 @@ useWorkspaceFreshness(props.mode, props.beforeDeadline)
     />
     <section v-if="mode.isMasquerading" class="panel">
       <h2>Current support session</h2>
-      <p v-if="targetAvailable && target && beforeDeadline">
+      <p v-if="!ready && !failed && beforeDeadline" data-workspace-identity-pending role="status">
+        Checking current support access. Customer details stay hidden until the current account mode
+        is confirmed.
+      </p>
+      <p v-else-if="!ready && beforeDeadline" data-workspace-identity-failed role="alert">
+        Current support access could not be confirmed. Customer details stay hidden. Check current
+        status or stop support mode here.
+      </p>
+      <p v-else-if="targetAvailable && target && beforeDeadline" data-workspace-identity="current">
         Viewing {{ target.fullName }} ({{ target.email }}).
       </p>
-      <p v-else role="alert">
+      <p v-else data-workspace-identity-blocked role="alert">
         The customer is no longer available. Customer pages are blocked. You can stop support mode
         here.
       </p>
@@ -67,7 +75,7 @@ useWorkspaceFreshness(props.mode, props.beforeDeadline)
           ><button type="submit" :disabled="processing">Stop support mode</button></template
         >
       </ContextForm>
-      <Link v-if="targetAvailable && beforeDeadline" href="/support/customer"
+      <Link v-if="ready && targetAvailable && beforeDeadline" href="/support/customer"
         >Open customer details</Link
       >
     </section>
@@ -112,6 +120,7 @@ useWorkspaceFreshness(props.mode, props.beforeDeadline)
         </template>
       </ContextForm>
     </section>
+    <p v-if="!ready"><Link href="/support">Check current status</Link></p>
     <p><Link href="/">Home</Link></p>
   </main>
 </template>

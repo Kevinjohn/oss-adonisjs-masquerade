@@ -2,6 +2,7 @@ import { test } from '@japa/runner'
 import { mock } from 'node:test'
 import testUtils from '@adonisjs/core/services/test_utils'
 import User from '#models/user'
+import db from '@adonisjs/lucid/services/db'
 import { demoAccounts, resetDemoAccounts, seedDemoAccounts } from '#services/demo_accounts'
 import {
   setCustomerRequestsUnavailable,
@@ -166,7 +167,9 @@ test.group('Inertia Vue browser journey', (group) => {
       assert.notInclude(await current.locator('main').innerText(), 'customer-one@example.test')
       await current.goForward()
       await current.waitForURL('**/support')
+      await current.getByText(/Viewing Customer Two/).waitFor()
       assert.include(await current.locator('main').innerText(), 'Customer Two')
+      assert.notInclude(await current.locator('main').innerText(), 'customer-one@example.test')
     } finally {
       await secondContext.close()
     }
@@ -204,38 +207,276 @@ test.group('Inertia Vue browser journey', (group) => {
     assert.include(await retained.locator('main').innerText(), 'customer-two@example.test')
   })
 
-  test('refreshes a visible workspace for customer A after another session switches to customer B', async ({
-    browser,
+  test('hides A at the observed visibility trigger and shows B only after current validation', async ({
     browserContext,
     assert,
   }) => {
     const workspace = await browserContext.newPage()
-    await signIn(workspace)
-    await selectCustomer(workspace, 1)
-    await workspace.getByRole('radio', { name: 'Can edit' }).check()
-    await workspace.getByLabel('Reason for support').fill('Customer A request')
-    await workspace.getByRole('button', { name: 'Start support mode' }).click()
-    await workspace.waitForURL('**/support/customer')
-    await workspace.goto(`${base()}/support`)
-    await workspace.getByText(/Viewing Customer One/).waitFor()
+    await activeWorkspace(workspace)
+    await holdWorkspaceIdentity(workspace)
+    const switcher = await browserContext.newPage()
+    await switcher.goto(`${base()}/support`)
+    await switcher.getByRole('button', { name: 'Stop support mode' }).click()
+    await selectCustomer(switcher, 2)
+    await switcher.getByLabel('Reason for support').fill('Customer B request')
+    await switcher.getByRole('button', { name: 'Start support mode' }).click()
+    await switcher.waitForURL('**/support/customer')
 
-    const secondContext = await browser.newContext()
-    try {
-      const second = await secondContext.newPage()
-      await signIn(second)
-      await second.getByRole('button', { name: 'Stop support mode' }).click()
-      await selectCustomer(second, 2)
-      await second.getByRole('radio', { name: 'Can edit' }).check()
-      await second.getByLabel('Reason for support').fill('Customer B request')
-      await second.getByRole('button', { name: 'Start support mode' }).click()
-      await second.waitForURL('**/support/customer')
-    } finally {
-      await secondContext.close()
-    }
-
-    await workspace.evaluate('document.dispatchEvent(new Event("visibilitychange"))')
+    await triggerWorkspaceValidation(workspace, 1)
+    await assertWorkspaceHidden(workspace, assert)
+    await releaseWorkspaceIdentity(workspace, 0)
+    // The mismatch reloads the workspace with B, whose own validation is still held.
+    await workspace.waitForFunction(() => (globalThis as any).heldIdentity.length === 2)
+    await assertWorkspaceHidden(workspace, assert)
+    assert.notInclude(await workspace.locator('main').innerText(), 'customer-two@example.test')
+    assert.notInclude(await workspace.locator('main').innerText(), 'Customer Two')
+    await releaseWorkspaceIdentity(workspace, 1)
     await workspace.getByText(/Viewing Customer Two/).waitFor()
     assert.notInclude(await workspace.locator('main').innerText(), 'customer-one@example.test')
+    const actor = await User.findByOrFail('email', demoAccounts[0].email)
+    const customerB = await User.findByOrFail('email', demoAccounts[2].email)
+    const mode = await db.from('masquerade_modes').where('actor_id', String(actor.id)).first()
+    assert.equal(mode.target_id, String(customerB.id))
+  })
+
+  test('older success and failure cannot reveal a newer pending identity or reset a ready one', async ({
+    browserContext,
+    assert,
+  }) => {
+    const page = await browserContext.newPage()
+    await activeWorkspace(page)
+    await holdWorkspaceIdentity(page)
+    await triggerWorkspaceValidation(page, 1)
+    await triggerWorkspaceValidation(page, 2, 'pageshow')
+    await releaseWorkspaceIdentity(page, 0)
+    await assertWorkspaceHidden(page, assert)
+    await releaseWorkspaceIdentity(page, 1)
+    await page.getByText(/Viewing Customer One/).waitFor()
+    await triggerWorkspaceValidation(page, 3)
+    await triggerWorkspaceValidation(page, 4)
+    await releaseWorkspaceIdentity(page, 3)
+    await page.getByText(/Viewing Customer One/).waitFor()
+    await releaseWorkspaceIdentity(page, 2, 'network')
+    assert.include(await page.locator('main').innerText(), 'Viewing Customer One')
+    assert.equal(await page.locator('[data-workspace-identity-pending]').count(), 0)
+  })
+
+  for (const failure of ['network', 'non-ok', 'parse'] as const) {
+    test(`keeps identity hidden on ${failure} failure while current-context raw Stop works`, async ({
+      browserContext,
+      assert,
+    }) => {
+      const page = await browserContext.newPage()
+      await activeWorkspace(page)
+      const actor = await User.findByOrFail('email', demoAccounts[0].email)
+      const stopsBefore = await db
+        .from('masquerade_events')
+        .where('actor_id', String(actor.id))
+        .where('kind', 'stopped')
+      await holdWorkspaceIdentity(page)
+      await triggerWorkspaceValidation(page, 1)
+      await assertWorkspaceHidden(page, assert)
+      await releaseWorkspaceIdentity(page, 0, failure)
+      await assertWorkspaceHidden(page, assert, 'failed')
+      assert.isTrue(await page.getByRole('button', { name: 'Stop support mode' }).isEnabled())
+      await page.getByRole('button', { name: 'Stop support mode' }).click()
+      await page.getByRole('button', { name: 'Start support mode' }).waitFor()
+      const mode = await db.from('masquerade_modes').where('actor_id', String(actor.id)).first()
+      assert.isNull(mode.target_id)
+      const stopsAfter = await db
+        .from('masquerade_events')
+        .where('actor_id', String(actor.id))
+        .where('kind', 'stopped')
+      assert.lengthOf(stopsAfter, stopsBefore.length + 1)
+    })
+  }
+
+  test('rejects stale raw Stop without ending B and requires a newly chosen action after status', async ({
+    browserContext,
+    assert,
+  }) => {
+    const retained = await browserContext.newPage()
+    await activeWorkspace(retained)
+    await holdWorkspaceIdentity(retained)
+    const switcher = await browserContext.newPage()
+    await switcher.goto(`${base()}/support`)
+    await switcher.getByRole('button', { name: 'Stop support mode' }).click()
+    await selectCustomer(switcher, 2)
+    await switcher.getByLabel('Reason for support').fill('Customer B request')
+    await switcher.getByRole('button', { name: 'Start support mode' }).click()
+    await switcher.waitForURL('**/support/customer')
+    await triggerWorkspaceValidation(retained, 1)
+    await releaseWorkspaceIdentity(retained, 0, 'network')
+    await assertWorkspaceHidden(retained, assert, 'failed')
+    const actor = await User.findByOrFail('email', demoAccounts[0].email)
+    const before = await db.from('masquerade_events').where('actor_id', String(actor.id))
+    const modeBefore = await db.from('masquerade_modes').where('actor_id', String(actor.id)).first()
+    const customerB = await User.findByOrFail('email', demoAccounts[2].email)
+    assert.equal(modeBefore.target_id, String(customerB.id))
+    await retained.getByRole('button', { name: 'Stop support mode' }).click()
+    await retained.waitForURL('**/support/recovery')
+    await retained.getByText('The support context changed.', { exact: false }).waitFor()
+    const after = await db.from('masquerade_events').where('actor_id', String(actor.id))
+    assert.equal(
+      after.filter((event) => event.kind === 'stopped').length,
+      before.filter((event) => event.kind === 'stopped').length
+    )
+    const modeAfter = await db.from('masquerade_modes').where('actor_id', String(actor.id)).first()
+    assert.equal(modeAfter.target_id, String(customerB.id))
+    assert.equal(modeAfter.revision, modeBefore.revision)
+    // Rejection uses a full recovery navigation; install a fresh barrier in that document.
+    await holdWorkspaceIdentity(retained)
+    await retained.getByRole('link', { name: 'Check current status' }).click()
+    await retained.waitForFunction(() => (globalThis as any).heldIdentity.length === 1)
+    await assertWorkspaceHidden(retained, assert)
+    await releaseWorkspaceIdentity(retained, 0)
+    await retained.getByText(/Viewing Customer Two/).waitFor()
+    // Status did not replay the rejected Stop. The user now chooses a new action for B.
+    const afterStatus = await db
+      .from('masquerade_modes')
+      .where('actor_id', String(actor.id))
+      .first()
+    assert.equal(afterStatus.target_id, String(customerB.id))
+    await retained.getByRole('button', { name: 'Stop support mode' }).click()
+    await retained.getByRole('button', { name: 'Start support mode' }).waitFor()
+    const afterNewStop = await db
+      .from('masquerade_modes')
+      .where('actor_id', String(actor.id))
+      .first()
+    assert.isNull(afterNewStop.target_id)
+  })
+
+  test('late workspace validation cannot reveal identity after the deadline', async ({
+    browserContext,
+    assert,
+  }) => {
+    const page = await browserContext.newPage()
+    const now = Date.now()
+    mock.timers.enable({ apis: ['Date'], now })
+    await page.clock.install({ time: now })
+    let releaseNavigation!: () => void
+    const navigationGate = new Promise<void>((resolve) => {
+      releaseNavigation = resolve
+    })
+    let captureNavigation!: () => void
+    const navigationCaptured = new Promise<void>((resolve) => {
+      captureNavigation = resolve
+    })
+    try {
+      await activeWorkspace(page)
+      const deadline = Date.parse((await page.locator('time').first().getAttribute('datetime'))!)
+      await holdWorkspaceIdentity(page)
+      await triggerWorkspaceValidation(page, 1)
+      await page.route('**/support', async (route) => {
+        if (route.request().method() !== 'GET') return route.continue()
+        const response = await route.fetch()
+        captureNavigation()
+        await navigationGate
+        await route.fulfill({ response })
+      })
+      await page.evaluate(() => {
+        ;(globalThis as any).deadlineVisits = 0
+        ;(globalThis as any).deadlineFinished = false
+        ;(globalThis as any).document.addEventListener('inertia:before', (event: any) => {
+          if (event.detail.visit.url.pathname === '/support') (globalThis as any).deadlineVisits++
+        })
+        ;(globalThis as any).document.addEventListener(
+          'inertia:finish',
+          () => {
+            ;(globalThis as any).deadlineFinished = true
+          },
+          { once: true }
+        )
+      })
+      mock.timers.setTime(deadline + 1)
+      await page.clock.runFor(deadline - now + 1)
+      await navigationCaptured
+      await releaseWorkspaceIdentity(page, 0)
+      await assertWorkspaceHidden(page, assert)
+      releaseNavigation()
+      await page.waitForFunction(() => (globalThis as any).deadlineFinished)
+      assert.equal(await page.evaluate(() => (globalThis as any).deadlineVisits), 1)
+      await page.locator('time').first().waitFor()
+      await assertWorkspaceHidden(page, assert, 'blocked')
+      assert.isTrue(await page.getByRole('button', { name: 'Stop support mode' }).isEnabled())
+      // A fresh document receives already-expired active props; raw status does not clear the mode.
+      await page.unrouteAll({ behavior: 'wait' })
+      await page.addInitScript(() => {
+        ;(globalThis as any).expiredMountVisits = 0
+        ;(globalThis as any).document.addEventListener('inertia:before', (event: any) => {
+          if (event.detail.visit.url.pathname === '/support')
+            (globalThis as any).expiredMountVisits++
+        })
+      })
+      await page.reload()
+      await assertWorkspaceHidden(page, assert, 'blocked')
+      await page.evaluate(() => {
+        ;(globalThis as any).expiredVisits = 0
+        ;(globalThis as any).document.addEventListener('inertia:before', (event: any) => {
+          if (event.detail.visit.url.pathname === '/support') (globalThis as any).expiredVisits++
+        })
+        ;(globalThis as any).document.dispatchEvent(new Event('visibilitychange'))
+        ;(globalThis as any).dispatchEvent(
+          new (globalThis as any).PageTransitionEvent('pageshow', { persisted: true })
+        )
+      })
+      assert.equal(await page.evaluate(() => (globalThis as any).expiredVisits), 0)
+      assert.equal(await page.evaluate(() => (globalThis as any).expiredMountVisits), 0)
+      await assertWorkspaceHidden(page, assert, 'blocked')
+      await page.getByRole('button', { name: 'Stop support mode' }).click()
+      await page.getByRole('button', { name: 'Start support mode' }).waitFor()
+    } finally {
+      releaseNavigation()
+      mock.timers.reset()
+      await page.unrouteAll({ behavior: 'ignoreErrors' })
+    }
+  })
+
+  test('late validation from an unmounted workspace cannot navigate or restore identity', async ({
+    browserContext,
+    assert,
+  }) => {
+    const page = await browserContext.newPage()
+    await activeWorkspace(page)
+    await holdWorkspaceIdentity(page)
+    const switcher = await browserContext.newPage()
+    await switcher.goto(`${base()}/support`)
+    await switcher.getByRole('button', { name: 'Stop support mode' }).click()
+    await selectCustomer(switcher, 2)
+    await switcher.getByLabel('Reason for support').fill('Navigation race customer B')
+    await switcher.getByRole('button', { name: 'Start support mode' }).click()
+    await switcher.waitForURL('**/support/customer')
+    await triggerWorkspaceValidation(page, 1)
+    await page.getByRole('link', { name: 'Home', exact: true }).click()
+    await page.waitForURL(`${base()}/`)
+    await page.evaluate(() => {
+      ;(globalThis as any).returnVisits = 0
+      ;(globalThis as any).document.addEventListener('inertia:before', (event: any) => {
+        if (event.detail.visit.url.pathname === '/support') (globalThis as any).returnVisits++
+      })
+    })
+    let releaseReturn!: () => void
+    const returnGate = new Promise<void>((resolve) => {
+      releaseReturn = resolve
+    })
+    let returnRequests = 0
+    await page.route('**/support', async (route) => {
+      returnRequests++
+      await returnGate
+      await route.abort()
+    })
+    try {
+      await releaseWorkspaceIdentity(page, 0)
+      // The actual JSON has completed; its await continuation drains before this next browser task.
+      await page.waitForFunction(() => (globalThis as any).heldIdentity[0].parsed)
+      assert.equal(await page.evaluate(() => (globalThis as any).returnVisits), 0)
+      assert.equal(returnRequests, 0)
+      assert.equal(page.url(), `${base()}/`)
+      assert.equal(await page.locator('[data-workspace-identity="current"]').count(), 0)
+    } finally {
+      releaseReturn()
+      await page.unrouteAll({ behavior: 'wait' })
+    }
   })
 
   test('rechecks a captured customer A response after the account has switched to customer B', async ({
@@ -453,6 +694,7 @@ test.group('Inertia Vue browser journey', (group) => {
     assert.include(await page.locator('main').innerText(), 'may or may not have completed')
     await page.getByRole('link', { name: 'Check current status' }).click()
     await page.getByRole('button', { name: 'Stop support mode' }).waitFor()
+    await page.getByText(/Viewing Customer One/).waitFor()
     assert.include(await page.locator('main').innerText(), 'Customer One')
     setCustomerRequestsUnavailable(false)
     await page.getByRole('button', { name: 'Stop support mode' }).click()
@@ -492,4 +734,91 @@ function base() {
   const host = process.env.HOST ?? '127.0.0.1'
   const port = process.env.PORT ?? '3378'
   return `http://${host}:${port}`
+}
+
+async function activeWorkspace(page: any) {
+  await signIn(page)
+  await selectCustomer(page, 1)
+  await page.getByLabel('Reason for support').fill('Workspace freshness check')
+  await page.getByRole('button', { name: 'Start support mode' }).click()
+  await page.waitForURL('**/support/customer')
+  await page.goto(`${base()}/support`)
+  await page.getByText(/Viewing Customer One/).waitFor()
+}
+
+/** Hold real server responses, deliberately ignoring cancellation to exercise generation guards. */
+async function holdWorkspaceIdentity(page: any) {
+  await page.evaluate(() => {
+    const original = globalThis.fetch.bind(globalThis)
+    ;(globalThis as any).heldIdentity = []
+    globalThis.fetch = async (input, init) => {
+      if (String(input) !== '/support/identity') return original(input, init)
+      const response = await original(input, { ...init, signal: undefined })
+      // Capture the actual server result before publishing the response barrier.
+      await response.clone().text()
+      return new Promise<Response>((resolve, reject) => {
+        const held = {
+          parsed: false,
+          release(failure?: string) {
+            if (failure === 'network') reject(new TypeError('Controlled fetch failure'))
+            else if (failure === 'non-ok') resolve(new Response('', { status: 503 }))
+            else if (failure === 'parse') resolve(new Response('invalid json'))
+            else resolve(response)
+          },
+        }
+        const json = response.json.bind(response)
+        Object.defineProperty(response, 'json', {
+          value: async () => {
+            const body = await json()
+            held.parsed = true
+            return body
+          },
+        })
+        ;(globalThis as any).heldIdentity.push(held)
+      })
+    }
+  })
+}
+
+async function triggerWorkspaceValidation(page: any, count: number, event = 'visibilitychange') {
+  await page.evaluate((kind: string) => {
+    if (kind === 'pageshow')
+      (globalThis as any).dispatchEvent(
+        new (globalThis as any).PageTransitionEvent('pageshow', { persisted: true })
+      )
+    else (globalThis as any).document.dispatchEvent(new Event('visibilitychange'))
+  }, event)
+  await page.waitForFunction(
+    (expected: number) => (globalThis as any).heldIdentity.length === expected,
+    count
+  )
+}
+
+async function releaseWorkspaceIdentity(page: any, index: number, failure?: string) {
+  await page.evaluate(
+    ({ position, outcome }: { position: number; outcome?: string }) => {
+      ;(globalThis as any).heldIdentity[position].release(outcome)
+    },
+    { position: index, outcome: failure }
+  )
+  await page.evaluate(
+    'new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(resolve)))'
+  )
+}
+
+async function assertWorkspaceHidden(
+  page: any,
+  assert: any,
+  state: 'pending' | 'failed' | 'blocked' = 'pending'
+) {
+  await page.locator(`[data-workspace-identity-${state}]`).waitFor()
+  for (const other of ['pending', 'failed', 'blocked'].filter((name) => name !== state)) {
+    assert.equal(await page.locator(`[data-workspace-identity-${other}]`).count(), 0)
+  }
+  const content = await page.locator('main').innerText()
+  assert.notInclude(content, 'Customer One')
+  assert.notInclude(content, 'customer-one@example.test')
+  assert.equal(await page.locator('[data-workspace-identity="current"]').count(), 0)
+  assert.equal(await page.locator('.support-banner').count(), 0)
+  assert.equal(await page.getByRole('link', { name: 'Open customer details' }).count(), 0)
 }
