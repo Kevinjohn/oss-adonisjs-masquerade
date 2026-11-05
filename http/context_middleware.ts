@@ -4,7 +4,7 @@ import { MasqueradeError } from '../src/errors.js'
 import { requireContext } from '../src/context_token.js'
 import { runtimeFor } from '../src/integration/runtime.js'
 import { markContextEnforced } from '../src/integration/context_enforcement.js'
-import { routeGuards, routeMarkers } from '../src/integration/route_metadata.js'
+import { hasAuthMiddleware, routeGuards, routeMarkers } from '../src/integration/route_metadata.js'
 
 /** Enforce context freshness and active-mode route policy on effective-guard routes. */
 export async function masqueradeContext(
@@ -12,13 +12,7 @@ export async function masqueradeContext(
   next: () => Promise<unknown>
 ): Promise<void> {
   const guards = routeGuards(ctx.route, String(ctx.auth.defaultGuard))
-  const hasAuth =
-    ctx.route &&
-    [...ctx.route.middleware.all()].some(
-      (entry) =>
-        typeof entry === 'object' && entry !== null && 'name' in entry && entry.name === 'auth'
-    )
-  if (guards.length === 0 && !hasAuth) {
+  if (guards.length === 0 && !hasAuthMiddleware(ctx.route)) {
     await next()
     return
   }

@@ -7,6 +7,7 @@ import type { NativeAuthority, Subject } from '../src/types.js'
 import { boundedString } from '../src/bounded_string.js'
 import { MasqueradeError } from '../src/errors.js'
 import { unavailable } from '../src/error_helpers.js'
+import { accountOwner, canonicalId } from './account_owner.js'
 
 type Identifier = string | number | bigint
 type AccountInput = {
@@ -59,18 +60,6 @@ export interface AccountKitAdapter<User> extends NativeRuntimeAdapter {
   readonly kit: AccountKitAuthorityOptions<User>['kit']
   readonly provider: AccountKitUserProvider<User>
   authenticateActor(ctx: HttpContext): Promise<Subject<User>>
-}
-
-function canonicalId(value: unknown): string {
-  if (
-    typeof value !== 'string' &&
-    typeof value !== 'bigint' &&
-    !(typeof value === 'number' && Number.isSafeInteger(value))
-  )
-    throw unavailable()
-  const id = String(value)
-  if (!boundedString(id, 255)) throw unavailable()
-  return id
 }
 
 async function isKitDenial(error: unknown, name: string, code: string): Promise<boolean> {
@@ -127,12 +116,10 @@ export function accountKitAuthority<User>(
   ) as AccountKitManagedGuard
   const incarnation = options.incarnation === 'id' ? 'id' : options.incarnation.bind(options)
   const stamps = new WeakMap<object, string>()
-  const subject = (user: User, idValue: unknown): Subject<User> => {
-    const id = canonicalId(idValue)
-    const accountIncarnation = incarnation === 'id' ? id : incarnation(user)
-    if (!boundedString(accountIncarnation, 128)) throw unavailable()
-    return { id, incarnation: accountIncarnation, user }
-  }
+  const subject = (user: User, idValue: unknown): Subject<User> => ({
+    ...accountOwner(incarnation, user, idValue),
+    user,
+  })
   const authority: NativeAuthority<User> = Object.freeze({
     namespace: options.namespace,
     guard,

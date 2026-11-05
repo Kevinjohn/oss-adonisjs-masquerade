@@ -1,4 +1,4 @@
-import { routeGuards } from './route_guards.js'
+import { hasAuthMiddleware, routeGuards } from './route_guards.js'
 import { MasqueradeError } from '../errors.js'
 
 type RouteMetadata = { middleware: { all(): Iterable<unknown> } }
@@ -18,14 +18,7 @@ export function selectRouteGuard(
 ): RouteGuardSelection {
   const guards = routeGuards(route, defaultGuard)
   if (guards.length === 0) {
-    if (
-      route &&
-      [...route.middleware.all()].some(
-        (entry) =>
-          typeof entry === 'object' && entry !== null && 'name' in entry && entry.name === 'auth'
-      )
-    )
-      throw new MasqueradeError('E_MASQUERADE_UNAVAILABLE')
+    if (hasAuthMiddleware(route)) throw new MasqueradeError('E_MASQUERADE_UNAVAILABLE')
     if (!primaryRawGuard) throw new MasqueradeError('E_MASQUERADE_UNAVAILABLE')
     return { kind: 'none', raw: primaryRawGuard }
   }

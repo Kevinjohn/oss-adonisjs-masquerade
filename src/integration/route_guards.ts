@@ -32,3 +32,12 @@ export function routeGuards(route: RouteMetadata | undefined, defaultGuardName: 
   }
   return [...guards]
 }
+
+/** Whether the route carries the named `auth` middleware, even one that names no usable guard. */
+export function hasAuthMiddleware(route: RouteMetadata | undefined): boolean {
+  if (!route) return false
+  return [...route.middleware.all()].some(
+    (entry) =>
+      typeof entry === 'object' && entry !== null && 'name' in entry && entry.name === 'auth'
+  )
+}
