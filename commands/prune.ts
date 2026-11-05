@@ -1,6 +1,6 @@
 import { InvalidArgumentsException } from '@adonisjs/core/exceptions'
 import { BaseCommand, flags } from '@adonisjs/core/ace'
-import { pruneMasquerade, DEFAULT_PRUNE_BATCH_SIZE } from '../src/prune.js'
+import { pruneMasquerade, DEFAULT_PRUNE_BATCH_SIZE, MAX_PRUNE_BATCH_SIZE } from '../src/prune.js'
 import type { MasqueradeConfig } from '../src/types.js'
 
 /** Expire outdated modes and apply the configured audit-event retention policy. */
@@ -14,6 +14,10 @@ export default class PruneCommand extends BaseCommand {
 
   async run(): Promise<void> {
     const batchSize = this.batchSize ?? DEFAULT_PRUNE_BATCH_SIZE
+    if (!Number.isSafeInteger(batchSize) || batchSize < 1 || batchSize > MAX_PRUNE_BATCH_SIZE)
+      throw new InvalidArgumentsException(
+        `--batch-size must be an integer from 1 to ${MAX_PRUNE_BATCH_SIZE}`
+      )
     const config = this.app.config.get('masquerade') as
       MasqueradeConfig<unknown, object> | undefined
     if (!config) throw new InvalidArgumentsException('Masquerade configuration is required')

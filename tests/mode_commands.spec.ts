@@ -8,7 +8,8 @@ async function ace(
   config: unknown,
   argv: string[],
   logger?: { info(...args: unknown[]): void; error(...args: unknown[]): void },
-  answer?: boolean
+  answer?: boolean,
+  output?: string[]
 ) {
   const ignitor = new IgnitorFactory()
     .withCoreProviders()
@@ -23,6 +24,12 @@ async function ace(
     .create(new URL('../', import.meta.url))
   const kernel = ignitor.ace()
   let exitCode: number | undefined
+  // Ace prints a command's error itself; keep it when the test asks for the output.
+  const print = { log: console.log, error: console.error }
+  if (output) {
+    console.log = (...args: unknown[]) => output.push(args.map(String).join(' '))
+    console.error = console.log
+  }
   await kernel
     .configure(async (app) => {
       await app.boot()
@@ -37,6 +44,10 @@ async function ace(
       }
     })
     .handle(argv)
+    .finally(() => {
+      console.log = print.log
+      console.error = print.error
+    })
   exitCode = process.exitCode as number | undefined
   process.exitCode = 0
   return exitCode
@@ -81,6 +92,21 @@ test.group('masquerade:status and masquerade:stop Ace commands', () => {
     const row = await f.store.read(f.owner)
     assert.equal(row?.state, 'idle')
     assert.equal(f.store.events.at(-1)?.outcomeCode, OPERATOR_STOP_OUTCOME)
+  })
+
+  test('out-of-range --limit and --batch-size are input errors, not outages', async ({
+    assert,
+  }) => {
+    const f = fixture()
+    Object.defineProperty(f.store, 'testOnly', { value: false })
+    for (const argv of [
+      ['masquerade:status', '--limit=0'],
+      ['masquerade:prune', '--batch-size=1001'],
+    ]) {
+      const output: string[] = []
+      assert.equal(await ace(f.config, argv, undefined, undefined, output), 1)
+      assert.isTrue(output.some((line) => line.includes('must be an integer from 1 to 1000')))
+    }
   })
 
   test('stop --all asks first and stops nothing when the answer is no', async ({ assert }) => {
