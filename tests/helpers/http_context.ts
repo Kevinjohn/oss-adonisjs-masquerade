@@ -52,7 +52,7 @@ export function requestContext(f: ReturnType<typeof fixture>, options: RequestCo
         route: () => new Set(routeMiddleware),
       },
     },
-    logger: { warn: (value: unknown) => warnings.push(value) },
+    logger: { warn: (value: unknown) => warnings.push(value), error: () => {} },
     request: {
       method: () => options.method ?? 'POST',
       body: () => (options.body === undefined ? {} : options.body),

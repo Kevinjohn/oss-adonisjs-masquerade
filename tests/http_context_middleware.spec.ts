@@ -6,6 +6,7 @@ import { fixture } from './helpers/core.js'
 import { requestContext } from './helpers/http_context.js'
 import { errors } from '@adonisjs/auth'
 import { masqueradeContext } from '../http/context_middleware.js'
+import { EffectiveSessionGuard } from '../auth/effective_session_guard.js'
 import { allowMutation, sensitive } from '../src/integration/route_metadata.js'
 import { MasqueradeError } from '../src/errors.js'
 import type { RequestAdmission } from '../src/request_admission.js'
@@ -461,3 +462,23 @@ function overrideAdmissionAccess(
     }) as RequestAdmission<unknown>
   }
 }
+
+test('the effective guard admits the target only after masqueradeContext ran for the request', async ({
+  assert,
+}) => {
+  const f = fixture()
+  const service = await f.create()
+  await f.start(service)
+  const raw = { driverName: 'session', authenticate: async () => f.users.get('a') }
+  const { ctx } = requestContext(f, { method: 'GET' })
+  let user: unknown
+  await masqueradeContext(ctx, async () => {
+    user = await new EffectiveSessionGuard('web', ctx, raw as never).authenticate()
+  })
+  assert.strictEqual(user, f.users.get('b'))
+  const { ctx: bypassed } = requestContext(f, { method: 'GET' })
+  await assert.rejects(
+    () => new EffectiveSessionGuard('web', bypassed, raw as never).authenticate(),
+    'Masquerade is unavailable'
+  )
+})
