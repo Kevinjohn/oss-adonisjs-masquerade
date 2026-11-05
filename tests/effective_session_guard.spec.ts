@@ -201,6 +201,11 @@ test('business guard owns the facade while the raw guard retains actor identity;
   assert.strictEqual(auth.getUserOrFail(), target)
   assert.equal(auth.authenticatedViaGuard, 'web_effective')
   assert.strictEqual(auth.use('web').user, actor)
+  // A raw logout later in the same request ends effective authentication, as it does natively.
+  raw.isAuthenticated = false
+  assert.isFalse(await auth.check())
+  assert.isUndefined(auth.use('web_effective').user)
+  raw.isAuthenticated = true
   failure = new MasqueradeError('E_MASQUERADE_CONTEXT_CHANGED')
   await assert.rejects(() => auth.check(), 'Masquerade context changed')
   assert.isUndefined(auth.use('web_effective').user)
@@ -250,4 +255,18 @@ test('default silent auth uses an unrelated registered raw guard without mode ad
   assert.strictEqual(await effective.authenticate(), member)
   assert.deepEqual(names, ['members'])
   assert.equal(admissions, 0)
+})
+
+test('the effective session guard needs a raw guard with a different name', async ({ assert }) => {
+  const { effectiveSessionGuard } = await import('../auth/define_config.js')
+  const raw = { resolver: async () => () => ({ driverName: 'session' }) } as never
+  const app = (guard?: string) =>
+    ({ config: { get: () => (guard ? { authority: { guard } } : undefined) } }) as never
+  for (const configured of ['web_effective', undefined])
+    await assert.rejects(
+      () => effectiveSessionGuard(raw).resolver('web_effective', app(configured)),
+      'Configure distinct raw and effective session guards'
+    )
+  const factory = await effectiveSessionGuard(raw).resolver('web_effective', app('web'))
+  assert.isFunction(factory)
 })

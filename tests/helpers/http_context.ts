@@ -45,7 +45,11 @@ export function requestContext(f: ReturnType<typeof fixture>, options: RequestCo
   const groupMiddleware = options.groupMiddleware ?? []
   const ctx: Record<string, any> = {
     actorId: 'a',
-    auth: { defaultGuard: options.defaultGuard ?? 'web_effective' },
+    auth: {
+      defaultGuard: options.defaultGuard ?? 'web_effective',
+      // Admission authenticated the raw guard for this request.
+      use: () => ({ driverName: 'session', isAuthenticated: true }),
+    },
     route: options.route ?? {
       name: 'business.test',
       pattern: '/business',

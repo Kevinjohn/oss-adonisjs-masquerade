@@ -98,6 +98,14 @@ export async function runtimeConfiguration(app: ApplicationService): Promise<Run
         `Effective masquerade guard ${name} has no registered raw adapter`
       )
     effectiveRawGuards[name] = raw
+    // An effective guard built from one guard's config but naming another boots, then authenticates
+    // a different transport than its routes expect. Native guards only store the context they get.
+    const effectiveDriver = guardDriver(factory)
+    const rawDriver = guardDriver((auth.config.guards as Record<string, unknown>)[raw])
+    if (effectiveDriver && rawDriver && effectiveDriver !== rawDriver)
+      throw new InvalidArgumentsException(
+        `Effective masquerade guard ${name} wraps the ${effectiveDriver} driver, but ${raw} uses the ${rawDriver} driver`
+      )
   }
   const effectiveGuardNames = Object.freeze(
     Object.entries(auth.config.guards)
@@ -118,6 +126,20 @@ export async function runtimeConfiguration(app: ApplicationService): Promise<Run
     registeredRawGuardNames,
     rawAdapters,
   }
+}
+/** A guard's driver name, from a guard built for a stand-in context; undefined when unknown. */
+function guardDriver(factory: unknown): string | undefined {
+  if (typeof factory !== 'function') return undefined
+  let guard: unknown
+  try {
+    guard = factory(Object.freeze({}))
+  } catch (error) {
+    // The effective guards reject the wrong native driver this way.
+    if (error instanceof InvalidArgumentsException) throw error
+    return undefined
+  }
+  const driver = (guard as { driverName?: unknown } | null)?.driverName
+  return typeof driver === 'string' ? driver : undefined
 }
 export async function createRuntime(
   app: ApplicationService,

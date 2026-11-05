@@ -82,11 +82,17 @@ export function masqueradeApiClient(pluginOptions: MasqueradeApiClientOptions = 
           }),
         'start'
       )
-      if (!SAFE_METHODS.has(request.config.method.toUpperCase()))
+      // A token the test set itself is what it means to send, such as a stale one.
+      const explicit = (request.request as { get(field: string): unknown }).get(CONTEXT_HEADER)
+      if (!SAFE_METHODS.has(request.config.method.toUpperCase()) && explicit === undefined)
         request.header(CONTEXT_HEADER, started.contextToken)
 
       return async () => {
-        const current = await expectMode(await control('GET', ''), 'status')
+        const status = await control('GET', '')
+        // The request deleted or deactivated the operator, so their mode cannot be stopped over
+        // HTTP; Masquerade invalidates it at that account's next admission.
+        if (status.status() === 401) return
+        const current = await expectMode(status, 'status')
         if (!current.isMasquerading) return
         await expectMode(
           await control('POST', '/stop').header(CONTEXT_HEADER, current.contextToken).json({}),

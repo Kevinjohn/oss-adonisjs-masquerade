@@ -177,3 +177,23 @@ test('token facade rejects a raw guard that is not an access_tokens guard', ({ a
     'Masquerade requires a native access_tokens guard'
   )
 })
+
+test('the effective token guard needs a raw guard name that differs from its own', async ({
+  assert,
+}) => {
+  const raw = { resolver: async () => () => ({ driverName: 'access_tokens' }) } as never
+  for (const options of [undefined, {}, { guard: '' }, { guard: 7 }])
+    assert.throws(
+      () => effectiveAccessTokensGuard(raw, options as never),
+      'A raw access-token guard name is required'
+    )
+  await assert.rejects(
+    () => effectiveAccessTokensGuard(raw, { guard: 'api' }).resolver('api', {} as never),
+    'Configure distinct raw and effective access-token guards'
+  )
+  const factory = await effectiveAccessTokensGuard(raw, { guard: 'api' }).resolver(
+    'api_effective',
+    {} as never
+  )
+  assert.isFunction(factory)
+})

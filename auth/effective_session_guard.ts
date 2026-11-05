@@ -45,6 +45,12 @@ export class EffectiveSessionGuard<User> implements GuardContract<User> {
     if (selected.kind === 'effective') {
       const admitted = await runtime.admit(this.ctx)
       assertContextEnforced(this.ctx, admitted.context.isMasquerading)
+      // Admission is memoized per request; a raw logout later in the request ends it, as natively.
+      const raw = this.ctx.auth.use(selected.raw as never) as GuardContract<User>
+      if (!raw.isAuthenticated)
+        throw new errors.E_UNAUTHORIZED_ACCESS('Invalid or expired user session', {
+          guardDriverName: this.driverName,
+        })
       this.user = admitted.effective.user as User
     } else {
       const raw = this.ctx.auth.use(
