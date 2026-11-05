@@ -298,6 +298,35 @@ test.group('Masquerade configure scaffold', (group) => {
     }
   })
 
+  test('fails when a codemod reports an error during host wiring', async ({ assert }) => {
+    const f = await configureFixture()
+    try {
+      const configured = f.command({ namespace: 'support', guard: 'web' })
+      const create = configured.createCodemods
+      configured.createCodemods = async () => {
+        const codemods = await create()
+        let raise: ((error: unknown) => void) | undefined
+        const on = codemods.on.bind(codemods)
+        return Object.assign(codemods, {
+          on(event: string, callback: (error: unknown) => void) {
+            raise = callback
+            on(event, callback)
+          },
+          // Wiring starts by asking for the project; a codemod error raised from here on is late.
+          async getTsMorphProject() {
+            raise?.(new Error('preload registration failed'))
+            return undefined
+          },
+        })
+      }
+      await configure(configured as never)
+      assert.equal(configured.exitCode, 1)
+      assert.isTrue(configured.errors.some((message) => message.includes('Host wiring failed')))
+    } finally {
+      await f.dispose()
+    }
+  })
+
   test('reads a numeric namespace as it was typed', async ({ assert }) => {
     const f = await configureFixture()
     const argv = process.argv
