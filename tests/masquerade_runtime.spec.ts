@@ -2,7 +2,9 @@ import { test } from '@japa/runner'
 import { HttpContextFactory } from '@adonisjs/core/factories/http'
 import { MasqueradeSetupError } from '../index.js'
 import { nativeRuntimeFixture } from './helpers/native_runtime.js'
+import { masqueradeRoutes } from '../http/control_routes.js'
 import { sqlFixture } from './helpers/sql_store.js'
+import { markContextEnforced } from '../src/integration/context_enforcement.js'
 
 test('configured provider validates native binding and rejects test-only store during boot', async ({
   assert,
@@ -169,6 +171,7 @@ test('runtime includes every actual effective factory alias with immutable names
     } as never
     business.auth = auth.createAuthenticator(business) as never
     business.containerResolver.bindValue('masquerade.runtime', runtime)
+    markContextEnforced(business)
     const defaultGuard = business.auth.use(
       'web_effective' as never
     ) as import('@adonisjs/auth/types').GuardContract<unknown>
@@ -185,4 +188,56 @@ test('runtime includes every actual effective factory alias with immutable names
     await f.app.terminate()
     await sql.cleanup()
   }
+})
+
+test.group('control route guard check', (group) => {
+  // The fixture's memory store is test-only.
+  group.each.setup(() => {
+    const environment = process.env.NODE_ENV
+    process.env.NODE_ENV = 'test'
+    return () => {
+      if (environment === undefined) delete process.env.NODE_ENV
+      else process.env.NODE_ENV = environment
+    }
+  })
+  const limiter = async (_ctx: unknown, next: () => Promise<unknown>) => next()
+  const otherLimiter = async (_ctx: unknown, next: () => Promise<unknown>) => next()
+  const mount = async (guard: string) => {
+    const f = await nativeRuntimeFixture()
+    await f.app.boot()
+    const router = await f.app.container.make('router')
+    const auth = router.named({
+      auth: async () => ({
+        default: class {
+          async handle(_ctx: unknown, next: () => Promise<unknown>) {
+            await next()
+          }
+        },
+      }),
+    }).auth
+    masqueradeRoutes(router, { auth, guard, startLimiter: limiter, stopLimiter: otherLimiter })
+    return f.app
+  }
+
+  test('the provider refuses control routes on an effective guard at ready', async ({ assert }) => {
+    const app = await mount('web_effective')
+    try {
+      await assert.rejects(
+        () => app.start(() => {}),
+        'masqueradeRoutes guard web_effective is an effective guard; use the raw guard it wraps'
+      )
+    } finally {
+      await app.terminate()
+    }
+  })
+
+  test('the provider accepts control routes on the raw guard', async ({ assert }) => {
+    const app = await mount('web')
+    try {
+      await app.start(() => {})
+      assert.isTrue(app.isReady)
+    } finally {
+      await app.terminate()
+    }
+  })
 })

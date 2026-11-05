@@ -221,6 +221,8 @@ export default class AccountKitActorAdmissionMiddleware {
 }
 ```
 
+The repository's Account Kit test fixture gates by path instead; either works when every protected control and business route is covered.
+
 Place that middleware before `masqueradeContext` in `start/kernel.ts`. Then a denied actor receives
 Account Kit's admission response before Masquerade reads the mode; the row stays untouched and can
 resume after approval if no other condition changed. Use `changeRestriction` when revoking admission

@@ -272,6 +272,159 @@ test.group('Masquerade configure scaffold', (group) => {
     }
   })
 
+  test('names the generated route files among the paths --force would replace', async ({
+    assert,
+  }) => {
+    const f = await configureFixture()
+    try {
+      await writeFile(join(f.root, 'start/masquerade_limiter.ts'), 'tuned limiter')
+      const refused = f.command({ namespace: 'support', guard: 'web' })
+      await configure(refused as never)
+      assert.equal(refused.exitCode, 1)
+      assert.isTrue(
+        refused.errors.some((message) => message.includes('start/masquerade_limiter.ts'))
+      )
+      assert.deepEqual(await listScaffoldPaths(f.root), [])
+      // --no-wire never writes the route files, so they are not conflicts.
+      const manual = f.command({ namespace: 'support', guard: 'web', wire: false })
+      await configure(manual as never)
+      assert.equal(manual.exitCode, 0)
+      assert.equal(
+        await readFile(join(f.root, 'start/masquerade_limiter.ts'), 'utf8'),
+        'tuned limiter'
+      )
+    } finally {
+      await f.dispose()
+    }
+  })
+
+  test('fails when a codemod reports an error during host wiring', async ({ assert }) => {
+    const f = await configureFixture()
+    try {
+      const configured = f.command({ namespace: 'support', guard: 'web' })
+      const create = configured.createCodemods
+      configured.createCodemods = async () => {
+        const codemods = await create()
+        let raise: ((error: unknown) => void) | undefined
+        const on = codemods.on.bind(codemods)
+        return Object.assign(codemods, {
+          on(event: string, callback: (error: unknown) => void) {
+            raise = callback
+            on(event, callback)
+          },
+          // Wiring starts by asking for the project; a codemod error raised from here on is late.
+          async getTsMorphProject() {
+            raise?.(new Error('preload registration failed'))
+            return undefined
+          },
+        })
+      }
+      await configure(configured as never)
+      assert.equal(configured.exitCode, 1)
+      assert.isTrue(configured.errors.some((message) => message.includes('Host wiring failed')))
+    } finally {
+      await f.dispose()
+    }
+  })
+
+  test('reads a numeric namespace as it was typed', async ({ assert }) => {
+    const f = await configureFixture()
+    const argv = process.argv
+    process.argv = [...argv, '--namespace=0042']
+    try {
+      // Ace's parser turns --namespace=0042 into the number 42.
+      const configured = f.command({ namespace: 42, guard: 'web' })
+      await configure(configured as never)
+      assert.equal(configured.exitCode, 0)
+      assert.include(await readFile(join(f.root, 'config/masquerade.ts'), 'utf8'), '"0042"')
+    } finally {
+      process.argv = argv
+      await f.dispose()
+    }
+  })
+
+  test('refuses before writing when the user model the scaffold imports is missing', async ({
+    assert,
+  }) => {
+    const f = await configureFixture()
+    try {
+      await rm(join(f.root, 'app/models/user.ts'))
+      const configured = f.command({ namespace: 'support', guard: 'web' })
+      await configure(configured as never)
+      assert.equal(configured.exitCode, 1)
+      assert.isTrue(configured.errors.some((message) => message.includes('#models/user')))
+      assert.deepEqual(await listScaffoldPaths(f.root), [])
+    } finally {
+      await f.dispose()
+    }
+  })
+
+  test('finds the user model through the host #models import map', async ({ assert }) => {
+    const f = await configureFixture()
+    try {
+      await rm(join(f.root, 'app/models/user.ts'))
+      await mkdir(join(f.root, 'src/models'), { recursive: true })
+      await writeFile(join(f.root, 'src/models/user.ts'), 'export default class User {}')
+      await writeFile(
+        join(f.root, 'package.json'),
+        JSON.stringify({ imports: { '#models/*': './src/models/*.js' } })
+      )
+      const configured = f.command({ namespace: 'support', guard: 'web' })
+      await configure(configured as never)
+      assert.equal(configured.exitCode, 0, configured.errors.join('\n'))
+    } finally {
+      await f.dispose()
+    }
+  })
+
+  test('writes the migration into the Lucid connection migrations folder', async ({ assert }) => {
+    const f = await configureFixture()
+    try {
+      f.app.config.set('database', {
+        connection: 'main',
+        connections: { main: { migrations: { paths: ['./db/schema/'] } } },
+      })
+      const configured = f.command({ namespace: 'support', guard: 'web' })
+      await configure(configured as never)
+      assert.equal(configured.exitCode, 0)
+      const files = await readdir(join(f.root, 'db/schema'))
+      assert.lengthOf(
+        files.filter((file) => file.endsWith('_create_masquerade_tables.ts')),
+        1
+      )
+    } finally {
+      await f.dispose()
+    }
+  })
+
+  test('reads config/database.ts when configure runs before the app boots', async ({ assert }) => {
+    const f = await configureFixture()
+    const load = f.app.import
+    try {
+      f.app.import = async (specifier: string) => {
+        if (specifier === f.app.makeURL('config/database.ts').href)
+          return {
+            default: {
+              connection: 'main',
+              connections: { main: { migrations: { paths: ['database/schema'] } } },
+            },
+          }
+        return load(specifier)
+      }
+      const configured = f.command({ namespace: 'support', guard: 'web' })
+      await configure(configured as never)
+      assert.equal(configured.exitCode, 0)
+      const files = await readdir(join(f.root, 'database/schema'))
+      assert.lengthOf(
+        files.filter((file) => file.endsWith('_create_masquerade_tables.ts')),
+        1
+      )
+    } finally {
+      f.app.import = load
+      await f.dispose()
+    }
+  })
+
   test('prompts for missing values and rejects unsafe namespace before touching files', async ({
     assert,
   }) => {
@@ -335,7 +488,7 @@ test.group('Masquerade configure scaffold', (group) => {
       await configure(missingLucid as never)
       assert.equal(missingLucid.exitCode, 1)
       assert.isTrue(
-        missingLucid.errors.some((message) => message.includes('pnpm add @adonisjs/lucid'))
+        missingLucid.errors.some((message) => message.includes('node ace add @adonisjs/lucid'))
       )
       assert.deepEqual(await listScaffoldPaths(f.root), [])
     } finally {
@@ -360,6 +513,8 @@ async function configureFixture() {
   const root = await mkdtemp(join(tmpdir(), 'masquerade-configure-'))
   await mkdir(join(root, 'config'), { recursive: true })
   await mkdir(join(root, 'start'), { recursive: true })
+  await mkdir(join(root, 'app/models'), { recursive: true })
+  await writeFile(join(root, 'app/models/user.ts'), 'export default class User {}')
   await writeFile(join(root, 'config/auth.ts'), 'export default {}')
   await writeFile(join(root, 'start/kernel.ts'), 'host kernel')
   await writeFile(join(root, 'start/routes.ts'), 'host routes')
@@ -447,6 +602,7 @@ async function configureFixture() {
   }
   return {
     root,
+    app,
     command,
     registered,
     async dispose() {

@@ -193,11 +193,14 @@ test('conflicting expiry cannot clear a newer committed selection', async ({ ass
   f.store.compareAndSet = async (input) => {
     if (input.event.kind === 'expired') {
       f.store.compareAndSet = cas
+      // A stop and new start committed just before the deadline win the race.
+      f.state.now = Date.parse(active.expiresAt) - 1
       const stop = await service.stop({}, { expectedContext: active.contextToken })
       await service.start(
         {},
         { targetId: 'c', reason: 'new case', expectedContext: stop.contextToken }
       )
+      f.state.now = Date.parse(active.expiresAt)
     }
     return cas(input)
   }

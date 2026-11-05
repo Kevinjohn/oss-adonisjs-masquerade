@@ -36,7 +36,10 @@ function now(dependencies: StopModesDependencies): string {
   try {
     const value = (dependencies.clock ?? (() => new Date()))()
     if (!(value instanceof Date) || !Number.isFinite(value.getTime())) throw unavailable()
-    return value.toISOString()
+    const instant = value.toISOString()
+    // Instants compare as text, which holds only for four-digit years.
+    if (!/^\d{4}-/.test(instant)) throw unavailable()
+    return instant
   } catch {
     throw unavailable()
   }
@@ -121,12 +124,15 @@ export async function stopActiveModes<User, Request>(
     'activeBatch',
   ])
   if ('actorId' in selection) {
+    // Bound the operator's input before it reaches the host authority.
+    if (!boundedString(selection.actorId, 255))
+      throw new MasqueradeError('E_MASQUERADE_INVALID_INPUT')
     const actorIncarnation = await resolveIncarnation(
       config,
       selection.actorId,
       selection.actorIncarnation
     )
-    if (!boundedString(selection.actorId, 255) || !boundedString(actorIncarnation, 128))
+    if (!boundedString(actorIncarnation, 128))
       throw new MasqueradeError('E_MASQUERADE_INVALID_INPUT')
     const owner = {
       namespace: config.authority.namespace,

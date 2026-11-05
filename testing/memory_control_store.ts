@@ -9,6 +9,8 @@ import type {
   CasOutcome,
 } from '../src/types.js'
 import { validateTransition } from '../src/transition_validation.js'
+import { validateControlOutcome } from '../src/control_outcome_validation.js'
+import { validateRow } from '../src/row_validation.js'
 
 function key(owner: OwnerKey): string {
   return JSON.stringify([owner.namespace, owner.actorId, owner.actorIncarnation])
@@ -25,6 +27,8 @@ export class MemoryControlStore implements ControlStore {
     return structuredClone(this.#rows.get(key(owner)) ?? null)
   }
   async compareAndSet(input: CompareAndSetInput): Promise<CasOutcome> {
+    // The same row checks as the Lucid store, so tests cannot pass with rows a database rejects.
+    validateRow(input.next, input.owner)
     const current = this.#rows.get(key(input.owner))
     if ((current?.revision ?? null) !== input.expected) return { status: 'conflict' }
     validateTransition(input, current ?? null)
@@ -35,6 +39,7 @@ export class MemoryControlStore implements ControlStore {
     return { status: 'applied', transitionId: event.id }
   }
   async recordControlOutcome(event: ControlOutcomeEvent): Promise<void> {
+    validateControlOutcome(event)
     this.#events.push(structuredClone(event))
   }
   async expiredBatch(input: { now: Instant; limit: number }): Promise<ModeRow[]> {

@@ -26,8 +26,9 @@ router
   .use(middleware.guest())
 
 router
-  .group(() => {
-    router.on('/dashboard').renderInertia('dashboard', {}).as('dashboard')
-    router.post('logout', [controllers.Session, 'destroy'])
-  })
-  .use(middleware.auth({ guards: ['web'] }))
+  .on('/dashboard')
+  .renderInertia('dashboard', {})
+  .as('dashboard')
+  .use(middleware.auth({ guards: ['web_effective'] }))
+
+router.post('logout', [controllers.Session, 'destroy']).use(middleware.auth({ guards: ['web'] }))

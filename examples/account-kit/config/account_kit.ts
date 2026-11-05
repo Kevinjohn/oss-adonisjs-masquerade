@@ -1,4 +1,5 @@
 import app from '@adonisjs/core/services/app'
+import env from '#start/env'
 import {
   createActionUrls,
   createLucidAdapter,
@@ -31,7 +32,7 @@ export default defineConfig({
     },
     ...(strategy === 'access_tokens' ? { tokenAbilities: ['*', 'masquerade'] } : {}),
   },
-  limiterSecret: process.env.APP_KEY ?? 'account_kit_consumer_fixture_key_0123456789',
+  limiterSecret: env.get('APP_KEY'),
   authorize: {
     invite: async () => false,
     manageInvitation: async () => false,

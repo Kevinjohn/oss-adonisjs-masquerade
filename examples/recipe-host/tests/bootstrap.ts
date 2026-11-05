@@ -19,7 +19,14 @@ export const plugins: Config['plugins'] = [
 
 export const runnerHooks: Required<Pick<Config, 'setup' | 'teardown'>> = {
   setup: [],
-  teardown: [],
+  teardown: [
+    // Japa exits 0 when its filters select nothing; a run that executed no tests checked nothing.
+    (runner) => {
+      if (runner.getSummary().aggregates.total > 0) return
+      console.error('No tests executed: check the suite name and filters')
+      process.exitCode = 1
+    },
+  ],
 }
 
 export const configureSuite: Config['configureSuite'] = (suite) => {

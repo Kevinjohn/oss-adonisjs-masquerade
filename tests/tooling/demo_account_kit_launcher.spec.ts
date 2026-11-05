@@ -20,6 +20,7 @@ import {
 import os from 'node:os'
 import path from 'node:path'
 import { test } from '@japa/runner'
+import { freePort } from '../helpers/free_port.js'
 import { fileURLToPath } from 'node:url'
 
 const repoRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../..')
@@ -193,7 +194,7 @@ if (process.env.KIT_DEMO_TEST_DELAY_AT && process.env.KIT_DEMO_TEST_DELAY_AT.inc
 if (process.env.KIT_DEMO_TEST_FAIL_AT && process.env.KIT_DEMO_TEST_FAIL_AT.includes(command)) process.exit(17)
 if (command === 'generate:key') {
   const env = await readFile('.env', 'utf8')
-  await writeFile('.env', env.replace('replace_me_with_node_ace_generate_key', 'base64:demo-test-key'))
+  await writeFile('.env', env.replace(/^APP_KEY=.*$/m, 'APP_KEY=base64:demo-test-key'))
 }
 if (command === 'configure') {
   await mkdir('database/migrations', { recursive: true })
@@ -232,19 +233,6 @@ if (command === 'serve') {
   await writeFile('server.pid', String(process.pid))
 }
 `
-
-async function freePort(): Promise<number> {
-  const server = createServer()
-  await new Promise<void>((resolve, reject) =>
-    server.listen(0, '127.0.0.1', resolve).once('error', reject)
-  )
-  const address = server.address()
-  if (!address || typeof address === 'string') throw new Error('Expected a TCP port address')
-  await new Promise<void>((resolve, reject) =>
-    server.close((error) => (error ? reject(error) : resolve()))
-  )
-  return address.port
-}
 
 async function fixture(options: FixtureOptions = {}): Promise<Demo> {
   const id = Math.random().toString(36).slice(2)

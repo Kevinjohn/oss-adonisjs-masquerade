@@ -174,7 +174,7 @@ test.group('Account Kit provider', () => {
         await host.app.terminate()
       }
     }
-  }).skip(!canLoadKit(), 'requires installed Account Kit or ACCOUNT_KIT_SOURCE')
+  }).skip(!canLoadKit() && !process.env.CI, 'requires installed Account Kit or ACCOUNT_KIT_SOURCE')
 
   test('commits and verifies registered routes and installed blocker at console ready', async ({
     assert,
@@ -188,7 +188,7 @@ test.group('Account Kit provider', () => {
     } finally {
       await host.app.terminate()
     }
-  }).skip(!canLoadKit(), 'requires installed Account Kit or ACCOUNT_KIT_SOURCE')
+  }).skip(!canLoadKit() && !process.env.CI, 'requires installed Account Kit or ACCOUNT_KIT_SOURCE')
 
   test('leaves the router uncommitted and the blocker unverified outside the console', async ({
     assert,
@@ -204,7 +204,7 @@ test.group('Account Kit provider', () => {
     } finally {
       await host.app.terminate()
     }
-  }).skip(!canLoadKit(), 'requires installed Account Kit or ACCOUNT_KIT_SOURCE')
+  }).skip(!canLoadKit() && !process.env.CI, 'requires installed Account Kit or ACCOUNT_KIT_SOURCE')
 
   test('recognizes an inline lazy loader for the same blocker class', async ({ assert }) => {
     const host = await fixture({ inlineBlocker: true })
@@ -214,7 +214,7 @@ test.group('Account Kit provider', () => {
     } finally {
       await host.app.terminate()
     }
-  }).skip(!canLoadKit(), 'requires installed Account Kit or ACCOUNT_KIT_SOURCE')
+  }).skip(!canLoadKit() && !process.env.CI, 'requires installed Account Kit or ACCOUNT_KIT_SOURCE')
 
   test('does not invoke raw inline route middleware while verifying blocker installation', async ({
     assert,
@@ -237,7 +237,7 @@ test.group('Account Kit provider', () => {
     } finally {
       await host.app.terminate()
     }
-  }).skip(!canLoadKit(), 'requires installed Account Kit or ACCOUNT_KIT_SOURCE')
+  }).skip(!canLoadKit() && !process.env.CI, 'requires installed Account Kit or ACCOUNT_KIT_SOURCE')
 
   for (const [label, values] of [
     ['name', { name: 'wrong' }],
@@ -250,7 +250,10 @@ test.group('Account Kit provider', () => {
       } finally {
         await host.app.terminate()
       }
-    }).skip(!canLoadKit(), 'requires installed Account Kit or ACCOUNT_KIT_SOURCE')
+    }).skip(
+      !canLoadKit() && !process.env.CI,
+      'requires installed Account Kit or ACCOUNT_KIT_SOURCE'
+    )
 
   test('rejects managed routes renamed by a route group', async ({ assert }) => {
     const host = await fixture({ group: 'api' })
@@ -259,7 +262,7 @@ test.group('Account Kit provider', () => {
     } finally {
       await host.app.terminate()
     }
-  }).skip(!canLoadKit(), 'requires installed Account Kit or ACCOUNT_KIT_SOURCE')
+  }).skip(!canLoadKit() && !process.env.CI, 'requires installed Account Kit or ACCOUNT_KIT_SOURCE')
 
   test('rejects a mounted managed route without the blocker', async ({ assert }) => {
     const host = await fixture({ blocker: false })
@@ -268,7 +271,7 @@ test.group('Account Kit provider', () => {
     } finally {
       await host.app.terminate()
     }
-  }).skip(!canLoadKit(), 'requires installed Account Kit or ACCOUNT_KIT_SOURCE')
+  }).skip(!canLoadKit() && !process.env.CI, 'requires installed Account Kit or ACCOUNT_KIT_SOURCE')
 
   test('rejects a mounted name absent from registration', async ({ assert }) => {
     const host = await fixture()
@@ -281,7 +284,7 @@ test.group('Account Kit provider', () => {
     } finally {
       await host.app.terminate()
     }
-  }).skip(!canLoadKit(), 'requires installed Account Kit or ACCOUNT_KIT_SOURCE')
+  }).skip(!canLoadKit() && !process.env.CI, 'requires installed Account Kit or ACCOUNT_KIT_SOURCE')
 
   for (const field of ['method', 'path'] as const)
     test(`rejects a registered route with a changed ${field}`, async ({ assert }) => {
@@ -299,7 +302,10 @@ test.group('Account Kit provider', () => {
       } finally {
         await host.app.terminate()
       }
-    }).skip(!canLoadKit(), 'requires installed Account Kit or ACCOUNT_KIT_SOURCE')
+    }).skip(
+      !canLoadKit() && !process.env.CI,
+      'requires installed Account Kit or ACCOUNT_KIT_SOURCE'
+    )
 
   test('blocks an active actor without requiring masquerade token ability', async ({ assert }) => {
     const host = await fixture()
@@ -321,7 +327,7 @@ test.group('Account Kit provider', () => {
     } finally {
       await host.app.terminate()
     }
-  }).skip(!canLoadKit(), 'requires installed Account Kit or ACCOUNT_KIT_SOURCE')
+  }).skip(!canLoadKit() && !process.env.CI, 'requires installed Account Kit or ACCOUNT_KIT_SOURCE')
 
   test('passes idle, expired, exempt, unrelated and unauthenticated requests without extra reads', async ({
     assert,
@@ -343,7 +349,7 @@ test.group('Account Kit provider', () => {
     } finally {
       await host.app.terminate()
     }
-  }).skip(!canLoadKit(), 'requires installed Account Kit or ACCOUNT_KIT_SOURCE')
+  }).skip(!canLoadKit() && !process.env.CI, 'requires installed Account Kit or ACCOUNT_KIT_SOURCE')
 
   test('maps raw guard and store failures to 503', async ({ assert }) => {
     const host = await fixture()
@@ -362,7 +368,7 @@ test.group('Account Kit provider', () => {
     } finally {
       await host.app.terminate()
     }
-  }).skip(!canLoadKit(), 'requires installed Account Kit or ACCOUNT_KIT_SOURCE')
+  }).skip(!canLoadKit() && !process.env.CI, 'requires installed Account Kit or ACCOUNT_KIT_SOURCE')
 
   test('rejects missing guard users and unsupported or oversized owner identifiers', async ({
     assert,
@@ -390,5 +396,5 @@ test.group('Account Kit provider', () => {
         await host.app.terminate()
       }
     }
-  }).skip(!canLoadKit(), 'requires installed Account Kit or ACCOUNT_KIT_SOURCE')
+  }).skip(!canLoadKit() && !process.env.CI, 'requires installed Account Kit or ACCOUNT_KIT_SOURCE')
 })

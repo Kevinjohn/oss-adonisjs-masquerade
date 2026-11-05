@@ -13,9 +13,25 @@ export interface MasqueradeAuditFields {
   readonly access: ModeAccess | null
 }
 
-/** Resolve the actor and effective identity to spread into the host's own audit writer. */
+/**
+ * Resolve the actor and effective identity to spread into the host's own audit writer. On a route
+ * that does not select an effective guard the handler runs as the actor, so both identities are
+ * the actor and no mode is admitted, invalidated or reported.
+ */
 export async function masqueradeAuditFields(ctx: HttpContext): Promise<MasqueradeAuditFields> {
   const runtime = await runtimeFor(ctx)
+  if (runtime.selectGuard(ctx).kind !== 'effective') {
+    const actor = await runtime.actor(ctx)
+    return Object.freeze({
+      actorId: actor.id,
+      actorIncarnation: actor.incarnation,
+      effectiveId: actor.id,
+      effectiveIncarnation: actor.incarnation,
+      isMasquerading: false,
+      modeId: null,
+      access: null,
+    })
+  }
   const identity = await runtime.service.resolve(ctx)
   return Object.freeze({
     actorId: identity.actorId,

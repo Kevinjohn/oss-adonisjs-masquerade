@@ -2,10 +2,12 @@
 // Admission values go to request_admission.spec.ts, route markers to route_metadata.spec.ts.
 // Fixtures: fixture() in tests/helpers/core.ts, requestContext() in tests/helpers/http_context.ts.
 import { test } from '@japa/runner'
+import { handleWithDefaultExceptionHandler } from './helpers/exception_handler.js'
 import { fixture } from './helpers/core.js'
 import { requestContext } from './helpers/http_context.js'
 import { errors } from '@adonisjs/auth'
 import { masqueradeContext } from '../http/context_middleware.js'
+import { EffectiveSessionGuard } from '../auth/effective_session_guard.js'
 import { allowMutation, sensitive } from '../src/integration/route_metadata.js'
 import { MasqueradeError } from '../src/errors.js'
 import type { RequestAdmission } from '../src/request_admission.js'
@@ -91,21 +93,33 @@ test.group('masquerade HTTP boundary', () => {
     assert.equal((warnings[0] as { code: string }).code, 'E_MASQUERADE_CONTEXT_REQUIRED')
   })
 
-  test('reports header and form token disagreement as stale context', async ({ assert }) => {
-    const f = fixture()
-    f.config.contextEnforcement = 'report'
-    const service = await f.create()
-    const mode = await service.status({})
-    const { ctx, warnings } = requestContext(f, {
-      body: { _masqueradeContext: mode.contextToken },
-      header: `1.${'a'.repeat(32)}`,
-    })
-    let continued = false
-    await masqueradeContext(ctx, async () => {
-      continued = true
-    })
-    assert.isTrue(continued)
-    assert.equal((warnings[0] as { code: string }).code, 'E_MASQUERADE_CONTEXT_CHANGED')
+  test('treats a current header with a different form token as stale context', async ({
+    assert,
+  }) => {
+    for (const enforcement of ['report', 'enforce'] as const) {
+      const f = fixture()
+      f.config.contextEnforcement = enforcement
+      const service = await f.create()
+      const mode = await service.status({})
+      // The header alone is current, so only the disagreement can fail this request.
+      const { ctx, warnings, responseState } = requestContext(f, {
+        body: { _masqueradeContext: `1.${'a'.repeat(32)}` },
+        header: mode.contextToken,
+      })
+      let continued = false
+      await handleWithDefaultExceptionHandler(ctx, () =>
+        masqueradeContext(ctx, async () => {
+          continued = true
+        })
+      )
+      if (enforcement === 'report') {
+        assert.isTrue(continued)
+        assert.equal((warnings[0] as { code: string }).code, 'E_MASQUERADE_CONTEXT_CHANGED')
+      } else {
+        assert.isFalse(continued)
+        assert.equal(responseState.status, 409)
+      }
+    }
   })
 
   test('does not apply the control-body limit to covered business requests', async ({ assert }) => {
@@ -418,18 +432,6 @@ test.group('masquerade HTTP boundary', () => {
   })
 })
 
-async function handleWithDefaultExceptionHandler(
-  ctx: Parameters<typeof masqueradeContext>[0],
-  operation: () => Promise<void>
-): Promise<void> {
-  try {
-    await operation()
-  } catch (error) {
-    if (!(error instanceof MasqueradeError)) throw error
-    error.handle(error, ctx)
-  }
-}
-
 function responseBlockedBy(response: unknown): MasqueradeBlockedBy | undefined {
   const items = (response as { errors?: { blockedBy?: MasqueradeBlockedBy }[] } | undefined)?.errors
   return items?.[0]?.blockedBy
@@ -461,3 +463,23 @@ function overrideAdmissionAccess(
     }) as RequestAdmission<unknown>
   }
 }
+
+test('the effective guard admits the target only after masqueradeContext ran for the request', async ({
+  assert,
+}) => {
+  const f = fixture()
+  const service = await f.create()
+  await f.start(service)
+  const raw = { driverName: 'session', authenticate: async () => f.users.get('a') }
+  const { ctx } = requestContext(f, { method: 'GET' })
+  let user: unknown
+  await masqueradeContext(ctx, async () => {
+    user = await new EffectiveSessionGuard('web', ctx, raw as never).authenticate()
+  })
+  assert.strictEqual(user, f.users.get('b'))
+  const { ctx: bypassed } = requestContext(f, { method: 'GET' })
+  await assert.rejects(
+    () => new EffectiveSessionGuard('web', bypassed, raw as never).authenticate(),
+    'Masquerade is unavailable'
+  )
+})

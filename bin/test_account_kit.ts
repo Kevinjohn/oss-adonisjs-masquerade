@@ -1,6 +1,6 @@
 import { execFileSync, spawn, type ChildProcess } from 'node:child_process'
 import { createHash, randomUUID } from 'node:crypto'
-import { cp, mkdir, mkdtemp, readdir, readFile, writeFile } from 'node:fs/promises'
+import { cp, mkdir, mkdtemp, readdir, readFile, rm, writeFile } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { join, relative, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
@@ -54,6 +54,8 @@ const output = resolve(
   process.env.ACCOUNT_KIT_EVIDENCE_DIR ?? (await mkdtemp(join(tmpdir(), 'masquerade-account-kit-')))
 )
 const logs = join(output, 'logs')
+// Installed apps and kit sources; a passing run removes them and keeps the evidence and logs.
+const installed: string[] = []
 await mkdir(logs, { recursive: true })
 const evidence: Record<string, unknown> = {
   mode: source ? 'local-source' : 'release-artifact',
@@ -99,7 +101,7 @@ const baseEnv: NodeJS.ProcessEnv = {
   APP_KEY: 'account_kit_consumer_fixture_key_0123456789',
   SESSION_DRIVER: 'database',
   DB_HOST: process.env.DB_HOST ?? '127.0.0.1',
-  DB_PORT: process.env.DB_PORT ?? '55536',
+  DB_PORT: process.env.DB_PORT ?? '55432',
   DB_USER: process.env.DB_USER ?? 'account_kit',
   DB_PASSWORD: process.env.DB_PASSWORD ?? '',
   DB_DATABASE: process.env.DB_DATABASE ?? 'package_test',
@@ -217,6 +219,7 @@ try {
     evidence.localSourceDirtyIgnored = dirty.length > 0
     evidence.localSourceRequestedRevision = selectedRevision
     const kitCopy = join(output, 'kit-source')
+    installed.push(kitCopy)
     await mkdir(kitCopy)
     const archive = join(output, 'account-kit-source.tar')
     execFileSync('git', ['-C', checkout, 'archive', '--format=tar', '--output', archive, head])
@@ -323,6 +326,13 @@ try {
       peerDependencies: Record<string, string>
     }
   ).peerDependencies
+  for (const [name, version] of Object.entries(floor)) {
+    const declaredFloor = peerRanges[name]?.match(/\d+\.\d+\.\d+/)?.[0]
+    if (declaredFloor !== version)
+      throw new Error(
+        `Floor selection mismatch for ${name}: ${version} vs declared ${declaredFloor}`
+      )
+  }
   matrixLoop: for (const selectedProfile of profile === 'all' ? ['floor', 'latest'] : [profile]) {
     const versions = { ...floor }
     if (selectedProfile === 'latest')
@@ -345,6 +355,7 @@ try {
           : [sessionManagement]) {
           const label = `${selectedProfile}_${selectedDb}_${selectedStrategy}_${selectedManagement}`
           const app = join(output, label)
+          installed.push(app)
           await cp(template, app, {
             recursive: true,
             filter: (path) =>
@@ -379,7 +390,14 @@ try {
             let schemaAttempted = false
             let primaryError: unknown
             try {
-              await run(app, ['install', '--no-frozen-lockfile'], `${label}_install`, env)
+              const installation = await run(
+                app,
+                ['install', '--no-frozen-lockfile'],
+                `${label}_install`,
+                env
+              )
+              if (/unmet peer|issues with peer dependencies|ERR_PNPM_PEER_DEP/i.test(installation))
+                throw new Error('Account Kit consumer installation reports unmet peers')
               const resolvedKit = JSON.parse(
                 await readFile(
                   join(app, 'node_modules/@kevinjohn/adonisjs-account-kit/package.json'),
@@ -407,6 +425,9 @@ try {
                 masquerade: resolvedMasquerade,
                 resolvedPeers,
               })
+              for (const [name, version] of Object.entries(versions))
+                if (resolvedPeers[name] !== version)
+                  throw new Error(`Expected ${name} ${version}, installed ${resolvedPeers[name]}`)
               if (resolvedKit !== kitReleaseVersion)
                 throw new Error(
                   `Expected Account Kit ${kitReleaseVersion}, installed ${resolvedKit}`
@@ -698,5 +719,7 @@ try {
     process.exitCode = 1
   }
   await writeFile(join(output, 'evidence.json'), JSON.stringify(evidence, null, 2) + '\n')
+  if (!process.exitCode)
+    for (const directory of installed) await rm(directory, { recursive: true, force: true })
   console.log(`[account-kit] Evidence: ${join(output, 'evidence.json')}`)
 }

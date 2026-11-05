@@ -1,8 +1,11 @@
 import { router } from '@inertiajs/react'
 import { useEffect, useState } from 'react'
 
-/** Freeze old page data immediately on restoration and fetch raw current status. */
-export function useIdentityFreshness(expiresAt?: string) {
+/**
+ * Freeze old page data immediately on restoration and fetch raw current status. Pages without
+ * customer data pass `revalidateOnVisible: false`, so returning to the tab keeps a half-filled form.
+ */
+export function useIdentityFreshness(expiresAt?: string, revalidateOnVisible = true) {
   const [stale, setStale] = useState(false)
   useEffect(() => {
     sessionStorage.setItem('supportHistorySeen', 'true')
@@ -16,7 +19,7 @@ export function useIdentityFreshness(expiresAt?: string) {
       router.cancelAll()
       window.location.replace('/support')
     }
-    document.addEventListener('visibilitychange', onVisibility)
+    if (revalidateOnVisible) document.addEventListener('visibilitychange', onVisibility)
     function onVisibility() {
       if (!document.hidden) recover()
     }
@@ -29,6 +32,6 @@ export function useIdentityFreshness(expiresAt?: string) {
       document.removeEventListener('visibilitychange', onVisibility)
       if (timer) clearTimeout(timer)
     }
-  }, [expiresAt])
+  }, [expiresAt, revalidateOnVisible])
   return stale
 }

@@ -15,6 +15,8 @@ export interface MasqueradeRuntime<User = unknown> {
   admit(ctx: HttpContext): Promise<RequestAdmission<User>>
   /** Whether the owner has an unexpired active mode, read from the store. */
   activeMode(owner: OwnerKey): Promise<boolean>
+  /** Authenticate the actor through the route's raw guard without mode admission. */
+  actor(ctx: HttpContext): Promise<{ id: string; incarnation: string }>
 }
 
 declare module '@adonisjs/core/types' {

@@ -1,5 +1,5 @@
 import type { HttpContext } from '@adonisjs/core/http'
-import { Exception, RuntimeException } from '@adonisjs/core/exceptions'
+import { Exception, InvalidArgumentsException, RuntimeException } from '@adonisjs/core/exceptions'
 import { errorDetails } from './error_helpers.js'
 
 /** Stable request error codes; each maps to one HTTP status and English message. */
@@ -76,6 +76,11 @@ export class MasqueradeError extends Exception {
     readonly code: MasqueradeErrorCode,
     options?: { blockedBy: MasqueradeBlockedBy }
   ) {
+    if (
+      code === 'E_MASQUERADE_ACTION_BLOCKED' &&
+      !['sensitive', 'view_only', 'mutation_not_allowed'].includes(String(options?.blockedBy))
+    )
+      throw new InvalidArgumentsException('E_MASQUERADE_ACTION_BLOCKED requires blockedBy')
     super(errorDetails[code][1], { code, status: errorDetails[code][0] })
     this.name = 'MasqueradeError'
     this.identifier = `errors.${code}`
@@ -85,12 +90,10 @@ export class MasqueradeError extends Exception {
 
   /** Resolve host translations with the fixed public English fallback. */
   getResponseMessage(ctx: HttpContext): string {
-    if ('i18n' in ctx) {
-      const i18n = ctx.i18n as {
-        t(id: string, data: Record<string, unknown>, fallback: string): string
-      }
+    const i18n = (ctx as { i18n?: unknown }).i18n as
+      { t?(id: string, data: Record<string, unknown>, fallback: string): string } | undefined
+    if (typeof i18n?.t === 'function')
       return i18n.t(`errors.${this.code}`, {}, errorDetails[this.code][1])
-    }
     return errorDetails[this.code][1]
   }
 

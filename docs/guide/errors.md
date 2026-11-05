@@ -26,14 +26,19 @@ Add these English entries to the host application's `errors.json` locale file if
 }
 ```
 
-| Situation                                                         | Response                            | Recovery                                                                                                        |
-| ----------------------------------------------------------------- | ----------------------------------- | --------------------------------------------------------------------------------------------------------------- |
-| Missing control or business context                               | `428 E_MASQUERADE_CONTEXT_REQUIRED` | Read status and rebuild the action using its current token.                                                     |
-| Stale token, expired mode, or another tab/device changed the mode | `409 E_MASQUERADE_CONTEXT_CHANGED`  | Refresh status; require deliberate resubmission of rebuilt input. Never refresh a token and replay old intent.  |
-| Start submitted while a mode is active                            | `409 E_MASQUERADE_ALREADY_ACTIVE`   | Read current status and stop before starting another mode.                                                      |
-| View-mode mutation, unmarked edit mutation, or sensitive route    | `403 E_MASQUERADE_ACTION_BLOCKED`   | Use `blockedBy` to explain the denial. Edit and a mutation marker do not grant customer permission.             |
-| Store or service unavailable                                      | `503 E_MASQUERADE_UNAVAILABLE`      | After an uncertain control response, GET status before deciding what to do. Do not blindly retry the old start. |
-| Invalid fields, duration, or reason                               | `422 E_MASQUERADE_INVALID_INPUT`    | Show the validation problem and ask the operator to submit corrected data with the current token.               |
+| Situation                                                           | Response                            | Recovery                                                                                                        |
+| ------------------------------------------------------------------- | ----------------------------------- | --------------------------------------------------------------------------------------------------------------- |
+| Missing control or business context                                 | `428 E_MASQUERADE_CONTEXT_REQUIRED` | Read status and rebuild the action using its current token.                                                     |
+| Stale token, expired mode, or another tab/device changed the mode   | `409 E_MASQUERADE_CONTEXT_CHANGED`  | Refresh status; require deliberate resubmission of rebuilt input. Never refresh a token and replay old intent.  |
+| Start submitted while a mode is active                              | `409 E_MASQUERADE_ALREADY_ACTIVE`   | Read current status and stop before starting another mode.                                                      |
+| View-mode mutation, unmarked edit mutation, or sensitive route      | `403 E_MASQUERADE_ACTION_BLOCKED`   | Use `blockedBy` to explain the denial. Edit and a mutation marker do not grant customer permission.             |
+| Store or service unavailable                                        | `503 E_MASQUERADE_UNAVAILABLE`      | After an uncertain control response, GET status before deciding what to do. Do not blindly retry the old start. |
+| Invalid fields, duration, or reason                                 | `422 E_MASQUERADE_INVALID_INPUT`    | Show the validation problem and ask the operator to submit corrected data with the current token.               |
+| Start denied by eligibility or policy, or a token lacks the ability | `403 E_MASQUERADE_NOT_ALLOWED`      | Show a generic denial; it does not say whether the target exists. See [troubleshooting](troubleshooting.md).    |
+
+`E_MASQUERADE_UNAUTHENTICATED` is declared for compatibility and never emitted; native Auth answers
+unauthenticated requests. Setup failures raise `E_MASQUERADE_INVALID_CONFIGURATION` or
+`E_MASQUERADE_INVALID_STORE` at boot or from Ace commands, not in HTTP responses.
 
 The host can branch on `blockedBy` before its normal exception handling. This helper shows
 three presentation paths: JSON passes to the standard handler, HTML renders a host page, and

@@ -1,5 +1,5 @@
 @let(linkTextFromSlot = await $slots.main())
-@let(linkText = linkTextFromSlot.trim() ? linkTextFromSlot : ($props.get('text') ?? ''))
+@let(linkText = linkTextFromSlot.trim() ? linkTextFromSlot : html.escape($props.get('text') ?? ''))
 @let(linkHref = $props.has('href')
   ? $props.get('href')
   : $props.get('route')

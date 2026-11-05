@@ -3,6 +3,9 @@ import { boundedString } from './bounded_string.js'
 import { MasqueradeSetupError } from './errors.js'
 import type { MasqueradeSetupErrorField } from './errors.js'
 
+/** One hundred years; a longer window has no prunable cutoff on every supported store. */
+export const MAX_RETENTION_DAYS = 36_500
+
 /** Validate synchronously; resolving the store is deferred to service creation. */
 export function defineConfig<User, Request>(
   config: MasqueradeConfig<User, Request>
@@ -76,7 +79,9 @@ export function defineConfig<User, Request>(
     fail('retention')
   if (
     config.retention !== 'host-managed' &&
-    (!Number.isSafeInteger(config.retention.days) || config.retention.days < 1)
+    (!Number.isSafeInteger(config.retention.days) ||
+      config.retention.days < 1 ||
+      config.retention.days > MAX_RETENTION_DAYS)
   )
     fail('retention.days')
   const reason = config.reason === undefined ? 'optional' : config.reason

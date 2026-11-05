@@ -228,3 +228,14 @@ for (const invalidation of ['expiry', 'stamp', 'policy'] as const) {
     )
   })
 }
+
+test('admission refuses a clock past year 9999 rather than comparing it as text', async ({
+  assert,
+}) => {
+  const f = fixture()
+  const service = await f.create()
+  await f.start(service)
+  f.state.now = Date.parse('+010000-01-01T00:00:00Z')
+  assert.equal(await errorCode(() => service.resolve({})), 'E_MASQUERADE_UNAVAILABLE')
+  assert.equal((await f.store.read(f.owner))!.state, 'active')
+})

@@ -72,9 +72,10 @@ The _Tested against_ table in `README.md` mirrors `.github/workflows/checks.yml`
 - `auth/`, `http/`, and `native/` hold the effective guard, controllers and native authority.
 - `stores/`, `testing/`, and `plugins/` hold the optional Lucid store, test support and API client.
 - `providers/`, `commands/`, and `stubs/` hold the provider, Ace commands and configure templates.
-- `tests/` mirrors the source. Shared fixtures live in `tests/helpers/`.
+- `tests/` mirrors the source. Shared fixtures live in `tests/helpers/`, specs for `bin/` in
+  `tests/tooling/` and type-level tests in `tests/types/`.
 
-See the [maintainer source map](docs/maintainers/README.md) for module ownership and focused tests.
+See the [maintainer source map](docs/maintainers/source-map.md) for module ownership and focused tests.
 [AGENTS.md](AGENTS.md) describes the file responsibility and folder rules.
 
 ## Planning files
@@ -97,7 +98,8 @@ gitignored `plans/` directory; do not commit them.
 
 A control store for another database is a useful first contribution. The conformance suite in
 `@kevinjohn/adonisjs-masquerade/testing` checks a store against the behavior of the Lucid store, including
-compare-and-swap behavior with concurrent connections.
+compare-and-swap behavior with concurrent calls on one store instance; races across independent
+connections need their own tests.
 
 ## Code of conduct
 

@@ -1,6 +1,12 @@
 import assert from 'node:assert/strict'
 import { randomUUID } from 'node:crypto'
-import type { ControlStore, IdleModeRow, OwnerKey, TransitionEvent } from '../src/types.js'
+import type {
+  ActiveModeRow,
+  ControlStore,
+  IdleModeRow,
+  OwnerKey,
+  TransitionEvent,
+} from '../src/types.js'
 
 /** Run against a fresh, isolated store. SQL connection/race and rollback tests supplement this contract. */
 export async function assertControlStoreConformance(
@@ -55,6 +61,11 @@ export async function assertControlStoreConformance(
   assert.equal(winner.revision, 1)
   winner.revision = 99
   assert.equal((await store.read(owner))!.revision, 1)
+  // The store keeps its own copy of the committed row, not the caller's object.
+  const committedNonce = winner.revisionNonce
+  row.revisionNonce = 'z'.repeat(32)
+  assert.equal((await store.read(owner))!.revisionNonce, committedNonce)
+  row.revisionNonce = 'a'.repeat(32)
   for (const other of [
     { ...owner, namespace: 'other' },
     { ...owner, actorId: randomUUID() },
@@ -68,6 +79,17 @@ export async function assertControlStoreConformance(
     event: { ...event, id: randomUUID(), revision: 2 },
   })
   assert.equal(stale.status, 'conflict')
+  // A transition advances the revision by exactly one.
+  const skippedId = randomUUID()
+  await assert.rejects(() =>
+    store.compareAndSet({
+      owner,
+      expected: 1,
+      next: { ...row, revision: 3, revisionNonce: 'c'.repeat(32), lastTransitionId: skippedId },
+      event: { ...event, id: skippedId, revision: 3 },
+    })
+  )
+  assert.equal((await store.read(owner))!.revision, 1)
   const transitionId = randomUUID()
   const update = {
     ...row,
@@ -89,8 +111,27 @@ export async function assertControlStoreConformance(
     revision: 2,
   })
   assert.deepEqual(await store.read(owner), update)
+  // A control outcome is audit only: it never creates or changes a mode row.
+  const absent = { ...owner, actorId: randomUUID() }
+  await store.recordControlOutcome({
+    ...event,
+    ...absent,
+    id: randomUUID(),
+    kind: 'start_denied',
+    outcomeCode: 'E_MASQUERADE_NOT_ALLOWED',
+    revision: 0,
+  })
+  assert.equal(await store.read(absent), null)
+  await assert.rejects(() =>
+    store.recordControlOutcome({
+      ...event,
+      id: randomUUID(),
+      kind: 'started' as never,
+      revision: 2,
+    })
+  )
   assert.equal(await store.pruneEvents({ before: '2027-01-01T00:00:00.000Z', limit: 2 }), 2)
-  assert.equal(await store.pruneEvents({ before: '2027-01-01T00:00:00.000Z', limit: 2 }), 1)
+  assert.equal(await store.pruneEvents({ before: '2027-01-01T00:00:00.000Z', limit: 3 }), 2)
   assert.deepEqual(await store.read(owner), update)
   assert.deepEqual(await store.expiredBatch({ now: '2027-01-01T00:00:00.000Z', limit: 2 }), [])
   assert.deepEqual(await store.activeBatch({ limit: 2 }), [])
@@ -101,8 +142,9 @@ export async function assertControlStoreConformance(
     { ...owner, actorId: randomUUID() },
     { ...owner, actorIncarnation: 'replacement' },
   ]
-  const activeRows = []
-  for (const [index, activeOwner] of owners.entries()) {
+  const activeRows: (ActiveModeRow & { reason: string })[] = []
+  // Insert newest first, so batch order must come from updatedAt, not insertion order.
+  for (const [index, activeOwner] of [...owners.entries()].reverse()) {
     const id = randomUUID()
     const at = `2026-01-01T00:00:0${index}.000Z`
     const active = {
@@ -141,7 +183,7 @@ export async function assertControlStoreConformance(
       },
     })
     assert.equal(activeResult.status, 'applied')
-    activeRows.push(active)
+    activeRows[index] = active
   }
   for (const active of activeRows) assert.deepEqual(await store.read(active), active)
   const activeRow = activeRows[0]!

@@ -206,7 +206,11 @@ test.group('pruneMasquerade', () => {
   }) => {
     const f = fixture()
     const service = await f.create()
-    await service.status({})
+    const active = await f.start(service)
+    await service.stop({}, { expectedContext: active.contextToken })
+    const idle = await f.store.read(f.owner)
+    assert.equal(idle?.state, 'idle')
+    f.state.now += 400 * 86_400_000
     const pruneEvents = f.store.pruneEvents.bind(f.store)
     let called = false
     f.store.pruneEvents = async (input) => {
@@ -216,7 +220,8 @@ test.group('pruneMasquerade', () => {
     const result = await pruneMasquerade(f.config, f.dependencies)
     assert.deepEqual(result, { expired: 0, eventsDeleted: 0 })
     assert.isFalse(called)
-    assert.isNull(await f.store.read(f.owner))
+    assert.deepEqual(await f.store.read(f.owner), idle)
+    assert.lengthOf(f.store.events, 2)
   })
 
   test('deletes only a bounded batch of events older than the configured retention window', async ({
@@ -293,6 +298,35 @@ test.group('pruneMasquerade', () => {
         transitionId: f.store.events[1].id,
       },
     ])
+  })
+
+  test('a row that blocks expiry does not block event retention', async ({ assert }) => {
+    const f = fixture()
+    f.config.retention = { days: 1 }
+    const service = await f.create()
+    await f.start(service)
+    f.state.now += 2 * 86_400_000
+    f.store.expiredBatch = async () => {
+      throw new Error('malformed row')
+    }
+    assert.equal(
+      await errorCode(() => pruneMasquerade(f.config, f.dependencies)),
+      'E_MASQUERADE_UNAVAILABLE'
+    )
+    assert.lengthOf(f.store.events, 0)
+  })
+
+  test('refuses a clock beyond year 9999, where instants no longer compare as text', async ({
+    assert,
+  }) => {
+    const f = fixture()
+    await f.create()
+    assert.equal(
+      await errorCode(() =>
+        pruneMasquerade(f.config, f.dependencies, { now: new Date('+010000-01-01T00:00:00Z') })
+      ),
+      'E_MASQUERADE_UNAVAILABLE'
+    )
   })
 
   test('revision exhaustion rejects expiry without changing its row or audit', async ({

@@ -2,11 +2,18 @@ import type { HttpContext } from '@adonisjs/core/http'
 import type { ModeView } from '../src/types.js'
 import { runtimeFor } from '../src/integration/runtime.js'
 
-/** Share the safe status projection and a token-only hidden-field renderer with Edge. */
+/**
+ * Share the safe status projection and a token-only hidden-field renderer with Edge. An effective
+ * route shares its memoized admission; any other route shares read-only status, so it never
+ * admits, invalidates or applies `canUseRequest` for a request that runs as the actor.
+ */
 export async function shareMasquerade(ctx: HttpContext): Promise<ModeView> {
   const runtime = await runtimeFor(ctx)
-  const admitted = await runtime.admit(ctx)
-  const mode = admitted.view
+  let mode: ModeView
+  if (runtime.selectGuard(ctx).kind === 'effective') {
+    const admitted = await runtime.admit(ctx)
+    mode = admitted.view
+  } else mode = await runtime.service.status(ctx)
   const edge = ctx as HttpContext & {
     view?: { share(values: Record<string, unknown>): unknown }
   }

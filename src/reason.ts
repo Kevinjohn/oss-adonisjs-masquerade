@@ -7,9 +7,14 @@ export function normalizeReason(value: unknown): string {
   const reason = value.trim().replace(/\r\n/g, '\n')
   if (
     !reason ||
+    // A lone surrogate would be stored as U+FFFD, a different value from the one validated.
+    !reason.isWellFormed() ||
     // Only LF and TAB are permitted inside a normalized reason.
     // eslint-disable-next-line no-control-regex
     /[\u0000-\u0008\u000b-\u001f\u007f-\u009f]/u.test(reason) ||
+    // Bidirectional overrides, invisible separators and line/paragraph separators can make the
+    // audit text read differently from what was stored.
+    /[\u061c\u200b\u200e\u200f\u2028-\u202e\u2060-\u2069\ufeff]/u.test(reason) ||
     [...reason].length > 500 ||
     Buffer.byteLength(reason) > 2000
   )

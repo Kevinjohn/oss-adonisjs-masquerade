@@ -15,15 +15,16 @@ actor guard. Keep customer business routes on the effective guard. See the
 
 `MasqueradeController` implements JSON status, start, and stop responses. The package controller
 does not render Edge or redirect. Its control responses are `no-store` and vary on `Accept` and
-`X-Masquerade-Context`. The native-session example mounts the controls with `masqueradeRoutes`,
-raw session authentication and independent host-owned start and stop limiters. Keep Shield's CSRF middleware
-enabled for cookie-authenticated POST requests.
+`X-Masquerade-Context`. Configure writes this mount to `start/masquerade_routes.ts`: `masqueradeRoutes`
+with raw session authentication and independent host-owned start and stop limiters. The
+native-session example mounts its bearer controls this way and its session controls by hand on a
+form controller. Keep Shield's CSRF middleware enabled for cookie-authenticated POST requests.
 
 <!-- host-recipe:control-routes -->
 
 ```ts
 import { middleware } from '#start/kernel'
-import { startMasqueradeLimiter, stopMasqueradeLimiter } from '#start/masquerade_control_limiter'
+import { startMasqueradeLimiter, stopMasqueradeLimiter } from '#start/masquerade_limiter'
 import router from '@adonisjs/core/services/router'
 import { masqueradeRoutes } from '@kevinjohn/adonisjs-masquerade/http'
 
@@ -44,8 +45,10 @@ limiters are the same middleware. `prefix` and `as` change the path and name pre
 group, so the host can add middleware or a domain. Mount the routes by hand only when the controls
 need a different shape; [route coverage review](route-report.md) reports both as `CONTROL`.
 
-Define separate budgets keyed by the authenticated raw actor. Tune these limits to the host's
-support workflow and infrastructure; the package does not install or configure a limiter.
+Define separate budgets keyed by the authenticated raw actor. Configure writes
+`start/masquerade_limiter.ts` with 10 starts and 10 stops per operator per minute when
+`@adonisjs/limiter` is configured; tune those limits to the host's support workflow and
+infrastructure. The example below reads them from the environment.
 
 <!-- host-recipe:control-limiters -->
 
@@ -117,8 +120,10 @@ restart to choose another level. See the [access contract](https://github.com/Ke
 
 The default duration is 900 seconds and the default maximum is 3600 seconds. A host can configure
 a shorter duration and maximum. When duration is omitted, the configured default is used;
-otherwise it must be an integer from 60 seconds through the configured maximum. The package does
-not extend a deadline on later requests.
+otherwise it must be an integer from 60 seconds through the configured maximum. A maximum below 900
+also needs a `durationSeconds` no greater than it; boot names `durationSeconds` otherwise. In a
+form post, a blank duration or access field takes its default. The package does not extend a
+deadline on later requests.
 
 A reason is optional by default: an absent or blank reason starts the mode and the audit stores
 none, so a start form can be a single button. Set `reason: 'required'` in `config/masquerade.ts`

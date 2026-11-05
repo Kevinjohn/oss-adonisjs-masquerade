@@ -32,7 +32,8 @@ export default function Workspace({
   targetAvailable: boolean
 }) {
   const stale = useIdentityFreshness(
-    mode.isMasquerading && beforeDeadline ? mode.expiresAt : undefined
+    mode.isMasquerading && beforeDeadline ? mode.expiresAt : undefined,
+    mode.isMasquerading
   )
   if (stale)
     return (

@@ -62,6 +62,73 @@ test.group('operator mode stop', () => {
     assert.equal(row?.state, 'idle')
   })
 
+  test('--all skips a batch candidate whose revision is no longer current', async ({ assert }) => {
+    const f = fixture()
+    await f.start(await f.create())
+    const row = (await f.store.read(f.owner))!
+    f.store.activeBatch = async () => [{ ...row, revision: row.revision + 1 }]
+    assert.deepEqual(await stopActiveModes(f.config, f.dependencies, { all: true }), {
+      stopped: 0,
+    })
+    assert.equal((await f.store.read(f.owner))!.state, 'active')
+  })
+
+  test('--actor refuses an authority answer for a different account', async ({ assert }) => {
+    const f = fixture()
+    await f.start(await f.create())
+    const inspect = f.config.authority.inspectAccount
+    f.config.authority.inspectAccount = async () => inspect('c')
+    assert.equal(
+      await errorCode(() => stopActiveModes(f.config, f.dependencies, { actorId: 'a' })),
+      'E_MASQUERADE_INVALID_INPUT'
+    )
+    assert.equal((await f.store.read(f.owner))!.state, 'active')
+  })
+
+  test('a mode at its exact deadline is recorded as expired', async ({ assert }) => {
+    const f = fixture()
+    const service = await f.create()
+    const active = await f.start(service)
+    if (!active.isMasquerading) throw new Error('Expected active')
+    f.state.now = Date.parse(active.expiresAt)
+    assert.deepEqual(await stopActiveModes(f.config, f.dependencies, { actorId: 'a' }), {
+      stopped: 0,
+    })
+    assert.include(f.store.events.at(-1), { kind: 'expired', outcomeCode: 'expired' })
+  })
+
+  test('bounds the actor ID before the authority sees it, and refuses a year beyond 9999', async ({
+    assert,
+  }) => {
+    const f = fixture()
+    await f.start(await f.create())
+    let inspected = 0
+    const inspect = f.config.authority.inspectAccount
+    f.config.authority.inspectAccount = async (id) => {
+      inspected++
+      return inspect(id)
+    }
+    assert.equal(
+      await errorCode(() =>
+        stopActiveModes(f.config, f.dependencies, { actorId: 'x'.repeat(256) })
+      ),
+      'E_MASQUERADE_INVALID_INPUT'
+    )
+    assert.equal(inspected, 0)
+    f.state.now = Date.parse('+010000-01-01T00:00:00Z')
+    let writes = 0
+    const cas = f.store.compareAndSet.bind(f.store)
+    f.store.compareAndSet = async (input) => {
+      writes++
+      return cas(input)
+    }
+    assert.equal(
+      await errorCode(() => stopActiveModes(f.config, f.dependencies, { all: true })),
+      'E_MASQUERADE_UNAVAILABLE'
+    )
+    assert.equal(writes, 0)
+  })
+
   test('resolves the incarnation through the authority or the explicit value', async ({
     assert,
   }) => {

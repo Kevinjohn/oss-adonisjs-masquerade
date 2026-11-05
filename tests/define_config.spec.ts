@@ -62,6 +62,7 @@ for (const [name, patch] of Object.entries({
   large: { maxDurationSeconds: 3601 },
   narrow: { maxDurationSeconds: 600 },
   retention: { retention: { days: 0 } },
+  retentionBound: { retention: { days: 36_501 } },
   context: { contextEnforcement: 'ignore' },
   reason: { reason: 'sometimes' },
   unknownPolicy: { policy: { ...fixture().config.policy, onEvent: () => {} } },
@@ -206,4 +207,8 @@ test('preserves inherited contract methods and their class receivers when copyin
   assert.isTrue(active.isMasquerading)
   const resolved = await service.resolve({})
   assert.equal(resolved.effectiveId, 'b')
+})
+
+test('accepts a retention window of one hundred years', ({ assert }) => {
+  assert.doesNotThrow(() => defineConfig({ ...fixture().config, retention: { days: 36_500 } }))
 })

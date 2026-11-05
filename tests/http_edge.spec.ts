@@ -11,6 +11,13 @@ test.group('masquerade HTTP boundary', () => {
     )
   })
 
+  test('escapes every attribute metacharacter in the hidden context field', ({ assert }) => {
+    assert.equal(
+      contextField({ isMasquerading: false, contextToken: `"'<&>` }),
+      '<input type="hidden" name="_masqueradeContext" value="&quot;&#39;&lt;&amp;&gt;">'
+    )
+  })
+
   test('shares Edge state from the memoized admission snapshot without rereading storage', async ({
     assert,
   }) => {
@@ -31,5 +38,23 @@ test.group('masquerade HTTP boundary', () => {
     const mode = await shareMasquerade(ctx)
     assert.equal(reads, 1)
     assert.deepEqual(shared?.masquerade, mode)
+    assert.deepEqual(await shareMasquerade(ctx), mode)
+    assert.equal(reads, 1)
+  })
+
+  test('shares read-only status on a raw route without admitting or invalidating the mode', async ({
+    assert,
+  }) => {
+    const f = fixture()
+    const { ctx } = requestContext(f, {
+      method: 'GET',
+      routeMiddleware: [{ name: 'auth', args: [{ guards: ['web'] }] }],
+    })
+    await f.start(await f.create(), ctx)
+    const before = await f.store.read(f.owner)
+    f.users.get('b')!.stamp = 'changed'
+    const mode = await shareMasquerade(ctx)
+    assert.isTrue(mode.isMasquerading)
+    assert.deepEqual(await f.store.read(f.owner), before)
   })
 })

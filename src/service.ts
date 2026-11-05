@@ -18,6 +18,7 @@ import {
 } from './mode_transition.js'
 import { admission } from './request_admission.js'
 import { activeMode } from './active_mode.js'
+import { actorIdentity } from './actor_identity.js'
 import { reportDiagnostic } from './observers.js'
 import type { RequestAdmission } from './request_admission.js'
 import type {
@@ -148,6 +149,11 @@ class CoreService<User, Request extends object> implements MasqueradeService<Req
     const row = await this.read(owner)
     return row?.state === 'active' && this.now() < row.expiresAt
   }
+  /** The authenticated actor alone: no row read, policy call or invalidation. */
+  async [actorIdentity](request: Request): Promise<{ id: string; incarnation: string }> {
+    const actor = await this.actor(request)
+    return { id: actor.id, incarnation: actor.incarnation }
+  }
   private event<Kind extends EventKind>(
     owner: OwnerKey,
     row: ModeRow | null,
@@ -173,10 +179,11 @@ class CoreService<User, Request extends object> implements MasqueradeService<Req
     owner: OwnerKey,
     row: ModeRow | null,
     kind: ControlOutcomeKind,
-    code: string
+    code: string,
+    attempted?: Pick<AuditEvent, 'targetId' | 'access'>
   ): Promise<void> {
     try {
-      await this.store.recordControlOutcome(this.event(owner, row, kind, code))
+      await this.store.recordControlOutcome({ ...this.event(owner, row, kind, code), ...attempted })
     } catch {
       reportDiagnostic(
         this.dependencies,
@@ -323,6 +330,8 @@ class CoreService<User, Request extends object> implements MasqueradeService<Req
     const actor = await this.actor(request)
     const owner = this.owner(actor)
     let row: ModeRow | null = null
+    // FR-27: a denial after input parsing records the requested target and access.
+    let attempted: Pick<AuditEvent, 'targetId' | 'access'> | undefined
     try {
       // §6.4 Any: an unavailable store or malformed row is 503.
       row = await this.read(owner)
@@ -333,7 +342,8 @@ class CoreService<User, Request extends object> implements MasqueradeService<Req
       nextRevision(row)
       // §7.1 step 1, I06: an expired row resolves to idle first, then 409; never start from it.
       if (row?.state === 'active' && this.now() >= row.expiresAt) {
-        await this.clear(owner, row, 'expired', 'expired')
+        // The denial is recorded against the idle row this request committed.
+        row = await this.clear(owner, row, 'expired', 'expired')
         throw new MasqueradeError('E_MASQUERADE_CONTEXT_CHANGED')
       }
       // §6.4 Active: any second start is 409 with no replacement or extension (I02).
@@ -346,6 +356,8 @@ class CoreService<User, Request extends object> implements MasqueradeService<Req
         this.config.maxDurationSeconds!,
         this.config.reason!
       )
+      // Only the requested values: an inspected incarnation would reveal that the account exists.
+      attempted = { targetId, access }
       // §7.1 step 2: both accounts come from inspectAccount; a throw is 503.
       const currentActor = await this.inspect(actor.id)
       const target = await this.inspect(targetId)
@@ -422,7 +434,8 @@ class CoreService<User, Request extends object> implements MasqueradeService<Req
         owner,
         row,
         'start_denied',
-        error instanceof MasqueradeError ? error.code : 'E_MASQUERADE_UNAVAILABLE'
+        error instanceof MasqueradeError ? error.code : 'E_MASQUERADE_UNAVAILABLE',
+        attempted
       )
       throw error instanceof MasqueradeError ? error : unavailable()
     }
@@ -448,6 +461,9 @@ class CoreService<User, Request extends object> implements MasqueradeService<Req
         await this.outcome(owner, row, 'control_noop', 'idle')
         return modeView(owner, row)
       }
+      // I06: a lapsed mode is recorded as expired, as admission, prune and the CLI record it.
+      if (this.now() >= row.expiresAt)
+        return modeView(owner, await this.clear(owner, row, 'expired', 'expired'))
       // §6.4 Active: idle with one stopped event; I08: no target load or policy call.
       return modeView(owner, await this.clear(owner, row, 'stopped', 'stopped'))
     } catch (error) {

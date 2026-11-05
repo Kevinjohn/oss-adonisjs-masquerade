@@ -3,6 +3,7 @@ import { existsSync } from 'node:fs'
 import { readFile } from 'node:fs/promises'
 import { dirname, join, posix } from 'node:path'
 import { test } from '@japa/runner'
+import { packedFiles } from './helpers/packed_files.js'
 import { repoRoot, trackedMarkdown } from './helpers/tracked_markdown.js'
 
 /** Tracked Markdown outside dependencies; ignored local notes are not published. */
@@ -120,18 +121,9 @@ test('guide navigation points to existing guide pages and sections', async ({ as
   assert.deepEqual(missing, [])
 })
 
-/** Paths in the npm tarball; Markdown there is read without the rest of the repository. */
-function packedFiles(): Set<string> {
-  const packed = spawnSync('pnpm', ['pack', '--dry-run', '--json'], {
-    cwd: repoRoot,
-    encoding: 'utf8',
-  })
-  if (packed.status !== 0) throw new Error(packed.stderr)
-  return new Set(JSON.parse(packed.stdout).files.map((file: { path: string }) => file.path))
-}
-
 test('relative links in packed Markdown stay inside the package', async ({ assert }) => {
-  const files = packedFiles()
+  // Markdown in the tarball is read without the rest of the repository.
+  const files = new Set(packedFiles())
   const broken: string[] = []
   // npm rewrites the README's relative links to the repository, so only other files count.
   for (const document of [...files].filter((f) => f.endsWith('.md') && f !== 'README.md')) {

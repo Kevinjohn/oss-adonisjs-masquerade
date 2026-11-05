@@ -7,7 +7,9 @@ import { fixture } from './helpers/core.js'
 async function ace(
   config: unknown,
   argv: string[],
-  logger?: { info(...args: unknown[]): void; error(...args: unknown[]): void }
+  logger?: { info(...args: unknown[]): void; error(...args: unknown[]): void },
+  answer?: boolean,
+  output?: string[]
 ) {
   const ignitor = new IgnitorFactory()
     .withCoreProviders()
@@ -22,12 +24,30 @@ async function ace(
     .create(new URL('../', import.meta.url))
   const kernel = ignitor.ace()
   let exitCode: number | undefined
+  // Ace prints a command's error itself; keep it when the test asks for the output.
+  const print = { log: console.log, error: console.error }
+  if (output) {
+    console.log = (...args: unknown[]) => output.push(args.map(String).join(' '))
+    console.error = console.log
+  }
   await kernel
     .configure(async (app) => {
       await app.boot()
       if (logger) app.container.bindValue('logger', logger as never)
+      if (answer !== undefined) {
+        const commands = await app.container.make('ace')
+        commands.executing((command) => {
+          const trap = command.prompt.trap('End every active masquerade mode?')
+          if (answer) trap.accept()
+          else trap.reject()
+        })
+      }
     })
     .handle(argv)
+    .finally(() => {
+      console.log = print.log
+      console.error = print.error
+    })
   exitCode = process.exitCode as number | undefined
   process.exitCode = 0
   return exitCode
@@ -74,10 +94,47 @@ test.group('masquerade:status and masquerade:stop Ace commands', () => {
     assert.equal(f.store.events.at(-1)?.outcomeCode, OPERATOR_STOP_OUTCOME)
   })
 
+  test('out-of-range --limit and --batch-size are input errors, not outages', async ({
+    assert,
+  }) => {
+    const f = fixture()
+    Object.defineProperty(f.store, 'testOnly', { value: false })
+    for (const [argv, flag] of [
+      [['masquerade:status', '--limit=0'], '--limit'],
+      [['masquerade:prune', '--batch-size=1001'], '--batch-size'],
+    ] as const) {
+      const output: string[] = []
+      assert.equal(await ace(f.config, [...argv], undefined, undefined, output), 1)
+      const printed = output.join('\n')
+      assert.include(
+        printed,
+        `InvalidArgumentsException: ${flag} must be an integer from 1 to 1000`
+      )
+      assert.notInclude(printed, 'unavailable')
+    }
+  })
+
+  test('stop --all asks first and stops nothing when the answer is no', async ({ assert }) => {
+    const f = fixture()
+    Object.defineProperty(f.store, 'testOnly', { value: false })
+    f.state.now = Date.now()
+    const service = await f.create()
+    await f.start(service)
+    await ace(f.config, ['masquerade:stop', '--all'], undefined, false)
+    const declined = await f.store.read(f.owner)
+    assert.equal(declined?.state, 'active')
+    await ace(f.config, ['masquerade:stop', '--all'], undefined, true)
+    const confirmed = await f.store.read(f.owner)
+    assert.equal(confirmed?.state, 'idle')
+    assert.equal(f.store.events.at(-1)?.outcomeCode, OPERATOR_STOP_OUTCOME)
+  })
+
   test('stop --all --force ends every mode; bad flag combinations stop nothing', async ({
     assert,
   }) => {
     const f = fixture()
+    // The command reads the real clock, so the modes must be live by it.
+    f.state.now = Date.now()
     Object.defineProperty(f.store, 'testOnly', { value: false })
     const service = await f.create()
     await f.start(service)
@@ -88,6 +145,13 @@ test.group('masquerade:status and masquerade:stop Ace commands', () => {
     assert.lengthOf(await f.store.activeBatch({ limit: 10 }), 2)
     assert.notEqual(await ace(f.config, ['masquerade:stop', '--all', '--force']), 1)
     assert.deepEqual(await f.store.activeBatch({ limit: 10 }), [])
+    assert.deepEqual(
+      f.store.events.slice(-2).map((event) => [event.kind, event.outcomeCode]),
+      [
+        ['invalidated', OPERATOR_STOP_OUTCOME],
+        ['invalidated', OPERATOR_STOP_OUTCOME],
+      ]
+    )
   })
 
   test('stop reports an unknown operator account without stopping anything', async ({ assert }) => {

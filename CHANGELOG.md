@@ -5,9 +5,43 @@
 ### Changed
 
 - `pnpm demo` requires Node 24, matching `.nvmrc`; it now refuses Node 25 and later.
+- The effective guards refuse an active-mode identity with 503 unless `masqueradeContext` ran for
+  the request, so view-only, `sensitive()` and context checks cannot be skipped by a missing or
+  misplaced middleware.
+- Boot fails when an effective guard wraps a different native driver from its raw guard, and the
+  provider refuses at ready to start with `masqueradeRoutes` mounted on an effective guard.
+- `retention.days` is capped at 36,500. Reasons also reject lone surrogates, bidirectional
+  controls, invisible separators and line or paragraph separators.
+- New installs create the mode tables with a primary key on the owner columns. Existing tables are
+  unchanged.
+- Configure lists `start/masquerade_routes.ts` and `start/masquerade_limiter.ts` as conflicts when
+  wiring, refuses a host without `#models/user`, writes the migration to the default connection's
+  migrations folder, wires the context middleware before auth, and fails when a wiring codemod
+  fails. `@adonisjs/assembler` is an optional peer.
+- `pnpm lint` fails on warnings, and test runs that execute no tests fail.
 
 ### Fixed
 
+- Account Kit answers a non-canonical target ID with the generic denial instead of 503, so the
+  difference no longer reveals which accounts exist.
+- `masqueradeAuditFields` and Edge status no longer run admission on raw or unclassified routes.
+- A failed PostgreSQL rollback retires only the lost connection instead of the write pool.
+- A PostgreSQL serialization failure or deadlock is a compare-and-swap conflict. The control store
+  contract and conformance suite check revisions, event kinds and copies of committed rows, and the
+  memory store validates rows like the Lucid store.
+- A start denial records the requested target and access, and is recorded against the idle row
+  when the start cleared a lapsed mode. Stopping a lapsed mode records expiry.
+- `masquerade:stop` and prune refuse a clock past year 9999; prune runs event retention before
+  expiry.
+- Blank optional form fields take their defaults instead of failing validation. The generated form
+  controller refuses to run on an effective guard.
+- After a raw session logout in the same request, the effective guard no longer reports the
+  admission memoized earlier.
+- The API client plugin keeps a context token the test set, and its teardown tolerates a removed
+  operator.
+- Examples: the Account Kit fixture gates its `/support` routes, `.env.example` leaves `APP_KEY`
+  empty, the Inertia apps register the Masquerade commands, Vue's dashboard uses the effective
+  guard, and Edge component text props are escaped.
 - Select the greatest compatible stable peer version independently of registry result ordering in both compatibility harnesses.
 - Validate React example login fields before credential lookup.
 - Hide stale Vue workspace customer identity during revalidation and preserve explicit safe recovery when validation fails or expires.

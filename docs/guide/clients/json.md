@@ -1,6 +1,6 @@
 # Same-origin JSON browser client
 
-The [native-session example](https://github.com/Kevinjohn/oss-adonisjs-masquerade/tree/main/examples/native-session) includes a runnable JSON client at `/support/json`. It uses the same fictional operator and customers as the Edge workflow. V1 remains session authenticated: the browser sends the host session cookie, Shield CSRF token, and a captured `X-Masquerade-Context` with every unsafe request. There is no bearer token or cross-origin setup.
+The [native-session example](https://github.com/Kevinjohn/oss-adonisjs-masquerade/tree/main/examples/native-session) includes a runnable JSON client at `/support/json`. It uses the same fictional operator and customers as the Edge workflow. This client is session authenticated: the browser sends the host session cookie, Shield CSRF token, and a captured `X-Masquerade-Context` with every unsafe request, with no cross-origin setup. For bearer tokens, see the [opaque access-token guide](../access-tokens.md).
 
 With Node 24 and pnpm, build and pack the repository library, then run the example. The local SQLite fixture is only for development:
 

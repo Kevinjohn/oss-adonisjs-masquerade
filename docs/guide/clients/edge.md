@@ -33,7 +33,7 @@ Attach separate start and stop limiters to the host form routes:
 
 ```ts
 import { middleware } from '#start/kernel'
-import { startMasqueradeLimiter, stopMasqueradeLimiter } from '#start/masquerade_control_limiter'
+import { startMasqueradeLimiter, stopMasqueradeLimiter } from '#start/masquerade_limiter'
 import router from '@adonisjs/core/services/router'
 
 router

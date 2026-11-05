@@ -1,6 +1,11 @@
-import type { AuditEvent, CompareAndSetInput, ControlStore, ObserverEvent } from '../src/types.js'
-import type { LucidControlStore } from '../stores/lucid.js'
-import type { MemoryControlStore } from '../testing/memory_control_store.js'
+import type {
+  AuditEvent,
+  CompareAndSetInput,
+  ControlStore,
+  ObserverEvent,
+} from '../../src/types.js'
+import type { LucidControlStore } from '../../stores/lucid.js'
+import type { MemoryControlStore } from '../../testing/memory_control_store.js'
 
 const outcome: AuditEvent = {
   namespace: 'users',

@@ -106,4 +106,4 @@ The conformance suite checks observable contract behavior, including owner isola
 - concurrent expiry cleanup and start/stop so an old batch cannot clear a newer mode;
 - any database-specific row decoding and revision limits, such as safe parsing of PostgreSQL `BIGINT` values.
 
-The built-in Lucid adapter's SQLite and PostgreSQL tests are examples of these supplemental checks; the conformance suite alone cannot replace tests against your chosen database and driver.
+The built-in Lucid adapter's SQLite and PostgreSQL tests show some of these supplemental checks: CAS races across connections, operator stop races, rollback and commit failures, and `BIGINT` parsing. Its expiry and prune races are tested only on the memory store. The conformance suite alone cannot replace tests against your chosen database and driver.

@@ -23,4 +23,8 @@ export default await Env.create(new URL('../', import.meta.url), {
 
   // Session
   SESSION_DRIVER: Env.schema.enum(['cookie', 'memory', 'database'] as const),
+
+  // Masquerade control limits
+  MASQUERADE_START_REQUESTS: Env.schema.number.optional(),
+  MASQUERADE_STOP_REQUESTS: Env.schema.number.optional(),
 })

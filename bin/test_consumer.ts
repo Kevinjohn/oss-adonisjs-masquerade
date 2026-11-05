@@ -42,6 +42,7 @@ const floor = {
   '@adonisjs/bouncer': '4.0.0',
   '@adonisjs/lucid': '22.4.2',
   '@adonisjs/session': '8.1.0',
+  '@adonisjs/assembler': '8.0.0',
   'typescript': '5.9.3',
 }
 const packedManifest = JSON.parse(
@@ -179,6 +180,8 @@ async function schema(cwd: string, name: string, action: 'create' | 'drop') {
   )
 }
 
+// Each profile installs a full app; a passing run removes them, a failing run keeps them to inspect.
+const consumerApps: string[] = []
 try {
   for (const selected of profile === 'all' ? ['floor', 'latest'] : [profile]) {
     const versions: Record<string, string> = { ...floor }
@@ -194,6 +197,7 @@ try {
         versions[name] = selectRegistryVersion(name, listed)
       }
     const app = await mkdtemp(join(tmpdir(), `masquerade_consumer_${selected}_`))
+    consumerApps.push(app)
     console.log(`[consumer] isolated ${selected} app: ${app}`)
     await cp(join(root, 'examples/native-session'), app, {
       recursive: true,
@@ -205,7 +209,7 @@ try {
     await mkdir(join(app, 'tmp'), { recursive: true })
     const manifest = JSON.parse(await readFile(join(app, 'package.json'), 'utf8'))
     for (const [name, version] of Object.entries(versions)) {
-      const section = name === 'typescript' ? 'devDependencies' : 'dependencies'
+      const section = name in manifest.devDependencies ? 'devDependencies' : 'dependencies'
       manifest[section][name] = version
     }
     // Vite 6.0.2 requires Core >=7.5; 6.0.1 declares compatibility with Core 7.0.
@@ -420,6 +424,8 @@ if (process.exitCode === undefined) {
     }
   }
 }
+if (process.exitCode === undefined)
+  for (const app of consumerApps) await rm(app, { recursive: true, force: true })
 if (process.exitCode === undefined) {
   console.log(
     `[consumer] Complete: ${args.has('scaffold-only') ? directory : join(directory, 'results.json')}`

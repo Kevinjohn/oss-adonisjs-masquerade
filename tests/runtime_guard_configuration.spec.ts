@@ -65,6 +65,40 @@ test('runtime rejects missing raw or unmapped effective factories at configurati
   )
 })
 
+test('runtime rejects an effective guard whose native driver differs from its raw guard', async ({
+  assert,
+}) => {
+  const driver = (driverName: string) => () => ({ driverName })
+  const f = configuration(
+    {},
+    { web_effective: markEffectiveFactory(driver('access_tokens'), 'web') }
+  )
+  f.auth.config.guards.web = driver('session')
+  await assert.rejects(
+    () => runtimeConfiguration(f.app as never),
+    'Effective masquerade guard web_effective wraps the access_tokens driver, but web uses the session driver'
+  )
+  const g = configuration({}, { web_effective: markEffectiveFactory(driver('session'), 'web') })
+  g.auth.config.guards.web = driver('session')
+  const wiring = await runtimeConfiguration(g.app as never)
+  assert.equal(wiring.effectiveRawGuards.web_effective, 'web')
+  // The effective session wrapper rejects a token guard when it is built.
+  const h = configuration(
+    {},
+    {
+      web_effective: markEffectiveFactory(
+        () =>
+          new EffectiveSessionGuard('web', {} as never, { driverName: 'access_tokens' } as never),
+        'web'
+      ),
+    }
+  )
+  await assert.rejects(
+    () => runtimeConfiguration(h.app as never),
+    'Masquerade requires a native session guard'
+  )
+})
+
 test('runtime service uses route-selected token actor despite a conflicting cookie actor', async ({
   assert,
 }) => {

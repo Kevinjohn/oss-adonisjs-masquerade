@@ -1,7 +1,7 @@
 import type { HttpContext } from '@adonisjs/core/http'
 import { MasqueradeError } from '../src/errors.js'
 import { unavailable } from '../src/error_helpers.js'
-import { boundedString } from '../src/bounded_string.js'
+import { accountOwner } from './account_owner.js'
 import { runtimeFor } from '../src/integration/runtime.js'
 import type { AccountKitAdapter } from './main.js'
 import type { GuardContract } from '@adonisjs/auth/types'
@@ -36,17 +36,11 @@ export class AccountKitBlocker {
       const user = raw.user
       if (!user) throw unavailable()
       const account = await adapter.provider.createUserForGuard(user)
-      const identifier = account.getId()
-      if (
-        typeof identifier !== 'string' &&
-        typeof identifier !== 'bigint' &&
-        !(typeof identifier === 'number' && Number.isSafeInteger(identifier))
+      const { id: actorId, incarnation } = accountOwner(
+        adapter.authority.incarnation,
+        user,
+        account.getId()
       )
-        throw unavailable()
-      const actorId = String(identifier)
-      const incarnation =
-        adapter.authority.incarnation === 'id' ? actorId : adapter.authority.incarnation(user)
-      if (!boundedString(actorId, 255) || !boundedString(incarnation, 128)) throw unavailable()
       const runtime = await runtimeFor(ctx)
       if (
         await runtime.activeMode({

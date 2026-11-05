@@ -10,8 +10,11 @@ void allowedBlock
 const allBlockedByValues: MasqueradeBlockedBy[] = ['sensitive', 'view_only', 'mutation_not_allowed']
 void allBlockedByValues
 
-// @ts-expect-error Every blocked action needs a cause.
-new MasqueradeError('E_MASQUERADE_ACTION_BLOCKED')
+// Type-only: the constructor also throws at runtime without a cause (tested below).
+void (() => {
+  // @ts-expect-error Every blocked action needs a cause.
+  new MasqueradeError('E_MASQUERADE_ACTION_BLOCKED')
+})
 // @ts-expect-error Other error codes do not accept blockedBy options.
 new MasqueradeError('E_MASQUERADE_NOT_ALLOWED', { blockedBy: 'sensitive' })
 const blockedError = new MasqueradeError('E_MASQUERADE_ACTION_BLOCKED', {
@@ -21,6 +24,19 @@ const blockedError = new MasqueradeError('E_MASQUERADE_ACTION_BLOCKED', {
 blockedError.blockedBy = 'view_only'
 
 test.group('MasqueradeError', () => {
+  test('a blocked action without a known cause is a programming error', ({ assert }) => {
+    for (const options of [undefined, {}, { blockedBy: 'other' }])
+      assert.throws(
+        () => new MasqueradeError('E_MASQUERADE_ACTION_BLOCKED', options as never),
+        'E_MASQUERADE_ACTION_BLOCKED requires blockedBy'
+      )
+  })
+
+  test('falls back to English when ctx.i18n is present but unset', ({ assert }) => {
+    const error = new MasqueradeError('E_MASQUERADE_NOT_ALLOWED')
+    assert.equal(error.getResponseMessage({ i18n: undefined } as never), error.message)
+  })
+
   test('uses the Adonis exception base and exposes a stable identifier', ({ assert }) => {
     const error = new MasqueradeError('E_MASQUERADE_NOT_ALLOWED')
 

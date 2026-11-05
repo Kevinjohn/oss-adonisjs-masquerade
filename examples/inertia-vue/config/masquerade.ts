@@ -20,6 +20,8 @@ export const nativeAdapter = native
 
 export default defineConfig({
   authority: native.authority,
+  // The support form asks for a reason; the server enforces it.
+  reason: 'required',
   policy: {
     canMasquerade: ({ actor, target }) =>
       Boolean(actor.user.masqueradeOperator) && Boolean(target.user.active),

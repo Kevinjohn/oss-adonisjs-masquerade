@@ -51,3 +51,27 @@ test('migration stub respects Lucid dry-run, creates once and rolls back both ta
     await rm(directory, { recursive: true, force: true })
   }
 })
+
+test('the mode table has a primary key on the owner columns', async ({ assert }) => {
+  const f = await sqlFixture()
+  try {
+    let rows: { name: string; pk?: number }[]
+    if (f.pg) {
+      const result = await f.client.rawQuery(
+        `select a.attname as name from pg_index i
+         join pg_attribute a on a.attrelid = i.indrelid and a.attnum = any(i.indkey)
+         where i.indrelid = 'masquerade_modes'::regclass and i.indisprimary`
+      )
+      rows = result.rows
+    } else {
+      const info: { name: string; pk: number }[] = await f.client.rawQuery(
+        'PRAGMA table_info(masquerade_modes)'
+      )
+      rows = info.filter((row) => row.pk > 0)
+    }
+    const columns = rows.map((row) => row.name)
+    assert.sameMembers(columns, ['authority_namespace', 'actor_id', 'actor_incarnation'])
+  } finally {
+    await f.cleanup()
+  }
+})

@@ -259,3 +259,42 @@ test('required reason rejects a start without one and records the denial', async
   assert.isNull(await f.store.read(f.owner))
   assert.equal(f.store.events[0].kind, 'start_denied')
 })
+
+test('a start that finds a lapsed mode records its denial against the idle row it committed', async ({
+  assert,
+}) => {
+  const f = fixture()
+  const service = await f.create()
+  const active = await f.start(service)
+  if (!active.isMasquerading) throw new Error('Expected active')
+  f.state.now = Date.parse(active.expiresAt)
+  assert.equal(
+    await errorCode(() =>
+      service.start({}, { targetId: 'c', reason: 'case', expectedContext: active.contextToken })
+    ),
+    'E_MASQUERADE_CONTEXT_CHANGED'
+  )
+  const [, expired, denied] = f.store.events
+  assert.equal(expired!.kind, 'expired')
+  assert.equal(denied!.kind, 'start_denied')
+  assert.equal(denied!.revision, expired!.revision)
+  assert.notProperty(denied, 'targetId')
+  assert.notProperty(denied, 'access')
+})
+
+test('stopping a lapsed mode records expiry, as admission and prune do', async ({ assert }) => {
+  const f = fixture()
+  const service = await f.create()
+  const active = await f.start(service)
+  if (!active.isMasquerading) throw new Error('Expected active')
+  f.state.now = Date.parse(active.expiresAt)
+  const view = await service.stop({}, { expectedContext: active.contextToken })
+  assert.isFalse(view.isMasquerading)
+  assert.deepEqual(
+    f.store.events.map((event) => [event.kind, event.outcomeCode]),
+    [
+      ['started', 'started'],
+      ['expired', 'expired'],
+    ]
+  )
+})

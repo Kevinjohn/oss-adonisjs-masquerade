@@ -5,8 +5,20 @@ on:
     paths:
       - 'examples/**'
       - 'http/**'
+      - 'auth/**'
+      - 'native/**'
+      - 'account_kit/**'
       - 'stubs/**'
       - 'docs/guide/**'
+      - package.json
+      - configure.ts
+      - src/configure_wiring.ts
+      - bin/test_recipe.ts
+      - 'bin/test_inertia_*.ts'
+      - bin/test_account_kit_demo.ts
+      - bin/demo.ts
+      - bin/demo_account_kit.ts
+      - 'bin/helpers/*account_kit_demo*.ts'
       - '.github/workflows/examples.yml'
   schedule:
     - cron: '0 3 * * 1'
@@ -26,6 +38,7 @@ jobs:
     # are free. Manual and release runs always start.
     if: ${{ github.event_name == 'workflow_dispatch' || !github.event.repository.private }}
     runs-on: ubuntu-24.04
+    timeout-minutes: 60
     env:
       DB_CLIENT: better-sqlite3
     steps:
@@ -45,6 +58,8 @@ jobs:
         run: pnpm quick:test --files=tests/tooling/demo_launcher.spec.ts --files=tests/tooling/demo_account_kit_launcher.spec.ts
       - name: Check documented native-session recipe
         run: pnpm test:recipe --database=sqlite
+      # The example depends on a freshly packed local tarball whose integrity changes with every
+      # build, so its lockfile cannot be frozen.
       - name: Install native-session example
         working-directory: examples/native-session
         run: pnpm install --no-frozen-lockfile

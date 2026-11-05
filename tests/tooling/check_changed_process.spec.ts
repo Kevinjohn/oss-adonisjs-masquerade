@@ -1,11 +1,11 @@
 import assert from 'node:assert/strict'
 import { execFileSync } from 'node:child_process'
-import { once } from 'node:events'
 import { chmod, mkdtemp, mkdir, readFile, rm, symlink, writeFile } from 'node:fs/promises'
 import { spawn, type ChildProcess } from 'node:child_process'
 import os from 'node:os'
 import path from 'node:path'
 import { test } from '@japa/runner'
+import { collectExit, isAlive, outputOf, waitForFile } from '../helpers/child_process.js'
 import { fileURLToPath } from 'node:url'
 
 const repoRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../..')
@@ -101,47 +101,6 @@ function launch(f: Fixture): ChildProcess {
     ['--import=@poppinss/ts-exec', path.join(f.root, 'bin/check_changed.ts'), '--static', f.base],
     { cwd: f.root, env: f.env, stdio: ['ignore', 'pipe', 'pipe'] }
   )
-}
-
-async function outputOf(child: ChildProcess): Promise<{ text: () => string }> {
-  let output = ''
-  child.stdout!.setEncoding('utf8').on('data', (chunk: string) => (output += chunk))
-  child.stderr!.setEncoding('utf8').on('data', (chunk: string) => (output += chunk))
-  return { text: () => output }
-}
-
-async function collectExit(
-  child: ChildProcess,
-  output: { text: () => string }
-): Promise<{ code: number | null; signal: NodeJS.Signals | null; text: string }> {
-  const [code, signal] = (await once(child, 'exit')) as [number | null, NodeJS.Signals | null]
-  return { code, signal, text: output.text() }
-}
-
-async function waitForFile(filePath: string, timeoutMs = 5000): Promise<string> {
-  const deadline = Date.now() + timeoutMs
-  while (Date.now() < deadline) {
-    try {
-      return await readFile(filePath, 'utf8')
-    } catch {}
-    await new Promise((resolve) => setTimeout(resolve, 20))
-  }
-  throw new Error(`Timed out waiting for ${filePath}`)
-}
-
-async function isAlive(pid: number): Promise<boolean> {
-  try {
-    const stat = await readFile(`/proc/${pid}/stat`, 'utf8')
-    const state = stat.slice(stat.lastIndexOf(')') + 2, stat.lastIndexOf(')') + 3)
-    return state !== 'Z'
-  } catch {
-    try {
-      process.kill(pid, 0)
-      return true
-    } catch (error) {
-      return (error as NodeJS.ErrnoException).code !== 'ESRCH'
-    }
-  }
 }
 
 test('runs selected static checks normally and observes a missing command spawn error', async ({

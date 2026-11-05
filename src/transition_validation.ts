@@ -13,7 +13,14 @@ export function validateTransition(input: CompareAndSetInput, current: ModeRow |
     event.actorIncarnation !== owner.actorIncarnation ||
     event.revision !== next.revision ||
     event.modeId !== next.modeId ||
-    event.id !== next.lastTransitionId
+    event.id !== next.lastTransitionId ||
+    event.at !== next.updatedAt ||
+    // Every committed transition advances the revision by exactly one from the expected value.
+    next.revision !== (input.expected ?? 0) + 1 ||
+    // A start produces an active row; every other transition kind produces an idle row.
+    (next.state === 'active') !== (event.kind === 'started') ||
+    !['started', 'stopped', 'expired', 'invalidated'].includes(event.kind) ||
+    (event.kind === 'started' && (event.reason ?? null) !== next.reason)
   )
     throw unavailable()
 

@@ -60,6 +60,7 @@ jobs:
   build:
     if: ${{ github.event_name == 'workflow_dispatch' || !github.event.repository.private }}
     runs-on: ubuntu-latest
+    timeout-minutes: 20
     steps:
       - uses: actions/checkout@v7
         with:
@@ -86,6 +87,7 @@ jobs:
     if: ${{ github.event_name == 'workflow_dispatch' || (!github.event.repository.private && github.event_name == 'push') }}
     needs: build
     runs-on: ubuntu-latest
+    timeout-minutes: 20
     permissions:
       pages: write
       id-token: write

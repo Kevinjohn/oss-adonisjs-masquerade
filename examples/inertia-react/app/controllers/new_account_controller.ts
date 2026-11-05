@@ -9,7 +9,12 @@ export default class NewAccountController {
 
   async store({ request, response, auth }: HttpContext) {
     const { fullName, email, password } = await request.validateUsing(signupValidator)
-    const user = await User.create({ fullName, email, password })
+    const user = await User.create({
+      fullName,
+      email,
+      password,
+      securityStamp: crypto.randomUUID(),
+    })
 
     await auth.use('web').login(user)
     response.redirect().toPath('/')

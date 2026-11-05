@@ -183,7 +183,7 @@ Legend: evidence names a concrete current test case; statements explicitly ident
 - **Positive / success obligation:** Required deny-by-default `canMasquerade`; optional request-local `canUseRequest`; explicit actor+target.
 - **Negative, error, boundary obligations:** false/throw cases prescribed; global false clears active mode, local false rejects one request and preserves mode, throws 503 and preserve state; no fallback.
 - **Docs / M4 obligation:** Document callback signature/semantics, no callback default.
-- **Current concrete evidence / remaining gap:** `tests/core_authorization.spec.ts` — “start denies false and truthy nonboolean policy; policy throws unavailable; no revision change”; “start policy receives reason/request and admission policy gets neither; local tenant denial preserves revision”; `tests/core_admission.spec.ts` — “global invalidity ${invalidation} clears once and never admits the triggering request”; “credential and local denial preserve mode; native rejection writes no package event”; “store failure rejects admission as unavailable with mode unchanged”. The real `examples/native-session/tests/functional/masquerade_context.spec.ts` — “applies the host operator policy when starting from an idle actor context” covers start policy; core case covers local tenant denial.
+- **Current concrete evidence / remaining gap:** `tests/core_authorization.spec.ts` — “start denies false and truthy nonboolean policy; policy throws unavailable; no revision change”; “start policy receives reason/request and admission policy gets neither; local tenant denial preserves revision”; `tests/core_admission.spec.ts` — “global invalidity ${invalidation} clears once and never admits the triggering request”; “credential and local denial preserve mode; native rejection writes no package event”; “read failure rejects admission as unavailable with mode unchanged”. The real `examples/native-session/tests/functional/masquerade_context.spec.ts` — “applies the host operator policy when starting from an idle actor context” covers start policy; core case covers local tenant denial.
 
 ### FR-21
 
@@ -278,7 +278,7 @@ Legend: evidence names a concrete current test case; statements explicitly ident
 ### NFR-01
 
 - **Obligations:** No target/action on read/policy/auth/malformed/indeterminate failures; no-row idle differs from read error.
-- **Current concrete evidence / remaining gap:** `tests/row_validation.spec.ts` — “malformed store rows fail closed across status, controls and admission”; `tests/core_failures.spec.ts` — “CAS write and required outcome failures return 503 and leave authoritative state unchanged”; “status and stop fail closed on store read failure without account or policy reads”; `tests/core_admission.spec.ts` — “store failure rejects admission as unavailable with mode unchanged”; no-row context `tests/context_token.spec.ts` — “absent tokens are deterministic and length-framed owner-bound”.
+- **Current concrete evidence / remaining gap:** `tests/row_validation.spec.ts` — “malformed store rows fail closed across status, controls and admission”; `tests/core_failures.spec.ts` — “CAS write and required outcome failures return 503 and leave authoritative state unchanged”; “status and stop fail closed on store read failure without account or policy reads”; `tests/core_admission.spec.ts` — “read failure rejects admission as unavailable with mode unchanged”; no-row context `tests/context_token.spec.ts` — “absent tokens are deterministic and length-framed owner-bound”.
 
 ### NFR-02
 

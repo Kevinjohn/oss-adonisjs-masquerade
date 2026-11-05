@@ -240,7 +240,8 @@ async function expectBrokenJourney(
       expectedFailure =
         output.includes(`${label} negative journey failed`) &&
         output.includes(expectedAssertion) &&
-        output.includes('1 failed')
+        // Exactly one failure: '11 failed' must not match.
+        /\b1 failed\b/.test(output)
       if (!expectedFailure) throw error
     }
     if (!expectedFailure) throw new Error(`${label} broken host unexpectedly passed`)
@@ -309,7 +310,7 @@ async function applyRecipe(app: string): Promise<void> {
     )
   )
 
-  await writeHost(app, 'start/masquerade_control_limiter.ts', snippets.controlLimiters)
+  await writeHost(app, 'start/masquerade_limiter.ts', snippets.controlLimiters)
   await cp(
     join(root, 'examples/recipe-host/recipe-assets/masquerade_form_routes.ts.txt'),
     join(app, 'start/masquerade_control_routes.ts')
@@ -380,7 +381,7 @@ const baseEnv = {
   LOG_LEVEL: 'error',
   SESSION_DRIVER: 'memory',
   LIMITER_STORE: 'memory',
-  DB_PORT: process.env.DB_PORT ?? '55536',
+  DB_PORT: process.env.DB_PORT ?? '55432',
   DB_HOST: process.env.DB_HOST ?? '127.0.0.1',
   DB_USER: process.env.DB_USER ?? 'account_kit',
   DB_PASSWORD: process.env.DB_PASSWORD ?? '',
@@ -483,7 +484,8 @@ try {
         "  () => import('#middleware/masquerade_context_middleware'),\n",
         '',
         'context middleware',
-        'sensitive handler must not execute',
+        // Without the middleware the effective guard refuses the target before any handler runs.
+        'expected 503 to equal 200',
         env
       )
       await run(app, ['test'], `${engine} restored journey`, env)

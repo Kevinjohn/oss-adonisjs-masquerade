@@ -3,6 +3,7 @@ import type { QueryClientContract, TransactionClientContract } from '@adonisjs/l
 import { unavailable } from '../src/error_helpers.js'
 import { validInstant, validateRow } from '../src/row_validation.js'
 import { validateTransition } from '../src/transition_validation.js'
+import { validateControlOutcome } from '../src/control_outcome_validation.js'
 import type {
   CasOutcome,
   CompareAndSetInput,
@@ -43,6 +44,12 @@ function definiteCommitFailure(error: unknown): boolean {
     /^23\d{3}$/.test(code) ||
     ['40001', '40P01', 'SQLITE_CONSTRAINT'].some((value) => code.startsWith(value))
   )
+}
+/** PostgreSQL serialization failure or deadlock: a concurrent change won, so the CAS lost. */
+function serializationFailure(error: unknown): boolean {
+  const code =
+    typeof error === 'object' && error !== null && 'code' in error ? String(error.code) : ''
+  return code === '40001' || code === '40P01'
 }
 function batch(input: { limit: number }, instant: Instant): void {
   if (!Number.isSafeInteger(input.limit) || input.limit < 1 || !validInstant(instant))
@@ -159,6 +166,14 @@ export class LucidControlStore implements ControlStore {
             }
           }
         } catch (cleanupError) {
+          if (this.#client.dialect.name === 'postgres') {
+            // PostgreSQL discards an open transaction with its session, so a failed ROLLBACK
+            // retires only this connection (Knex destroys a disposed connection on release).
+            // The shared pool and this store stay available.
+            ;(connection as { __knex__disposed?: unknown }).__knex__disposed ??= cleanupError
+            if (unknownCommit) return { status: 'indeterminate', transitionId: command.event.id }
+            throw error
+          }
           this.#failed = true
           // Public destroy blocks new checkouts synchronously. Existing work
           // drains asynchronously: awaiting it here could deadlock a checkout
@@ -168,6 +183,10 @@ export class LucidControlStore implements ControlStore {
           throw cleanupError
         }
         if (unknownCommit) return { status: 'indeterminate', transitionId: command.event.id }
+        // Under REPEATABLE READ or SERIALIZABLE defaults, a lost race fails with 40001/40P01
+        // after a clean rollback; it is the same outcome as a revision mismatch.
+        if (this.#client.dialect.name === 'postgres' && serializationFailure(error))
+          return { status: 'conflict' }
         if (this.#client.dialect.name !== 'postgres' && busy(error) && attempt < this.#retries) {
           await setTimeout(this.#delay)
           continue
@@ -180,6 +199,7 @@ export class LucidControlStore implements ControlStore {
   }
   async recordControlOutcome(event: ControlOutcomeEvent): Promise<void> {
     this.#assertAvailable()
+    validateControlOutcome(event)
     await this.#client.knexQuery().table('masquerade_events').insert(eventRecord(event))
   }
   async expiredBatch(input: { now: Instant; limit: number }): Promise<ModeRow[]> {

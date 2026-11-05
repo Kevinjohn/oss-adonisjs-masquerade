@@ -252,3 +252,40 @@ test('access token authority shares the exact supplied authority and validates o
     'Invalid native access tokens authority'
   )
 })
+
+test('standalone token inspection reports the account state, incarnation and stamp', async ({
+  assert,
+}) => {
+  const user = { key: 7, epoch: 'v2', stamp: 'stamp-7' }
+  let active: unknown = false
+  const adapter = accessTokensAuthority({
+    guard: 'api',
+    ability: 'masquerade',
+    namespace: 'users',
+    provider: {
+      [symbols.PROVIDER_REAL_USER]: undefined as unknown as typeof user,
+      createUserForGuard: async (model: typeof user) => ({
+        getId: () => model.key,
+        getOriginal: () => model,
+      }),
+      findById: async (id: string) =>
+        id === '7' ? { getId: () => user.key, getOriginal: () => user } : null,
+    } as never,
+    incarnation: (model: typeof user) => model.epoch,
+    securityStamp: (model: typeof user) => model.stamp,
+    isActive: async () => active as boolean,
+  })
+  const snapshot = await adapter.authority.inspectAccount('7')
+  assert.deepEqual(
+    { id: snapshot!.subject.id, incarnation: snapshot!.subject.incarnation },
+    { id: '7', incarnation: 'v2' }
+  )
+  assert.isFalse(snapshot!.active)
+  assert.equal(snapshot!.securityStamp, 'stamp-7')
+  assert.isNull(await adapter.authority.inspectAccount('8'))
+  active = 'false'
+  assert.equal(
+    await errorCode(() => adapter.authority.inspectAccount('7')),
+    'E_MASQUERADE_UNAVAILABLE'
+  )
+})

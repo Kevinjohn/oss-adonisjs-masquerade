@@ -5,6 +5,7 @@ import { mkdtemp, mkdir, readFile, readdir, rm, symlink, writeFile } from 'node:
 import os from 'node:os'
 import path from 'node:path'
 import { test } from '@japa/runner'
+import { isAlive, outputOf } from '../helpers/child_process.js'
 import { fileURLToPath } from 'node:url'
 import {
   ConsumerCommandError,
@@ -96,6 +97,7 @@ async function fixture(options: FixtureOptions = {}): Promise<Fixture> {
     '@adonisjs/bouncer': '^4.0.0',
     '@adonisjs/lucid': '^22.4.2',
     '@adonisjs/session': '^8.1.0',
+    '@adonisjs/assembler': '^8.0.0',
     'typescript': '^5.9.3',
   }
   await writeFile(
@@ -121,7 +123,7 @@ async function fixture(options: FixtureOptions = {}): Promise<Fixture> {
       '@adonisjs/vite': '6.0.1',
       '@kevinjohn/adonisjs-masquerade': 'file:./package.tgz',
     },
-    devDependencies: { typescript: '5.9.3' },
+    devDependencies: { '@adonisjs/assembler': '8.0.0', 'typescript': '5.9.3' },
     allowScripts: {},
   }
   await writeFile(path.join(app, 'package.json'), JSON.stringify(appManifest, null, 2))
@@ -166,7 +168,7 @@ if (args[0] === 'install') {
   const manifest = JSON.parse(await readFile('package.json', 'utf8'))
   const packages = { ...manifest.dependencies, ...manifest.devDependencies }
   for (const [name, requested] of Object.entries(packages)) {
-    const versions = { '@adonisjs/core': '7.0.0', '@adonisjs/auth': '10.0.0', '@adonisjs/bouncer': '4.0.0', '@adonisjs/lucid': '22.4.2', '@adonisjs/session': '8.1.0', '@adonisjs/vite': '6.0.1', '@kevinjohn/adonisjs-masquerade': '0.1.5', typescript: '5.9.3' }
+    const versions = { '@adonisjs/core': '7.0.0', '@adonisjs/auth': '10.0.0', '@adonisjs/bouncer': '4.0.0', '@adonisjs/lucid': '22.4.2', '@adonisjs/session': '8.1.0', '@adonisjs/vite': '6.0.1', '@kevinjohn/adonisjs-masquerade': '0.1.5', '@adonisjs/assembler': '8.0.0', typescript: '5.9.3' }
     const packagePath = path.join('node_modules', name, 'package.json')
     await mkdir(path.dirname(packagePath), { recursive: true })
     await writeFile(packagePath, JSON.stringify({ name, version: versions[name] || requested }))
@@ -261,13 +263,6 @@ function launch(f: Fixture, database: 'sqlite' | 'pg'): ChildProcess {
   )
 }
 
-async function outputOf(child: ChildProcess): Promise<{ text: () => string }> {
-  let output = ''
-  child.stdout!.setEncoding('utf8').on('data', (chunk: string) => (output += chunk))
-  child.stderr!.setEncoding('utf8').on('data', (chunk: string) => (output += chunk))
-  return { text: () => output }
-}
-
 async function collectClose(
   child: ChildProcess,
   output: { text: () => string }
@@ -300,21 +295,6 @@ async function waitForFixtureWorker(f: Fixture, output?: { text: () => string })
     throw new Error(
       `${error instanceof Error ? error.message : String(error)}\nCLI output:\n${output?.text() ?? ''}\ncommand log:\n${commands}\nrunner log:\n${commandLog}`
     )
-  }
-}
-
-async function isAlive(pid: number): Promise<boolean> {
-  try {
-    const stat = await readFile(`/proc/${pid}/stat`, 'utf8')
-    const state = stat.slice(stat.lastIndexOf(')') + 2, stat.lastIndexOf(')') + 3)
-    return state !== 'Z'
-  } catch {
-    try {
-      process.kill(pid, 0)
-      return true
-    } catch (error) {
-      return (error as NodeJS.ErrnoException).code !== 'ESRCH'
-    }
   }
 }
 
