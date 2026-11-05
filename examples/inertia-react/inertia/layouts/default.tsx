@@ -1,12 +1,12 @@
 import { Form, Link, usePage } from '@inertiajs/react'
 import type { ReactNode } from 'react'
 
-type Shared = {
-  user?: { fullName: string | null; email: string }
-  flash?: { error?: string; success?: string }
-}
+type Shared = { user?: { fullName: string | null; email: string } }
+type Flash = { error?: string; success?: string }
 export default function Layout({ children }: { children: ReactNode }) {
-  const { user, flash } = usePage<Shared>().props
+  const page = usePage<Shared>()
+  const { user } = page.props
+  const flash = page.flash as Flash
   return (
     <>
       <header>
