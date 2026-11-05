@@ -3,6 +3,7 @@ import { HttpContextFactory } from '@adonisjs/core/factories/http'
 import { MasqueradeSetupError } from '../index.js'
 import { nativeRuntimeFixture } from './helpers/native_runtime.js'
 import { sqlFixture } from './helpers/sql_store.js'
+import { markContextEnforced } from '../src/integration/context_enforcement.js'
 
 test('configured provider validates native binding and rejects test-only store during boot', async ({
   assert,
@@ -169,6 +170,7 @@ test('runtime includes every actual effective factory alias with immutable names
     } as never
     business.auth = auth.createAuthenticator(business) as never
     business.containerResolver.bindValue('masquerade.runtime', runtime)
+    markContextEnforced(business)
     const defaultGuard = business.auth.use(
       'web_effective' as never
     ) as import('@adonisjs/auth/types').GuardContract<unknown>

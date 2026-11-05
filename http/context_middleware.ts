@@ -3,6 +3,7 @@ import { errors } from '@adonisjs/auth'
 import { MasqueradeError } from '../src/errors.js'
 import { requireContext } from '../src/context_token.js'
 import { runtimeFor } from '../src/integration/runtime.js'
+import { markContextEnforced } from '../src/integration/context_enforcement.js'
 import { routeGuards, routeMarkers } from '../src/integration/route_metadata.js'
 
 /** Enforce context freshness and active-mode route policy on effective-guard routes. */
@@ -33,6 +34,7 @@ export async function masqueradeContext(
     await next()
     return
   }
+  markContextEnforced(ctx)
   const admitted = await runtime.admit(ctx).catch((error: unknown) => {
     // Named auth owns native login redirects and unauthorized rendering. Its check will
     // observe this same cached rejection; no mode state has been read or handler admitted.

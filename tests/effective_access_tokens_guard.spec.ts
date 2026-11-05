@@ -6,6 +6,8 @@ import type { GuardContract } from '@adonisjs/auth/types'
 import type { HttpContext } from '@adonisjs/core/http'
 import { EffectiveAccessTokensGuard } from '../auth/effective_access_tokens_guard.js'
 import { effectiveAccessTokensGuard } from '../auth/main.js'
+import { markContextEnforced } from '../src/integration/context_enforcement.js'
+import { errorCode } from './helpers/core.js'
 
 test('effective token factory preserves nominal users without inferring actor token metadata', ({
   assert,
@@ -55,11 +57,15 @@ test('default effective token facade uses selected token actor and target, never
     containerResolver: {
       make: async () => ({
         selectGuard: () => ({ kind: 'effective', raw: 'api' }),
-        admit: async () => ({ effective: { user: target } }),
+        admit: async () => ({ context: { isMasquerading: true }, effective: { user: target } }),
       }),
     },
   } as unknown as HttpContext
   const effective = new EffectiveAccessTokensGuard(ctx, raw, 'api')
+  // Without masqueradeContext, view-only and sensitive() are unenforced: the target is refused.
+  assert.equal(await errorCode(() => effective.authenticate()), 'E_MASQUERADE_UNAVAILABLE')
+  assert.isFalse(effective.isAuthenticated)
+  markContextEnforced(ctx)
   assert.deepEqual(await effective.authenticate(), target)
   assert.deepEqual(names, [])
 })

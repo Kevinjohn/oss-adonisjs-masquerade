@@ -4,6 +4,7 @@ import type { GuardContract } from '@adonisjs/auth/types'
 import type { HttpContext } from '@adonisjs/core/http'
 import type {} from '@adonisjs/auth/initialize_auth_middleware'
 import { runtimeFor } from '../src/integration/runtime.js'
+import { assertContextEnforced } from '../src/integration/context_enforcement.js'
 
 /**
  * A native session wrapper; the raw guard continues to own all credentials.
@@ -43,6 +44,7 @@ export class EffectiveSessionGuard<User> implements GuardContract<User> {
     const selected = runtime.selectGuard(this.ctx)
     if (selected.kind === 'effective') {
       const admitted = await runtime.admit(this.ctx)
+      assertContextEnforced(this.ctx, admitted.context.isMasquerading)
       this.user = admitted.effective.user as User
     } else {
       const raw = this.ctx.auth.use(

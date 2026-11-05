@@ -3,6 +3,7 @@ import { InvalidArgumentsException, RuntimeException } from '@adonisjs/core/exce
 import type { GuardContract } from '@adonisjs/auth/types'
 import type { HttpContext } from '@adonisjs/core/http'
 import { runtimeFor } from '../src/integration/runtime.js'
+import { assertContextEnforced } from '../src/integration/context_enforcement.js'
 
 /** Effective user facade for a native opaque access-token guard. */
 export type EffectiveAccessTokensUser<User> = User extends { currentAccessToken: unknown }
@@ -46,6 +47,7 @@ export class EffectiveAccessTokensGuard<RawUser> implements GuardContract<
     const selected = runtime.selectGuard(this.ctx)
     if (selected.kind === 'effective') {
       const admitted = await runtime.admit(this.ctx)
+      assertContextEnforced(this.ctx, admitted.context.isMasquerading)
       this.user = admitted.effective.user as EffectiveAccessTokensUser<RawUser>
     } else {
       // A public or multi-guard route selects no single credential; this facade still answers
