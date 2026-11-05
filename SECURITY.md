@@ -27,6 +27,10 @@ shasum -a 256 kevinjohn-adonisjs-masquerade-<version>.tgz
 The [security guide](https://github.com/Kevinjohn/oss-adonisjs-masquerade/blob/main/docs/guide/security.md)
 describes what Masquerade protects and what remains the application's responsibility.
 
+## Dependency advisory assessment
+
+See the [maintainer dependency advisory assessment](https://github.com/Kevinjohn/oss-adonisjs-masquerade/blob/main/docs/maintainers/verification.md#dependency-advisory-assessment) for dated graph findings and manual follow-up. It is a dated snapshot that separates main at `f32bd4e` from the candidate dependency pull requests open on 2026-11-05.
+
 ## Independent review
 
 None yet.

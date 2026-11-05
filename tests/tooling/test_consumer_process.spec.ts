@@ -23,6 +23,8 @@ type FixtureOptions = {
   hook?: 'record-term' | 'fail-reap'
   failStartupLog?: boolean
   holdWorkerReady?: boolean
+  holdStartedPublication?: boolean
+  holdReadyPublication?: boolean
   externalPostgres?: boolean
 }
 
@@ -32,8 +34,13 @@ type Fixture = {
   bin: string
   commands: string
   ready: string
+  readyStaged: string
+  readyPending: string
   started: string
+  startedStaged: string
+  startedPending: string
   release: string
+  releaseReady: string
   termSent: string
   env: NodeJS.ProcessEnv
 }
@@ -47,8 +54,13 @@ async function fixture(options: FixtureOptions = {}): Promise<Fixture> {
   const artifact = path.join(root, 'tmp/package.tgz')
   const commands = path.join(directory, 'commands.log')
   const ready = path.join(directory, 'worker-ready')
+  const readyStaged = path.join(directory, 'worker-ready-staged')
+  const readyPending = `${ready}.pending`
   const started = path.join(directory, 'worker-started')
+  const startedStaged = path.join(directory, 'worker-started-staged')
+  const startedPending = `${started}.pending`
   const release = path.join(directory, 'release-worker')
+  const releaseReady = path.join(directory, 'release-ready-publication')
   const termSent = path.join(directory, 'term-sent')
   await writeFile(commands, '')
   await mkdir(path.join(root, 'bin/helpers'), { recursive: true })
@@ -125,15 +137,23 @@ async function fixture(options: FixtureOptions = {}): Promise<Fixture> {
 
   await writeFile(
     path.join(app, 'late-output.js'),
-    `import { readFile, writeFile } from 'node:fs/promises'\nawait writeFile(${JSON.stringify(ready)}, 'late-output')\nwhile (!await readFile(${JSON.stringify(release)}, 'utf8').catch(() => '')) await new Promise((resolve) => setTimeout(resolve, 20))\nconsole.log('2 passed after output barrier')\n`
+    `import { readFile, rename, writeFile } from 'node:fs/promises'\nconst publish = async (file, contents, beforeRename) => { const pending = file + '.pending'; await writeFile(pending, contents); await beforeRename?.(); await rename(pending, file) }\nawait publish(${JSON.stringify(ready)}, 'late-output', async () => { ${
+      options.holdReadyPublication
+        ? `await writeFile(${JSON.stringify(readyStaged)}, 'staged'); while (!await readFile(${JSON.stringify(releaseReady)}, 'utf8').catch(() => '')) await new Promise((resolve) => setTimeout(resolve, 20))`
+        : ''
+    } })\nwhile (!await readFile(${JSON.stringify(release)}, 'utf8').catch(() => '')) await new Promise((resolve) => setTimeout(resolve, 20))\nconsole.log('2 passed after output barrier')\n`
   )
   await writeFile(
     path.join(app, 'term-resistant.js'),
-    `import { readFile, writeFile } from 'node:fs/promises'\nprocess.on('SIGTERM', () => {})\n${
-      options.holdWorkerReady
-        ? `await writeFile(${JSON.stringify(started)}, String(process.pid))\nwhile (!await readFile(${JSON.stringify(release)}, 'utf8').catch(() => '')) await new Promise((resolve) => setTimeout(resolve, 20))\n`
+    `import { readFile, rename, writeFile } from 'node:fs/promises'\nprocess.on('SIGTERM', () => {})\nconst publish = async (file, contents, beforeRename) => { const pending = file + '.pending'; await writeFile(pending, contents); await beforeRename?.(); await rename(pending, file) }\n${
+      options.holdStartedPublication
+        ? `await publish(${JSON.stringify(started)}, String(process.pid), async () => { await writeFile(${JSON.stringify(startedStaged)}, 'staged'); while (!await readFile(${JSON.stringify(release)}, 'utf8').catch(() => '')) await new Promise((resolve) => setTimeout(resolve, 20)) })\n`
         : ''
-    }await writeFile(${JSON.stringify(ready)}, String(process.pid))\nsetInterval(() => {}, 1000)\n`
+    }${
+      options.holdWorkerReady
+        ? `await publish(${JSON.stringify(started)}, String(process.pid))\nwhile (!await readFile(${JSON.stringify(release)}, 'utf8').catch(() => '')) await new Promise((resolve) => setTimeout(resolve, 20))\n`
+        : ''
+    }await publish(${JSON.stringify(ready)}, String(process.pid))\nsetInterval(() => {}, 1000)\n`
   )
 
   const fakePnpm = `#!${process.execPath}
@@ -209,7 +229,22 @@ if (args[0] === 'test' || ['test:report', 'test:credentials'].includes(args[0]))
   if (options.hook === 'fail-reap') env.CONSUMER_TEST_FAIL_REAP = '1'
   if (options.externalPostgres) env.CONSUMER_PG_EXTERNAL = '1'
   else delete env.CONSUMER_PG_EXTERNAL
-  return { directory, root, bin, commands, ready, started, release, termSent, env }
+  return {
+    directory,
+    root,
+    bin,
+    commands,
+    ready,
+    readyStaged,
+    readyPending,
+    started,
+    startedStaged,
+    startedPending,
+    release,
+    releaseReady,
+    termSent,
+    env,
+  }
 }
 
 function launch(f: Fixture, database: 'sqlite' | 'pg'): ChildProcess {
@@ -246,7 +281,9 @@ async function waitForFile(file: string, timeoutMs = 10_000): Promise<string> {
   while (Date.now() < deadline) {
     try {
       return await readFile(file, 'utf8')
-    } catch {}
+    } catch (error) {
+      if ((error as NodeJS.ErrnoException).code !== 'ENOENT') throw error
+    }
     await new Promise((resolve) => setTimeout(resolve, 20))
   }
   throw new Error(`Timed out waiting for ${file}`)
@@ -290,24 +327,76 @@ async function logsDirectory(f: Fixture): Promise<string> {
 test('waits for inherited output after command exit and records the trailing consumer summary', async ({
   cleanup,
 }) => {
-  const f = await fixture({ mode: 'late-output' })
+  const f = await fixture({ mode: 'late-output', holdReadyPublication: true })
   cleanup(() => rm(f.directory, { recursive: true, force: true }))
   const child = launch(f, 'sqlite')
   const output = await outputOf(child)
-  await waitForFixtureWorker(f, output)
-  const commandsWhileTailIsBlocked = await readFile(f.commands, 'utf8')
-  assert.doesNotMatch(commandsWhileTailIsBlocked, /test token-only/)
-  await writeFile(f.release, 'continue')
-  const result = await collectClose(child, output)
-  assert.equal(result.code, 0, result.text)
-  const logs = await logsDirectory(f)
-  assert.match(
-    await readFile(path.join(logs, 'floor_sqlite_functional.log'), 'utf8'),
-    /2 passed after output barrier/
-  )
-  const summary = JSON.parse(await readFile(path.join(logs, 'results.json'), 'utf8'))
-  assert.equal(summary.results[0].functional, 2)
+  const completion = collectClose(child, output)
+  try {
+    await waitForFile(f.readyStaged)
+    assert.equal(await readFile(f.readyPending, 'utf8'), 'late-output')
+    await assert.rejects(readFile(f.ready), { code: 'ENOENT' })
+
+    await writeFile(f.releaseReady, 'publish')
+    await waitForFixtureWorker(f, output)
+    const commandsWhileTailIsBlocked = await readFile(f.commands, 'utf8')
+    assert.doesNotMatch(commandsWhileTailIsBlocked, /test token-only/)
+    await writeFile(f.release, 'continue')
+    const result = await completion
+    assert.equal(result.code, 0, result.text)
+    const logs = await logsDirectory(f)
+    assert.match(
+      await readFile(path.join(logs, 'floor_sqlite_functional.log'), 'utf8'),
+      /2 passed after output barrier/
+    )
+    const summary = JSON.parse(await readFile(path.join(logs, 'results.json'), 'utf8'))
+    assert.equal(summary.results[0].functional, 2)
+  } finally {
+    await writeFile(f.releaseReady, 'publish').catch(() => {})
+    await writeFile(f.release, 'continue').catch(() => {})
+    const closed = await Promise.race([
+      completion.then(() => true),
+      new Promise<false>((resolve) => setTimeout(resolve, 10_000, false)),
+    ])
+    if (!closed) child.kill('SIGTERM')
+    await completion
+  }
 }).timeout(30_000)
+
+test('publishes the worker STARTED record only after its contents are complete', async ({
+  cleanup,
+}) => {
+  const f = await fixture({ mode: 'timeout', holdStartedPublication: true })
+  cleanup(() => rm(f.directory, { recursive: true, force: true }))
+  const runner = new ConsumerProcessRunner(f.root, 10_000)
+  const operation = runner
+    .run(path.join(f.root, 'examples/native-session'), ['test', 'functional'], 'publication', f.env)
+    .then(
+      () => new Error('consumer command unexpectedly completed'),
+      (error: unknown) => error
+    )
+  let pid = 0
+  let result: unknown
+  try {
+    await waitForFile(f.startedStaged)
+    const stagedContents = await readFile(f.startedPending, 'utf8')
+    pid = Number(stagedContents)
+    assert.ok(pid > 0, `expected a staged worker PID, received ${JSON.stringify(stagedContents)}`)
+    await assert.rejects(readFile(f.started), { code: 'ENOENT' })
+
+    await writeFile(f.release, 'continue')
+    assert.equal(await waitForFile(f.started), String(pid))
+    await assert.rejects(readFile(f.startedPending), { code: 'ENOENT' })
+  } finally {
+    await writeFile(f.release, 'continue').catch(() => {})
+    runner.interrupt('SIGTERM')
+    result = await operation
+  }
+
+  assert.ok(result instanceof ConsumerCommandError, String(result))
+  assert.match(result.message, /Interrupted by SIGTERM/)
+  if (pid > 0) assert.equal(await isAlive(pid), false)
+}).timeout(20_000)
 
 test('an interrupted local PostgreSQL run drops its schema and reports failed reap while stopping its owned service', async ({
   cleanup,
