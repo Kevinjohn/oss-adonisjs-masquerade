@@ -135,7 +135,8 @@ closed by calling the dependency a development tool.
 | [GHSA-g3hv-75wg-m249](https://github.com/advisories/GHSA-g3hv-75wg-m249) | `minimatch@10.2.6`, through `@ts-morph/common`; 100 audit paths through framework parents        | Retained.                                                                                                                                                                                                                                                   |
 
 The candidate keeps the existing Inertia 4, React client 2, and Vite plugin 5 stack. The Inertia
-major migration remains deferred and is separate from the targeted redirect dependency.
+major migration was deferred on the assessment date and is separate from the targeted redirect
+dependency. Issue #289 later moved the React example to Inertia adapter 5 and React client 3.
 
 #### E5 Vue
 

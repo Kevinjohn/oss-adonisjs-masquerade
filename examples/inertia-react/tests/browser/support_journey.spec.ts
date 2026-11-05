@@ -142,6 +142,24 @@ test.group('React support browser journey', (group) => {
     )
   })
 
+  test('does not replay a flash message from history after Back', async ({
+    browserContext,
+    assert,
+  }) => {
+    const page = await browserContext.newPage()
+    await page.goto(`${base()}/login`)
+    await page.getByLabel('Email').fill('operator@example.test')
+    await page.getByLabel('Password').fill('incorrect-password')
+    await page.getByRole('button', { name: 'Log in' }).click()
+    await page.getByRole('alert').waitFor()
+
+    await page.getByRole('link', { name: 'Sign up' }).click()
+    await page.getByRole('heading', { name: 'Create account' }).waitFor()
+    await page.goBack()
+    await page.getByRole('heading', { name: 'Log in' }).waitFor()
+    assert.notInclude(await page.locator('main').innerText(), 'Email or password did not match.')
+  })
+
   test('renders an Inertia field error for a malformed login email', async ({
     browserContext,
     assert,

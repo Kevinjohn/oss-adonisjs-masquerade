@@ -5,16 +5,23 @@ import type User from '#models/user'
 
 export default class InertiaMiddleware extends BaseInertiaMiddleware {
   share(ctx: HttpContext) {
-    const { session, auth } = ctx as Partial<HttpContext>
+    const { auth } = ctx as Partial<HttpContext>
     const user = auth?.use('web').user as User | undefined
     return {
       errors: ctx.inertia.always(this.getValidationErrors(ctx)),
-      flash: ctx.inertia.always({
-        error: session?.flashMessages.get('error') as string | undefined,
-        success: session?.flashMessages.get('success') as string | undefined,
-      }),
       user: ctx.inertia.always(user ? { fullName: user.fullName, email: user.email } : undefined),
     }
+  }
+
+  /**
+   * Flash messages travel in the page object's `flash` field, which the
+   * client strips from history state, so Back does not show them again.
+   */
+  flash(ctx: HttpContext) {
+    const { session } = ctx as Partial<HttpContext>
+    const success: string | undefined = session?.flashMessages.get('success')
+    const error: string | undefined = session?.flashMessages.get('error')
+    return { success, error }
   }
   async handle(ctx: HttpContext, next: NextFn) {
     await this.init(ctx)
