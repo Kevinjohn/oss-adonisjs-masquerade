@@ -7,7 +7,8 @@ import { fixture } from './helpers/core.js'
 async function ace(
   config: unknown,
   argv: string[],
-  logger?: { info(...args: unknown[]): void; error(...args: unknown[]): void }
+  logger?: { info(...args: unknown[]): void; error(...args: unknown[]): void },
+  answer?: boolean
 ) {
   const ignitor = new IgnitorFactory()
     .withCoreProviders()
@@ -26,6 +27,14 @@ async function ace(
     .configure(async (app) => {
       await app.boot()
       if (logger) app.container.bindValue('logger', logger as never)
+      if (answer !== undefined) {
+        const commands = await app.container.make('ace')
+        commands.executing((command) => {
+          const trap = command.prompt.trap('End every active masquerade mode?')
+          if (answer) trap.accept()
+          else trap.reject()
+        })
+      }
     })
     .handle(argv)
   exitCode = process.exitCode as number | undefined
@@ -71,6 +80,21 @@ test.group('masquerade:status and masquerade:stop Ace commands', () => {
     )
     const row = await f.store.read(f.owner)
     assert.equal(row?.state, 'idle')
+    assert.equal(f.store.events.at(-1)?.outcomeCode, OPERATOR_STOP_OUTCOME)
+  })
+
+  test('stop --all asks first and stops nothing when the answer is no', async ({ assert }) => {
+    const f = fixture()
+    Object.defineProperty(f.store, 'testOnly', { value: false })
+    f.state.now = Date.now()
+    const service = await f.create()
+    await f.start(service)
+    await ace(f.config, ['masquerade:stop', '--all'], undefined, false)
+    const declined = await f.store.read(f.owner)
+    assert.equal(declined?.state, 'active')
+    await ace(f.config, ['masquerade:stop', '--all'], undefined, true)
+    const confirmed = await f.store.read(f.owner)
+    assert.equal(confirmed?.state, 'idle')
     assert.equal(f.store.events.at(-1)?.outcomeCode, OPERATOR_STOP_OUTCOME)
   })
 
