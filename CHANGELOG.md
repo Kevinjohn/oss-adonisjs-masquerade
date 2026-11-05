@@ -6,7 +6,6 @@
 
 - Validate React example login fields before credential lookup.
 - Hide stale Vue workspace customer identity during revalidation and preserve explicit safe recovery when validation fails or expires.
-
 - Count expected-failure regression cases as executed tests in changed-file checks.
 - Preserve demo, changed-check and consumer cleanup failures, bound owned process cleanup after interruption, and retain complete consumer output and command errors.
 - Attempt PostgreSQL benchmark rollback, schema removal and client shutdown without hiding earlier failures.
