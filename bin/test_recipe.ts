@@ -484,7 +484,8 @@ try {
         "  () => import('#middleware/masquerade_context_middleware'),\n",
         '',
         'context middleware',
-        'sensitive handler must not execute',
+        // Without the middleware the effective guard refuses the target before any handler runs.
+        'expected 503 to equal 200',
         env
       )
       await run(app, ['test'], `${engine} restored journey`, env)
