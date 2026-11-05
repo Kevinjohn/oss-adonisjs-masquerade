@@ -93,10 +93,17 @@ test.group('operator mode stop', () => {
     )
     assert.equal(inspected, 0)
     f.state.now = Date.parse('+010000-01-01T00:00:00Z')
+    let writes = 0
+    const cas = f.store.compareAndSet.bind(f.store)
+    f.store.compareAndSet = async (input) => {
+      writes++
+      return cas(input)
+    }
     assert.equal(
       await errorCode(() => stopActiveModes(f.config, f.dependencies, { all: true })),
       'E_MASQUERADE_UNAVAILABLE'
     )
+    assert.equal(writes, 0)
   })
 
   test('resolves the incarnation through the authority or the explicit value', async ({
