@@ -21,6 +21,7 @@ type FixtureOptions = {
   mode?: 'normal' | 'late-output' | 'hang' | 'timeout' | 'silent-descendant'
   hook?: 'record-term' | 'fail-reap'
   failStartupLog?: boolean
+  holdWorkerReady?: boolean
   externalPostgres?: boolean
 }
 
@@ -30,6 +31,7 @@ type Fixture = {
   bin: string
   commands: string
   ready: string
+  started: string
   release: string
   termSent: string
   env: NodeJS.ProcessEnv
@@ -44,6 +46,7 @@ async function fixture(options: FixtureOptions = {}): Promise<Fixture> {
   const artifact = path.join(root, 'tmp/package.tgz')
   const commands = path.join(directory, 'commands.log')
   const ready = path.join(directory, 'worker-ready')
+  const started = path.join(directory, 'worker-started')
   const release = path.join(directory, 'release-worker')
   const termSent = path.join(directory, 'term-sent')
   await writeFile(commands, '')
@@ -121,7 +124,11 @@ async function fixture(options: FixtureOptions = {}): Promise<Fixture> {
   )
   await writeFile(
     path.join(app, 'term-resistant.js'),
-    `import { writeFile } from 'node:fs/promises'\nprocess.on('SIGTERM', () => {})\nawait writeFile(${JSON.stringify(ready)}, String(process.pid))\nsetInterval(() => {}, 1000)\n`
+    `import { readFile, writeFile } from 'node:fs/promises'\nprocess.on('SIGTERM', () => {})\n${
+      options.holdWorkerReady
+        ? `await writeFile(${JSON.stringify(started)}, String(process.pid))\nwhile (!await readFile(${JSON.stringify(release)}, 'utf8').catch(() => '')) await new Promise((resolve) => setTimeout(resolve, 20))\n`
+        : ''
+    }await writeFile(${JSON.stringify(ready)}, String(process.pid))\nsetInterval(() => {}, 1000)\n`
   )
 
   const fakePnpm = `#!${process.execPath}
@@ -197,7 +204,7 @@ if (args[0] === 'test' || ['test:report', 'test:credentials'].includes(args[0]))
   if (options.hook === 'fail-reap') env.CONSUMER_TEST_FAIL_REAP = '1'
   if (options.externalPostgres) env.CONSUMER_PG_EXTERNAL = '1'
   else delete env.CONSUMER_PG_EXTERNAL
-  return { directory, root, bin, commands, ready, release, termSent, env }
+  return { directory, root, bin, commands, ready, started, release, termSent, env }
 }
 
 function launch(f: Fixture, database: 'sqlite' | 'pg'): ChildProcess {
@@ -337,27 +344,66 @@ test('uses a ten-minute timeout, reaps its command group, and preserves command 
   cleanup,
 }) => {
   assert.equal(consumerCommandTimeoutMs, 600_000)
-  const f = await fixture({ mode: 'timeout' })
+  const f = await fixture({ mode: 'timeout', holdWorkerReady: true })
   cleanup(() => rm(f.directory, { recursive: true, force: true }))
-  const runner = new ConsumerProcessRunner(f.root, 100)
-  const child = runner.run(
-    path.join(f.root, 'examples/native-session'),
-    ['test', 'functional'],
-    'timeout_probe',
-    f.env
-  )
+  const requestedTimeoutMs = 100
+  const runner = new ConsumerProcessRunner(f.root, requestedTimeoutMs)
+  const originalSetTimeout = globalThis.setTimeout
+  let deadlineCallback: (() => void) | undefined
+  let deadlineHandle: ReturnType<typeof setTimeout> | undefined
+  let child: Promise<string>
+  try {
+    globalThis.setTimeout = ((
+      callback: (...args: unknown[]) => void,
+      delay?: number,
+      ...args: unknown[]
+    ) => {
+      if (delay === requestedTimeoutMs && !deadlineCallback) {
+        deadlineCallback = () => callback(...args)
+        deadlineHandle = originalSetTimeout(() => {}, 0)
+        return deadlineHandle
+      }
+      return originalSetTimeout(callback, delay, ...args)
+    }) as typeof globalThis.setTimeout
+    child = runner.run(
+      path.join(f.root, 'examples/native-session'),
+      ['test', 'functional'],
+      'timeout_probe',
+      f.env
+    )
+  } finally {
+    globalThis.setTimeout = originalSetTimeout
+    if (deadlineHandle) clearTimeout(deadlineHandle)
+  }
+  const fireDeadline = () => {
+    const callback = deadlineCallback
+    deadlineCallback = undefined
+    callback?.()
+  }
   const rejection = assert.rejects(child, (error: unknown) => {
     assert.ok(error instanceof ConsumerCommandError)
-    assert.match(error.message, /timed out after 100ms/)
+    assert.match(error.message, new RegExp(`timed out after ${requestedTimeoutMs}ms`))
     return true
   })
-  const pid = Number(await waitForFixtureWorker(f))
-  await rejection
-  assert.equal(await isAlive(pid), false)
-  assert.match(
-    await readFile(path.join(f.root, 'timeout_probe.log'), 'utf8'),
-    /RUNNER ERROR:.*timed out after 100ms/s
-  )
+  try {
+    assert.ok(deadlineCallback, 'runner should register its requested timeout')
+    const pid = Number(await waitForFile(f.started))
+    await new Promise<void>((resolve) => originalSetTimeout(resolve, requestedTimeoutMs))
+    await writeFile(f.release, 'continue')
+    assert.equal(Number(await waitForFixtureWorker(f)), pid)
+    fireDeadline()
+    await rejection
+    assert.equal(await isAlive(pid), false)
+    assert.match(
+      await readFile(path.join(f.root, 'timeout_probe.log'), 'utf8'),
+      /RUNNER ERROR:.*timed out after 100ms/s
+    )
+  } finally {
+    await writeFile(f.release, 'continue').catch(() => {})
+    fireDeadline()
+    runner.interrupt('SIGTERM')
+    await rejection.catch(() => {})
+  }
 }).timeout(20_000)
 
 test('settles a never-closing command with partial output and releases local handles', async ({
