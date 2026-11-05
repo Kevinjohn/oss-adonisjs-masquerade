@@ -15,9 +15,16 @@ on:
       - 'providers/**'
       - 'stubs/**'
       - 'commands/**'
+      - 'auth/**'
+      - 'native/**'
+      - 'account_kit/**'
       - bin/test_consumer.ts
-      - 'bin/helpers/consumer/**'
+      - bin/test_account_kit.ts
       - 'bin/helpers/consumer_*.ts'
+      - bin/helpers/registry_version.ts
+      - bin/helpers/account_kit_host_wiring.ts
+      - 'examples/native-session/**'
+      - 'examples/account-kit/**'
       - .github/workflows/compat.yml
 
 permissions:
@@ -31,6 +38,7 @@ jobs:
   min-peers:
     if: ${{ github.event_name == 'workflow_dispatch' || !github.event.repository.private }}
     runs-on: ubuntu-latest
+    timeout-minutes: 45
     services:
       postgres:
         image: postgres:16
@@ -77,6 +85,7 @@ jobs:
   latest-peers:
     if: ${{ github.event_name == 'workflow_dispatch' || !github.event.repository.private }}
     runs-on: ubuntu-latest
+    timeout-minutes: 45
     steps:
       - uses: actions/checkout@v7
       - uses: pnpm/action-setup@v6
@@ -101,6 +110,7 @@ jobs:
   consumer:
     if: ${{ github.event_name == 'workflow_dispatch' || !github.event.repository.private }}
     runs-on: ubuntu-latest
+    timeout-minutes: 45
     strategy:
       fail-fast: false
       matrix:
@@ -130,8 +140,6 @@ jobs:
     steps:
       - uses: actions/checkout@v7
       - uses: pnpm/action-setup@v6
-        with:
-          version: 11.23.0
       - uses: actions/setup-node@v7
         with:
           node-version: 24
@@ -143,6 +151,7 @@ jobs:
   account-kit:
     if: ${{ github.event_name == 'workflow_dispatch' || !github.event.repository.private }}
     runs-on: ubuntu-latest
+    timeout-minutes: 45
     strategy:
       fail-fast: false
       matrix:
