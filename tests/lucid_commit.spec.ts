@@ -66,6 +66,45 @@ if (process.env.DB_CLIENT === 'pg') {
       await f.cleanup()
     }
   }).timeout(10_000)
+  test('a PostgreSQL serialization failure under REPEATABLE READ is a CAS conflict', async ({
+    assert,
+  }) => {
+    const f = await sqlFixture()
+    const a = transition()
+    assert.equal((await f.store.compareAndSet(a)).status, 'applied')
+    const blocker = await f.client.transaction()
+    try {
+      await f.second.rawQuery(
+        'SET SESSION CHARACTERISTICS AS TRANSACTION ISOLATION LEVEL REPEATABLE READ'
+      )
+      await blocker
+        .from('masquerade_modes')
+        .where('actor_id', a.owner.actorId)
+        .update({ revision_nonce: 'b'.repeat(32) })
+      const b = transition(2)
+      const next = { ...b.next, ...a.owner }
+      const pending = f.other.compareAndSet({
+        owner: a.owner,
+        expected: 1,
+        next,
+        event: { ...b.event, ...a.owner, modeId: next.modeId },
+      })
+      pending.catch(() => {})
+      for (let attempt = 0; attempt < 100; attempt++) {
+        await new Promise((resolve) => setTimeout(resolve, 50))
+        const waiting = await blocker.rawQuery(
+          'select pid from pg_locks where not granted and pid <> pg_backend_pid()'
+        )
+        if (waiting.rows.length > 0) break
+      }
+      await blocker.commit()
+      assert.deepEqual(await pending, { status: 'conflict' })
+      assert.equal((await f.store.read(a.owner))!.revisionNonce, 'b'.repeat(32))
+    } finally {
+      if (!blocker.isCompleted) await blocker.rollback()
+      await f.cleanup()
+    }
+  }).timeout(10_000)
 } else {
   test('a real SQLite reader lock rejects writer COMMIT and cleans native transaction before reuse', async ({
     assert,

@@ -9,9 +9,12 @@ export function createMasqueradeSchema(
       table.string('authority_namespace', 128).notNullable()
       table.string('actor_id', 255).notNullable()
       table.string('actor_incarnation', 128).notNullable()
-      table.unique(['authority_namespace', 'actor_id', 'actor_incarnation'], {
-        indexName: 'masquerade_modes_owner_unique',
-      })
+      // A primary key, not only a unique index, gives PostgreSQL logical replication a replica
+      // identity, so UPDATEs succeed in databases with a FOR ALL TABLES publication.
+      table.primary(
+        ['authority_namespace', 'actor_id', 'actor_incarnation'],
+        'masquerade_modes_owner_unique'
+      )
       table.bigInteger('revision').notNullable()
       table.string('revision_nonce', 32).notNullable()
       table.string('state', 6).notNullable()
