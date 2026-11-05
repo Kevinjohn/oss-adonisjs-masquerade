@@ -16,6 +16,7 @@ const repoRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../
 const consumerRunnerPath = path.join(repoRoot, 'bin/test_consumer.ts')
 const processHelperPath = path.join(repoRoot, 'bin/helpers/consumer_process.ts')
 const artifactHelperPath = path.join(repoRoot, 'bin/helpers/consumer_artifact.ts')
+const registryVersionPath = path.join(repoRoot, 'bin/helpers/registry_version.ts')
 
 type FixtureOptions = {
   mode?: 'normal' | 'late-output' | 'hang' | 'timeout' | 'silent-descendant'
@@ -71,6 +72,10 @@ async function fixture(options: FixtureOptions = {}): Promise<Fixture> {
   await writeFile(
     path.join(root, 'bin/helpers/consumer_artifact.ts'),
     await readFile(artifactHelperPath)
+  )
+  await writeFile(
+    path.join(root, 'bin/helpers/registry_version.ts'),
+    await readFile(registryVersionPath)
   )
 
   const peers = {
