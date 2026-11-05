@@ -1,4 +1,4 @@
-import { spawn, execFileSync } from 'node:child_process'
+import { execFileSync } from 'node:child_process'
 import { createHash, randomUUID } from 'node:crypto'
 import { cp, mkdir, mkdtemp, readdir, readFile, rm, writeFile } from 'node:fs/promises'
 import { createRequire } from 'node:module'
@@ -6,6 +6,7 @@ import { tmpdir } from 'node:os'
 import { basename, join, relative } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { consumerArtifact } from './helpers/consumer_artifact.js'
+import { ConsumerCommandError, ConsumerProcessRunner } from './helpers/consumer_process.js'
 
 const root = fileURLToPath(new URL('../', import.meta.url))
 const args = new Map(
@@ -30,6 +31,10 @@ const directory = join(
   `${digest.slice(0, 12)}_${randomUUID().slice(0, 8)}`
 )
 await mkdir(directory, { recursive: true })
+const processRunner = new ConsumerProcessRunner(directory)
+for (const signal of ['SIGINT', 'SIGTERM'] as const) {
+  process.on(signal, () => processRunner.interrupt(signal))
+}
 const floor = {
   '@adonisjs/core': '7.0.0',
   '@adonisjs/auth': '10.0.0',
@@ -61,38 +66,6 @@ const baseEnv = {
   SESSION_DRIVER: 'memory',
   FORCE_COLOR: '0',
   NO_COLOR: '1',
-}
-
-async function run(
-  cwd: string,
-  command: string[],
-  name: string,
-  env: NodeJS.ProcessEnv = baseEnv
-): Promise<string> {
-  console.log(`[consumer] ${name}: pnpm ${command.join(' ')}`)
-  const output = await new Promise<string>((resolveOutput, reject) => {
-    const child = spawn('pnpm', command, { cwd, env, stdio: ['ignore', 'pipe', 'pipe'] })
-    let text = ''
-    child.stdout.on('data', (chunk) => {
-      text += chunk
-    })
-    child.stderr.on('data', (chunk) => {
-      text += chunk
-    })
-    child.on('error', reject)
-    child.on('exit', (code) => {
-      void writeFile(join(directory, `${name}.log`), text).then(() => {
-        if (code === 0) resolveOutput(text)
-        else
-          reject(
-            new Error(
-              `${name} failed (${code}); see ${join(directory, `${name}.log`)}\n${text.slice(-5000)}`
-            )
-          )
-      }, reject)
-    })
-  })
-  return output
 }
 
 async function verifyConfigure(app: string, profileName: string): Promise<void> {
@@ -178,6 +151,15 @@ const pgEnv = {
   DB_PASSWORD: process.env.DB_PASSWORD ?? '',
   DB_DATABASE: process.env.DB_DATABASE ?? 'package_test',
 }
+
+const run = (
+  cwd: string,
+  command: string[],
+  name: string,
+  env: NodeJS.ProcessEnv = baseEnv,
+  cleanup = false
+) => processRunner.run(cwd, command, name, env, cleanup)
+
 async function schema(cwd: string, name: string, action: 'create' | 'drop') {
   const sql =
     action === 'create' ? `create schema ${name}` : `drop schema if exists ${name} cascade`
@@ -191,7 +173,8 @@ async function schema(cwd: string, name: string, action: 'create' | 'drop') {
       `import pg from 'pg'; const client=new pg.Client({host:process.env.DB_HOST,port:Number(process.env.DB_PORT),user:process.env.DB_USER,password:process.env.DB_PASSWORD,database:process.env.DB_DATABASE}); await client.connect(); try {await client.query(${JSON.stringify(sql)})} finally {await client.end()}`,
     ],
     `${name}_${action}`,
-    pgEnv
+    pgEnv,
+    action === 'drop'
   )
 }
 
@@ -316,13 +299,26 @@ try {
     for (const engine of database === 'all' ? ['sqlite', 'pg'] : [database]) {
       const schemaName = `consumer_${selected}_${randomUUID().replaceAll('-', '')}`
       if (engine === 'pg' && !ownsPostgres && process.env.CONSUMER_PG_EXTERNAL !== '1') {
-        const output = await run(root, ['pg:start'], 'postgres_start')
-        ownsPostgres = !output.includes('already running')
+        try {
+          const output = await run(root, ['pg:start'], 'postgres_start')
+          ownsPostgres = !output.includes('already running')
+        } catch (error) {
+          if (
+            error instanceof ConsumerCommandError &&
+            error.commandName === 'postgres_start' &&
+            /server started/i.test(error.output) &&
+            !/already running/i.test(error.output)
+          ) {
+            ownsPostgres = true
+          }
+          throw error
+        }
       }
       const env =
         engine === 'pg' ? { ...pgEnv, DB_SCHEMA: schemaName } : { ...baseEnv, DB_CLIENT: 'sqlite' }
-      if (engine === 'pg') await schema(app, schemaName, 'create')
+      let engineFailure: unknown
       try {
+        if (engine === 'pg') await schema(app, schemaName, 'create')
         await run(app, ['typecheck'], `${selected}_${engine}_typecheck`, env)
         const functional = await run(
           app,
@@ -380,14 +376,70 @@ try {
           ) + '\n'
         )
         console.log(`[consumer] PASS ${selected}/${engine}`)
+      } catch (error) {
+        engineFailure = error
       } finally {
-        if (engine === 'pg') await schema(app, schemaName, 'drop')
+        if (engine === 'pg') {
+          try {
+            await schema(app, schemaName, 'drop')
+          } catch (error) {
+            engineFailure = combineFailures(engineFailure, error)
+          }
+        }
       }
+      if (engineFailure !== undefined) throw engineFailure
     }
   }
-} finally {
-  if (ownsPostgres) await run(root, ['pg:stop'], 'postgres_stop')
+} catch (error) {
+  let failure: unknown = error
+  if (ownsPostgres) {
+    try {
+      await run(root, ['pg:stop'], 'postgres_stop', baseEnv, true)
+    } catch (cleanupError) {
+      failure = combineFailures(failure, cleanupError)
+    }
+  }
+  console.error(`[consumer] FAILED: ${describeFailure(failure)}`)
+  process.exitCode =
+    processRunner.interruptedBy === 'SIGINT'
+      ? 130
+      : processRunner.interruptedBy === 'SIGTERM'
+        ? 143
+        : 1
 }
-console.log(
-  `[consumer] Complete: ${args.has('scaffold-only') ? directory : join(directory, 'results.json')}`
-)
+if (process.exitCode === undefined) {
+  if (ownsPostgres) {
+    try {
+      await run(root, ['pg:stop'], 'postgres_stop', baseEnv, true)
+    } catch (error) {
+      console.error(`[consumer] cleanup failed: ${describeFailure(error)}`)
+      process.exitCode =
+        processRunner.interruptedBy === 'SIGINT'
+          ? 130
+          : processRunner.interruptedBy === 'SIGTERM'
+            ? 143
+            : 1
+    }
+  }
+}
+if (process.exitCode === undefined) {
+  console.log(
+    `[consumer] Complete: ${args.has('scaffold-only') ? directory : join(directory, 'results.json')}`
+  )
+  if (processRunner.interruptedBy === 'SIGINT') process.exitCode = 130
+  else if (processRunner.interruptedBy === 'SIGTERM') process.exitCode = 143
+}
+
+function combineFailures(primary: unknown, cleanup: unknown): AggregateError {
+  return new AggregateError(
+    primary === undefined ? [cleanup] : [primary, cleanup],
+    'The consumer operation and cleanup both failed.'
+  )
+}
+
+function describeFailure(error: unknown): string {
+  if (error instanceof AggregateError) {
+    return [error.message, ...[...error.errors].map(describeFailure)].join('\n')
+  }
+  return error instanceof Error ? error.message : String(error)
+}

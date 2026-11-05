@@ -20,6 +20,7 @@ const reservedEmails = [
 ]
 const reservedPasswords = ['demo-operator-2026', 'demo-customer-one-2026', 'demo-customer-two-2026']
 const children = new Set<ChildProcess>()
+const abandonChildren = new Map<ChildProcess, (error: unknown) => void>()
 const ownedGroups = new Set<number>()
 const groupCleanupPromises = new Map<number, Promise<void>>()
 let interruptedBy: NodeJS.Signals | null = null
@@ -133,38 +134,42 @@ function processGroupExists(groupId: number): boolean {
     process.kill(-groupId, 0)
     return true
   } catch (error) {
-    return (error as NodeJS.ErrnoException).code === 'EPERM'
+    const code = (error as NodeJS.ErrnoException).code
+    if (code === 'EPERM') return true
+    if (code === 'ESRCH') return false
+    throw error
   }
 }
 
-function signalOwnedProcesses(signal: NodeJS.Signals = 'SIGTERM'): void {
-  if (process.platform !== 'win32') {
-    for (const groupId of ownedGroups) {
-      try {
-        process.kill(-groupId, signal)
-      } catch (error) {
-        if ((error as NodeJS.ErrnoException).code !== 'ESRCH') throw error
-      }
-    }
-    return
+function combineErrors(primary: unknown, cleanupErrors: unknown[]): unknown {
+  if (cleanupErrors.length === 0) return primary
+  const errors = primary === undefined ? cleanupErrors : [primary, ...cleanupErrors]
+  return new AggregateError(errors, 'The operation failed and cleanup also failed.')
+}
+
+function describeError(error: unknown): string {
+  if (error instanceof AggregateError) {
+    return [error.message, ...[...error.errors].map(describeError)].join('\n')
   }
-  for (const child of children) {
-    if (child.exitCode !== null || child.signalCode !== null) continue
-    child.kill(signal)
-  }
+  return error instanceof Error ? error.message : String(error)
 }
 
 function waitForProcessGroupExit(groupId: number, timeoutMs: number): Promise<boolean> {
-  return new Promise<boolean>((resolve) => {
+  return new Promise<boolean>((resolve, reject) => {
     const deadline = Date.now() + timeoutMs
     const poll = setInterval(() => {
-      if (!processGroupExists(groupId)) {
+      try {
+        if (!processGroupExists(groupId)) {
+          clearInterval(poll)
+          ownedGroups.delete(groupId)
+          resolve(true)
+        } else if (Date.now() >= deadline) {
+          clearInterval(poll)
+          resolve(false)
+        }
+      } catch (error) {
         clearInterval(poll)
-        ownedGroups.delete(groupId)
-        resolve(true)
-      } else if (Date.now() >= deadline) {
-        clearInterval(poll)
-        resolve(false)
+        reject(error)
       }
     }, 40)
   })
@@ -174,12 +179,12 @@ function cleanupProcessGroup(groupId: number | undefined): Promise<void> {
   if (!groupId || process.platform === 'win32') return Promise.resolve()
   const existing = groupCleanupPromises.get(groupId)
   if (existing) return existing
-  if (!processGroupExists(groupId)) {
-    ownedGroups.delete(groupId)
-    return Promise.resolve()
-  }
 
   const cleanup = (async () => {
+    if (!processGroupExists(groupId)) {
+      ownedGroups.delete(groupId)
+      return
+    }
     try {
       process.kill(-groupId, 'SIGTERM')
     } catch (error) {
@@ -191,9 +196,15 @@ function cleanupProcessGroup(groupId: number | undefined): Promise<void> {
     } catch (error) {
       if ((error as NodeJS.ErrnoException).code !== 'ESRCH') throw error
     }
-    await waitForProcessGroupExit(groupId, 1800)
-  })().finally(() => groupCleanupPromises.delete(groupId))
+    if (!(await waitForProcessGroupExit(groupId, 1800))) {
+      throw new Error(`Failed to reap owned process group ${groupId} after SIGKILL.`)
+    }
+  })()
   groupCleanupPromises.set(groupId, cleanup)
+  void cleanup.then(
+    () => groupCleanupPromises.delete(groupId),
+    () => undefined
+  )
   return cleanup
 }
 
@@ -204,9 +215,24 @@ function cleanupOwnedProcesses(): Promise<void> {
     return cleanupPromise
   }
   cleanupPromise = (async () => {
-    signalOwnedProcesses('SIGTERM')
-    await Promise.all([...ownedGroups].map(cleanupProcessGroup))
+    const failures: unknown[] = []
+    const groupResults = await Promise.allSettled([...ownedGroups].map(cleanupProcessGroup))
+    for (const result of groupResults) {
+      if (result.status === 'rejected') failures.push(result.reason)
+    }
     if (process.platform === 'win32') {
+      for (const child of children) {
+        if (child.exitCode !== null || child.signalCode !== null) continue
+        try {
+          if (!child.kill('SIGTERM') && child.exitCode === null && child.signalCode === null) {
+            failures.push(
+              new Error(`Failed to signal child process ${child.pid ?? 'with unknown pid'}.`)
+            )
+          }
+        } catch (error) {
+          failures.push(error)
+        }
+      }
       const deadline = Date.now() + 1800
       while (
         [...children].some((child) => child.exitCode === null && child.signalCode === null) &&
@@ -215,9 +241,30 @@ function cleanupOwnedProcesses(): Promise<void> {
         await new Promise<void>((resolve) => setTimeout(resolve, 40))
       }
       for (const child of children) {
-        if (child.exitCode === null && child.signalCode === null) child.kill('SIGKILL')
+        if (child.exitCode === null && child.signalCode === null) {
+          try {
+            child.kill('SIGKILL')
+          } catch (error) {
+            failures.push(error)
+          }
+        }
+      }
+      const finalDeadline = Date.now() + 1800
+      while (
+        [...children].some((child) => child.exitCode === null && child.signalCode === null) &&
+        Date.now() < finalDeadline
+      ) {
+        await new Promise<void>((resolve) => setTimeout(resolve, 40))
+      }
+      for (const child of children) {
+        if (child.exitCode === null && child.signalCode === null) {
+          failures.push(
+            new Error(`Failed to reap child process ${child.pid ?? 'with unknown pid'}.`)
+          )
+        }
       }
     }
+    if (failures.length) throw new AggregateError(failures, 'Failed to clean up owned processes.')
   })()
   return cleanupPromise
 }
@@ -238,22 +285,47 @@ function run(
     })
     children.add(child)
     if (process.platform !== 'win32' && child.pid) ownedGroups.add(child.pid)
-    child.once('error', (error) => {
+    let settled = false
+    const finish = (error?: unknown) => {
+      if (settled) return
+      settled = true
+      abandonChildren.delete(child)
+      if (error) reject(error)
+      else resolve()
+    }
+    abandonChildren.set(child, (error) => {
+      child.unref()
       children.delete(child)
-      reject(error)
+      finish(combineErrors(new Error(`Interrupted by ${interruptedBy}`), [error]))
     })
-    child.once('exit', async (code, signal) => {
+    child.once('error', async (error) => {
       children.delete(child)
       try {
         await cleanupProcessGroup(child.pid)
-      } catch (error) {
-        reject(error)
+      } catch (cleanupError) {
+        finish(combineErrors(error, [cleanupError]))
         return
       }
-      if (interruptedBy) reject(new Error(`Interrupted by ${interruptedBy}`))
-      else if (code === 0) resolve()
+      finish(error)
+    })
+    child.once('exit', async (code, signal) => {
+      children.delete(child)
+      let commandError: Error | undefined
+      try {
+        await cleanupProcessGroup(child.pid)
+      } catch (cleanupError) {
+        if (interruptedBy) commandError = new Error(`Interrupted by ${interruptedBy}`)
+        else if (code !== 0)
+          commandError = new Error(
+            `${path.basename(command)} ${args.join(' ')} exited ${signal ? `on ${signal}` : `with code ${code}`}.`
+          )
+        finish(combineErrors(commandError, [cleanupError]))
+        return
+      }
+      if (interruptedBy) finish(new Error(`Interrupted by ${interruptedBy}`))
+      else if (code === 0) finish()
       else
-        reject(
+        finish(
           new Error(
             `${path.basename(command)} ${args.join(' ')} exited ${signal ? `on ${signal}` : `with code ${code}`}.`
           )
@@ -292,12 +364,14 @@ async function assertPortAvailable(port: number): Promise<void> {
 
 async function refreshLocalTarballIntegrity() {
   const [lockfile, tarball] = await Promise.all([
-    readFile(exampleLockPath, 'utf8').catch(() => {
+    readFile(exampleLockPath, 'utf8').catch((error) => {
+      if (error.code !== 'ENOENT') throw error
       throw new Error(
         'The native-session example is missing pnpm-lock.yaml; restore it before retrying.'
       )
     }),
-    readFile(tarballPath).catch(() => {
+    readFile(tarballPath).catch((error) => {
+      if (error.code !== 'ENOENT') throw error
       throw new Error(
         'The local package tarball was not created. Run `pnpm pack:fixture` from the repository root and retry.'
       )
@@ -355,6 +429,8 @@ async function waitForDemo(
 }
 
 async function startServer(environment: NodeJS.ProcessEnv): Promise<void> {
+  // A signal after the last setup step has already run cleanup, which cannot reach a later child.
+  if (interruptedBy) throw new Error(`Interrupted by ${interruptedBy}`)
   const child = spawn('pnpm', ['dev'], {
     cwd: example,
     env: { ...environment, HOST: '127.0.0.1' },
@@ -364,22 +440,48 @@ async function startServer(environment: NodeJS.ProcessEnv): Promise<void> {
   })
   children.add(child)
   if (process.platform !== 'win32' && child.pid) ownedGroups.add(child.pid)
-  const exitPromise = new Promise<{ code: number | null; signal: NodeJS.Signals | null }>(
-    (resolve, reject) => {
-      child.once('error', reject)
-      child.once('exit', (code, signal) => resolve({ code, signal }))
-    }
-  )
+  const exitPromise = new Promise<{
+    code: number | null
+    signal: NodeJS.Signals | null
+    error?: Error
+  }>((resolve) => {
+    abandonChildren.set(child, (error) => {
+      child.unref()
+      children.delete(child)
+      resolve({
+        code: null,
+        signal: null,
+        error: error instanceof Error ? error : new Error(String(error)),
+      })
+    })
+    child.once('error', (error) => resolve({ code: null, signal: null, error }))
+    child.once('exit', (code, signal) => resolve({ code, signal }))
+  })
   let spawnError: NodeJS.ErrnoException | undefined
+  let cleanupError: unknown
   child.once('error', (error) => {
     spawnError = error
     children.delete(child)
   })
-  child.once('exit', () => {
+  const exitCleanup = exitPromise.then(async () => {
     children.delete(child)
-    void cleanupProcessGroup(child.pid)
+    abandonChildren.delete(child)
+    try {
+      await cleanupProcessGroup(child.pid)
+    } catch (error) {
+      cleanupError = error
+    }
   })
-  const url = await waitForDemo(Number(environment.PORT), child, () => spawnError)
+  let url: string
+  try {
+    url = await waitForDemo(Number(environment.PORT), child, () => spawnError)
+  } catch (error) {
+    if (spawnError || child.exitCode !== null || child.signalCode !== null) {
+      await exitCleanup
+      throw combineErrors(error, cleanupError === undefined ? [] : [cleanupError])
+    }
+    throw error
+  }
   console.log(`\nDemo ready: ${url}`)
   console.log('Sign in with the fictional local operator account:')
   console.log(`  ${reservedEmails[0]} / ${reservedPasswords[0]}`)
@@ -388,16 +490,27 @@ async function startServer(environment: NodeJS.ProcessEnv): Promise<void> {
   )
   console.log('Press Ctrl+C to stop the demo.')
   const result = await exitPromise
-  if (!interruptedBy && result.code !== 0) throw new Error('The demo server stopped unexpectedly.')
+  await exitCleanup
+  let exitError: Error | undefined
+  if (result.error)
+    exitError = new Error(`Could not start the demo server: ${result.error.message}.`)
+  else if (!interruptedBy && result.code !== 0)
+    exitError = new Error('The demo server stopped unexpectedly.')
+  if (interruptedBy) exitError = new Error(`Interrupted by ${interruptedBy}`)
+  if (exitError || cleanupError !== undefined) {
+    throw combineErrors(exitError, cleanupError === undefined ? [] : [cleanupError])
+  }
 }
 
 async function ensureFiles() {
-  await access(path.join(root, 'pnpm-lock.yaml')).catch(() => {
+  await access(path.join(root, 'pnpm-lock.yaml')).catch((error) => {
+    if (error.code !== 'ENOENT') throw error
     throw new Error(
       'Run this command from a complete repository checkout containing pnpm-lock.yaml.'
     )
   })
-  await access(envExamplePath).catch(() => {
+  await access(envExamplePath).catch((error) => {
+    if (error.code !== 'ENOENT') throw error
     throw new Error(
       `The native-session example is missing its configuration template: ${envExamplePath}`
     )
@@ -458,17 +571,27 @@ if (invokedPath && realpathSync(invokedPath) === realpathSync(fileURLToPath(impo
     process.on(signal, () => {
       if (interruptedBy) return
       interruptedBy = signal
-      cleanupOwnedProcesses().finally(() => {
-        process.exitCode = signal === 'SIGINT' ? 130 : 143
-      })
+      void cleanupOwnedProcesses()
+        .catch((error) => {
+          for (const abandon of abandonChildren.values()) abandon(error)
+          console.error(`Demo cleanup failed: ${describeError(error)}`)
+        })
+        .finally(() => {
+          process.exitCode = signal === 'SIGINT' ? 130 : 143
+        })
     })
   }
 
   runDemo().catch(async (error) => {
-    await cleanupOwnedProcesses()
+    let failure = error
+    try {
+      await cleanupOwnedProcesses()
+    } catch (cleanupError) {
+      failure = combineErrors(error, [cleanupError])
+    }
     if (interruptedBy) process.exitCode = interruptedBy === 'SIGINT' ? 130 : 143
     else {
-      console.error(`Demo setup failed: ${error.message}`)
+      console.error(`Demo setup failed: ${describeError(failure)}`)
       process.exitCode = 1
     }
   })

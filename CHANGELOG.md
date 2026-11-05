@@ -4,6 +4,8 @@
 
 ### Fixed
 
+- Preserve demo, changed-check and consumer cleanup failures, bound owned process cleanup after interruption, and retain complete consumer output and command errors.
+- Attempt PostgreSQL benchmark rollback, schema removal and client shutdown without hiding earlier failures.
 - Report invalid service configuration as a configuration/unavailable diagnostic while preserving the setup exception and field.
 - Preserve invalid-store setup errors from pruning instead of converting them to operational unavailability. Throwing store factories still report unavailability.
 

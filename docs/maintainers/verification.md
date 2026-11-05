@@ -37,6 +37,20 @@ The documentation specs verify exact tracked Markdown paths, heading anchors, na
 links in packed Markdown. The release workflow calls `checks`, `compat`, and `examples` before its local
 [tag, changelog, build, and tarball gate](releasing.md). The docs build remains a separate gate.
 
+## Consumer process cleanup
+
+The packed consumer harness applies a 10-minute timeout to each command. On timeout or the
+first SIGINT/SIGTERM, it sends TERM to the command's owned process group, waits up to five
+seconds, sends KILL if the group remains, and waits up to five more seconds for reap. A second
+signal escalates the active owned group; the first interrupt determines exit status 130 or 143.
+Normal completion also cleans any remaining owned descendants before later work starts.
+
+Interrupted ordinary work does not continue. This run's per-schema drop and locally owned
+PostgreSQL stop remain allowed cleanup. With `CONSUMER_PG_EXTERNAL=1`, the harness leaves the
+externally provided service running. Cleanup and evidence-write failures remain failures;
+a final reap failure reports partial output and releases local handles without claiming the
+process was reaped.
+
 ## Changelog link policy
 
 The default relative-path and heading checks in `tests/docs_links.spec.ts` exclude
