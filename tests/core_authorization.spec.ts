@@ -237,7 +237,14 @@ test('self-targeting, missing and ineligible targets are denied without target e
       kind === 'self' ? 'E_MASQUERADE_INVALID_INPUT' : 'E_MASQUERADE_NOT_ALLOWED'
     )
     assert.isNull(await f.store.read(f.owner))
-    assert.notProperty(f.store.events[0], 'targetId')
+    // A parsed request records the requested target and access, never an inspected incarnation;
+    // self-targeting is invalid input and records neither.
+    if (kind === 'self') assert.notProperty(f.store.events[0], 'targetId')
+    else {
+      assert.equal(f.store.events[0].targetId, 'b')
+      assert.equal(f.store.events[0].access, 'view')
+    }
+    assert.notProperty(f.store.events[0], 'targetIncarnation')
   }
 })
 
