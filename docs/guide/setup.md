@@ -46,22 +46,23 @@ Then add any missing peers and run the configure command:
 
 ```sh
 pnpm add -D @adonisjs/assembler
-pnpm add @adonisjs/lucid
+node ace add @adonisjs/lucid
 node ace configure @kevinjohn/adonisjs-masquerade --namespace=my_app --guard=web
 ```
 
 The scoped `0.1.5` release registers `@kevinjohn/adonisjs-masquerade/masquerade_provider`.
 Replace the previous provider path in existing `adonisrc.ts` entries and provider type imports.
 
-The two install commands are needed only if those dependencies are absent. Configure
-itself does not install packages or run the generated migration.
+The two install commands are needed only if those dependencies are absent; `node ace add` also
+configures Lucid. Configure itself does not install packages or run the generated migration.
 
 Choose a stable namespace for this identity domain and the name of the raw session guard. Configure
-checks the namespace and guard syntax, that `config/auth.ts` exists, and that the assembler code
-transformer and Lucid can be imported. It does not inspect the contents of `config/auth.ts`, check
-the selected guard's driver or provider, or prove that the guard is a native session guard. It adds
+checks the namespace and guard syntax, that `config/auth.ts` and `#models/user` exist, and that
+the assembler code transformer and Lucid can be imported. It reads the shape of `config/auth.ts`
+only to decide whether to wire it, as below; it does not check the selected guard's driver or
+provider. Boot does: the effective guard refuses a raw guard of another driver. It adds
 the package provider, native binding provider, and command loader to `adonisrc.ts`, and creates
-starter files and a migration.
+starter files and a migration in the default connection's first migrations folder.
 
 Configure then wires the host when its files have the AdonisJS starter-kit shape, and prints the
 manual step for anything it leaves alone:
@@ -90,8 +91,8 @@ manual step for anything it leaves alone:
   Public, login/logout, and raw control routes do not read mode status. The host may replace the
   displayed target ID with its own label; the package does not inspect application display fields.
 - **Optional form controller**: pass `--form-controller` to generate the editable
-  `app/controllers/masquerade_form_controller.ts`. Configure wires it to POST start/stop while GET
-  status remains on the package controller. The host controller delegates JSON requests to the
+  `app/controllers/masquerade_form_controller.ts`. Configure routes GET status and POST start/stop
+  to it; status is the inherited package handler. The host controller delegates JSON requests to the
   package controller and handles HTML form posts with typed flashes and host-owned redirects. Use
   `--banner --form-controller` together when the generated banner's Stop form should redirect.
 
@@ -106,11 +107,14 @@ registers the generated native provider, package provider and commands in `adoni
 for you to apply. With `--banner --no-wire`, manually register the generated
 status middleware in `router.use` after `silent_auth_middleware`, then include the Edge component in
 an authenticated layout yourself. If `--form-controller` is also enabled, manually mount its form
-routes in place of the package's start/stop routes while retaining the package status route.
+routes, including its status route.
 
-Generated files fail closed. Review the output and replace every placeholder described below before
-mounting routes. If a generated destination already exists, configure leaves files unchanged and
-reports the conflicts; use `--force` only when you intend to replace those destinations.
+Generated files fail closed. Once configure has wired the auth default, authenticated routes return
+503 until the policy callbacks below are filled in. Review the output and replace every placeholder
+before mounting routes. If a generated destination already exists, including
+`start/masquerade_routes.ts` or `start/masquerade_limiter.ts` when wiring, configure leaves files
+unchanged and reports the conflicts; use `--force` only when you intend to replace those
+destinations. A wiring step that fails also fails the command.
 
 ## Reuse the session user provider
 
@@ -222,10 +226,18 @@ export { nativeAdapter }
 export default defineConfig<User, HttpContext>({
   authority: nativeAdapter.authority,
   policy: {
+    // Never let an operator act as another operator, an administrator or anyone with more
+    // privilege: edit access there lets them grant themselves that privilege.
     canMasquerade: ({ actor, target }) =>
-      actor.user.masqueradeOperator && target.user.active && actor.id !== target.id,
+      actor.user.masqueradeOperator &&
+      !target.user.masqueradeOperator &&
+      target.user.active &&
+      actor.id !== target.id,
     canEdit: ({ actor, target }) =>
-      actor.user.masqueradeOperator && target.user.active && actor.id !== target.id,
+      actor.user.masqueradeOperator &&
+      !target.user.masqueradeOperator &&
+      target.user.active &&
+      actor.id !== target.id,
     // Add canUseRequest only when the application needs a request-local rule.
   },
   // Keep the generated store and retention settings. Enforce only after every

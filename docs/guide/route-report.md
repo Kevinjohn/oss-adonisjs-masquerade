@@ -43,11 +43,15 @@ Account Kit; the remaining registered routes stay covered by the blocker. A host
   ordinary writes in edit mode; it does not grant edit access or target authorization. View mode
   blocks unsafe actions before route configuration is disclosed.
 - `UNCLASSIFIED` means the route has no recognized auth guard metadata. Decide whether it should be
-  public, authenticated with the effective guard, or an intentional raw-guard control.
+  public, authenticated with the effective guard, or an intentional raw-guard control. On such a
+  route the effective guard returns the actor and no mode checks run; see
+  [security](security.md#authorization-and-route-coverage).
 
 The `unresolved handler` flag means a possible controller reference could not be loaded or resolved
 by the report. The `unsupported mixed effective/non-effective guards` flag means one route lists
-both kinds of guard. Resolve either case by inspecting the registered handler and route definition.
+both kinds of guard. The `unsupported distinct effective credential transports` flag means one
+route lists effective guards that wrap different raw guards, such as a session guard and an
+access-token guard; give each route one effective guard. Resolve either case by inspecting the registered handler and route definition.
 
 ## Review procedure
 

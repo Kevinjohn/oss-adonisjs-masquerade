@@ -39,9 +39,10 @@ intent automatically.
 2. **Configure identity and security policy.** Review the generated namespace, guard,
    `incarnation`, `securityStamp`, `isActive`, and store. The default `node ace configure`
    scaffolding requires `@adonisjs/assembler` and `@adonisjs/lucid` to be installed and importable,
-   even when you later choose another store. Configure does not edit auth configuration, routes,
-   or the HTTP kernel. Review conflicts and boot diagnostics rather than forcing generated files
-   over existing application code.
+   even when you later choose another store. On a starter-kit-shaped host, configure also adds
+   the effective guard to `config/auth.ts`, the context middleware to `start/kernel.ts` and the
+   control routes; [setup](setup.md#generate-the-starter-files) lists each edit. Review conflicts
+   and boot diagnostics rather than forcing generated files over existing application code.
 3. **Choose host-owned callbacks.** `canMasquerade` is required and must explicitly authorize the
    actor-target pair at start and on every active admission. Decide what persisted security epoch
    changes invalidate all modes, and how target account-wide eligibility is checked. Add

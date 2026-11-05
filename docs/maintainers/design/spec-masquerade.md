@@ -141,11 +141,12 @@ interface MasqueradeConfig<User, Request> {
   durationSeconds?: number // default 900; integer 60..maxDurationSeconds
   maxDurationSeconds?: number // default 3600; may only narrow
   contextEnforcement: 'report' | 'enforce'
-  retention: { days: number } | 'host-managed'
+  retention: { days: number } | 'host-managed' // days: integer 1..36500
+  reason?: 'optional' | 'required' // default 'optional'
 }
 ```
 
-Boot fails on unknown fields, non-finite or out-of-range durations, a maximum above 3600, missing policy, missing `incarnation`, unsafe namespace, or the memory store outside tests. There is no allow-all scaffold.
+Boot fails on unknown fields, non-finite or out-of-range durations, a maximum above 3600, missing policy, missing `incarnation`, unsafe namespace, the memory store outside tests, or an effective guard whose native driver differs from its raw guard's. There is no allow-all scaffold.
 
 ### 5.2 Service and views
 
@@ -226,11 +227,11 @@ Malformed rows fail closed. A reused ID with a different incarnation is a differ
 
 - Columns: event ID, mode ID when known, namespace, actor ID and incarnation, target ID and incarnation when known, UTC time, kind, outcome code, owner revision, bounded reason for start.
 - Kinds: `started`, `stopped`, `expired`, `invalidated`, `start_denied`, `stop_denied`, `control_noop`. Invalidation codes distinguish actor stamp, target stamp, actor ineligible, target ineligible, policy denied and `operator_stopped`; public responses stay generic.
-- Operator commands (accepted 23 October 2026): `masquerade:status` lists active modes through `activeBatch` without reasons; `masquerade:stop --actor <id> [--incarnation <value>]` or `--all` (confirmed, or `--force`) re-reads each row and CASes it to idle with one `invalidated` event, outcome `operator_stopped`. Like stop and expiry, it never reads security stamps. A conflict re-reads; `--all` stops when a batch makes no progress.
+- Operator commands (accepted 23 October 2026): `masquerade:status` lists active modes through `activeBatch` without reasons; `masquerade:stop --actor <id> [--incarnation <value>]` or `--all` (confirmed, or `--force`) re-reads each row and CASes it to idle with one `invalidated` event, outcome `operator_stopped`. Policy is never called. With `--actor` and no `--incarnation`, the authority loads the account to find the incarnation, which runs the host's stamp and active callbacks; the stored stamps are never compared. A conflict re-reads; `--all` stops when a batch makes no progress.
 - Never persist credentials, cookies, stamps, user objects, request bodies, IP addresses or user agents.
 - Committed transitions write the row update and the event in one transaction. After native authentication, CSRF and the host limiter, each start or stop is inside the control-audit boundary: its denial, input failure, context conflict or idle-stop no-op is written through `recordControlOutcome` without changing revision. A failed outcome write is 503 with no state change.
 - Native authentication failures, limiter rejections, status denials and business or local denials use host diagnostics, not package events.
-- Rate limiting is the host's `@adonisjs/limiter` on the mounted routes, with separate start and stop budgets so an exhausted start budget cannot block recovery. The package ships documentation, not limiter code.
+- Rate limiting is the host's `@adonisjs/limiter` on the mounted routes, with separate start and stop budgets so an exhausted start budget cannot block recovery. Configure generates a host-owned `start/masquerade_limiter.ts`; the package runtime ships no limiter.
 - After commit, the service emits `masquerade:started|stopped|expired|invalidated` through the Adonis emitter and logs through the logger without awaiting. Rejections are caught and routed to the emitter error handler. No deadline, slot cap, abort signal or config hooks. This satisfies PRD FR-30 by never awaiting; delivery is best effort with event IDs for deduplication.
 
 ### 6.3 Store contract

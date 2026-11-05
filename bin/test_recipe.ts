@@ -310,7 +310,7 @@ async function applyRecipe(app: string): Promise<void> {
     )
   )
 
-  await writeHost(app, 'start/masquerade_control_limiter.ts', snippets.controlLimiters)
+  await writeHost(app, 'start/masquerade_limiter.ts', snippets.controlLimiters)
   await cp(
     join(root, 'examples/recipe-host/recipe-assets/masquerade_form_routes.ts.txt'),
     join(app, 'start/masquerade_control_routes.ts')

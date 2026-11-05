@@ -44,6 +44,11 @@ request-local; a false result rejects only that request, leaving the shared mode
 unchanged. This is where tenant- or route-specific restrictions belong. Tenant context is derived
 after the effective identity is resolved, never inherited from the actor.
 
+Refuse targets with the same or more privilege than the actor, such as other operators and
+administrators. The package does not compare roles. An operator in edit mode as an administrator can
+use any administrative route marked `allowMutation()`, for example to grant their own account a
+role, and keeps that privilege after the mode ends.
+
 Modes default to view access. The actor may request edit access when starting, but an
 optional host `canEdit` policy must return exactly `true`; omitting the callback or returning any
 other value never grants edit. `canMasquerade` keeps its existing role and input. For an edit start,
@@ -76,6 +81,18 @@ session or token guard; raw business routes remain coverage defects. Never combi
 guards or fall back between cookie and bearer credentials. Use `masquerade:routes` to find
 raw-guard routes requiring review. Keep public and authentication routes outside effective mode
 admission and ensure they cannot dispatch business behavior.
+
+Route selection reads the named `auth` router middleware. A route authenticated another way, such
+as through middleware with a different name or a handler calling `auth.authenticate()` with no
+route middleware, is `UNCLASSIFIED`. There the effective guard falls back to the raw guard and
+returns the actor, `masqueradeContext` does not run, and audit fields and Edge status describe the
+actor. Business work on such a route runs as the operator, not the target. Mount every business
+route with `middleware.auth({ guards: [...] })` naming the effective guard, and resolve each
+`UNCLASSIFIED` entry in [route coverage review](route-report.md).
+
+The effective guards refuse an active-mode identity with 503 unless `masqueradeContext` ran for the
+request, so a missing middleware, or one registered with `server.use` where no route is known yet,
+fails closed instead of skipping view-only, `sensitive()` and context checks.
 
 If native session authentication fails, `check()` returns `false`; calling `getUserOrFail()` after
 that failed attempt raises the native session unauthorized error. Masquerade admission errors still
@@ -185,6 +202,12 @@ up `errors.<code>` through the request's i18n instance when present, while the h
 presentation. The handler keeps the generic JSON envelope and status with `Cache-Control: no-store`.
 The package ships no translation catalog or loader.
 
+While masquerading, the operator's browser renders the target's content on the application's
+origin with the operator's own cookies. A stored script the target could inject, which would
+otherwise reach only that customer, now runs as the operator: it can read the context and CSRF
+tokens and call the operator's raw-guard routes, including start and stop for other targets. Escape
+target-controlled content and set a Content Security Policy before giving operators access.
+
 ## Jobs, external effects and audit
 
 A request admitted before stop or expiry may finish. Masquerade cannot undo work already admitted,
@@ -195,7 +218,8 @@ Irreversible actions need host transaction-time guards where appropriate.
 
 Committed starts, stops, expiry and global invalidation have durable audit events. After native
 authentication, CSRF and the control limiter succeed, admitted start/stop denials, invalid controls,
-context conflicts and idle-stop no-ops are also recorded when the store is available. Authentication
+context conflicts and idle-stop no-ops are also recorded when the store is available. A start
+denial records the requested target ID and access, never an incarnation the authority returned. Authentication
 failures, pre-boundary CSRF/limiter rejections, status/business denials and local tenant denials use
 host diagnostics instead. A successful start audit stores its normalized reason, or none when the reason policy is optional
 and no reason was given. Set `reason: 'required'` when compliance needs a justification for every
@@ -238,8 +262,9 @@ WHERE authority_namespace = ?
 -- Apply your approved retention policy to masquerade_events separately.
 ```
 
-Lucid supports SQLite and PostgreSQL through an optional subpath. If native cleanup fails after a
-failed `COMMIT`, the store fails closed and shuts down its shared Lucid write pool rather than
+Lucid supports SQLite and PostgreSQL through an optional subpath. On PostgreSQL, a failed `ROLLBACK`
+retires only that connection, because the server discards the transaction with its session. On
+SQLite, if native cleanup fails after a failed `COMMIT`, the store fails closed and shuts down its shared Lucid write pool rather than
 returning a connection with uncertain transaction state. This can also fail unrelated application
 queries using that pool. After the host reconnects or restarts, create a new store adapter; do not
 reuse the retired connection. The adapter rejects externally managed pools because it cannot

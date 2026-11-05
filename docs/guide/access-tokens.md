@@ -1,6 +1,6 @@
 # Opaque access-token transport
 
-V1.1 can authenticate an integrated request with an AdonisJS Auth 10 opaque access token. The
+Masquerade can authenticate an integrated request with an AdonisJS Auth 10 opaque access token. The
 native token guard still validates the bearer credential and exposes the actor's
 `currentAccessToken`. Masquerade checks that token's configured ability before reading or changing
 the account mode. The same account authority and mode row serve native sessions and tokens. A

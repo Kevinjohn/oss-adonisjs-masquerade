@@ -98,7 +98,8 @@ gitignored `plans/` directory; do not commit them.
 
 A control store for another database is a useful first contribution. The conformance suite in
 `@kevinjohn/adonisjs-masquerade/testing` checks a store against the behavior of the Lucid store, including
-compare-and-swap behavior with concurrent connections.
+compare-and-swap behavior with concurrent calls on one store instance; races across independent
+connections need their own tests.
 
 ## Code of conduct
 
