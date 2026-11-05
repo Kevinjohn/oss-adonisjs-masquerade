@@ -98,3 +98,20 @@ test('expiry batches are bounded snapshots and event pruning never deletes mode 
   assert.equal(await f.store.pruneEvents({ before: '2027-01-01T00:00:00.000Z', limit: 1 }), 1)
   assert.equal((await f.store.read(f.owner))!.revision, 1)
 })
+
+test('memory CAS rejects a malformed row as the Lucid store does', async ({ assert }) => {
+  const f = fixture()
+  await f.start(await f.create())
+  const row = (await f.store.read(f.owner))!
+  const event = f.store.events[0] as TransitionEvent
+  for (const change of [{ state: 'bogus' }, { revisionNonce: 'x' }])
+    await assert.rejects(() =>
+      f.store.compareAndSet({
+        owner: f.owner,
+        expected: 1,
+        next: { ...row, revision: 2, ...change } as never,
+        event: { ...event, id: row.lastTransitionId, revision: 2 },
+      })
+    )
+  assert.deepEqual(await f.store.read(f.owner), row)
+})
