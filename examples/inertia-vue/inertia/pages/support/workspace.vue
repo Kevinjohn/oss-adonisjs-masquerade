@@ -25,7 +25,7 @@ const props = defineProps<{
   beforeDeadline: boolean
   targetAvailable: boolean
 }>()
-const { ready } = useWorkspaceFreshness(props.mode, props.beforeDeadline)
+const { ready, failed } = useWorkspaceFreshness(props.mode, props.beforeDeadline)
 </script>
 
 <template>
@@ -51,14 +51,18 @@ const { ready } = useWorkspaceFreshness(props.mode, props.beforeDeadline)
     />
     <section v-if="mode.isMasquerading" class="panel">
       <h2>Current support session</h2>
-      <p v-if="!ready" data-workspace-identity-pending role="status">
+      <p v-if="!ready && !failed && beforeDeadline" data-workspace-identity-pending role="status">
         Checking current support access. Customer details stay hidden until the current account mode
         is confirmed.
+      </p>
+      <p v-else-if="!ready && beforeDeadline" data-workspace-identity-failed role="alert">
+        Current support access could not be confirmed. Customer details stay hidden. Check current
+        status or stop support mode here.
       </p>
       <p v-else-if="targetAvailable && target && beforeDeadline" data-workspace-identity="current">
         Viewing {{ target.fullName }} ({{ target.email }}).
       </p>
-      <p v-else role="alert">
+      <p v-else data-workspace-identity-blocked role="alert">
         The customer is no longer available. Customer pages are blocked. You can stop support mode
         here.
       </p>
