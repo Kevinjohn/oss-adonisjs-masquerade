@@ -1,6 +1,6 @@
 import { execFileSync, spawn, type ChildProcess } from 'node:child_process'
 import { createHash, randomUUID } from 'node:crypto'
-import { cp, mkdir, mkdtemp, readdir, readFile, writeFile } from 'node:fs/promises'
+import { cp, mkdir, mkdtemp, readdir, readFile, rm, writeFile } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { join, relative, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
@@ -54,6 +54,8 @@ const output = resolve(
   process.env.ACCOUNT_KIT_EVIDENCE_DIR ?? (await mkdtemp(join(tmpdir(), 'masquerade-account-kit-')))
 )
 const logs = join(output, 'logs')
+// Installed apps and kit sources; a passing run removes them and keeps the evidence and logs.
+const installed: string[] = []
 await mkdir(logs, { recursive: true })
 const evidence: Record<string, unknown> = {
   mode: source ? 'local-source' : 'release-artifact',
@@ -217,6 +219,7 @@ try {
     evidence.localSourceDirtyIgnored = dirty.length > 0
     evidence.localSourceRequestedRevision = selectedRevision
     const kitCopy = join(output, 'kit-source')
+    installed.push(kitCopy)
     await mkdir(kitCopy)
     const archive = join(output, 'account-kit-source.tar')
     execFileSync('git', ['-C', checkout, 'archive', '--format=tar', '--output', archive, head])
@@ -345,6 +348,7 @@ try {
           : [sessionManagement]) {
           const label = `${selectedProfile}_${selectedDb}_${selectedStrategy}_${selectedManagement}`
           const app = join(output, label)
+          installed.push(app)
           await cp(template, app, {
             recursive: true,
             filter: (path) =>
@@ -698,5 +702,7 @@ try {
     process.exitCode = 1
   }
   await writeFile(join(output, 'evidence.json'), JSON.stringify(evidence, null, 2) + '\n')
+  if (!process.exitCode)
+    for (const directory of installed) await rm(directory, { recursive: true, force: true })
   console.log(`[account-kit] Evidence: ${join(output, 'evidence.json')}`)
 }

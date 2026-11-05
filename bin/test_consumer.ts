@@ -179,6 +179,8 @@ async function schema(cwd: string, name: string, action: 'create' | 'drop') {
   )
 }
 
+// Each profile installs a full app; a passing run removes them, a failing run keeps them to inspect.
+const consumerApps: string[] = []
 try {
   for (const selected of profile === 'all' ? ['floor', 'latest'] : [profile]) {
     const versions: Record<string, string> = { ...floor }
@@ -194,6 +196,7 @@ try {
         versions[name] = selectRegistryVersion(name, listed)
       }
     const app = await mkdtemp(join(tmpdir(), `masquerade_consumer_${selected}_`))
+    consumerApps.push(app)
     console.log(`[consumer] isolated ${selected} app: ${app}`)
     await cp(join(root, 'examples/native-session'), app, {
       recursive: true,
@@ -420,6 +423,8 @@ if (process.exitCode === undefined) {
     }
   }
 }
+if (process.exitCode === undefined)
+  for (const app of consumerApps) await rm(app, { recursive: true, force: true })
 if (process.exitCode === undefined) {
   console.log(
     `[consumer] Complete: ${args.has('scaffold-only') ? directory : join(directory, 'results.json')}`
