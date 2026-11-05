@@ -241,14 +241,10 @@ export default class SupportController {
         </select>
         <label for="reason">Reason (optional)</label>
         <input id="reason" name="reason" maxlength="500" />
-        <label>
-          <input type="radio" name="access" value="view" checked />
-           View only
-        </label>
-        <label>
-          <input type="radio" name="access" value="edit" />
-           Can edit
-        </label>
+        <input id="access-view" type="radio" name="access" value="view" checked />
+        <label for="access-view">View only</label>
+        <input id="access-edit" type="radio" name="access" value="edit" />
+        <label for="access-edit">Can edit</label>
         <button type="submit" class="btn btn--primary">Start support mode</button>
       @end
     @else
