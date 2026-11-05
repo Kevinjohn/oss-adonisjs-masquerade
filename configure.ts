@@ -1,5 +1,5 @@
 import type Configure from '@adonisjs/core/commands/configure'
-import { access, readdir } from 'node:fs/promises'
+import { access, readFile, readdir } from 'node:fs/promises'
 import { wireHost } from './src/configure_wiring.js'
 
 const fileDestinations = [
@@ -47,12 +47,13 @@ export async function configure(command: Configure): Promise<void> {
   }
 
   // Every generated provider, config and limiter imports the starter kits' user model.
+  const userModel = await userModelPath(command)
   if (
-    !(await fileExists(command.app.makePath('app/models/user.ts'))) &&
-    !(await fileExists(command.app.makePath('app/models/user.js')))
+    !(await fileExists(command.app.makePath(`${userModel}.ts`))) &&
+    !(await fileExists(command.app.makePath(`${userModel}.js`)))
   ) {
     command.logger.error(
-      'The generated files import the user model from #models/user, but app/models/user.ts was not found. Add the model there, as the AdonisJS starter kits do, then rerun this command.'
+      `The generated files import the user model from #models/user, but ${userModel}.ts was not found. Add the model there, as the AdonisJS starter kits do, then rerun this command.`
     )
     command.exitCode = 1
     return
@@ -293,6 +294,21 @@ async function migrationsFolder(command: Configure): Promise<string> {
     ? paths.find((path): path is string => typeof path === 'string' && path.length > 0)
     : undefined
   return folder ? folder.replace(/^\.\//, '').replace(/\/+$/, '') : 'database/migrations'
+}
+
+/** Where the host's `#models/*` import maps `#models/user`, without an extension. */
+async function userModelPath(command: Configure): Promise<string> {
+  let target: unknown
+  try {
+    const manifest = JSON.parse(await readFile(command.app.makePath('package.json'), 'utf8'))
+    target = manifest?.imports?.['#models/*']
+  } catch {}
+  return typeof target === 'string' && target.includes('*')
+    ? target
+        .replace('*', 'user')
+        .replace(/^\.\//, '')
+        .replace(/\.[cm]?[jt]s$/, '')
+    : 'app/models/user'
 }
 
 async function databaseConfig(command: Configure): Promise<DatabaseConfig | undefined> {

@@ -359,6 +359,24 @@ test.group('Masquerade configure scaffold', (group) => {
     }
   })
 
+  test('finds the user model through the host #models import map', async ({ assert }) => {
+    const f = await configureFixture()
+    try {
+      await rm(join(f.root, 'app/models/user.ts'))
+      await mkdir(join(f.root, 'src/models'), { recursive: true })
+      await writeFile(join(f.root, 'src/models/user.ts'), 'export default class User {}')
+      await writeFile(
+        join(f.root, 'package.json'),
+        JSON.stringify({ imports: { '#models/*': './src/models/*.js' } })
+      )
+      const configured = f.command({ namespace: 'support', guard: 'web' })
+      await configure(configured as never)
+      assert.equal(configured.exitCode, 0, configured.errors.join('\n'))
+    } finally {
+      await f.dispose()
+    }
+  })
+
   test('writes the migration into the Lucid connection migrations folder', async ({ assert }) => {
     const f = await configureFixture()
     try {
