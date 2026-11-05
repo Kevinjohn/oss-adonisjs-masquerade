@@ -7,6 +7,8 @@ import { chmod, mkdtemp, mkdir, readFile, rm, symlink, writeFile } from 'node:fs
 import os from 'node:os'
 import path from 'node:path'
 import { test } from '@japa/runner'
+import { collectExit, waitForFile } from '../helpers/child_process.js'
+import { freePort } from '../helpers/free_port.js'
 import { fileURLToPath } from 'node:url'
 import { assertNodeVersion } from '../../bin/demo.js'
 
@@ -20,19 +22,6 @@ test('requires Node 24 before demo setup', () => {
   assert.throws(() => assertNodeVersion('23.11.0'), /requires Node\.js 24;/)
   assert.throws(() => assertNodeVersion('unknown'), /requires Node\.js 24;/)
 }).timeout(30_000)
-
-async function freePort(): Promise<number> {
-  const server = createServer()
-  await new Promise<void>((resolve, reject) =>
-    server.listen(0, '127.0.0.1', resolve).once('error', reject)
-  )
-  const address = server.address()
-  if (!address || typeof address === 'string') throw new Error('Expected a TCP port address')
-  await new Promise<void>((resolve, reject) =>
-    server.close((error) => (error ? reject(error) : resolve()))
-  )
-  return address.port
-}
 
 type FixtureOptions = {
   port?: number
@@ -276,25 +265,6 @@ async function outputOf(child: ChildProcess): Promise<{ text: () => string }> {
   child.stdout!.setEncoding('utf8').on('data', capture)
   child.stderr!.setEncoding('utf8').on('data', capture)
   return { text: () => output }
-}
-
-async function collectExit(
-  child: ChildProcess,
-  output: { text: () => string }
-): Promise<{ code: number | null; signal: NodeJS.Signals | null; text: string }> {
-  const [code, signal] = (await once(child, 'exit')) as [number | null, NodeJS.Signals | null]
-  return { code, signal, text: output.text() }
-}
-
-async function waitForFile(filePath: string, timeoutMs = 5000): Promise<string> {
-  const deadline = Date.now() + timeoutMs
-  while (Date.now() < deadline) {
-    try {
-      return await readFile(filePath, 'utf8')
-    } catch {}
-    await new Promise((resolve) => setTimeout(resolve, 20))
-  }
-  throw new Error(`Timed out waiting for ${filePath}`)
 }
 
 async function waitForText(

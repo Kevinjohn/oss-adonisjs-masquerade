@@ -5,6 +5,7 @@ import { mkdtemp, mkdir, readFile, readdir, rm, symlink, writeFile } from 'node:
 import os from 'node:os'
 import path from 'node:path'
 import { test } from '@japa/runner'
+import { isAlive, outputOf } from '../helpers/child_process.js'
 import { fileURLToPath } from 'node:url'
 import {
   ConsumerCommandError,
@@ -226,13 +227,6 @@ function launch(f: Fixture, database: 'sqlite' | 'pg'): ChildProcess {
   )
 }
 
-async function outputOf(child: ChildProcess): Promise<{ text: () => string }> {
-  let output = ''
-  child.stdout!.setEncoding('utf8').on('data', (chunk: string) => (output += chunk))
-  child.stderr!.setEncoding('utf8').on('data', (chunk: string) => (output += chunk))
-  return { text: () => output }
-}
-
 async function collectClose(
   child: ChildProcess,
   output: { text: () => string }
@@ -263,21 +257,6 @@ async function waitForFixtureWorker(f: Fixture, output?: { text: () => string })
     throw new Error(
       `${error instanceof Error ? error.message : String(error)}\nCLI output:\n${output?.text() ?? ''}\ncommand log:\n${commands}\nrunner log:\n${commandLog}`
     )
-  }
-}
-
-async function isAlive(pid: number): Promise<boolean> {
-  try {
-    const stat = await readFile(`/proc/${pid}/stat`, 'utf8')
-    const state = stat.slice(stat.lastIndexOf(')') + 2, stat.lastIndexOf(')') + 3)
-    return state !== 'Z'
-  } catch {
-    try {
-      process.kill(pid, 0)
-      return true
-    } catch (error) {
-      return (error as NodeJS.ErrnoException).code !== 'ESRCH'
-    }
   }
 }
 

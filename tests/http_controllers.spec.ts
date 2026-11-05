@@ -1,4 +1,5 @@
 import { test } from '@japa/runner'
+import { handleWithDefaultExceptionHandler } from './helpers/exception_handler.js'
 import { IncomingMessage } from 'node:http'
 import { Socket } from 'node:net'
 import type { HttpContext } from '@adonisjs/core/http'
@@ -425,15 +426,3 @@ test.group('masquerade HTTP boundary', () => {
     assert.equal(f.store.events[1].kind, 'stop_denied')
   })
 })
-
-async function handleWithDefaultExceptionHandler(
-  ctx: Parameters<MasqueradeController['start']>[0],
-  operation: () => Promise<void>
-): Promise<void> {
-  try {
-    await operation()
-  } catch (error) {
-    if (!(error instanceof MasqueradeError)) throw error
-    error.handle(error, ctx)
-  }
-}

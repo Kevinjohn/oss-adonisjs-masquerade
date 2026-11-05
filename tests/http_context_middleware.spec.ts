@@ -2,6 +2,7 @@
 // Admission values go to request_admission.spec.ts, route markers to route_metadata.spec.ts.
 // Fixtures: fixture() in tests/helpers/core.ts, requestContext() in tests/helpers/http_context.ts.
 import { test } from '@japa/runner'
+import { handleWithDefaultExceptionHandler } from './helpers/exception_handler.js'
 import { fixture } from './helpers/core.js'
 import { requestContext } from './helpers/http_context.js'
 import { errors } from '@adonisjs/auth'
@@ -430,18 +431,6 @@ test.group('masquerade HTTP boundary', () => {
     assert.equal(responseState.status, 403)
   })
 })
-
-async function handleWithDefaultExceptionHandler(
-  ctx: Parameters<typeof masqueradeContext>[0],
-  operation: () => Promise<void>
-): Promise<void> {
-  try {
-    await operation()
-  } catch (error) {
-    if (!(error instanceof MasqueradeError)) throw error
-    error.handle(error, ctx)
-  }
-}
 
 function responseBlockedBy(response: unknown): MasqueradeBlockedBy | undefined {
   const items = (response as { errors?: { blockedBy?: MasqueradeBlockedBy }[] } | undefined)?.errors
