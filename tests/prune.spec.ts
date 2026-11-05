@@ -295,6 +295,35 @@ test.group('pruneMasquerade', () => {
     ])
   })
 
+  test('a row that blocks expiry does not block event retention', async ({ assert }) => {
+    const f = fixture()
+    f.config.retention = { days: 1 }
+    const service = await f.create()
+    await f.start(service)
+    f.state.now += 2 * 86_400_000
+    f.store.expiredBatch = async () => {
+      throw new Error('malformed row')
+    }
+    assert.equal(
+      await errorCode(() => pruneMasquerade(f.config, f.dependencies)),
+      'E_MASQUERADE_UNAVAILABLE'
+    )
+    assert.lengthOf(f.store.events, 0)
+  })
+
+  test('refuses a clock beyond year 9999, where instants no longer compare as text', async ({
+    assert,
+  }) => {
+    const f = fixture()
+    await f.create()
+    assert.equal(
+      await errorCode(() =>
+        pruneMasquerade(f.config, f.dependencies, { now: new Date('+010000-01-01T00:00:00Z') })
+      ),
+      'E_MASQUERADE_UNAVAILABLE'
+    )
+  })
+
   test('revision exhaustion rejects expiry without changing its row or audit', async ({
     assert,
   }) => {

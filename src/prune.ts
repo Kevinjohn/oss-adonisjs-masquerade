@@ -30,6 +30,8 @@ function resolveNow(options: PruneOptions, dependencies: PruneDependencies): Dat
   try {
     const value = options.now ?? (dependencies.clock ?? (() => new Date()))()
     if (!(value instanceof Date) || !Number.isFinite(value.getTime())) throw unavailable()
+    // Instants compare as text, which holds only for four-digit years.
+    if (!/^\d{4}-/.test(value.toISOString())) throw unavailable()
     return new Date(value.getTime())
   } catch {
     throw unavailable()
@@ -37,7 +39,8 @@ function resolveNow(options: PruneOptions, dependencies: PruneDependencies): Dat
 }
 
 /**
- * Process one bounded housekeeping pass. Expiry is re-read and guarded by CAS per owner.
+ * Process one bounded housekeeping pass: event retention, then expiry, which is re-read and
+ * guarded by CAS per owner.
  * Retention applies to every namespace visible through this store; use a scoped store when
  * namespaces need different retention policies.
  */
@@ -59,6 +62,19 @@ export async function pruneMasquerade<User, Request>(
     'pruneEvents',
   ])
 
+  // Event retention runs first, so a row that blocks expiry never blocks retention.
+  let eventsDeleted = 0
+  if (validated.retention !== 'host-managed') {
+    const before = new Date(Date.parse(now) - validated.retention.days * 86_400_000)
+    if (!Number.isFinite(before.getTime())) throw unavailable()
+    try {
+      eventsDeleted = await store.pruneEvents({ before: before.toISOString(), limit: batchSize })
+      if (!Number.isSafeInteger(eventsDeleted) || eventsDeleted < 0 || eventsDeleted > batchSize)
+        throw unavailable()
+    } catch {
+      throw unavailable()
+    }
+  }
   let candidates: ModeRow[]
   try {
     candidates = await store.expiredBatch({ now, limit: batchSize })
@@ -132,17 +148,5 @@ export async function pruneMasquerade<User, Request>(
     expired++
   }
 
-  let eventsDeleted = 0
-  if (validated.retention !== 'host-managed') {
-    const before = new Date(Date.parse(now) - validated.retention.days * 86_400_000)
-    if (!Number.isFinite(before.getTime())) throw unavailable()
-    try {
-      eventsDeleted = await store.pruneEvents({ before: before.toISOString(), limit: batchSize })
-      if (!Number.isSafeInteger(eventsDeleted) || eventsDeleted < 0 || eventsDeleted > batchSize)
-        throw unavailable()
-    } catch {
-      throw unavailable()
-    }
-  }
   return { expired, eventsDeleted }
 }

@@ -11,6 +11,12 @@ for (const [name, value] of Object.entries({
   whitespace: ' \t\n ',
   c0: 'a\u0000b',
   c1: 'a\u0085b',
+  loneSurrogate: 'ok \ud800 x',
+  bidiOverride: 'refund \u202edenied',
+  bidiIsolate: 'a\u2067b',
+  zeroWidthSpace: 'a\u200bb',
+  lineSeparator: 'a\u2028b',
+  byteOrderMark: 'a\ufeffb',
   codepoints: 'a'.repeat(501),
   oversized: 'x'.repeat(10001),
   nonstring: 42,
@@ -42,4 +48,12 @@ test('required reason rejects absent, null and blank input', ({ assert }) => {
   for (const value of [undefined, null, '', ' \t '])
     assert.throws(() => parseStartReason(value, 'required'), 'Invalid masquerade input')
   assert.equal(parseStartReason(' case ', 'required'), 'case')
+})
+
+test('keeps joiners that scripts and emoji need', ({ assert }) => {
+  assert.equal(
+    normalizeReason('\u0645\u06cc\u200c\u062e\u0648\u0627\u0647\u0645'),
+    '\u0645\u06cc\u200c\u062e\u0648\u0627\u0647\u0645'
+  )
+  assert.equal(normalizeReason('team \u{1f469}\u200d\u{1f4bb}'), 'team \u{1f469}\u200d\u{1f4bb}')
 })
