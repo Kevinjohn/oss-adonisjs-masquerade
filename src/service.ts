@@ -63,7 +63,7 @@ export async function createMasqueradeService<User, Request extends object>(
   try {
     validated = defineConfig(config)
   } catch (error) {
-    reportDiagnostic(dependencies, 'configuration', 'validate', 'E_MASQUERADE_INVALID_INPUT')
+    reportDiagnostic(dependencies, 'configuration', 'validate', 'E_MASQUERADE_UNAVAILABLE')
     throw error
   }
   let store: ControlStore

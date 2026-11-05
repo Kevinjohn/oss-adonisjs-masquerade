@@ -6,13 +6,7 @@ import { openControlStore } from './control_store.js'
 import { commitTransition, idleAfterTransition } from './mode_transition.js'
 import { validateRow } from './row_validation.js'
 import type { ObserverDependencies } from './observers.js'
-import type {
-  ActiveModeRow,
-  ControlStore,
-  MasqueradeConfig,
-  ModeRow,
-  TransitionEvent,
-} from './types.js'
+import type { ActiveModeRow, MasqueradeConfig, ModeRow, TransitionEvent } from './types.js'
 
 export const DEFAULT_PRUNE_BATCH_SIZE = 100
 export const MAX_PRUNE_BATCH_SIZE = 1000
@@ -58,17 +52,12 @@ export async function pruneMasquerade<User, Request>(
 
   const now = resolveNow(options, dependencies).toISOString()
   const validated = defineConfig(config)
-  let store: ControlStore
-  try {
-    store = await openControlStore(validated.store, dependencies.environment, [
-      'read',
-      'compareAndSet',
-      'expiredBatch',
-      'pruneEvents',
-    ])
-  } catch {
-    throw unavailable()
-  }
+  const store = await openControlStore(validated.store, dependencies.environment, [
+    'read',
+    'compareAndSet',
+    'expiredBatch',
+    'pruneEvents',
+  ])
 
   let candidates: ModeRow[]
   try {

@@ -1,6 +1,7 @@
 import { test } from '@japa/runner'
 import { pruneMasquerade } from '../src/prune.js'
 import { createMasqueradeService } from '../src/service.js'
+import { MasqueradeSetupError } from '../src/errors.js'
 import { fixture, errorCode } from './helpers/core.js'
 
 test("prune expiry event carries the row's access", async ({ assert }) => {
@@ -23,6 +24,41 @@ test("prune expiry event carries the row's access", async ({ assert }) => {
 })
 
 test.group('pruneMasquerade', () => {
+  test('preserves a missing resolved store as a setup error', async ({ assert }) => {
+    const f = fixture()
+    const error = await pruneMasquerade(
+      { ...f.config, store: async () => null as never },
+      f.dependencies
+    ).catch((caught: unknown) => caught)
+    assert.instanceOf(error, MasqueradeSetupError)
+    assert.equal((error as MasqueradeSetupError).code, 'E_MASQUERADE_INVALID_STORE')
+    assert.equal((error as MasqueradeSetupError).field, 'store')
+  })
+
+  test('preserves a missing store capability as a setup error', async ({ assert }) => {
+    const f = fixture()
+    f.store.expiredBatch = undefined as never
+    const error = await pruneMasquerade(f.config, f.dependencies).catch((caught: unknown) => caught)
+    assert.instanceOf(error, MasqueradeSetupError)
+    assert.equal((error as MasqueradeSetupError).code, 'E_MASQUERADE_INVALID_STORE')
+    assert.equal((error as MasqueradeSetupError).field, 'store.expiredBatch')
+  })
+
+  test('normalizes a throwing store factory as operational unavailability', async ({ assert }) => {
+    const f = fixture()
+    const error = await pruneMasquerade(
+      {
+        ...f.config,
+        store: async () => {
+          throw new Error('store connection failed')
+        },
+      },
+      f.dependencies
+    ).catch((caught: unknown) => caught)
+    assert.notInstanceOf(error, MasqueradeSetupError)
+    assert.equal((error as { code: string }).code, 'E_MASQUERADE_UNAVAILABLE')
+  })
+
   test('expires a still-current expired row and preserves the active audit projection', async ({
     assert,
   }) => {

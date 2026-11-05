@@ -37,12 +37,15 @@ test('invalid service configuration logs a safe diagnostic and preserves startup
 }) => {
   const f = fixture()
   const invalid = { ...f.config, durationSeconds: 0 } as never
-  await assert.rejects(
-    () => createMasqueradeService(invalid, f.dependencies),
-    'Invalid masquerade configuration'
+  const error = await createMasqueradeService(invalid, f.dependencies).catch(
+    (caught: unknown) => caught
   )
+  assert.instanceOf(error, MasqueradeSetupError)
+  assert.equal((error as MasqueradeSetupError).code, 'E_MASQUERADE_INVALID_CONFIGURATION')
+  assert.equal((error as MasqueradeSetupError).field, 'durationSeconds')
+  assert.equal((error as Error).message, 'Invalid masquerade configuration')
   assert.deepEqual(f.diagnostics, [
-    { category: 'configuration', operation: 'validate', code: 'E_MASQUERADE_INVALID_INPUT' },
+    { category: 'configuration', operation: 'validate', code: 'E_MASQUERADE_UNAVAILABLE' },
   ])
 })
 
