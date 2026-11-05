@@ -72,4 +72,13 @@ test.group('masquerading() API client helper', (group) => {
       await client.get('/business').loginAs(target).masquerading(actor, { access: 'view' })
     }, /masquerading\(\) start control returned 403/)
   })
+
+  test('an operator cannot start a mode for another operator', async ({ client, assert }) => {
+    const { actor, target } = await createUsers()
+    target.masqueradeOperator = true
+    await target.save()
+    await assert.rejects(async () => {
+      await client.get('/business').loginAs(actor).masquerading(target, { access: 'view' })
+    }, /masquerading\(\) start control returned 403/)
+  })
 })
