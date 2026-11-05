@@ -353,12 +353,14 @@ test('Account Kit inspection distinguishes denied, missing, mismatched and opera
     await errorCode(() => adapter.authority.inspectAccount('7')),
     'E_MASQUERADE_UNAVAILABLE'
   )
+  // A different canonical account (a coerced "07" for 7, or another ID) is a generic denial, the
+  // same answer as a missing account, so the response does not reveal that account 8 exists.
   inspectedId = 8
   providerId = 8
-  assert.equal(
-    await errorCode(() => adapter.authority.inspectAccount('7')),
-    'E_MASQUERADE_UNAVAILABLE'
-  )
+  assert.isNull(await adapter.authority.inspectAccount('7'))
+  inspectedId = 7
+  providerId = 7
+  assert.isNull(await adapter.authority.inspectAccount('07'))
   failure = new Error('db down')
   await assert.rejects(() => adapter.authority.inspectAccount('7'), /db down/)
 })

@@ -161,7 +161,9 @@ export function accountKitAuthority<User>(
         throw error
       }
       const canonical = canonicalId(snapshot.account.id)
-      if (canonical !== id) throw unavailable()
+      // A database may coerce a non-canonical ID such as "02" to an existing account. Answer with
+      // the generic denial, as for a missing account, so the response does not reveal existence.
+      if (canonical !== id) return null
       const account = await provider.findById(canonical)
       if (!account) return null
       if (canonicalId(account.getId()) !== canonical) throw unavailable()
