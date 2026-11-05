@@ -99,13 +99,18 @@ test.group('masquerade:status and masquerade:stop Ace commands', () => {
   }) => {
     const f = fixture()
     Object.defineProperty(f.store, 'testOnly', { value: false })
-    for (const argv of [
-      ['masquerade:status', '--limit=0'],
-      ['masquerade:prune', '--batch-size=1001'],
-    ]) {
+    for (const [argv, flag] of [
+      [['masquerade:status', '--limit=0'], '--limit'],
+      [['masquerade:prune', '--batch-size=1001'], '--batch-size'],
+    ] as const) {
       const output: string[] = []
-      assert.equal(await ace(f.config, argv, undefined, undefined, output), 1)
-      assert.isTrue(output.some((line) => line.includes('must be an integer from 1 to 1000')))
+      assert.equal(await ace(f.config, [...argv], undefined, undefined, output), 1)
+      const printed = output.join('\n')
+      assert.include(
+        printed,
+        `InvalidArgumentsException: ${flag} must be an integer from 1 to 1000`
+      )
+      assert.notInclude(printed, 'unavailable')
     }
   })
 
