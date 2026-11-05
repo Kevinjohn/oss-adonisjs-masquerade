@@ -7,11 +7,10 @@ type RouteName = keyof typeof routes
 const props = defineProps<{
   route: RouteName
   context: string
-  submitLabel: string
   method?: 'post'
 }>()
 
-// Capture the token at form creation. A later props refresh cannot rebind this intent.
+// Keep the control bound to its rendered token; the server rejects it if that context is stale.
 const originalContext = props.context
 </script>
 

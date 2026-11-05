@@ -24,6 +24,76 @@ test.group('masquerade HTTP boundary', () => {
     assert.equal(responseState.headers.get('cache-control'), 'no-store')
   })
 
+  test('denies non-object start bodies before account lookup and audits each denial', async ({
+    assert,
+  }) => {
+    for (const body of [null, [], 'malformed', 42, false]) {
+      const f = fixture()
+      const service = await f.create()
+      const mode = await service.status({})
+      const { ctx, responseState } = requestContext(f, {
+        body,
+        raw: JSON.stringify(body),
+        hasBody: true,
+        header: mode.contextToken,
+        contentType: 'application/json',
+      })
+
+      await handleWithDefaultExceptionHandler(ctx, () => new MasqueradeController().start(ctx))
+
+      assert.equal(responseState.status, 422)
+      assert.equal(f.store.events.at(-1)?.kind, 'start_denied')
+      assert.equal(f.store.events.at(-1)?.outcomeCode, 'E_MASQUERADE_INVALID_INPUT')
+      assert.equal(f.state.inspectCount, 0)
+    }
+  })
+
+  test('denies a non-string hidden token through core context handling without account lookup', async ({
+    assert,
+  }) => {
+    const f = fixture()
+    const body = {
+      targetId: 'b',
+      reason: 'support',
+      _masqueradeContext: 123,
+      _csrf: 'host-csrf-token',
+    }
+    const { ctx, responseState } = requestContext(f, { body, contentType: 'application/json' })
+
+    await handleWithDefaultExceptionHandler(ctx, () => new MasqueradeController().start(ctx))
+
+    assert.equal(responseState.status, 428)
+    assert.equal(f.store.events.at(-1)?.kind, 'start_denied')
+    assert.equal(f.store.events.at(-1)?.outcomeCode, 'E_MASQUERADE_CONTEXT_REQUIRED')
+    assert.equal(f.state.inspectCount, 0)
+  })
+
+  test('rejects mismatched header and body context tokens before account lookup', async ({
+    assert,
+  }) => {
+    const f = fixture()
+    const service = await f.create()
+    const current = await service.status({})
+    const other = await service.status({ actorId: 'b' })
+    const body = {
+      targetId: 'b',
+      reason: 'support',
+      _masqueradeContext: other.contextToken,
+    }
+    const { ctx, responseState } = requestContext(f, {
+      body,
+      header: current.contextToken,
+      contentType: 'application/json',
+    })
+
+    await handleWithDefaultExceptionHandler(ctx, () => new MasqueradeController().start(ctx))
+
+    assert.equal(responseState.status, 409)
+    assert.equal(f.store.events.at(-1)?.kind, 'start_denied')
+    assert.equal(f.store.events.at(-1)?.outcomeCode, 'E_MASQUERADE_CONTEXT_CHANGED')
+    assert.equal(f.state.inspectCount, 0)
+  })
+
   test('passes control errors to the host handler and keeps a safe default JSON renderer', async ({
     assert,
   }) => {

@@ -49,5 +49,4 @@ export default defineConfig({
     },
   }),
   notify: createLogNotifications({ brandName: 'Consumer fixture', environment: 'development' }),
-  onCredentialsChangedTransaction: async () => {},
 })

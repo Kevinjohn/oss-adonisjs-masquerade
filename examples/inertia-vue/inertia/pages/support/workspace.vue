@@ -70,7 +70,7 @@ const { ready, failed } = useWorkspaceFreshness(props.mode, props.beforeDeadline
         Fixed deadline:
         <time :datetime="mode.expiresAt">{{ new Date(mode.expiresAt).toLocaleString() }}</time>
       </p>
-      <ContextForm route="demo.stop" :context="mode.contextToken" submit-label="Stop support mode">
+      <ContextForm route="demo.stop" :context="mode.contextToken">
         <template #default="{ processing }"
           ><button type="submit" :disabled="processing">Stop support mode</button></template
         >
@@ -83,11 +83,7 @@ const { ready, failed } = useWorkspaceFreshness(props.mode, props.beforeDeadline
     <section v-else class="panel">
       <h2>Start support mode</h2>
       <p v-if="!operator" role="alert">This account cannot start support mode.</p>
-      <ContextForm
-        route="demo.start"
-        :context="mode.contextToken"
-        submit-label="Start support mode"
-      >
+      <ContextForm route="demo.start" :context="mode.contextToken">
         <template #default="{ processing }">
           <label for="customer">Customer</label>
           <select id="customer" name="targetId" required :disabled="!operator || processing">

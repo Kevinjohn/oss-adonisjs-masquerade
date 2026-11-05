@@ -13,7 +13,7 @@ const loggerConfig = defineConfig({
       enabled: true,
       name: env.get('APP_NAME'),
       level: env.get('LOG_LEVEL'),
-      desination: !app.inProduction ? await syncDestination() : undefined,
+      destination: !app.inProduction ? await syncDestination() : undefined,
       transport: {
         targets: [targets.file({ destination: 1 })],
       },

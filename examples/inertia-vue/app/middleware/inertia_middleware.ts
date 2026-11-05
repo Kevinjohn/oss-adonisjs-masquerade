@@ -6,7 +6,7 @@ import type User from '#models/user'
 export default class InertiaMiddleware extends BaseInertiaMiddleware {
   share(ctx: HttpContext) {
     /**
-     * The share method is called everytime an Inertia page is rendered. In
+     * The share method is called every time an Inertia page is rendered. In
      * certain cases, a page may get rendered before the session middleware
      * or the auth middleware are executed. For example: During a 404 request.
      *

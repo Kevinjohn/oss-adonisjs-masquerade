@@ -7,7 +7,7 @@ import type { fixture } from './core.js'
 
 type RequestContextOptions = {
   method?: string
-  body?: Record<string, unknown>
+  body?: unknown
   raw?: string | null
   hasBody?: boolean
   contentType?: string
@@ -55,19 +55,23 @@ export function requestContext(f: ReturnType<typeof fixture>, options: RequestCo
     logger: { warn: (value: unknown) => warnings.push(value) },
     request: {
       method: () => options.method ?? 'POST',
-      body: () => options.body ?? {},
+      body: () => (options.body === undefined ? {} : options.body),
       // Adonis BodyParser stores the actual JSON/form wire body on Request.raw().
       raw: () =>
         options.raw !== undefined
           ? options.raw
-          : options.body && Object.keys(options.body).length > 0
+          : options.body && typeof options.body === 'object' && Object.keys(options.body).length > 0
             ? JSON.stringify(options.body)
             : null,
       hasBody: () =>
         options.hasBody ??
         (options.raw !== null && options.raw !== undefined
           ? options.raw.length > 0
-          : Boolean(options.body && Object.keys(options.body).length > 0)),
+          : Boolean(
+              options.body &&
+              typeof options.body === 'object' &&
+              Object.keys(options.body).length > 0
+            )),
       header: (name: string) => {
         const normalized = name.toLowerCase()
         if (normalized === 'x-masquerade-context') return options.header
@@ -76,7 +80,11 @@ export function requestContext(f: ReturnType<typeof fixture>, options: RequestCo
           if (options.contentLength === null) return undefined
           return (
             options.contentLength ??
-            String(Buffer.byteLength(options.raw ?? JSON.stringify(options.body ?? {})))
+            String(
+              Buffer.byteLength(
+                options.raw ?? JSON.stringify(options.body === undefined ? {} : options.body)
+              )
+            )
           )
         }
         return undefined

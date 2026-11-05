@@ -24,9 +24,11 @@ export function parseStartControl(ctx: HttpContext): StartInput {
   const expectedContext = controlToken(ctx, body)
   const durationSeconds = formDuration(ctx, body.durationSeconds)
   return {
-    targetId: body.targetId,
-    reason: body.reason,
-    ...(body.access === undefined ? {} : { access: body.access }),
+    targetId: body.targetId as unknown as StartInput['targetId'],
+    reason: body.reason as unknown as StartInput['reason'],
+    ...(body.access === undefined
+      ? {}
+      : { access: body.access as unknown as StartInput['access'] }),
     ...(body.durationSeconds === undefined ? {} : { durationSeconds }),
     expectedContext: expectedContext ?? '',
   }
@@ -72,12 +74,12 @@ function formDuration(ctx: HttpContext, value: unknown): StartInput['durationSec
   return Number.isSafeInteger(number) ? number : (value as unknown as StartInput['durationSeconds'])
 }
 
-function readControlBody(ctx: HttpContext): Record<string, any> | null {
+function readControlBody(ctx: HttpContext): Record<string, unknown> | null {
   const body = ctx.request.body()
   return body && typeof body === 'object' && !Array.isArray(body) ? body : null
 }
 
-function controlToken(ctx: HttpContext, body: Record<string, any>): string | undefined {
+function controlToken(ctx: HttpContext, body: Record<string, unknown>): string | undefined {
   const header = ctx.request.header('X-Masquerade-Context')
   const hidden = body._masqueradeContext
   if (header !== undefined && hidden !== undefined && header !== hidden)
