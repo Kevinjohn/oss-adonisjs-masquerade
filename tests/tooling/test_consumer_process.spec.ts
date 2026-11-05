@@ -85,6 +85,7 @@ async function fixture(options: FixtureOptions = {}): Promise<Fixture> {
     '@adonisjs/bouncer': '^4.0.0',
     '@adonisjs/lucid': '^22.4.2',
     '@adonisjs/session': '^8.1.0',
+    '@adonisjs/assembler': '^8.0.0',
     'typescript': '^5.9.3',
   }
   await writeFile(
@@ -110,7 +111,7 @@ async function fixture(options: FixtureOptions = {}): Promise<Fixture> {
       '@adonisjs/vite': '6.0.1',
       '@kevinjohn/adonisjs-masquerade': 'file:./package.tgz',
     },
-    devDependencies: { typescript: '5.9.3' },
+    devDependencies: { '@adonisjs/assembler': '8.0.0', 'typescript': '5.9.3' },
     allowScripts: {},
   }
   await writeFile(path.join(app, 'package.json'), JSON.stringify(appManifest, null, 2))
@@ -147,7 +148,7 @@ if (args[0] === 'install') {
   const manifest = JSON.parse(await readFile('package.json', 'utf8'))
   const packages = { ...manifest.dependencies, ...manifest.devDependencies }
   for (const [name, requested] of Object.entries(packages)) {
-    const versions = { '@adonisjs/core': '7.0.0', '@adonisjs/auth': '10.0.0', '@adonisjs/bouncer': '4.0.0', '@adonisjs/lucid': '22.4.2', '@adonisjs/session': '8.1.0', '@adonisjs/vite': '6.0.1', '@kevinjohn/adonisjs-masquerade': '0.1.5', typescript: '5.9.3' }
+    const versions = { '@adonisjs/core': '7.0.0', '@adonisjs/auth': '10.0.0', '@adonisjs/bouncer': '4.0.0', '@adonisjs/lucid': '22.4.2', '@adonisjs/session': '8.1.0', '@adonisjs/vite': '6.0.1', '@kevinjohn/adonisjs-masquerade': '0.1.5', '@adonisjs/assembler': '8.0.0', typescript: '5.9.3' }
     const packagePath = path.join('node_modules', name, 'package.json')
     await mkdir(path.dirname(packagePath), { recursive: true })
     await writeFile(packagePath, JSON.stringify({ name, version: versions[name] || requested }))
