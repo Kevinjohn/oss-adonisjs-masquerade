@@ -101,7 +101,7 @@ const baseEnv: NodeJS.ProcessEnv = {
   APP_KEY: 'account_kit_consumer_fixture_key_0123456789',
   SESSION_DRIVER: 'database',
   DB_HOST: process.env.DB_HOST ?? '127.0.0.1',
-  DB_PORT: process.env.DB_PORT ?? '55536',
+  DB_PORT: process.env.DB_PORT ?? '55432',
   DB_USER: process.env.DB_USER ?? 'account_kit',
   DB_PASSWORD: process.env.DB_PASSWORD ?? '',
   DB_DATABASE: process.env.DB_DATABASE ?? 'package_test',
@@ -326,6 +326,13 @@ try {
       peerDependencies: Record<string, string>
     }
   ).peerDependencies
+  for (const [name, version] of Object.entries(floor)) {
+    const declaredFloor = peerRanges[name]?.match(/\d+\.\d+\.\d+/)?.[0]
+    if (declaredFloor !== version)
+      throw new Error(
+        `Floor selection mismatch for ${name}: ${version} vs declared ${declaredFloor}`
+      )
+  }
   matrixLoop: for (const selectedProfile of profile === 'all' ? ['floor', 'latest'] : [profile]) {
     const versions = { ...floor }
     if (selectedProfile === 'latest')
@@ -383,7 +390,14 @@ try {
             let schemaAttempted = false
             let primaryError: unknown
             try {
-              await run(app, ['install', '--no-frozen-lockfile'], `${label}_install`, env)
+              const installation = await run(
+                app,
+                ['install', '--no-frozen-lockfile'],
+                `${label}_install`,
+                env
+              )
+              if (/unmet peer|issues with peer dependencies|ERR_PNPM_PEER_DEP/i.test(installation))
+                throw new Error('Account Kit consumer installation reports unmet peers')
               const resolvedKit = JSON.parse(
                 await readFile(
                   join(app, 'node_modules/@kevinjohn/adonisjs-account-kit/package.json'),
@@ -411,6 +425,9 @@ try {
                 masquerade: resolvedMasquerade,
                 resolvedPeers,
               })
+              for (const [name, version] of Object.entries(versions))
+                if (resolvedPeers[name] !== version)
+                  throw new Error(`Expected ${name} ${version}, installed ${resolvedPeers[name]}`)
               if (resolvedKit !== kitReleaseVersion)
                 throw new Error(
                   `Expected Account Kit ${kitReleaseVersion}, installed ${resolvedKit}`

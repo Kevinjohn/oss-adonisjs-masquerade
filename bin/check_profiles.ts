@@ -36,6 +36,9 @@ export const checkProfiles: Record<CheckProfile, CheckStep[]> = {
       script: 'test:account-kit-demo',
       env: { DB_CLIENT: 'sqlite', HOST: '127.0.0.1', PORT: '3398', SESSION_DRIVER: 'database' },
     },
+    // The quick profile has just built the package; install it so the browser suite tests it.
+    { script: 'pack:fixture' },
+    { script: 'install', args: ['--no-frozen-lockfile'], directory: 'examples/native-session' },
     {
       script: 'test:browser',
       directory: 'examples/native-session',

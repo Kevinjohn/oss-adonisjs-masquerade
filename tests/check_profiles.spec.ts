@@ -13,7 +13,10 @@ function scripts(directory = ''): Record<string, string> {
 }
 
 test('every check step names an existing script', ({ assert }) => {
-  const missing = allSteps.filter((step) => !(step.script in scripts(step.directory)))
+  // `pnpm install` is a pnpm command, not a package script.
+  const missing = allSteps.filter(
+    (step) => step.script !== 'install' && !(step.script in scripts(step.directory))
+  )
   assert.deepEqual(missing, [])
 })
 

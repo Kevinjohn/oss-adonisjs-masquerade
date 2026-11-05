@@ -186,6 +186,9 @@ if (process.env.DEMO_TEST_FAIL_AT && command.includes(process.env.DEMO_TEST_FAIL
   }
   process.exit(17)
 }
+if (args[0] === 'install' && process.cwd().endsWith('examples/native-session')) {
+  await writeFile('lock-at-install.yaml', await readFile('pnpm-lock.yaml', 'utf8'))
+}
 if (args[0] === 'pack:fixture') {
   await mkdir(path.join(process.cwd(), 'tmp'), { recursive: true })
   const tarball = path.join(process.cwd(), 'tmp/native-session-package.tgz')
@@ -358,7 +361,9 @@ test('bootstraps a clean checkout, serves its app, and preserves key and unrelat
     assert.match(commands, /migration:run/)
     assert.match(commands, /demo:seed/)
     assert.doesNotMatch(commands, /demo:reset/)
-    const exampleLock = await readFile(path.join(demo.example, 'pnpm-lock.yaml'), 'utf8')
+    const exampleLock = await readFile(path.join(demo.example, 'lock-at-install.yaml'), 'utf8')
+    const trackedLock = await readFile(path.join(demo.example, 'pnpm-lock.yaml'), 'utf8')
+    assert.match(trackedLock, /integrity: sha512-old, tarball:/)
     const expectedIntegrity = createHash('sha512')
       .update(await readFile(path.join(demo.root, 'tmp/native-session-package.tgz')))
       .digest('base64')

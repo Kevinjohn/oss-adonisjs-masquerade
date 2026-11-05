@@ -362,7 +362,8 @@ async function assertPortAvailable(port: number): Promise<void> {
   }
 }
 
-async function refreshLocalTarballIntegrity() {
+/** Point the example lockfile at the fresh tarball; returns the tracked text to restore. */
+async function refreshLocalTarballIntegrity(): Promise<string> {
   const [lockfile, tarball] = await Promise.all([
     readFile(exampleLockPath, 'utf8').catch((error) => {
       if (error.code !== 'ENOENT') throw error
@@ -388,6 +389,7 @@ async function refreshLocalTarballIntegrity() {
   }
   const updated = lockfile.replace(localResolution, `$1${integrity}$2`)
   if (updated !== lockfile) await writeFile(exampleLockPath, updated)
+  return lockfile
 }
 
 async function waitForDemo(
@@ -533,8 +535,13 @@ export async function runDemo() {
   await run(pnpm, ['install', '--frozen-lockfile'])
   await run(pnpm, ['build'])
   await run(pnpm, ['pack:fixture'])
-  await refreshLocalTarballIntegrity()
-  await run(pnpm, ['install', '--frozen-lockfile'], { cwd: example })
+  // The tarball's integrity changes with every build; the tracked lockfile keeps its own.
+  const trackedLockfile = await refreshLocalTarballIntegrity()
+  try {
+    await run(pnpm, ['install', '--frozen-lockfile'], { cwd: example })
+  } finally {
+    await writeFile(exampleLockPath, trackedLockfile)
+  }
 
   if (needsKey) {
     await run(process.execPath, ['ace', 'generate:key'], {

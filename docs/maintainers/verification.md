@@ -22,15 +22,16 @@ rejected. Supporting another version form requires an appropriate version parser
 another local cluster is running. For an existing server, set `DB_CLIENT=pg`, `DB_HOST`,
 `DB_PORT`, `DB_USER`, `DB_PASSWORD`, and `DB_DATABASE`, then run `pnpm quick:test`.
 
-Prepare the native-session example before running the browser profile:
+Install Chromium once before running the browser profile:
 
 ```sh
-pnpm build
-pnpm pack:fixture
-pnpm --dir examples/native-session install --no-frozen-lockfile
 pnpm dlx playwright@1.60.0 install chromium
 pnpm check --browser
 ```
+
+The profile packs the freshly built package and installs it into the native-session example before
+its browser suite, which updates that tarball's integrity in `examples/native-session/pnpm-lock.yaml`.
+Discard that change before committing.
 
 The browser profile exercises the Account Kit demo, native-session browser suite, and Inertia
 React and Vue examples. Run shared application and database fixtures serially; separate checkouts

@@ -240,7 +240,8 @@ async function expectBrokenJourney(
       expectedFailure =
         output.includes(`${label} negative journey failed`) &&
         output.includes(expectedAssertion) &&
-        output.includes('1 failed')
+        // Exactly one failure: '11 failed' must not match.
+        /\b1 failed\b/.test(output)
       if (!expectedFailure) throw error
     }
     if (!expectedFailure) throw new Error(`${label} broken host unexpectedly passed`)
@@ -380,7 +381,7 @@ const baseEnv = {
   LOG_LEVEL: 'error',
   SESSION_DRIVER: 'memory',
   LIMITER_STORE: 'memory',
-  DB_PORT: process.env.DB_PORT ?? '55536',
+  DB_PORT: process.env.DB_PORT ?? '55432',
   DB_HOST: process.env.DB_HOST ?? '127.0.0.1',
   DB_USER: process.env.DB_USER ?? 'account_kit',
   DB_PASSWORD: process.env.DB_PASSWORD ?? '',
