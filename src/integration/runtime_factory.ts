@@ -6,6 +6,7 @@ import { defineConfig } from '../define_config.js'
 import { createMasqueradeService } from '../service.js'
 import { admission } from '../request_admission.js'
 import { activeMode } from '../active_mode.js'
+import { actorIdentity } from '../actor_identity.js'
 import type { RequestAdmission } from '../request_admission.js'
 import type { MasqueradeConfig, ObserverEvent, OwnerKey } from '../types.js'
 import type { NativeRuntimeAdapter } from './native_binding.js'
@@ -156,6 +157,7 @@ export async function createRuntime(
   const internal = service as typeof service & {
     [admission](ctx: HttpContext): Promise<RequestAdmission<unknown>>
     [activeMode](owner: OwnerKey): Promise<boolean>
+    [actorIdentity](ctx: HttpContext): Promise<{ id: string; incarnation: string }>
   }
   return Object.freeze({
     service,
@@ -165,5 +167,6 @@ export async function createRuntime(
     selectGuard,
     admit: (ctx: HttpContext) => internal[admission](ctx),
     activeMode: (owner: OwnerKey) => internal[activeMode](owner),
+    actor: (ctx: HttpContext) => internal[actorIdentity](ctx),
   })
 }

@@ -18,6 +18,7 @@ import {
 } from './mode_transition.js'
 import { admission } from './request_admission.js'
 import { activeMode } from './active_mode.js'
+import { actorIdentity } from './actor_identity.js'
 import { reportDiagnostic } from './observers.js'
 import type { RequestAdmission } from './request_admission.js'
 import type {
@@ -147,6 +148,11 @@ class CoreService<User, Request extends object> implements MasqueradeService<Req
       throw unavailable()
     const row = await this.read(owner)
     return row?.state === 'active' && this.now() < row.expiresAt
+  }
+  /** The authenticated actor alone: no row read, policy call or invalidation. */
+  async [actorIdentity](request: Request): Promise<{ id: string; incarnation: string }> {
+    const actor = await this.actor(request)
+    return { id: actor.id, incarnation: actor.incarnation }
   }
   private event<Kind extends EventKind>(
     owner: OwnerKey,

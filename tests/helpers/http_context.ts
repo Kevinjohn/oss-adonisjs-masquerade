@@ -1,4 +1,5 @@
 import { admission } from '../../src/request_admission.js'
+import { actorIdentity } from '../../src/actor_identity.js'
 import type { RequestAdmission } from '../../src/request_admission.js'
 import type { MasqueradeService } from '../../src/types.js'
 import type { RouteGuardSelection } from '../../src/integration/route_guard_selection.js'
@@ -37,6 +38,7 @@ export function requestContext(f: ReturnType<typeof fixture>, options: RequestCo
     varies: [],
   }
   const warnings: unknown[] = []
+  let servicePromise: ReturnType<typeof f.create> | undefined
   const routeMiddleware = options.routeMiddleware ?? [
     { name: 'auth', args: [{ guards: ['web_effective'] }] },
   ]
@@ -102,32 +104,35 @@ export function requestContext(f: ReturnType<typeof fixture>, options: RequestCo
       },
     },
     containerResolver: {
-      make: async () => ({
-        service: await f.create(),
-        config: f.config,
-        effectiveGuardName: 'web_effective',
-        effectiveGuardNames: ['web_effective', 'web_alias'],
-        selectGuard:
-          options.selectGuard ??
-          ((request: SelectableContext) =>
-            selectRouteGuard(
-              request.route,
-              options.defaultGuard ?? 'web_effective',
-              { web_effective: 'web', web_alias: 'web' },
-              ['web', 'api', 'default'],
-              'web'
-            )),
-        admit: async (request: object) => {
-          const service = await f.create()
-          const fallback = () =>
-            (
-              service as MasqueradeService<object> & {
-                [admission]: (request: object) => Promise<RequestAdmission<unknown>>
-              }
-            )[admission](request)
-          return options.admit ? options.admit(request, fallback) : fallback()
-        },
-      }),
+      make: async () => {
+        // One service per request, as the provider's singleton runtime gives a real request.
+        const service = await (servicePromise ??= f.create())
+        const internal = service as MasqueradeService<object> & {
+          [admission]: (request: object) => Promise<RequestAdmission<unknown>>
+          [actorIdentity]: (request: object) => Promise<{ id: string; incarnation: string }>
+        }
+        return {
+          service,
+          config: f.config,
+          effectiveGuardName: 'web_effective',
+          effectiveGuardNames: ['web_effective', 'web_alias'],
+          selectGuard:
+            options.selectGuard ??
+            ((request: SelectableContext) =>
+              selectRouteGuard(
+                request.route,
+                options.defaultGuard ?? 'web_effective',
+                { web_effective: 'web', web_alias: 'web' },
+                ['web', 'api', 'default'],
+                'web'
+              )),
+          admit: async (request: object) => {
+            const fallback = () => internal[admission](request)
+            return options.admit ? options.admit(request, fallback) : fallback()
+          },
+          actor: (request: object) => internal[actorIdentity](request),
+        }
+      },
     },
   }
   return { ctx: ctx as never, responseState, warnings }
