@@ -76,3 +76,20 @@ test('malformed store rows fail closed across status, controls and admission', a
   )
   assert.isFalse(idle.isMasquerading)
 })
+
+test('an active row longer than the one-hour maximum fails closed', async ({ assert }) => {
+  const f = fixture()
+  await f.start(await f.create())
+  const row = (await f.store.read(f.owner))!
+  if (row.state !== 'active') throw new Error('Expected active')
+  const startedAt = Date.parse(row.startedAt)
+  const at = (offset: number) => new Date(startedAt + offset).toISOString()
+  assert.deepEqual(validateRow({ ...row, expiresAt: at(3_600_000) }, f.owner), {
+    ...row,
+    expiresAt: at(3_600_000),
+  })
+  assert.throws(
+    () => validateRow({ ...row, expiresAt: at(3_600_001) }, f.owner),
+    'Masquerade is unavailable'
+  )
+})

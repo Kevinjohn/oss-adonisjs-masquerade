@@ -68,3 +68,24 @@ test.group('active mode listing', () => {
     )
   })
 })
+
+test('a batch row with an unsafe namespace fails closed in listing and prune', async ({
+  assert,
+}) => {
+  const { pruneMasquerade } = await import('../src/prune.js')
+  const f = fixture()
+  await f.start(await f.create())
+  const row = (await f.store.read(f.owner))!
+  const unsafe = { ...row, namespace: '../other' }
+  f.store.activeBatch = async () => [unsafe]
+  f.store.expiredBatch = async () => [unsafe]
+  f.store.read = async () => unsafe
+  assert.equal(
+    await errorCode(() => listActiveModes(f.config, f.dependencies)),
+    'E_MASQUERADE_UNAVAILABLE'
+  )
+  assert.equal(
+    await errorCode(() => pruneMasquerade(f.config, f.dependencies)),
+    'E_MASQUERADE_UNAVAILABLE'
+  )
+})

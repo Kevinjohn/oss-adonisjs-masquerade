@@ -62,6 +62,29 @@ test.group('operator mode stop', () => {
     assert.equal(row?.state, 'idle')
   })
 
+  test('--all skips a batch candidate whose revision is no longer current', async ({ assert }) => {
+    const f = fixture()
+    await f.start(await f.create())
+    const row = (await f.store.read(f.owner))!
+    f.store.activeBatch = async () => [{ ...row, revision: row.revision + 1 }]
+    assert.deepEqual(await stopActiveModes(f.config, f.dependencies, { all: true }), {
+      stopped: 0,
+    })
+    assert.equal((await f.store.read(f.owner))!.state, 'active')
+  })
+
+  test('--actor refuses an authority answer for a different account', async ({ assert }) => {
+    const f = fixture()
+    await f.start(await f.create())
+    const inspect = f.config.authority.inspectAccount
+    f.config.authority.inspectAccount = async () => inspect('c')
+    assert.equal(
+      await errorCode(() => stopActiveModes(f.config, f.dependencies, { actorId: 'a' })),
+      'E_MASQUERADE_INVALID_INPUT'
+    )
+    assert.equal((await f.store.read(f.owner))!.state, 'active')
+  })
+
   test('a mode at its exact deadline is recorded as expired', async ({ assert }) => {
     const f = fixture()
     const service = await f.create()

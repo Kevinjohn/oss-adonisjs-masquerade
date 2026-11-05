@@ -437,12 +437,36 @@ test.group('Lucid control store', () => {
       await f.cleanup()
     }
   })
+  test('CAS rejects a malformed next row before it reaches the database', async ({ assert }) => {
+    const f = await sqlFixture()
+    try {
+      const a = transition()
+      for (const change of [{ state: 'bogus' }, { revisionNonce: 'x' }])
+        await assert.rejects(
+          () => f.store.compareAndSet({ ...a, next: { ...a.next, ...change } as never }),
+          'Masquerade is unavailable'
+        )
+      assert.isNull(await f.store.read(a.owner))
+      assert.lengthOf(await f.client.from('masquerade_events'), 0)
+    } finally {
+      await f.cleanup()
+    }
+  })
+
   test('requires a supported nontransaction write client and bounded retry settings', async ({
     assert,
   }) => {
     const f = await sqlFixture()
     try {
-      assert.throws(() => new LucidControlStore({ ...f.client, mode: 'read' } as typeof f.client))
+      const surface = (mode: 'read' | 'write' | 'dual') => ({
+        dialect: f.client.dialect,
+        mode,
+        isTransaction: false,
+        knexQuery: () => f.client.knexQuery(),
+        getWriteClient: () => f.client.getWriteClient(),
+      })
+      assert.doesNotThrow(() => new LucidControlStore(surface('write')))
+      assert.throws(() => new LucidControlStore(surface('read')), 'Masquerade is unavailable')
       const tx = await f.client.transaction()
       try {
         assert.throws(() => new LucidControlStore(tx))

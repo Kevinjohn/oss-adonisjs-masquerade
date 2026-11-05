@@ -1,5 +1,5 @@
 import { test } from '@japa/runner'
-import { symbols } from '@adonisjs/auth'
+import { errors, symbols } from '@adonisjs/auth'
 import { tokensGuard } from '@adonisjs/auth/access_tokens'
 import type { AccessTokensUserProviderContract } from '@adonisjs/auth/types/access_tokens'
 import type { GuardContract } from '@adonisjs/auth/types'
@@ -8,6 +8,7 @@ import { EffectiveAccessTokensGuard } from '../auth/effective_access_tokens_guar
 import { effectiveAccessTokensGuard } from '../auth/main.js'
 import { markContextEnforced } from '../src/integration/context_enforcement.js'
 import { errorCode } from './helpers/core.js'
+import { MasqueradeError } from '../src/errors.js'
 
 test('effective token factory preserves nominal users without inferring actor token metadata', ({
   assert,
@@ -115,4 +116,64 @@ test('token facade on a public route authenticates its own token guard, not the 
   const effective = new EffectiveAccessTokensGuard(ctx, raw, 'api')
   assert.deepEqual(await effective.authenticate(), token)
   assert.notInclude(names, 'web')
+})
+
+test('token facade check, getUserOrFail and failure reset match the native token guard', async ({
+  assert,
+}) => {
+  const actor = { id: 'actor', currentAccessToken: { id: 1 } }
+  const target = { id: 'target' }
+  let credential = false
+  let failure: Error | undefined
+  const raw = {
+    [symbols.GUARD_KNOWN_EVENTS]: undefined,
+    driverName: 'access_tokens',
+    authenticate: async () => {
+      if (!credential)
+        throw new errors.E_UNAUTHORIZED_ACCESS('Unauthorized access', {
+          guardDriverName: 'access_tokens',
+        })
+      return actor
+    },
+    authenticateAsClient: async () => ({}),
+  } as unknown as GuardContract<typeof actor>
+  const ctx = {
+    route: { middleware: { all: () => [{ name: 'auth', args: [{ guards: ['api_effective'] }] }] } },
+    auth: { use: () => raw },
+    containerResolver: {
+      make: async () => ({
+        selectGuard: () => ({ kind: 'effective', raw: 'api' }),
+        admit: async () => {
+          if (failure) throw failure
+          await raw.authenticate()
+          return { context: { isMasquerading: true }, effective: { user: target } }
+        },
+      }),
+    },
+  } as unknown as HttpContext
+  markContextEnforced(ctx)
+  const effective = new EffectiveAccessTokensGuard(ctx, raw, 'api')
+  assert.throws(() => effective.getUserOrFail(), 'No effective user is authenticated')
+  assert.isFalse(await effective.check())
+  assert.isTrue(effective.authenticationAttempted)
+  assert.throws(() => effective.getUserOrFail(), 'Unauthorized access')
+  credential = true
+  assert.isTrue(await effective.check())
+  assert.strictEqual(effective.getUserOrFail(), target)
+  failure = new MasqueradeError('E_MASQUERADE_CONTEXT_CHANGED')
+  await assert.rejects(() => effective.check(), 'Masquerade context changed')
+  assert.isUndefined(effective.user)
+  assert.isFalse(effective.isAuthenticated)
+})
+
+test('token facade rejects a raw guard that is not an access_tokens guard', ({ assert }) => {
+  assert.throws(
+    () =>
+      new EffectiveAccessTokensGuard(
+        {} as HttpContext,
+        { driverName: 'session' } as GuardContract<unknown>,
+        'web'
+      ),
+    'Masquerade requires a native access_tokens guard'
+  )
 })

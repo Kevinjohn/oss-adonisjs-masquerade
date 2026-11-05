@@ -35,7 +35,10 @@ test('route selection rejects mixed, ambiguous and unknown explicit guards', ({ 
     ['web', 'api', 'web_effective'],
     ['unknown'],
   ]) {
-    assert.throws(() => selectRouteGuard(route(guards), 'web_effective', effective, ['web', 'api']))
+    assert.throws(
+      () => selectRouteGuard(route(guards), 'web_effective', effective, ['web', 'api']),
+      'Masquerade is unavailable'
+    )
   }
   assert.deepEqual(
     selectRouteGuard(route(['web', 'api']), 'web_effective', effective, ['web', 'api']),

@@ -35,7 +35,7 @@ export class EffectiveAccessTokensGuard<RawUser> implements GuardContract<
     if (this.isAuthenticated && this.user !== undefined) return this.user
     if (!this.authenticationAttempted)
       throw new RuntimeException('No effective user is authenticated')
-    throw new errors.E_UNAUTHORIZED_ACCESS('Invalid or expired access token', {
+    throw new errors.E_UNAUTHORIZED_ACCESS('Unauthorized access', {
       guardDriverName: this.driverName,
     })
   }

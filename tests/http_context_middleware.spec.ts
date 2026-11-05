@@ -92,21 +92,33 @@ test.group('masquerade HTTP boundary', () => {
     assert.equal((warnings[0] as { code: string }).code, 'E_MASQUERADE_CONTEXT_REQUIRED')
   })
 
-  test('reports header and form token disagreement as stale context', async ({ assert }) => {
-    const f = fixture()
-    f.config.contextEnforcement = 'report'
-    const service = await f.create()
-    const mode = await service.status({})
-    const { ctx, warnings } = requestContext(f, {
-      body: { _masqueradeContext: mode.contextToken },
-      header: `1.${'a'.repeat(32)}`,
-    })
-    let continued = false
-    await masqueradeContext(ctx, async () => {
-      continued = true
-    })
-    assert.isTrue(continued)
-    assert.equal((warnings[0] as { code: string }).code, 'E_MASQUERADE_CONTEXT_CHANGED')
+  test('treats a current header with a different form token as stale context', async ({
+    assert,
+  }) => {
+    for (const enforcement of ['report', 'enforce'] as const) {
+      const f = fixture()
+      f.config.contextEnforcement = enforcement
+      const service = await f.create()
+      const mode = await service.status({})
+      // The header alone is current, so only the disagreement can fail this request.
+      const { ctx, warnings, responseState } = requestContext(f, {
+        body: { _masqueradeContext: `1.${'a'.repeat(32)}` },
+        header: mode.contextToken,
+      })
+      let continued = false
+      await handleWithDefaultExceptionHandler(ctx, () =>
+        masqueradeContext(ctx, async () => {
+          continued = true
+        })
+      )
+      if (enforcement === 'report') {
+        assert.isTrue(continued)
+        assert.equal((warnings[0] as { code: string }).code, 'E_MASQUERADE_CONTEXT_CHANGED')
+      } else {
+        assert.isFalse(continued)
+        assert.equal(responseState.status, 409)
+      }
+    }
   })
 
   test('does not apply the control-body limit to covered business requests', async ({ assert }) => {

@@ -78,6 +78,8 @@ test.group('masquerade:status and masquerade:stop Ace commands', () => {
     assert,
   }) => {
     const f = fixture()
+    // The command reads the real clock, so the modes must be live by it.
+    f.state.now = Date.now()
     Object.defineProperty(f.store, 'testOnly', { value: false })
     const service = await f.create()
     await f.start(service)
@@ -88,6 +90,13 @@ test.group('masquerade:status and masquerade:stop Ace commands', () => {
     assert.lengthOf(await f.store.activeBatch({ limit: 10 }), 2)
     assert.notEqual(await ace(f.config, ['masquerade:stop', '--all', '--force']), 1)
     assert.deepEqual(await f.store.activeBatch({ limit: 10 }), [])
+    assert.deepEqual(
+      f.store.events.slice(-2).map((event) => [event.kind, event.outcomeCode]),
+      [
+        ['invalidated', OPERATOR_STOP_OUTCOME],
+        ['invalidated', OPERATOR_STOP_OUTCOME],
+      ]
+    )
   })
 
   test('stop reports an unknown operator account without stopping anything', async ({ assert }) => {
