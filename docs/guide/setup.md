@@ -114,7 +114,7 @@ Generated files fail closed. Once configure has wired the auth default, authenti
 before mounting routes. If a generated destination already exists, including
 `start/masquerade_routes.ts` or `start/masquerade_limiter.ts` when wiring, configure leaves files
 unchanged and reports the conflicts; use `--force` only when you intend to replace those
-destinations. A wiring step that fails also fails the command.
+destinations. A codemod error fails the command; a file whose shape configure does not recognise is left unedited and listed as a manual step.
 
 ## Reuse the session user provider
 

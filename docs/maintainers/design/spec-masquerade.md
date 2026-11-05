@@ -271,17 +271,18 @@ interface ControlStore {
 
 ### 6.4 State transition table
 
-| Current state | Input / condition                                                              | Result                                                                                |
-| ------------- | ------------------------------------------------------------------------------ | ------------------------------------------------------------------------------------- |
-| Absent/idle   | Valid start, matching context, eligible actor and target, `canMasquerade` true | Active; new mode ID, revision and nonce; fixed expiry; one `started` event            |
-| Active        | Any second start, including same target                                        | 409 `E_MASQUERADE_ALREADY_ACTIVE`; no replacement or extension; `start_denied` record |
-| Active        | Valid stop with matching context                                               | Idle; next revision and nonce; clear stamps, target, reason; one `stopped` event      |
-| Idle/absent   | Stop with current context                                                      | 200 idle; no revision change; one `control_noop` record                               |
-| Any           | Mismatching expected context on start or stop                                  | 409 `E_MASQUERADE_CONTEXT_CHANGED`; current winner untouched; denial record           |
-| Active        | Expired, stamp changed, account ineligible or `canMasquerade` false            | CAS to idle; one `expired` or `invalidated` event; triggering business request 409    |
-| Active        | Actor credential invalid, or `canUseRequest` false                             | Reject that request (401 or 403); mode unchanged                                      |
-| Any           | Store unavailable, malformed row, policy or authority throw                    | 503; no handler, no actor fallback                                                    |
-| Any           | Revision at `Number.MAX_SAFE_INTEGER`                                          | Fail closed; controlled migration required; never wrap                                |
+| Current state  | Input / condition                                                              | Result                                                                                |
+| -------------- | ------------------------------------------------------------------------------ | ------------------------------------------------------------------------------------- |
+| Absent/idle    | Valid start, matching context, eligible actor and target, `canMasquerade` true | Active; new mode ID, revision and nonce; fixed expiry; one `started` event            |
+| Active         | Any second start, including same target                                        | 409 `E_MASQUERADE_ALREADY_ACTIVE`; no replacement or extension; `start_denied` record |
+| Active         | Valid stop with matching context                                               | Idle; next revision and nonce; clear stamps, target, reason; one `stopped` event      |
+| Active, lapsed | Valid stop with matching context after `expiresAt`                             | Idle; next revision and nonce; clear stamps, target, reason; one `expired` event      |
+| Idle/absent    | Stop with current context                                                      | 200 idle; no revision change; one `control_noop` record                               |
+| Any            | Mismatching expected context on start or stop                                  | 409 `E_MASQUERADE_CONTEXT_CHANGED`; current winner untouched; denial record           |
+| Active         | Expired, stamp changed, account ineligible or `canMasquerade` false            | CAS to idle; one `expired` or `invalidated` event; triggering business request 409    |
+| Active         | Actor credential invalid, or `canUseRequest` false                             | Reject that request (401 or 403); mode unchanged                                      |
+| Any            | Store unavailable, malformed row, policy or authority throw                    | 503; no handler, no actor fallback                                                    |
+| Any            | Revision at `Number.MAX_SAFE_INTEGER`                                          | Fail closed; controlled migration required; never wrap                                |
 
 ## 7. Algorithms
 
@@ -303,7 +304,7 @@ interface ControlStore {
 
 ### 7.3 Stop, expiry and logout
 
-- Stop authenticates the raw actor guard and does not load the target or evaluate `canMasquerade` or `canUseRequest`. It reads the owner row, verifies the expected context (a stale stop never clears a newer mode), then CASes to idle with one `stopped` event. Repeated stop with the current idle token records `control_noop` and returns idle.
+- Stop authenticates the raw actor guard and does not load the target or evaluate `canMasquerade` or `canUseRequest`. It reads the owner row, verifies the expected context (a stale stop never clears a newer mode), then CASes to idle with one `stopped` event, or one `expired` event when the mode has already lapsed (I06). Repeated stop with the current idle token records `control_noop` and returns idle.
 - Stop works after target deletion, suspension, stamp change or loss of start permission, provided the actor credential is valid.
 - Every admission enforces expiry; the prune command is housekeeping, not the mechanism. Cleanup re-reads and never clears a newer mode.
 - Clock is injectable for tests; deployments need synchronised clocks. A durably ended mode never reactivates on backward clock movement.
