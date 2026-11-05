@@ -37,8 +37,27 @@ const docsInputs = [
   /^(package\.json|pnpm-lock\.yaml|pnpm-workspace\.yaml|tsconfig\.json|typedoc\.json)$/,
 ]
 const dependencyFiles = ['package.json', 'pnpm-lock.yaml', 'pnpm-workspace.yaml']
+// Formatter configuration (and package.json, which pins Prettier) can change any file's format.
+const formatterInputs = [
+  /^\.prettierrc/,
+  /^\.prettierignore$/,
+  /^\.editorconfig$/,
+  /^package\.json$/,
+]
+// Inputs of the browser gates that only pnpm check --browser runs.
+const browserInputs = [
+  /^examples\/(?!recipe-host\/|account-kit\/)/,
+  /^bin\/(demo|demo_account_kit|test_account_kit_demo|test_inertia_[a-z]+)\.ts$/,
+  /^bin\/helpers\/(prepare_)?account_kit_demo[a-z_]*\.ts$/,
+]
+// Inputs of the consumer and Account Kit integration gates that only pnpm check --full runs.
+const fullInputs = [
+  /^(account_kit|native|auth)\//,
+  /^examples\/(native-session|account-kit)\//,
+  /^bin\/(test_consumer|test_account_kit)\.ts$/,
+  /^bin\/helpers\/(consumer_[a-z_]+|registry_version|account_kit_host_wiring)\.ts$/,
+]
 
-const isExample = (path: string) => path.startsWith('examples/')
 const isSpec = (path: string) => /^tests\/.+\.spec\.ts$/.test(path)
 const isTypeScript = (path: string) => /\.[cm]?tsx?$/.test(path)
 const isEslintIgnored = (path: string) => /^(stubs|examples|tmp)\//.test(path)
@@ -66,9 +85,9 @@ export function planChangedChecks(
   const specs = present.filter(isSpec)
   const suite = specs.length < changes.length
   const packageChanged = paths.some((path) => !outsidePackage(path))
-  const examples = paths.filter(
-    (path) => isExample(path) && !path.startsWith('examples/recipe-host/')
-  )
+  const browser = paths.some((path) => browserInputs.some((input) => input.test(path)))
+  const full = paths.some((path) => fullInputs.some((input) => input.test(path)))
+  const formatAll = paths.some((path) => formatterInputs.some((input) => input.test(path)))
 
   const step = (
     when: boolean,
@@ -97,21 +116,18 @@ export function planChangedChecks(
   )
 
   return [
-    step(formattable.length > 0, 'no changed files to format', 'format', [
-      'pnpm',
-      'exec',
-      'prettier',
-      '--check',
-      '--ignore-unknown',
-      '--no-error-on-unmatched-pattern',
-      ...formattable,
-    ]),
-    step(paths.some(isLintable), 'no lintable files changed', 'lint', [
-      'pnpm',
-      'lint',
-      '--max-warnings',
-      '0',
-    ]),
+    formatAll
+      ? { label: 'format', command: ['pnpm', 'format:check'] }
+      : step(formattable.length > 0, 'no changed files to format', 'format', [
+          'pnpm',
+          'exec',
+          'prettier',
+          '--check',
+          '--ignore-unknown',
+          '--no-error-on-unmatched-pattern',
+          ...formattable,
+        ]),
+    step(paths.some(isLintable), 'no lintable files changed', 'lint', ['pnpm', 'lint']),
     step(
       paths.some(
         (path) =>
@@ -161,13 +177,9 @@ export function planChangedChecks(
         requiresCleanTree: true,
       }
     ),
-    ...(examples.length > 0
-      ? [
-          {
-            label: 'example browser suites',
-            skip: 'run pnpm check --browser',
-          },
-        ]
+    ...(browser ? [{ label: 'example browser suites', skip: 'run pnpm check --browser' }] : []),
+    ...(full
+      ? [{ label: 'consumer and Account Kit integration', skip: 'run pnpm check --full' }]
       : []),
   ]
 }

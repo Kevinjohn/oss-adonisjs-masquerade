@@ -1,3 +1,4 @@
+import { readFile } from 'node:fs/promises'
 import { readFileSync } from 'node:fs'
 import { join } from 'node:path'
 import { test } from '@japa/runner'
@@ -123,21 +124,48 @@ test('formats only existing files and leaves the lockfile to pnpm', ({ assert })
   assert.include(commands.format, '--no-error-on-unmatched-pattern')
 })
 
-test('lint allows no warnings and skips files ESLint ignores', ({ assert }) => {
-  assert.deepEqual(ran(planChangedChecks(changed('http/controllers.ts'))).lint, [
-    'pnpm',
-    'lint',
-    '--max-warnings',
-    '0',
-  ])
+test('lint allows no warnings and skips files ESLint ignores', async ({ assert }) => {
+  assert.deepEqual(ran(planChangedChecks(changed('http/controllers.ts'))).lint, ['pnpm', 'lint'])
+  // The repository's own lint script carries the zero-warning limit for every caller.
+  const manifest = JSON.parse(
+    await readFile(new URL('../../package.json', import.meta.url), 'utf8')
+  )
+  assert.include(manifest.scripts.lint, '--max-warnings 0')
   assert.notProperty(ran(planChangedChecks(changed('examples/native-session/app/x.ts'))), 'lint')
 })
 
-test('other example changes note the browser suites', ({ assert }) => {
+test('browser gate inputs note the browser suites', ({ assert }) => {
   const note = { label: 'example browser suites', skip: 'run pnpm check --browser' }
 
-  assert.deepInclude(planChangedChecks(changed('examples/native-session/start/routes.ts')), note)
-  assert.notDeepInclude(planChangedChecks(changed('examples/recipe-host/package.json')), note)
+  for (const path of [
+    'examples/native-session/start/routes.ts',
+    'bin/test_inertia_vue.ts',
+    'bin/test_account_kit_demo.ts',
+    'bin/demo_account_kit.ts',
+    'bin/helpers/account_kit_demo_process.ts',
+    'bin/helpers/prepare_account_kit_demo.ts',
+  ])
+    assert.deepInclude(planChangedChecks(changed(path)), note, path)
+  for (const path of ['examples/recipe-host/package.json', 'examples/account-kit/start/routes.ts'])
+    assert.notDeepInclude(planChangedChecks(changed(path)), note, path)
+})
+
+test('consumer and Account Kit integration inputs note the full profile', ({ assert }) => {
+  const note = { label: 'consumer and Account Kit integration', skip: 'run pnpm check --full' }
+
+  for (const path of [
+    'examples/account-kit/start/routes.ts',
+    'account_kit/main.ts',
+    'bin/test_account_kit.ts',
+    'bin/helpers/registry_version.ts',
+  ])
+    assert.deepInclude(planChangedChecks(changed(path)), note, path)
+  assert.notDeepInclude(planChangedChecks(changed('docs/guide/setup.md')), note)
+})
+
+test('formatter configuration checks the whole tree', ({ assert }) => {
+  for (const path of ['.prettierignore', '.editorconfig', 'package.json'])
+    assert.deepEqual(ran(planChangedChecks(changed(path))).format, ['pnpm', 'format:check'], path)
 })
 
 test('--static names each selected suite in a skip line instead of running it', ({ assert }) => {
