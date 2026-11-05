@@ -25,7 +25,7 @@ jobs:
     # Pull request and scheduled runs start once the repository is public, where hosted minutes
     # are free. Manual and release runs always start.
     if: ${{ github.event_name == 'workflow_dispatch' || !github.event.repository.private }}
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     env:
       DB_CLIENT: better-sqlite3
     steps:
