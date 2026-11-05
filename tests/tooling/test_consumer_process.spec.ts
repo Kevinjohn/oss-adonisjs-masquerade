@@ -354,6 +354,11 @@ test('waits for inherited output after command exit and records the trailing con
   } finally {
     await writeFile(f.releaseReady, 'publish').catch(() => {})
     await writeFile(f.release, 'continue').catch(() => {})
+    const closed = await Promise.race([
+      completion.then(() => true),
+      new Promise<false>((resolve) => setTimeout(resolve, 10_000, false)),
+    ])
+    if (!closed) child.kill('SIGTERM')
     await completion
   }
 }).timeout(30_000)
