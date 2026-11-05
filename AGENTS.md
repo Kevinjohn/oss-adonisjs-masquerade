@@ -18,6 +18,11 @@ The same rules as `CONTRIBUTING.md`; every change follows them.
 
 ## Checks
 
+- `pnpm check` runs formatting, lint, types, SQLite tests, build and built exports.
+- `pnpm check --full` appends PostgreSQL, coverage, the SQLite recipe, docs build, fixture pack,
+  SQLite consumer and the full SQLite Account Kit integration profile.
+- `pnpm check --browser` appends the Account Kit demo, native-session, React and Vue browser
+  gates to quick. Combine `--full --browser` to select both additions; neither implies the other.
 - `pnpm typecheck` — `tsc --noEmit`.
 - `pnpm lint` — `eslint .`.
 - `pnpm format` — `prettier --write .`.

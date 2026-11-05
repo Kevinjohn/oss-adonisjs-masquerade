@@ -36,3 +36,16 @@ For documentation changes, `pnpm docs:build` checks the VitePress site and gener
 The documentation specs verify exact tracked Markdown paths, heading anchors, navigation, and
 links in packed Markdown. The release workflow calls `checks`, `compat`, and `examples` before its local
 [tag, changelog, build, and tarball gate](releasing.md). The docs build remains a separate gate.
+
+## Changelog link policy
+
+The default relative-path and heading checks in `tests/docs_links.spec.ts` exclude
+`CHANGELOG.md`, because historical relative destinations can age out. The separate check of
+GitHub links into this repository's `main` tree still includes the changelog. These checks do
+not fetch external URLs.
+
+Preserve dated release prose and external artifact URLs. Review changed current-relative
+changelog links against their actual destinations and headings; correct a proven broken link,
+or use an immutable historical source when its artifact was intentionally removed. Run
+`pnpm quick:test --files=docs_links.spec.ts` for the applicable checked links, without claiming
+it validates the excluded relative changelog links.

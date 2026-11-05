@@ -7,6 +7,8 @@ package archive.
 - [Source map](source-map.md): task-oriented module and test navigation.
 - [Conventions](conventions.md): repository layout, toolchain and release practices.
 - [Verification](verification.md): local documentation and release checks.
+- [Releasing](releasing.md): current release procedure, including versioned documentation and
+  pinned artifact references.
 - [Expiry scan measurement](expiry-scan-measurement.md): disposable SQLite and PostgreSQL 16 query plans and timings.
 - [Design records](design/): accepted product and technical contracts.
 - [Clean self-setup validation](adoption-validation/README.md): clean demo, fresh-host and
