@@ -325,7 +325,7 @@ interface ControlStore {
 
 | HTTP | Code                            | Meaning                                                                           |
 | ---- | ------------------------------- | --------------------------------------------------------------------------------- |
-| 401  | `E_MASQUERADE_UNAUTHENTICATED`  | Actor credential or account access invalid                                        |
+| 401  | `E_UNAUTHORIZED_ACCESS` (host)  | Native actor authentication is missing; host negotiation may redirect instead     |
 | 403  | `E_MASQUERADE_NOT_ALLOWED`      | Policy or eligibility denial; no target disclosure                                |
 | 403  | `E_MASQUERADE_ACTION_BLOCKED`   | Sensitive route or mutation denied while active; §14 supplies `blockedBy`         |
 | 409  | `E_MASQUERADE_ALREADY_ACTIVE`   | Cannot nest, replace or renew                                                     |
@@ -333,6 +333,12 @@ interface ControlStore {
 | 422  | `E_MASQUERADE_INVALID_INPUT`    | Invalid control input or self-target                                              |
 | 428  | `E_MASQUERADE_CONTEXT_REQUIRED` | Covered unsafe request lacks a token                                              |
 | 503  | `E_MASQUERADE_UNAVAILABLE`      | Store, authority or policy infrastructure failure, or lost commit acknowledgement |
+
+Native authentication failures are outside the package JSON envelope: the exception code is
+`E_UNAUTHORIZED_ACCESS`, ordinary JSON may include only a message, JSON:API may include a code,
+and session HTML may redirect. The declared `E_MASQUERADE_UNAUTHENTICATED` type member is retained
+for compatibility; the native integrations do not emit it. Authenticated policy denial remains
+`E_MASQUERADE_NOT_ALLOWED`.
 
 Limiter rejections are the host limiter's own 429. Shield CSRF errors remain framework errors. No `Idempotency-Key` header is advertised; CAS plus status defines retry behavior.
 

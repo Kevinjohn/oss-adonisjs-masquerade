@@ -1,6 +1,6 @@
 # Security and operations
 
-The [API entry-point map](../reference/README.md#supported-package-imports) links the HTTP context
+The [API entry-point map](https://kevinjohn.github.io/oss-adonisjs-masquerade/reference/index#supported-package-imports) links the HTTP context
 middleware and route markers, and the native authority's host-owned account check boundary.
 
 For a practical status → start → customer work → stop journey, see [Use a support mode](usage.md).

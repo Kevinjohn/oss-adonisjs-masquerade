@@ -5,7 +5,7 @@ business routes, the selected account becomes the effective principal. The packa
 a target login or credential. For token-only or mixed session/token transport, see the
 [opaque access-token guide](access-tokens.md). Also see [security](security.md) for the identity
 boundary and [custom authorities](custom-authorities.md) for the native authority contract. The
-[API entry-point map](../reference/README.md#supported-package-imports) links supported imports.
+[API entry-point map](https://kevinjohn.github.io/oss-adonisjs-masquerade/reference/index#supported-package-imports) links supported imports.
 Hosts using Account Kit should also read the [Account Kit integration preview](account-kit.md).
 
 ## Generate the starter files
@@ -99,8 +99,11 @@ manual step for anything it leaves alone:
   a successful stop returns JSON, which the browser displays. A host that wants a redirect or
   confirmation page owns that response presentation and the route used by its form.
 
-The identity and policy callbacks stay manual and fail closed. Pass `--no-wire` to skip every edit
-above and get only the printed steps. With `--banner --no-wire`, manually register the generated
+The identity and policy callbacks stay manual and fail closed. Pass `--no-wire` to skip automatic
+host-file wiring. Configure still generates the user provider, config, native provider, context
+middleware and migration, plus any selected banner/status middleware or form controller, and
+registers the generated native provider, package provider and commands in `adonisrc.ts`. It prints the remaining wiring steps
+for you to apply. With `--banner --no-wire`, manually register the generated
 status middleware in `router.use` after `silent_auth_middleware`, then include the Edge component in
 an authenticated layout yourself. If `--form-controller` is also enabled, manually mount its form
 routes in place of the package's start/stop routes while retaining the package status route.

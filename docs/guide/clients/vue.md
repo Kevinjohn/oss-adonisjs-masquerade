@@ -154,7 +154,7 @@ const originalContext = props.context
     <input type="hidden" name="_masqueradeContext" :value="originalContext" />
     <!-- customer and reason inputs -->
     <label for="access">Access</label>
-    <select id="access" name="access" defaultValue="view">
+    <select id="access" name="access">
       <option value="view" selected>View only</option>
       <option value="edit">Can edit</option>
     </select>

@@ -1,6 +1,6 @@
 # Review the route coverage report
 
-The [API entry-point map](../reference/README.md#supported-package-imports) links the report command
+The [API entry-point map](https://kevinjohn.github.io/oss-adonisjs-masquerade/reference/index#supported-package-imports) links the report command
 under `@kevinjohn/adonisjs-masquerade/commands` and the `sensitive` and `allowMutation` markers under
 `@kevinjohn/adonisjs-masquerade/http`.
 
