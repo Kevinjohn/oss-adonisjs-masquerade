@@ -712,6 +712,38 @@ test('settles a server spawn failure during readiness without an unhandled rejec
   assert.doesNotMatch(result.text, /UnhandledPromiseRejection|unhandledRejection/)
 }).timeout(30_000)
 
+test('does not start the server after an interrupt during the final port check', async ({
+  cleanup,
+}) => {
+  const demo = await fixture()
+  cleanup(() => rm(demo.directory, { recursive: true, force: true }))
+  // The first port check makes four probes; interrupt on the first probe of the second check.
+  const hook = path.join(demo.directory, 'interrupt-final-port-check.cjs')
+  await writeFile(
+    hook,
+    `
+const net = require('node:net')
+const listen = net.Server.prototype.listen
+let probes = 0
+net.Server.prototype.listen = function (...args) {
+  if (++probes === 5) process.emit('SIGINT')
+  return listen.apply(this, args)
+}
+`
+  )
+  demo.env.NODE_OPTIONS = `${demo.env.NODE_OPTIONS ?? ''} --require=${hook}`
+  const child = launch(demo)
+  cleanup(() => {
+    if (child.exitCode === null && child.signalCode === null) child.kill('SIGKILL')
+  })
+  const output = await outputOf(child)
+  const result = await collectExit(child, output)
+  assert.equal(result.code, 130, result.text)
+  assert.match(await readFile(demo.logPath, 'utf8'), /demo:seed/)
+  assert.doesNotMatch(await readFile(demo.logPath, 'utf8'), /pnpm dev/)
+  assert.doesNotMatch(result.text, /Demo ready:/)
+}).timeout(15_000)
+
 test('signal cleanup settles a never-exiting setup child and releases its local handle', async ({
   cleanup,
 }) => {

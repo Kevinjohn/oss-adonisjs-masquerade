@@ -277,7 +277,7 @@ test.group('Inertia Vue browser journey', (group) => {
       await triggerWorkspaceValidation(page, 1)
       await assertWorkspaceHidden(page, assert)
       await releaseWorkspaceIdentity(page, 0, failure)
-      await assertWorkspaceHidden(page, assert)
+      await assertWorkspaceHidden(page, assert, 'failed')
       assert.isTrue(await page.getByRole('button', { name: 'Stop support mode' }).isEnabled())
       await page.getByRole('button', { name: 'Stop support mode' }).click()
       await page.getByRole('button', { name: 'Start support mode' }).waitFor()
@@ -307,7 +307,7 @@ test.group('Inertia Vue browser journey', (group) => {
     await switcher.waitForURL('**/support/customer')
     await triggerWorkspaceValidation(retained, 1)
     await releaseWorkspaceIdentity(retained, 0, 'network')
-    await assertWorkspaceHidden(retained, assert)
+    await assertWorkspaceHidden(retained, assert, 'failed')
     const actor = await User.findByOrFail('email', demoAccounts[0].email)
     const before = await db.from('masquerade_events').where('actor_id', String(actor.id))
     const modeBefore = await db.from('masquerade_modes').where('actor_id', String(actor.id)).first()
@@ -397,7 +397,7 @@ test.group('Inertia Vue browser journey', (group) => {
       await page.waitForFunction(() => (globalThis as any).deadlineFinished)
       assert.equal(await page.evaluate(() => (globalThis as any).deadlineVisits), 1)
       await page.locator('time').first().waitFor()
-      await assertWorkspaceHidden(page, assert)
+      await assertWorkspaceHidden(page, assert, 'blocked')
       assert.isTrue(await page.getByRole('button', { name: 'Stop support mode' }).isEnabled())
       // A fresh document receives already-expired active props; raw status does not clear the mode.
       await page.unrouteAll({ behavior: 'wait' })
@@ -409,7 +409,7 @@ test.group('Inertia Vue browser journey', (group) => {
         })
       })
       await page.reload()
-      await assertWorkspaceHidden(page, assert)
+      await assertWorkspaceHidden(page, assert, 'blocked')
       await page.evaluate(() => {
         ;(globalThis as any).expiredVisits = 0
         ;(globalThis as any).document.addEventListener('inertia:before', (event: any) => {
@@ -422,7 +422,7 @@ test.group('Inertia Vue browser journey', (group) => {
       })
       assert.equal(await page.evaluate(() => (globalThis as any).expiredVisits), 0)
       assert.equal(await page.evaluate(() => (globalThis as any).expiredMountVisits), 0)
-      await assertWorkspaceHidden(page, assert)
+      await assertWorkspaceHidden(page, assert, 'blocked')
       await page.getByRole('button', { name: 'Stop support mode' }).click()
       await page.getByRole('button', { name: 'Start support mode' }).waitFor()
     } finally {
@@ -806,8 +806,15 @@ async function releaseWorkspaceIdentity(page: any, index: number, failure?: stri
   )
 }
 
-async function assertWorkspaceHidden(page: any, assert: any) {
-  await page.locator('[data-workspace-identity-pending]').waitFor()
+async function assertWorkspaceHidden(
+  page: any,
+  assert: any,
+  state: 'pending' | 'failed' | 'blocked' = 'pending'
+) {
+  await page.locator(`[data-workspace-identity-${state}]`).waitFor()
+  for (const other of ['pending', 'failed', 'blocked'].filter((name) => name !== state)) {
+    assert.equal(await page.locator(`[data-workspace-identity-${other}]`).count(), 0)
+  }
   const content = await page.locator('main').innerText()
   assert.notInclude(content, 'Customer One')
   assert.notInclude(content, 'customer-one@example.test')

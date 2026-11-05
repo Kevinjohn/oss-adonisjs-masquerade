@@ -6,6 +6,7 @@ type Mode = { isMasquerading: boolean; contextToken: string; targetId?: string; 
 /** Reload the raw workspace when stored status has moved on or the fixed deadline passes. */
 export function useWorkspaceFreshness(mode: Mode, beforeDeadline: boolean) {
   const ready = ref(false)
+  const failed = ref(false)
   // Raw status does not expire stored modes. An already-expired workspace stays available for Stop.
   let expired = mode.isMasquerading && !beforeDeadline
   let generation = 0
@@ -30,6 +31,7 @@ export function useWorkspaceFreshness(mode: Mode, beforeDeadline: boolean) {
 
   async function validate() {
     ready.value = false
+    failed.value = false
     if (expireIfDue()) return
     const current = ++generation
     controller?.abort()
@@ -41,7 +43,7 @@ export function useWorkspaceFreshness(mode: Mode, beforeDeadline: boolean) {
         headers: { Accept: 'application/json' },
         signal: controller.signal,
       })
-      if (!response.ok) return
+      if (!response.ok) throw new Error(`Identity check returned ${response.status}`)
       const { mode: latest } = (await response.json()) as { mode: Mode }
       if (current !== generation || expireIfDue()) return
       if (
@@ -55,6 +57,7 @@ export function useWorkspaceFreshness(mode: Mode, beforeDeadline: boolean) {
       ready.value = true
     } catch {
       // Raw stop stays available; the server rejects any stale control token.
+      if (current === generation) failed.value = true
     }
   }
 
@@ -84,5 +87,5 @@ export function useWorkspaceFreshness(mode: Mode, beforeDeadline: boolean) {
     document.removeEventListener('visibilitychange', onVisibilityChange)
     window.removeEventListener('pageshow', onPageShow)
   })
-  return { ready }
+  return { ready, failed }
 }
