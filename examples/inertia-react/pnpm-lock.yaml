@@ -18,8 +18,8 @@ importers:
         specifier: ^7.5.2
         version: 7.6.0(@adonisjs/assembler@8.6.0(typescript@5.9.3))(@vinejs/vine@4.4.0)(edge.js@6.5.1)(pino-pretty@13.2.0)(supports-color@10.2.2)(youch@4.1.1)
       '@adonisjs/inertia':
-        specifier: ^4.0.0
-        version: 4.2.0(6c08698808cfde9e69acec3126dd6214)
+        specifier: ^5.0.1
+        version: 5.0.4(ece1a0fcd058072c590576737dbb6e8b)
       '@adonisjs/limiter':
         specifier: ^3.0.1
         version: 3.0.1(@adonisjs/assembler@8.6.0(typescript@5.9.3))(@adonisjs/core@7.6.0(@adonisjs/assembler@8.6.0(typescript@5.9.3))(@vinejs/vine@4.4.0)(edge.js@6.5.1)(pino-pretty@13.2.0)(supports-color@10.2.2)(youch@4.1.1))(@adonisjs/lucid@22.4.2(@adonisjs/assembler@8.6.0(typescript@5.9.3))(@adonisjs/core@7.6.0(@adonisjs/assembler@8.6.0(typescript@5.9.3))(@vinejs/vine@4.4.0)(edge.js@6.5.1)(pino-pretty@13.2.0)(supports-color@10.2.2)(youch@4.1.1))(@vinejs/vine@4.4.0)(better-sqlite3@13.0.3)(luxon@3.7.2)(supports-color@10.2.2))
@@ -38,15 +38,18 @@ importers:
       '@adonisjs/vite':
         specifier: ^6.0.2
         version: 6.0.3(45ca35d50612ea69a582f457b1236edb)
+      '@inertiajs/core':
+        specifier: ^3.7.1
+        version: 3.9.1(axios@1.20.0(debug@4.4.3(supports-color@10.2.2))(supports-color@10.2.2))
       '@inertiajs/react':
-        specifier: ^2.3.4
-        version: 2.3.29(debug@4.4.3(supports-color@10.2.2))(react-dom@19.3.1(react@19.3.1))(react@19.3.1)(supports-color@10.2.2)
+        specifier: ^3.7.1
+        version: 3.9.1(axios@1.20.0(debug@4.4.3(supports-color@10.2.2))(supports-color@10.2.2))(react-dom@19.3.1(react@19.3.1))(react@19.3.1)
       '@japa/api-client':
         specifier: ^3.2.1
         version: 3.2.1(@japa/assert@4.2.0(@japa/runner@5.4.0))(@japa/runner@5.4.0)(supports-color@10.2.2)
       '@kevinjohn/adonisjs-masquerade':
         specifier: file:../../tmp/native-session-package.tgz
-        version: file:../../tmp/native-session-package.tgz(@adonisjs/auth@10.1.0(0f6de9a3f93ff340f63ae4d83f5667c6))(@adonisjs/bouncer@4.0.1(@adonisjs/assembler@8.6.0(typescript@5.9.3))(@adonisjs/core@7.6.0(@adonisjs/assembler@8.6.0(typescript@5.9.3))(@vinejs/vine@4.4.0)(edge.js@6.5.1)(pino-pretty@13.2.0)(supports-color@10.2.2)(youch@4.1.1))(edge.js@6.5.1))(@adonisjs/core@7.6.0(@adonisjs/assembler@8.6.0(typescript@5.9.3))(@vinejs/vine@4.4.0)(edge.js@6.5.1)(pino-pretty@13.2.0)(supports-color@10.2.2)(youch@4.1.1))(@adonisjs/lucid@22.4.2(@adonisjs/assembler@8.6.0(typescript@5.9.3))(@adonisjs/core@7.6.0(@adonisjs/assembler@8.6.0(typescript@5.9.3))(@vinejs/vine@4.4.0)(edge.js@6.5.1)(pino-pretty@13.2.0)(supports-color@10.2.2)(youch@4.1.1))(@vinejs/vine@4.4.0)(better-sqlite3@13.0.3)(luxon@3.7.2)(supports-color@10.2.2))(@adonisjs/session@8.3.0(1eb2c5b48a4cb0b09336f5df94a534c6))(@japa/api-client@3.2.1(@japa/assert@4.2.0(@japa/runner@5.4.0))(@japa/runner@5.4.0)(supports-color@10.2.2))(typescript@5.9.3)
+        version: file:../../tmp/native-session-package.tgz(@adonisjs/assembler@8.6.0(typescript@5.9.3))(@adonisjs/auth@10.1.0(0f6de9a3f93ff340f63ae4d83f5667c6))(@adonisjs/bouncer@4.0.1(@adonisjs/assembler@8.6.0(typescript@5.9.3))(@adonisjs/core@7.6.0(@adonisjs/assembler@8.6.0(typescript@5.9.3))(@vinejs/vine@4.4.0)(edge.js@6.5.1)(pino-pretty@13.2.0)(supports-color@10.2.2)(youch@4.1.1))(edge.js@6.5.1))(@adonisjs/core@7.6.0(@adonisjs/assembler@8.6.0(typescript@5.9.3))(@vinejs/vine@4.4.0)(edge.js@6.5.1)(pino-pretty@13.2.0)(supports-color@10.2.2)(youch@4.1.1))(@adonisjs/lucid@22.4.2(@adonisjs/assembler@8.6.0(typescript@5.9.3))(@adonisjs/core@7.6.0(@adonisjs/assembler@8.6.0(typescript@5.9.3))(@vinejs/vine@4.4.0)(edge.js@6.5.1)(pino-pretty@13.2.0)(supports-color@10.2.2)(youch@4.1.1))(@vinejs/vine@4.4.0)(better-sqlite3@13.0.3)(luxon@3.7.2)(supports-color@10.2.2))(@adonisjs/session@8.3.0(1eb2c5b48a4cb0b09336f5df94a534c6))(@japa/api-client@3.2.1(@japa/assert@4.2.0(@japa/runner@5.4.0))(@japa/runner@5.4.0)(supports-color@10.2.2))(typescript@5.9.3)
       '@vinejs/vine':
         specifier: ^4.4.0
         version: 4.4.0
@@ -316,16 +319,17 @@ packages:
     peerDependencies:
       '@adonisjs/fold': ^11.0.0-next.2
 
-  '@adonisjs/inertia@4.2.0':
-    resolution: {integrity: sha512-AL5IWsoA/qf34AMHf3H+YQydm9v7pj3daOeWLuRn6FxwSkald1zEo5lS7aBD4Nbsn3fJKPKvBlO9BSeIAw1FYQ==}
+  '@adonisjs/inertia@5.0.4':
+    resolution: {integrity: sha512-47+nwQEizc0i66XlDOPYnwi0pobaEEKB8vWxe8+uhHRn0rnHtq9c+upJCF33N/XvaRpsiKJg7UJUX1pxWXrY7w==}
     engines: {node: '>=24.0.0'}
     peerDependencies:
       '@adonisjs/assembler': ^8.0.0-next.29 || ^8.0.0
       '@adonisjs/core': ^7.0.0-next.23 || ^7.0.0
       '@adonisjs/session': ^8.0.0-next.2 || ^8.0.0
-      '@adonisjs/vite': ^5.1.0-next.2 || ^5.1.0
-      '@inertiajs/react': ^2.3.8
-      '@inertiajs/vue3': ^2.3.8
+      '@adonisjs/vite': ^6.0.0-next.0 || ^6.0.0
+      '@inertiajs/core': ^3.4.0
+      '@inertiajs/react': ^3.4.0
+      '@inertiajs/vue3': ^3.4.0
       '@japa/api-client': ^3.1.1
       '@japa/plugin-adonisjs': ^5.1.0-next.1 || ^5.1.0
       '@tuyau/core': ^1.0.0-beta.10 || ^1.0.0
@@ -334,6 +338,8 @@ packages:
       vue: ^3.5.17
     peerDependenciesMeta:
       '@adonisjs/assembler':
+        optional: true
+      '@inertiajs/core':
         optional: true
       '@inertiajs/react':
         optional: true
@@ -727,14 +733,19 @@ packages:
     resolution: {integrity: sha512-bV0Tgo9K4hfPCek+aMAn81RppFKv2ySDQeMoSZuvTASywNTnVJCArCZE2FWqpvIatKu7VMRLWlR1EazvVhDyhQ==}
     engines: {node: '>=18.18'}
 
-  '@inertiajs/core@2.3.29':
-    resolution: {integrity: sha512-Cx3zibnKdsmEnXpsWhwmE9i4k5NFtK+4gtceL3Kb6RwYC1J0wi5y/EesNMkpdJLsAT2h4ugUvu9Ed9T1EUl0/A==}
-
-  '@inertiajs/react@2.3.29':
-    resolution: {integrity: sha512-09SWBPxv8UrJdOWtQrEp1ro6jv1qJ8yOxH8eL+na9K/wbh7k9R0ALvAO3ofY52Cwuh7HMuSPgtRzk/q8E1k0Fg==}
+  '@inertiajs/core@3.9.1':
+    resolution: {integrity: sha512-ScLQZ1/KXlvmqCEJMEZABSK5updJZIli1kaG/coWXpWMmpSLsazSJkR7esITYp7X5vTgrOGNIrcRmdMp/GQ0NA==}
     peerDependencies:
-      react: ^16.9.0 || ^17.0.0 || ^18.0.0 || ^19.0.0
-      react-dom: ^16.9.0 || ^17.0.0 || ^18.0.0 || ^19.0.0
+      axios: ^1.15.2
+    peerDependenciesMeta:
+      axios:
+        optional: true
+
+  '@inertiajs/react@3.9.1':
+    resolution: {integrity: sha512-fRWElF5XIm1j01ecQCEehx0KPLEYVA6fCdWvig7XUhwhmSQG6EIyNum3eG8ZEfYuY7mWhNyqae/MSRIv+bAsjw==}
+    peerDependencies:
+      react: ^19.0.0
+      react-dom: ^19.0.0
 
   '@japa/api-client@3.2.1':
     resolution: {integrity: sha512-dICbeEkgGRpjkm3CviOpvPfYMBZddaoW2w20pgNMm3CfvD2bixWOFn6FBRZRq5L+fHYe/O/xfSNGMCQBFy7Zlw==}
@@ -821,10 +832,11 @@ packages:
     resolution: {integrity: sha512-zzNR+SdQSDJzc8joaeP8QQoCQr8NuYx2dIIytl1QeBEZHJ9uW6hebsrYgbz8hJwUQao3TWCMtmfV8Nu1twOLAw==}
 
   '@kevinjohn/adonisjs-masquerade@file:../../tmp/native-session-package.tgz':
-    resolution: {integrity: sha512-RGrXaRFw0gFhgHkPN5D5Unhxzb9pcS4ZKe0OhcoIuglotNJ8ibU/AJ7gMAIa84gTmp1GyXLowkmNMU5acTSJ+g==, tarball: file:../../tmp/native-session-package.tgz}
+    resolution: {integrity: sha512-LKppKzkVLC5ThZ9Iz1ADc2gXDohUNdYM/PnK1iyzNCxrnjDlPUItcgeC454jHLA0x2Xn1o+GAQwmr2nw+lLmJQ==, tarball: file:../../tmp/native-session-package.tgz}
     version: 0.1.5
     engines: {node: '>=24.0.0'}
     peerDependencies:
+      '@adonisjs/assembler': ^8.0.0
       '@adonisjs/auth': ^10.0.0
       '@adonisjs/bouncer': ^4.0.0
       '@adonisjs/core': ^7.0.0
@@ -834,6 +846,8 @@ packages:
       '@kevinjohn/adonisjs-account-kit': 0.2.0
       typescript: ^5.9.3 || ^6.0.3
     peerDependenciesMeta:
+      '@adonisjs/assembler':
+        optional: true
       '@adonisjs/bouncer':
         optional: true
       '@adonisjs/lucid':
@@ -1233,12 +1247,6 @@ packages:
 
   '@types/json-schema@7.0.15':
     resolution: {integrity: sha512-5+fP8P8MFNC+AyZCDxrB2pkZFPGzqQWUzpSeuuVLvm8VMcorNYavBqoFcxK8bQz4Qsbn4oUEEem4wDLfcysGHA==}
-
-  '@types/lodash-es@4.17.12':
-    resolution: {integrity: sha512-0NgftHUcV4v34VhXm8QBSftKVXtbkBG3ViCjs6+eJ5a6y6Mi/jiFGPc1sC7QK+9BFhWrURE3EOggmWaSxL9OzQ==}
-
-  '@types/lodash@4.17.26':
-    resolution: {integrity: sha512-48NWfiY6oNcKOh47Z4h+sIvwcQR91h6KPhaYKgeMIrkT2jV82Gy90SErj60vW8jQbeMSOSbhIv3bZ7JoqPPVhA==}
 
   '@types/luxon@3.7.6':
     resolution: {integrity: sha512-6KSjliQAXK8ZLgFQO4B7iE4Rpf/B3rItzCFuXezBY/XIAGxOdLd7vRNK9/StRPwiS/yJsVbB7HKpW46B8tcEuQ==}
@@ -1735,6 +1743,9 @@ packages:
   es-set-tostringtag@2.1.0:
     resolution: {integrity: sha512-j6vWzfrGVfyXxge+O0x5sh6cvxAog0a/4Rdd2K36zCMV5eJ+/+tOAngRO8cODMNWbVRdVlmGZQL2YS3yR8bIUA==}
     engines: {node: '>= 0.4'}
+
+  es-toolkit@1.53.1:
+    resolution: {integrity: sha512-VhMc6IXmexu8iYFfL2aaAww6IvJTdHlqBLruLoEUs33YD4IcP5DdZcLOybMsMmmLsiy1c8PsiLsrM0DdIuuRUA==}
 
   escalade@3.2.0:
     resolution: {integrity: sha512-WUj2qlxaQtO4g6Pq5c29GTcWGDyd8itL8zTlipgECz3JesAiiOKotd8JU6otB3PACgG6xkJUyVhboMS+bje/jA==}
@@ -2260,8 +2271,13 @@ packages:
     resolution: {integrity: sha512-9zy9lkjac+TR1c2tG+mkNSVlyOpInnWdSMiue4F+kq8TwJSgv6o8jhLRg8Ho6SnZ9wOYUq/yozts9qQCfk7bIw==}
     engines: {node: '>=18'}
 
-  laravel-precognition@1.0.2:
-    resolution: {integrity: sha512-0H08JDdMWONrL/N314fvsO3FATJwGGlFKGkMF3nNmizVFJaWs17816iM+sX7Rp8d5hUjYCx6WLfsehSKfaTxjg==}
+  laravel-precognition@2.1.1:
+    resolution: {integrity: sha512-Wg05+puJ5qiNsE8rdO5JmSiqQ2xcEf7442AIZiDhZg1JyPOePv5SSCu0fO7z7LqmJcPMxNNuOIcZd6UatEmYug==}
+    peerDependencies:
+      axios: ^1.4.0
+    peerDependenciesMeta:
+      axios:
+        optional: true
 
   levn@0.4.1:
     resolution: {integrity: sha512-+bT2uH4E5LGE7h/n3evcS/sQlJXCpIp6ym8OWJ5eV6+67Dsql/LaaT7qJBAt2rzfoa/5QBGBhxDix1dMt2kQKQ==}
@@ -2344,9 +2360,6 @@ packages:
   locate-path@6.0.0:
     resolution: {integrity: sha512-iPZK6eYjbxRu3uB4/WZ3EsEIMJFMqAoopl3R+zuq0UjcAm/MO6KCweDgPfP3elTztoKP3KtnVHxTn2NHBSDVUw==}
     engines: {node: '>=10'}
-
-  lodash-es@4.18.1:
-    resolution: {integrity: sha512-J8xewKD/Gk22OZbhpOVSwcs60zhd95ESDwezOFuA3/099925PdHJ7OFHNTGtajL3AlZkykD32HykiMo+BIBI8A==}
 
   lodash@4.18.1:
     resolution: {integrity: sha512-dMInicTPVE8d1e5otfwmmjlxkZoUpiVLwyeTdUsi/Caj/gfzzblBcCE5sRHV/AsjuCmxWrte2TNGSYuCeCq+0Q==}
@@ -3370,18 +3383,20 @@ snapshots:
       '@poppinss/exception': 1.2.3
       '@poppinss/types': 1.2.1
 
-  '@adonisjs/inertia@4.2.0(6c08698808cfde9e69acec3126dd6214)':
+  '@adonisjs/inertia@5.0.4(ece1a0fcd058072c590576737dbb6e8b)':
     dependencies:
       '@adonisjs/core': 7.6.0(@adonisjs/assembler@8.6.0(typescript@5.9.3))(@vinejs/vine@4.4.0)(edge.js@6.5.1)(pino-pretty@13.2.0)(supports-color@10.2.2)(youch@4.1.1)
       '@adonisjs/session': 8.3.0(1eb2c5b48a4cb0b09336f5df94a534c6)
       '@adonisjs/vite': 6.0.3(45ca35d50612ea69a582f457b1236edb)
+      '@poppinss/macroable': 1.1.2
       '@poppinss/utils': 7.1.2
       edge-error: 4.0.2
       edge.js: 6.5.1
       html-entities: 2.6.0
     optionalDependencies:
       '@adonisjs/assembler': 8.6.0(typescript@5.9.3)
-      '@inertiajs/react': 2.3.29(debug@4.4.3(supports-color@10.2.2))(react-dom@19.3.1(react@19.3.1))(react@19.3.1)(supports-color@10.2.2)
+      '@inertiajs/core': 3.9.1(axios@1.20.0(debug@4.4.3(supports-color@10.2.2))(supports-color@10.2.2))
+      '@inertiajs/react': 3.9.1(axios@1.20.0(debug@4.4.3(supports-color@10.2.2))(supports-color@10.2.2))(react-dom@19.3.1(react@19.3.1))(react@19.3.1)
       '@japa/api-client': 3.2.1(@japa/assert@4.2.0(@japa/runner@5.4.0))(@japa/runner@5.4.0)(supports-color@10.2.2)
       '@japa/plugin-adonisjs': 5.2.0(@adonisjs/core@7.6.0(@adonisjs/assembler@8.6.0(typescript@5.9.3))(@vinejs/vine@4.4.0)(edge.js@6.5.1)(pino-pretty@13.2.0)(supports-color@10.2.2)(youch@4.1.1))(@japa/api-client@3.2.1(@japa/assert@4.2.0(@japa/runner@5.4.0))(@japa/runner@5.4.0)(supports-color@10.2.2))(@japa/browser-client@2.3.0(@japa/assert@4.2.0(@japa/runner@5.4.0))(@japa/runner@5.4.0)(playwright@1.64.1))(@japa/runner@5.4.0)(playwright@1.64.1)
       '@tuyau/core': 1.2.3(@adonisjs/assembler@8.6.0(typescript@5.9.3))(@adonisjs/core@7.6.0(@adonisjs/assembler@8.6.0(typescript@5.9.3))(@vinejs/vine@4.4.0)(edge.js@6.5.1)(pino-pretty@13.2.0)(supports-color@10.2.2)(youch@4.1.1))
@@ -3732,28 +3747,23 @@ snapshots:
 
   '@humanwhocodes/retry@0.4.3': {}
 
-  '@inertiajs/core@2.3.29(debug@4.4.3(supports-color@10.2.2))(supports-color@10.2.2)':
+  '@inertiajs/core@3.9.1(axios@1.20.0(debug@4.4.3(supports-color@10.2.2))(supports-color@10.2.2))':
     dependencies:
-      '@types/lodash-es': 4.17.12
+      '@jridgewell/trace-mapping': 0.3.31
+      es-toolkit: 1.53.1
+      laravel-precognition: 2.1.1(axios@1.20.0(debug@4.4.3(supports-color@10.2.2))(supports-color@10.2.2))
+    optionalDependencies:
       axios: 1.20.0(debug@4.4.3(supports-color@10.2.2))(supports-color@10.2.2)
-      laravel-precognition: 1.0.2(debug@4.4.3(supports-color@10.2.2))(supports-color@10.2.2)
-      lodash-es: 4.18.1
-      qs: 6.16.1
-    transitivePeerDependencies:
-      - debug
-      - supports-color
 
-  '@inertiajs/react@2.3.29(debug@4.4.3(supports-color@10.2.2))(react-dom@19.3.1(react@19.3.1))(react@19.3.1)(supports-color@10.2.2)':
+  '@inertiajs/react@3.9.1(axios@1.20.0(debug@4.4.3(supports-color@10.2.2))(supports-color@10.2.2))(react-dom@19.3.1(react@19.3.1))(react@19.3.1)':
     dependencies:
-      '@inertiajs/core': 2.3.29(debug@4.4.3(supports-color@10.2.2))(supports-color@10.2.2)
-      '@types/lodash-es': 4.17.12
-      laravel-precognition: 1.0.2(debug@4.4.3(supports-color@10.2.2))(supports-color@10.2.2)
-      lodash-es: 4.18.1
+      '@inertiajs/core': 3.9.1(axios@1.20.0(debug@4.4.3(supports-color@10.2.2))(supports-color@10.2.2))
+      es-toolkit: 1.53.1
+      laravel-precognition: 2.1.1(axios@1.20.0(debug@4.4.3(supports-color@10.2.2))(supports-color@10.2.2))
       react: 19.3.1
       react-dom: 19.3.1(react@19.3.1)
     transitivePeerDependencies:
-      - debug
-      - supports-color
+      - axios
 
   '@japa/api-client@3.2.1(@japa/assert@4.2.0(@japa/runner@5.4.0))(@japa/runner@5.4.0)(supports-color@10.2.2)':
     dependencies:
@@ -3852,11 +3862,12 @@ snapshots:
       '@jridgewell/resolve-uri': 3.1.2
       '@jridgewell/sourcemap-codec': 1.6.0
 
-  '@kevinjohn/adonisjs-masquerade@file:../../tmp/native-session-package.tgz(@adonisjs/auth@10.1.0(0f6de9a3f93ff340f63ae4d83f5667c6))(@adonisjs/bouncer@4.0.1(@adonisjs/assembler@8.6.0(typescript@5.9.3))(@adonisjs/core@7.6.0(@adonisjs/assembler@8.6.0(typescript@5.9.3))(@vinejs/vine@4.4.0)(edge.js@6.5.1)(pino-pretty@13.2.0)(supports-color@10.2.2)(youch@4.1.1))(edge.js@6.5.1))(@adonisjs/core@7.6.0(@adonisjs/assembler@8.6.0(typescript@5.9.3))(@vinejs/vine@4.4.0)(edge.js@6.5.1)(pino-pretty@13.2.0)(supports-color@10.2.2)(youch@4.1.1))(@adonisjs/lucid@22.4.2(@adonisjs/assembler@8.6.0(typescript@5.9.3))(@adonisjs/core@7.6.0(@adonisjs/assembler@8.6.0(typescript@5.9.3))(@vinejs/vine@4.4.0)(edge.js@6.5.1)(pino-pretty@13.2.0)(supports-color@10.2.2)(youch@4.1.1))(@vinejs/vine@4.4.0)(better-sqlite3@13.0.3)(luxon@3.7.2)(supports-color@10.2.2))(@adonisjs/session@8.3.0(1eb2c5b48a4cb0b09336f5df94a534c6))(@japa/api-client@3.2.1(@japa/assert@4.2.0(@japa/runner@5.4.0))(@japa/runner@5.4.0)(supports-color@10.2.2))(typescript@5.9.3)':
-    dependencies:
+  ? '@kevinjohn/adonisjs-masquerade@file:../../tmp/native-session-package.tgz(@adonisjs/assembler@8.6.0(typescript@5.9.3))(@adonisjs/auth@10.1.0(0f6de9a3f93ff340f63ae4d83f5667c6))(@adonisjs/bouncer@4.0.1(@adonisjs/assembler@8.6.0(typescript@5.9.3))(@adonisjs/core@7.6.0(@adonisjs/assembler@8.6.0(typescript@5.9.3))(@vinejs/vine@4.4.0)(edge.js@6.5.1)(pino-pretty@13.2.0)(supports-color@10.2.2)(youch@4.1.1))(edge.js@6.5.1))(@adonisjs/core@7.6.0(@adonisjs/assembler@8.6.0(typescript@5.9.3))(@vinejs/vine@4.4.0)(edge.js@6.5.1)(pino-pretty@13.2.0)(supports-color@10.2.2)(youch@4.1.1))(@adonisjs/lucid@22.4.2(@adonisjs/assembler@8.6.0(typescript@5.9.3))(@adonisjs/core@7.6.0(@adonisjs/assembler@8.6.0(typescript@5.9.3))(@vinejs/vine@4.4.0)(edge.js@6.5.1)(pino-pretty@13.2.0)(supports-color@10.2.2)(youch@4.1.1))(@vinejs/vine@4.4.0)(better-sqlite3@13.0.3)(luxon@3.7.2)(supports-color@10.2.2))(@adonisjs/session@8.3.0(1eb2c5b48a4cb0b09336f5df94a534c6))(@japa/api-client@3.2.1(@japa/assert@4.2.0(@japa/runner@5.4.0))(@japa/runner@5.4.0)(supports-color@10.2.2))(typescript@5.9.3)'
+  : dependencies:
       '@adonisjs/auth': 10.1.0(0f6de9a3f93ff340f63ae4d83f5667c6)
       '@adonisjs/core': 7.6.0(@adonisjs/assembler@8.6.0(typescript@5.9.3))(@vinejs/vine@4.4.0)(edge.js@6.5.1)(pino-pretty@13.2.0)(supports-color@10.2.2)(youch@4.1.1)
     optionalDependencies:
+      '@adonisjs/assembler': 8.6.0(typescript@5.9.3)
       '@adonisjs/bouncer': 4.0.1(@adonisjs/assembler@8.6.0(typescript@5.9.3))(@adonisjs/core@7.6.0(@adonisjs/assembler@8.6.0(typescript@5.9.3))(@vinejs/vine@4.4.0)(edge.js@6.5.1)(pino-pretty@13.2.0)(supports-color@10.2.2)(youch@4.1.1))(edge.js@6.5.1)
       '@adonisjs/lucid': 22.4.2(@adonisjs/assembler@8.6.0(typescript@5.9.3))(@adonisjs/core@7.6.0(@adonisjs/assembler@8.6.0(typescript@5.9.3))(@vinejs/vine@4.4.0)(edge.js@6.5.1)(pino-pretty@13.2.0)(supports-color@10.2.2)(youch@4.1.1))(@vinejs/vine@4.4.0)(better-sqlite3@13.0.3)(luxon@3.7.2)(supports-color@10.2.2)
       '@adonisjs/session': 8.3.0(1eb2c5b48a4cb0b09336f5df94a534c6)
@@ -4176,12 +4187,6 @@ snapshots:
 
   '@types/json-schema@7.0.15': {}
 
-  '@types/lodash-es@4.17.12':
-    dependencies:
-      '@types/lodash': 4.17.26
-
-  '@types/lodash@4.17.26': {}
-
   '@types/luxon@3.7.6': {}
 
   '@types/methods@1.1.4': {}
@@ -4342,6 +4347,7 @@ snapshots:
       debug: 4.4.3(supports-color@10.2.2)
     transitivePeerDependencies:
       - supports-color
+    optional: true
 
   ajv@6.15.0:
     dependencies:
@@ -4393,6 +4399,7 @@ snapshots:
     transitivePeerDependencies:
       - debug
       - supports-color
+    optional: true
 
   balanced-match@4.0.4: {}
 
@@ -4664,6 +4671,8 @@ snapshots:
       has-tostringtag: 1.0.2
       hasown: 2.0.4
 
+  es-toolkit@1.53.1: {}
+
   escalade@3.2.0: {}
 
   escape-goat@4.0.0: {}
@@ -4876,6 +4885,7 @@ snapshots:
   follow-redirects@1.16.2(debug@4.4.3(supports-color@10.2.2)):
     optionalDependencies:
       debug: 4.4.3(supports-color@10.2.2)
+    optional: true
 
   form-data@4.0.6:
     dependencies:
@@ -5003,6 +5013,7 @@ snapshots:
       debug: 4.4.3(supports-color@10.2.2)
     transitivePeerDependencies:
       - supports-color
+    optional: true
 
   human-signals@8.0.1: {}
 
@@ -5147,13 +5158,11 @@ snapshots:
   ky@1.14.3:
     optional: true
 
-  laravel-precognition@1.0.2(debug@4.4.3(supports-color@10.2.2))(supports-color@10.2.2):
+  laravel-precognition@2.1.1(axios@1.20.0(debug@4.4.3(supports-color@10.2.2))(supports-color@10.2.2)):
     dependencies:
+      es-toolkit: 1.53.1
+    optionalDependencies:
       axios: 1.20.0(debug@4.4.3(supports-color@10.2.2))(supports-color@10.2.2)
-      lodash-es: 4.18.1
-    transitivePeerDependencies:
-      - debug
-      - supports-color
 
   levn@0.4.1:
     dependencies:
@@ -5212,8 +5221,6 @@ snapshots:
   locate-path@6.0.0:
     dependencies:
       p-locate: 5.0.0
-
-  lodash-es@4.18.1: {}
 
   lodash@4.18.1: {}
 
@@ -5465,7 +5472,8 @@ snapshots:
       forwarded: 0.2.0
       ipaddr.js: 1.9.1
 
-  proxy-from-env@2.1.0: {}
+  proxy-from-env@2.1.0:
+    optional: true
 
   pump@3.0.4:
     dependencies:

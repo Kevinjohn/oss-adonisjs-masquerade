@@ -1,6 +1,6 @@
 # React Inertia support example
 
-This private AdonisJS 7 app starts from the [official React starter kit at commit `754164f`](https://github.com/adonisjs/react-starter-kit/commit/754164fdfb147323b3a4b007b7763c90c54c27b0). It uses React 19, Inertia 2, native session auth, Lucid SQLite and SSR disabled. `pnpm-lock.yaml` records the resolved versions; notably AdonisJS Core 7.6.0, Inertia adapter 4.2.0, React 19.3.1 and Inertia React 2.3.29. The local package dependency points at the tarball built from this repository.
+This private AdonisJS 7 app starts from the [official React starter kit at commit `754164f`](https://github.com/adonisjs/react-starter-kit/commit/754164fdfb147323b3a4b007b7763c90c54c27b0). It uses React 19, Inertia 3, native session auth, Lucid SQLite and SSR disabled. `pnpm-lock.yaml` records the resolved versions; notably AdonisJS Core 7.6.0, Inertia adapter 5.0.4, React 19.3.1 and Inertia React 3.9.1. The local package dependency points at the tarball built from this repository.
 
 From a clean checkout with Node 24 and pnpm:
 

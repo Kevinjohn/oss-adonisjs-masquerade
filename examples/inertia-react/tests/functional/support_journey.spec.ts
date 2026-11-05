@@ -351,9 +351,9 @@ test.group('Inertia support journey', (group) => {
 })
 
 function pageData(html: string): any {
-  const encoded = html.match(/data-page="([^"]+)"/)?.[1]
-  if (!encoded) throw new Error('Missing Inertia page')
-  return JSON.parse(
-    encoded.replaceAll('&quot;', '"').replaceAll('&amp;', '&').replaceAll('&#39;', "'")
-  )
+  const encoded = html.match(
+    /<script data-page="app" type="application\/json">([\s\S]*?)<\/script>/
+  )?.[1]
+  if (!encoded) throw new Error('Missing Inertia page data')
+  return JSON.parse(encoded)
 }
