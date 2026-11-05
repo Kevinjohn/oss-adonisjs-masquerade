@@ -13,6 +13,11 @@ The full profile adds PostgreSQL 16, coverage, the documented recipe, the docs
 build, and packed native-session and Account Kit consumers. `bin/check_profiles.ts` defines the
 steps. `pnpm check:changed [base]` selects checks while working; it does not replace the full gate.
 
+The Account Kit and consumer latest profiles query versions already filtered by each peer range.
+Their shared selector accepts canonical stable `x.y.z` versions and compares numeric components;
+prereleases, build metadata, malformed values, and unsafe or leading-zero components are
+rejected. Supporting another version form requires an appropriate version parser.
+
 `pnpm test:pg` starts a disposable PostgreSQL 16 cluster. Set `DB_PORT` to an unused port when
 another local cluster is running. For an existing server, set `DB_CLIENT=pg`, `DB_HOST`,
 `DB_PORT`, `DB_USER`, `DB_PASSWORD`, and `DB_DATABASE`, then run `pnpm quick:test`.
