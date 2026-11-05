@@ -32,10 +32,7 @@ jobs:
       - run: pnpm install --frozen-lockfile
       - name: Release checks (tag, changelog, build, pack)
         id: check
-        run: |
-          bash bin/release_check.sh
-          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
-          echo "tarball=$(basename "$TARBALL")" >> "$GITHUB_OUTPUT"
+        run: bash bin/release_check.sh
       - uses: actions/upload-artifact@v7
         with:
           name: release
