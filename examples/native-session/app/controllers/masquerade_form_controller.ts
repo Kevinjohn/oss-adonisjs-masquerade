@@ -79,9 +79,7 @@ function parseStartForm(ctx: HttpContext): StartInput {
     reason: body.reason as StartInput['reason'],
     // The body parser turns blank fields into null; a blank optional field takes its default.
     ...(blank(body.access) ? {} : { access: body.access as StartInput['access'] }),
-    ...(blank(body.durationSeconds)
-      ? {}
-      : { durationSeconds: formDuration(body.durationSeconds) }),
+    ...(blank(body.durationSeconds) ? {} : { durationSeconds: formDuration(body.durationSeconds) }),
     expectedContext: controlToken(ctx, body) ?? '',
   }
 }
