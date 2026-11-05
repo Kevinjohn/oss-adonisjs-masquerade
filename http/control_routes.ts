@@ -4,6 +4,7 @@ import type { MiddlewareFn, ParsedNamedMiddleware } from '@adonisjs/core/types/h
 import { MasqueradeController } from './controllers.js'
 import { routeGuards } from '../src/integration/route_guards.js'
 import { boundedString } from '../src/bounded_string.js'
+import { recordControlRouteGuard } from '../src/integration/control_route_guards.js'
 
 /** Options for `masqueradeRoutes`. */
 export interface MasqueradeRoutesOptions<Guard extends string> {
@@ -58,6 +59,8 @@ export function masqueradeRoutes<Guard extends string>(
   const guards = routeGuards({ middleware: { all: () => [authMiddleware] } }, '')
   if (guards.length !== 1 || guards[0] !== guard)
     throw new InvalidArgumentsException('masqueradeRoutes auth must be the named auth middleware')
+  // Effective guards are known only once auth resolves; the provider checks this guard at ready.
+  recordControlRouteGuard(router, guard)
 
   return router
     .group(() => {

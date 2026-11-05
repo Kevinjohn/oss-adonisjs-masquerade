@@ -23,13 +23,14 @@ export function parseStartControl(ctx: HttpContext): StartInput {
     return invalidStartInput()
   const expectedContext = controlToken(ctx, body)
   const durationSeconds = formDuration(ctx, body.durationSeconds)
+  // The body parser turns blank form fields into null; a blank optional field takes its default.
+  // JSON null stays explicit input, which core validation rejects.
+  const absent = (value: unknown) => value === undefined || (value === null && isForm(ctx))
   return {
     targetId: body.targetId as unknown as StartInput['targetId'],
     reason: body.reason as unknown as StartInput['reason'],
-    ...(body.access === undefined
-      ? {}
-      : { access: body.access as unknown as StartInput['access'] }),
-    ...(body.durationSeconds === undefined ? {} : { durationSeconds }),
+    ...(absent(body.access) ? {} : { access: body.access as unknown as StartInput['access'] }),
+    ...(absent(body.durationSeconds) ? {} : { durationSeconds }),
     expectedContext: expectedContext ?? '',
   }
 }
@@ -60,14 +61,14 @@ function isWithinBodyLimit(ctx: HttpContext): boolean {
   return Boolean(empty && (zeroLength || (!ctx.request.hasBody() && contentLength === undefined)))
 }
 
+function isForm(ctx: HttpContext): boolean {
+  const contentType = ctx.request.header('content-type')?.split(';', 1)[0]?.trim().toLowerCase()
+  return contentType === 'application/x-www-form-urlencoded'
+}
+
 /** Form parsers expose numbers as strings; accept only canonical safe integer strings. */
 function formDuration(ctx: HttpContext, value: unknown): StartInput['durationSeconds'] {
-  const contentType = ctx.request.header('content-type')?.split(';', 1)[0]?.trim().toLowerCase()
-  if (
-    contentType !== 'application/x-www-form-urlencoded' ||
-    typeof value !== 'string' ||
-    !/^(0|[1-9][0-9]*)$/.test(value)
-  )
+  if (!isForm(ctx) || typeof value !== 'string' || !/^(0|[1-9][0-9]*)$/.test(value))
     // Preserve noncanonical and JSON values so core runtime validation rejects them unchanged.
     return value as unknown as StartInput['durationSeconds']
   const number = Number(value)

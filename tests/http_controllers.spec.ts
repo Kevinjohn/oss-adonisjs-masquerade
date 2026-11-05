@@ -252,6 +252,46 @@ test.group('masquerade HTTP boundary', () => {
     assert.equal(noncanonicalFixture.store.events.at(-1)?.outcomeCode, 'E_MASQUERADE_INVALID_INPUT')
   })
 
+  test('treats blank optional form fields as absent but keeps JSON null invalid', async ({
+    assert,
+  }) => {
+    const f = fixture()
+    const service = await f.create()
+    const mode = await service.status({})
+    // The body parser turns blank form fields into null.
+    const form = {
+      targetId: 'b',
+      reason: null,
+      durationSeconds: null,
+      access: null,
+      _masqueradeContext: mode.contextToken,
+    }
+    const { ctx: formRequest, responseState: formResponse } = requestContext(f, {
+      body: form,
+      contentType: 'application/x-www-form-urlencoded',
+      raw: 'targetId=b&reason=&durationSeconds=&access=&_masqueradeContext=' + mode.contextToken,
+    })
+    await new MasqueradeController().start(formRequest)
+    assert.equal(formResponse.status, 200)
+    const started = formResponse.json as { expiresAt: string; access: string }
+    assert.equal(Date.parse(started.expiresAt) - f.state.now, 900_000)
+    assert.equal(started.access, 'view')
+
+    for (const field of ['durationSeconds', 'access']) {
+      const jsonFixture = fixture()
+      const jsonService = await jsonFixture.create()
+      const jsonMode = await jsonService.status({})
+      const { ctx: jsonRequest, responseState: jsonResponse } = requestContext(jsonFixture, {
+        body: { targetId: 'b', [field]: null, _masqueradeContext: jsonMode.contextToken },
+        contentType: 'application/json',
+      })
+      await handleWithDefaultExceptionHandler(jsonRequest, () =>
+        new MasqueradeController().start(jsonRequest)
+      )
+      assert.equal(jsonResponse.status, 422, field)
+    }
+  })
+
   test('start accepts access in JSON and form bodies and rejects unknown values through the audit boundary', async ({
     assert,
   }) => {

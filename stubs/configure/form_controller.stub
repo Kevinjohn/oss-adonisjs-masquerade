@@ -39,6 +39,9 @@ export default class MasqueradeFormController extends MasqueradeController {
     noStore(ctx)
     try {
       const runtime = (await ctx.containerResolver.make('masquerade.runtime')) as MasqueradeRuntime
+      // Like the package controller, control only from a route on the operator's raw guard.
+      if (runtime.selectGuard(ctx).kind !== 'raw')
+        throw new MasqueradeError('E_MASQUERADE_UNAVAILABLE')
       if (action === 'start') await runtime.service.start(ctx, parseStartForm(ctx))
       else await runtime.service.stop(ctx, parseStopForm(ctx))
 
@@ -77,12 +80,17 @@ function parseStartForm(ctx: HttpContext): StartInput {
   return {
     targetId: body.targetId as StartInput['targetId'],
     reason: body.reason as StartInput['reason'],
-    ...(body.access === undefined ? {} : { access: body.access as StartInput['access'] }),
-    ...(body.durationSeconds === undefined
+    // The body parser turns blank fields into null; a blank optional field takes its default.
+    ...(blank(body.access) ? {} : { access: body.access as StartInput['access'] }),
+    ...(blank(body.durationSeconds)
       ? {}
       : { durationSeconds: formDuration(body.durationSeconds) }),
     expectedContext: controlToken(ctx, body) ?? '',
   }
+}
+
+function blank(value: unknown): boolean {
+  return value === undefined || value === null
 }
 
 function parseStopForm(ctx: HttpContext): StopInput {
