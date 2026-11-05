@@ -7,6 +7,7 @@ import { basename, join, relative } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { consumerArtifact } from './helpers/consumer_artifact.js'
 import { ConsumerCommandError, ConsumerProcessRunner } from './helpers/consumer_process.js'
+import { selectRegistryVersion } from './helpers/registry_version.js'
 
 const root = fileURLToPath(new URL('../', import.meta.url))
 const args = new Map(
@@ -183,17 +184,14 @@ try {
     const versions: Record<string, string> = { ...floor }
     if (selected === 'latest')
       for (const name of Object.keys(floor)) {
-        const listed = JSON.parse(
+        const listed: unknown = JSON.parse(
           await run(
             root,
             ['view', `${name}@${ranges[name]}`, 'version', '--json'],
             `latest_${name.replaceAll('/', '_')}`
           )
-        ) as string | string[]
-        const candidates = Array.isArray(listed) ? listed : [listed]
-        versions[name] = candidates
-          .sort((a, b) => a.localeCompare(b, 'en', { numeric: true }))
-          .at(-1)!
+        )
+        versions[name] = selectRegistryVersion(name, listed)
       }
     const app = await mkdtemp(join(tmpdir(), `masquerade_consumer_${selected}_`))
     console.log(`[consumer] isolated ${selected} app: ${app}`)

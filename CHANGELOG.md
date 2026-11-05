@@ -8,6 +8,7 @@
 
 ### Fixed
 
+- Select the greatest compatible stable peer version independently of registry result ordering in both compatibility harnesses.
 - Validate React example login fields before credential lookup.
 - Hide stale Vue workspace customer identity during revalidation and preserve explicit safe recovery when validation fails or expires.
 - Count expected-failure regression cases as executed tests in changed-file checks.

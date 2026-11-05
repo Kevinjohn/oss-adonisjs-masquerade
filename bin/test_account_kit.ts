@@ -4,6 +4,7 @@ import { cp, mkdir, mkdtemp, readdir, readFile, writeFile } from 'node:fs/promis
 import { tmpdir } from 'node:os'
 import { join, relative, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
+import { selectRegistryVersion } from './helpers/registry_version.js'
 import {
   kitReleaseSha256,
   kitReleaseUrl,
@@ -326,14 +327,14 @@ try {
     const versions = { ...floor }
     if (selectedProfile === 'latest')
       for (const name of Object.keys(versions)) {
-        const listed = JSON.parse(
+        const listed: unknown = JSON.parse(
           await run(
             root,
             ['view', `${name}@${peerRanges[name]}`, 'version', '--json'],
             `view_${name.replaceAll('/', '_')}`
           )
-        ) as string | string[]
-        versions[name] = Array.isArray(listed) ? listed.at(-1)! : listed
+        )
+        versions[name] = selectRegistryVersion(name, listed)
       }
     for (const selectedDb of database === 'all' ? ['sqlite', 'pg'] : [database]) {
       for (const selectedStrategy of strategy === 'all'
