@@ -429,6 +429,8 @@ async function waitForDemo(
 }
 
 async function startServer(environment: NodeJS.ProcessEnv): Promise<void> {
+  // A signal after the last setup step has already run cleanup, which cannot reach a later child.
+  if (interruptedBy) throw new Error(`Interrupted by ${interruptedBy}`)
   const child = spawn('pnpm', ['dev'], {
     cwd: example,
     env: { ...environment, HOST: '127.0.0.1' },
