@@ -258,7 +258,10 @@ test.group('Account Kit integration lifecycle', () => {
       await app.terminate()
       await rm(root, { recursive: true, force: true })
     }
-  }).skip(!canResolveAccountKitHttp(), 'requires installed Account Kit or ACCOUNT_KIT_SOURCE')
+  }).skip(
+    !canResolveAccountKitHttp() && !process.env.CI,
+    'requires installed Account Kit or ACCOUNT_KIT_SOURCE'
+  )
 
   test('ready sees HTTP routes and can commit console routes before the Ace report command', async ({
     assert,

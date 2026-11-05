@@ -206,7 +206,11 @@ test.group('pruneMasquerade', () => {
   }) => {
     const f = fixture()
     const service = await f.create()
-    await service.status({})
+    const active = await f.start(service)
+    await service.stop({}, { expectedContext: active.contextToken })
+    const idle = await f.store.read(f.owner)
+    assert.equal(idle?.state, 'idle')
+    f.state.now += 400 * 86_400_000
     const pruneEvents = f.store.pruneEvents.bind(f.store)
     let called = false
     f.store.pruneEvents = async (input) => {
@@ -216,7 +220,8 @@ test.group('pruneMasquerade', () => {
     const result = await pruneMasquerade(f.config, f.dependencies)
     assert.deepEqual(result, { expired: 0, eventsDeleted: 0 })
     assert.isFalse(called)
-    assert.isNull(await f.store.read(f.owner))
+    assert.deepEqual(await f.store.read(f.owner), idle)
+    assert.lengthOf(f.store.events, 2)
   })
 
   test('deletes only a bounded batch of events older than the configured retention window', async ({
