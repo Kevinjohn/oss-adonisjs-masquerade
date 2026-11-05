@@ -19,6 +19,18 @@
   migrations folder, wires the context middleware before auth, and fails when a wiring codemod
   fails. `@adonisjs/assembler` is an optional peer.
 - `pnpm lint` fails on warnings, and test runs that execute no tests fail.
+- The Inertia React example moves to `@adonisjs/inertia` 5 and `@inertiajs/react` 3, matching the
+  Vue example and Account Kit. The package is unchanged. To upgrade an app built from the example:
+  - Set `@adonisjs/inertia` to `^5.0.1` and `@inertiajs/react` to `^3.7.1`, and add
+    `@inertiajs/core` `^3.7.1`.
+  - Remove the `@adonisjs/inertia/vite` plugin from `vite.config.ts`; v5 no longer ships it.
+  - In `inertia/app.tsx`, type the page glob as `{ default: ResolvedComponent }` and return
+    `page.default` from `resolve`.
+  - Mark the layout's `<title>` with `data-inertia`.
+  - Return flash messages from the Inertia middleware's `flash()` method and read them from
+    `usePage().flash`. As shared props they stay in history state, and Back shows them again.
+  - Tests that parse page data read the `<script data-page="app" type="application/json">` tag
+    instead of the `data-page` attribute.
 
 ### Fixed
 
