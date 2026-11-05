@@ -135,17 +135,6 @@ export class RememberMeTokenSchema extends BaseModel {
   declare updatedAt: DateTime
 }
 
-export class SupportAccountSchema extends BaseModel {
-  static $columns = ['accountKey', 'active', 'securityStamp'] as const
-  $columns = SupportAccountSchema.$columns
-  @column({ isPrimary: true })
-  declare accountKey: string
-  @column()
-  declare active: boolean
-  @column()
-  declare securityStamp: string
-}
-
 export class UserSchema extends BaseModel {
   static $columns = [
     'active',

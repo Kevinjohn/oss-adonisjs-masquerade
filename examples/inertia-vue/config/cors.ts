@@ -1,4 +1,3 @@
-import app from '@adonisjs/core/services/app'
 import { defineConfig } from '@adonisjs/cors'
 
 /**
@@ -14,11 +13,11 @@ const corsConfig = defineConfig({
   enabled: true,
 
   /**
-   * In development, allow every origin to simplify local front/backend setup.
-   * In production, keep an explicit allowlist (empty by default, so no
-   * cross-origin browser access is allowed until configured).
+   * No cross-origin browser access. The Vite dev server runs inside AdonisJS, so
+   * the app needs none, and reflecting any origin with credentials would let
+   * another local site read masquerade context tokens.
    */
-  origin: app.inDev ? true : [],
+  origin: [],
 
   /**
    * HTTP methods accepted for cross-origin requests.
