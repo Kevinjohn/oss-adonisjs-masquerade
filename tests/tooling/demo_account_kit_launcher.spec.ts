@@ -194,7 +194,7 @@ if (process.env.KIT_DEMO_TEST_DELAY_AT && process.env.KIT_DEMO_TEST_DELAY_AT.inc
 if (process.env.KIT_DEMO_TEST_FAIL_AT && process.env.KIT_DEMO_TEST_FAIL_AT.includes(command)) process.exit(17)
 if (command === 'generate:key') {
   const env = await readFile('.env', 'utf8')
-  await writeFile('.env', env.replace('replace_me_with_node_ace_generate_key', 'base64:demo-test-key'))
+  await writeFile('.env', env.replace(/^APP_KEY=.*$/m, 'APP_KEY=base64:demo-test-key'))
 }
 if (command === 'configure') {
   await mkdir('database/migrations', { recursive: true })
