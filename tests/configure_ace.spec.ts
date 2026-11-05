@@ -15,6 +15,8 @@ test.group('Masquerade configure scaffold', () => {
       await mkdir(join(root, 'config'), { recursive: true })
       await mkdir(join(root, 'start'), { recursive: true })
       await mkdir(join(root, 'node_modules/@kevinjohn'), { recursive: true })
+      await mkdir(join(root, 'app/models'), { recursive: true })
+      await writeFile(join(root, 'app/models/user.ts'), 'export default class User {}\n')
       await writeFile(join(root, 'config/auth.ts'), 'export default {}')
       await writeFile(join(root, 'tsconfig.json'), '{"compilerOptions":{"strict":true}}\n')
       await writeFile(
@@ -200,12 +202,37 @@ export default defineConfig({
   })
     .timeout(20_000)
     .skip(process.env.TEST_BUILT_EXPORTS !== '1', 'requires the built package')
+
+  test('leaves auth unchanged when it cannot register the context middleware', async ({
+    assert,
+  }) => {
+    const previousProcessExitCode = process.exitCode
+    const host = await starterHost()
+    try {
+      const kernel = starterKernel.replace(
+        "  () => import('@adonisjs/auth/initialize_auth_middleware'),\n",
+        ''
+      )
+      assert.notEqual(kernel, starterKernel)
+      await writeFile(join(host, 'start/kernel.ts'), kernel)
+      assert.equal(await runConfigure(host), 0)
+      // Without the middleware, the effective default guard would leave view-only unenforced.
+      assert.equal(await readFile(join(host, 'config/auth.ts'), 'utf8'), starterAuthConfig)
+      assert.isFalse(existsSync(join(host, 'start/masquerade_routes.ts')))
+    } finally {
+      process.exitCode = previousProcessExitCode
+      await rm(host, { recursive: true, force: true })
+    }
+  })
+    .timeout(20_000)
+    .skip(process.env.TEST_BUILT_EXPORTS !== '1', 'requires the built package')
 })
 
 async function starterHost(): Promise<string> {
   const root = await mkdtemp(join(tmpdir(), 'masquerade-starter-configure-'))
-  for (const directory of ['config', 'start', 'node_modules/@kevinjohn'])
+  for (const directory of ['config', 'start', 'app/models', 'node_modules/@kevinjohn'])
     await mkdir(join(root, directory), { recursive: true })
+  await writeFile(join(root, 'app/models/user.ts'), 'export default class User {}\n')
   await writeFile(join(root, 'config/auth.ts'), starterAuthConfig)
   await writeFile(join(root, 'config/limiter.ts'), 'export default {}\n')
   await writeFile(join(root, 'start/kernel.ts'), starterKernel)

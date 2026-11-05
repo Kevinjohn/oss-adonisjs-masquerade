@@ -36,8 +36,13 @@ export async function wireHost(
   }
   const authPath = command.app.makePath('config/auth.ts')
   const kernelPath = command.app.makePath('start/kernel.ts')
-  const auth = await attempt('config/auth.ts', () => wireAuthGuards(project, authPath, guard))
+  // The kernel goes first: switching the default guard without the context middleware would leave
+  // view-only and sensitive() unenforced, so auth is wired only once the middleware is in place.
   const kernel = await attempt('start/kernel.ts', () => wireContextMiddleware(project, kernelPath))
+  const auth =
+    kernel === 'skipped'
+      ? 'skipped'
+      : await attempt('config/auth.ts', () => wireAuthGuards(project, authPath, guard))
   const status =
     banner && kernel !== 'skipped'
       ? await attempt('start/kernel.ts', () => wireStatusMiddleware(project, kernelPath))

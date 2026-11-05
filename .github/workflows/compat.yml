@@ -74,6 +74,7 @@ jobs:
             const p=require("./package.json"); const dev=p.devDependencies||{};
             for (const [n,r] of Object.entries(p.peerDependencies||{})) {
               if (n==="typescript") continue;                 // compiler peer
+              if (n==="@adonisjs/assembler") continue;        // configure-only tooling peer
               if (/^https?:/.test(dev[n]||"")) continue;      // tarball peer
               process.stdout.write(n+"@"+r.replace(/^[\^~]/,"").split(" ")[0]+" ");
             }')
@@ -99,7 +100,7 @@ jobs:
           PEERS=$(node -e '
             const p=require("./package.json"); const dev=p.devDependencies||{};
             for (const [n,r] of Object.entries(p.peerDependencies||{})) {
-              if (n==="typescript") continue;
+              if (n==="typescript" || n==="@adonisjs/assembler") continue;
               if (/^https?:/.test(dev[n]||"")) continue;
               process.stdout.write(n+" ");
             }')

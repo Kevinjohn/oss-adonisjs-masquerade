@@ -13,8 +13,12 @@ const bannerDestinations = [
   'resources/views/components/masquerade/banner.edge',
 ] as const
 const formControllerDestination = 'app/controllers/masquerade_form_controller.ts'
+const routeDestinations = ['start/masquerade_routes.ts', 'start/masquerade_limiter.ts'] as const
 
-/** Scaffold a fail-closed native-session and Lucid setup without rewriting host auth. */
+/**
+ * Scaffold a fail-closed native-session and Lucid setup, then wire recognized auth, kernel and
+ * route shapes unless `--no-wire` is passed.
+ */
 export async function configure(command: Configure): Promise<void> {
   const namespace = await readOption(command, 'namespace', 'Masquerade namespace')
   const guard = await readOption(command, 'guard', 'Raw session guard name')
@@ -42,6 +46,18 @@ export async function configure(command: Configure): Promise<void> {
     return
   }
 
+  // Every generated provider, config and limiter imports the starter kits' user model.
+  if (
+    !(await fileExists(command.app.makePath('app/models/user.ts'))) &&
+    !(await fileExists(command.app.makePath('app/models/user.js')))
+  ) {
+    command.logger.error(
+      'The generated files import the user model from #models/user, but app/models/user.ts was not found. Add the model there, as the AdonisJS starter kits do, then rerun this command.'
+    )
+    command.exitCode = 1
+    return
+  }
+
   try {
     await command.app.import('@adonisjs/assembler/code_transformer')
   } catch (error) {
@@ -58,13 +74,13 @@ export async function configure(command: Configure): Promise<void> {
   } catch (error) {
     if (!isModuleNotFound(error)) throw error
     command.logger.error(
-      'Lucid is required for the default store scaffold. Install it with: pnpm add @adonisjs/lucid'
+      'Lucid is required for the default store scaffold. Install and configure it with: node ace add @adonisjs/lucid'
     )
     command.exitCode = 1
     return
   }
 
-  const migrationFolder = 'database/migrations'
+  const migrationFolder = await migrationsFolder(command)
   const migrationFile = await findMigrationFile(command.app.makePath(migrationFolder))
   const migrationDestination = `${migrationFolder}/${migrationFile}`
   const banner = command.parsedFlags.banner === true
@@ -74,6 +90,7 @@ export async function configure(command: Configure): Promise<void> {
     ...fileDestinations,
     ...(banner ? bannerDestinations : []),
     ...(formController ? [formControllerDestination] : []),
+    ...(noWire(command) ? [] : routeDestinations),
     migrationDestination,
   ]
   if (!command.force) {
@@ -155,22 +172,35 @@ export async function configure(command: Configure): Promise<void> {
   const wiring = noWire(command)
     ? { auth: 'skipped', kernel: 'skipped', routes: 'skipped', status: 'skipped' }
     : await wireHost(command, codemods, guard, banner, formController)
-  if (wiring.auth !== 'skipped')
+  if (codemodError) {
+    command.logger.error(
+      'Host wiring failed in an AdonisJS codemod. Resolve the reported error and check config/auth.ts, start/kernel.ts and adonisrc.ts before booting the package.'
+    )
+    command.exitCode = 1
+    return
+  }
+  if (wiring.auth === 'wired')
     command.logger.info(
       `Wired config/auth.ts: the raw ${guard} guard reuses userProvider and ${guard}_effective is the default guard.`
     )
-  if (wiring.kernel !== 'skipped')
+  if (wiring.auth === 'already')
+    command.logger.info(`config/auth.ts already makes ${guard}_effective the default guard.`)
+  if (wiring.kernel === 'wired')
     command.logger.info(
       'Registered the context middleware after initialize_auth in start/kernel.ts.'
     )
+  if (wiring.kernel === 'already')
+    command.logger.info('start/kernel.ts already registers the context middleware.')
   if (wiring.routes !== 'skipped')
     command.logger.info(
       'Mounted the control routes in start/masquerade_routes.ts with the limiters in start/masquerade_limiter.ts.'
     )
-  if (banner && wiring.status !== 'skipped')
+  if (banner && wiring.status === 'wired')
     command.logger.info(
       'Registered the optional banner status middleware after silent authentication; include components/masquerade/banner in an authenticated Edge layout.'
     )
+  if (banner && wiring.status === 'already')
+    command.logger.info('start/kernel.ts already registers the banner status middleware.')
   if (formController && wiring.routes !== 'skipped')
     command.logger.info(
       'Mounted the generated host-owned form controller on the control routes; HTML forms redirect and flash, while JSON clients keep the package response.'
@@ -216,7 +246,9 @@ export async function configure(command: Configure): Promise<void> {
     'Keep context enforcement in report mode during form rollout; switch to enforce after clients submit the current context token. Host-managed retention never prunes idle rows.',
   ]
   command.logger.info(
-    'Masquerade scaffold generated. Complete the host-specific wiring before enabling masquerade routes:'
+    wiring.auth === 'skipped'
+      ? 'Masquerade scaffold generated. Complete the host-specific wiring before enabling masquerade routes:'
+      : `Masquerade scaffold generated and wired. ${guard}_effective is now the default guard, so authenticated routes return 503 until these steps are complete:`
   )
   steps.forEach((step, index) => command.logger.info(`${index + 1}. ${step}`))
 }
@@ -228,7 +260,50 @@ function noWire(command: Configure): boolean {
 async function readOption(command: Configure, key: 'namespace' | 'guard', label: string) {
   const value = command.parsedFlags[key]
   if (typeof value === 'string') return value
+  // Ace parses numeric flag values: --namespace=2024 arrives as 2024, and --namespace=1e3 as 1000.
+  if (typeof value === 'number') return rawFlag(key) ?? String(value)
   return command.prompt.ask(label)
+}
+
+/** A flag's value as typed on the command line. */
+function rawFlag(name: string): string | undefined {
+  const argv = process.argv
+  for (const [index, argument] of argv.entries()) {
+    if (argument === `--${name}`) return argv[index + 1]
+    if (argument.startsWith(`--${name}=`)) return argument.slice(name.length + 3)
+  }
+  return undefined
+}
+
+type DatabaseConfig = {
+  connection?: string
+  connections?: Record<string, { migrations?: { paths?: unknown } }>
+}
+
+/** The default connection's first migrations folder, as `node ace make:migration` offers it. */
+async function migrationsFolder(command: Configure): Promise<string> {
+  // Configure runs before the application boots, so config/database.ts is read directly.
+  const database =
+    command.app.config?.get<DatabaseConfig | undefined>('database', undefined) ??
+    (await databaseConfig(command))
+  const paths = database?.connection
+    ? database.connections?.[database.connection]?.migrations?.paths
+    : undefined
+  const folder = Array.isArray(paths)
+    ? paths.find((path): path is string => typeof path === 'string' && path.length > 0)
+    : undefined
+  return folder ? folder.replace(/^\.\//, '').replace(/\/+$/, '') : 'database/migrations'
+}
+
+async function databaseConfig(command: Configure): Promise<DatabaseConfig | undefined> {
+  try {
+    const module = (await command.app.import(command.app.makeURL('config/database.ts').href)) as {
+      default?: DatabaseConfig
+    }
+    return module.default
+  } catch {
+    return undefined
+  }
 }
 
 function isNamespace(value: string): boolean {
