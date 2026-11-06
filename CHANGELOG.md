@@ -11,6 +11,9 @@
 
 ### Changed
 
+- Support Account Kit `0.3.0`. The optional `@kevinjohn/adonisjs-account-kit` peer now declares
+  `0.3.0` in place of `0.2.0`. Account Kit hosts install the `0.3.0` release tarball. Account Kit
+  `0.3.0` has its own breaking changes; see its release notes.
 - The example apps and the Vue and Account Kit guide policies refuse a target that is itself an
   operator. Before, an operator could start a mode, including edit access, for another operator.
   If you copied an example policy, add `!target.user.masqueradeOperator` (or your equivalent) to

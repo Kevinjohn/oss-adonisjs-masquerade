@@ -520,9 +520,11 @@ latest 7.6.0/10.1.0/4.0.1/22.4.2/8.3.0/6.0.3.
 
 ## V1.2 Account Kit acceptance (T-KIT and T-KIT-HTTP)
 
-**Matrix status:** The optional peer declares the scoped `@kevinjohn/adonisjs-account-kit` `0.2.0`
+**Matrix status:** The optional peer declares the scoped `@kevinjohn/adonisjs-account-kit` `0.3.0`
 only. All 16 floor/latest cells passed against its GitHub release artifact in the hosted `compat`
-workflow ([run 41731431285](https://github.com/Kevinjohn/oss-adonisjs-masquerade/actions/runs/41731431285))
+workflow ([run 42168861107](https://github.com/Kevinjohn/oss-adonisjs-masquerade/actions/runs/42168861107))
+on 6 November 2026 at `ac627ce77bfc1e1746c286ce5dd3427b655f39e2`. The scoped `0.2.0` passed all
+16 cells in the hosted `compat` workflow ([run 41731431285](https://github.com/Kevinjohn/oss-adonisjs-masquerade/actions/runs/41731431285))
 on 3 November 2026 at `f40d95a9eecdc68fbcdc0c039fb23a8dae6b0f39`. The scoped `0.1.5` passed the same
 cells in [run 41642918567](https://github.com/Kevinjohn/oss-adonisjs-masquerade/actions/runs/41642918567)
 on 3 November 2026 at `c12e91801ba50927f54ddd1fb9d5eb314aa759fd`. The unscoped `0.1.4` evidence is in
@@ -537,11 +539,17 @@ The six deliverables are implemented in open, unmerged PRs #100–#105 for issue
 The authority, blocker, consumer and documentation PRs remain drafts. Independent reviews are
 complete with reported findings resolved.
 
-Scoped Account Kit `0.2.0` is pinned to the GitHub release artifact with SHA-256
+Scoped Account Kit `0.3.0` is pinned to the GitHub release artifact with SHA-256
+`c94ef9254abf27ba9565b74af05c98509fdfd8ffcd7e08fe30efe131898a9fcb`, built from source commit
+`b798a5beb796641f2312b318dd56f16271a2d06e` (tag `v0.3.0`). It adds scoped invitations and the
+`/transaction` export, and leaves `ctx.auth.user` set after the managed and admission middleware.
+Masquerade runtime code did not change for this pin.
+
+The previous pin, scoped Account Kit `0.2.0`, had SHA-256
 `3c25f5888c2d0f7fd1a0a987e2c84e489e8cfd3ba19e97f1aa117b52371a461d`, built from source commit
-`81949782d87b426d3b094ac2cb45f08722697fe4` (tag `v0.2.0`). It carries the Account Kit
+`81949782d87b426d3b094ac2cb45f08722697fe4` (tag `v0.2.0`). It carried the Account Kit
 code-standardisation changes. The error classes Masquerade reads, `AccountAccessDeniedError` and
-`InvalidSessionError`, keep their names and codes; Masquerade runtime code did not change for this pin.
+`InvalidSessionError`, kept their names and codes; Masquerade runtime code did not change for that pin.
 
 The previous pin, scoped Account Kit `0.1.5`, had SHA-256
 `1efdb5bcda9aeb1dd78e71293d1af0471335cb44e25661ea58dc26540e8a69d5`, built from source commit
