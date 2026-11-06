@@ -2,6 +2,12 @@
 
 ## Unreleased
 
+### Changed
+
+- Support Account Kit `0.3.1`. The optional `@kevinjohn/adonisjs-account-kit` peer now declares
+  `0.3.1` in place of `0.3.0`. Account Kit hosts install the `0.3.1` release tarball. Account Kit
+  `0.3.1` changes only its development dependencies.
+
 ## 0.2.0 - 2026-11-06
 
 ### Added
