@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+## 0.2.0 - 2026-11-06
+
 ### Added
 
 - Recipes: a step-by-step path from the AdonisJS 7 Hypermedia starter kit to a working support
