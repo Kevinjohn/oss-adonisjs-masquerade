@@ -520,9 +520,10 @@ latest 7.6.0/10.1.0/4.0.1/22.4.2/8.3.0/6.0.3.
 
 ## V1.2 Account Kit acceptance (T-KIT and T-KIT-HTTP)
 
-**Matrix status:** The optional peer declares the scoped `@kevinjohn/adonisjs-account-kit` `0.3.0`
-only. All 16 floor/latest cells passed against its GitHub release artifact in the hosted `compat`
-workflow ([run 42168861107](https://github.com/Kevinjohn/oss-adonisjs-masquerade/actions/runs/42168861107))
+**Matrix status:** The optional peer declares the scoped `@kevinjohn/adonisjs-account-kit` `0.3.1`
+only. The eight SQLite floor/latest cells passed against its GitHub release artifact locally on
+6 November 2026; the hosted `compat` run for all 16 cells is pending. The scoped `0.3.0` passed all
+16 cells in the hosted `compat` workflow ([run 42168861107](https://github.com/Kevinjohn/oss-adonisjs-masquerade/actions/runs/42168861107))
 on 6 November 2026 at `ac627ce77bfc1e1746c286ce5dd3427b655f39e2`. The scoped `0.2.0` passed all
 16 cells in the hosted `compat` workflow ([run 41731431285](https://github.com/Kevinjohn/oss-adonisjs-masquerade/actions/runs/41731431285))
 on 3 November 2026 at `f40d95a9eecdc68fbcdc0c039fb23a8dae6b0f39`. The scoped `0.1.5` passed the same
@@ -539,11 +540,16 @@ The six deliverables are implemented in open, unmerged PRs #100–#105 for issue
 The authority, blocker, consumer and documentation PRs remain drafts. Independent reviews are
 complete with reported findings resolved.
 
-Scoped Account Kit `0.3.0` is pinned to the GitHub release artifact with SHA-256
+Scoped Account Kit `0.3.1` is pinned to the GitHub release artifact with SHA-256
+`87a28f6756869f933827edbc00dbd8a37253cacad8d7ed823566cebd83fb7a9f`, built from source commit
+`52b32cef0b80e760d03b984b2391444d3f04d3f2` (tag `v0.3.1`). It changes only Account Kit's
+development dependencies. Masquerade runtime code did not change for this pin.
+
+The previous pin, scoped Account Kit `0.3.0`, had SHA-256
 `c94ef9254abf27ba9565b74af05c98509fdfd8ffcd7e08fe30efe131898a9fcb`, built from source commit
-`b798a5beb796641f2312b318dd56f16271a2d06e` (tag `v0.3.0`). It adds scoped invitations and the
-`/transaction` export, and leaves `ctx.auth.user` set after the managed and admission middleware.
-Masquerade runtime code did not change for this pin.
+`b798a5beb796641f2312b318dd56f16271a2d06e` (tag `v0.3.0`). It added scoped invitations and the
+`/transaction` export, and left `ctx.auth.user` set after the managed and admission middleware.
+Masquerade runtime code did not change for that pin.
 
 The previous pin, scoped Account Kit `0.2.0`, had SHA-256
 `3c25f5888c2d0f7fd1a0a987e2c84e489e8cfd3ba19e97f1aa117b52371a461d`, built from source commit
