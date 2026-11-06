@@ -521,8 +521,9 @@ latest 7.6.0/10.1.0/4.0.1/22.4.2/8.3.0/6.0.3.
 ## V1.2 Account Kit acceptance (T-KIT and T-KIT-HTTP)
 
 **Matrix status:** The optional peer declares the scoped `@kevinjohn/adonisjs-account-kit` `0.3.0`
-only. The eight SQLite floor/latest cells passed against its GitHub release artifact locally on
-6 November 2026; the hosted `compat` run for all 16 cells is pending. The scoped `0.2.0` passed all
+only. All 16 floor/latest cells passed against its GitHub release artifact in the hosted `compat`
+workflow ([run 42168861107](https://github.com/Kevinjohn/oss-adonisjs-masquerade/actions/runs/42168861107))
+on 6 November 2026 at `ac627ce77bfc1e1746c286ce5dd3427b655f39e2`. The scoped `0.2.0` passed all
 16 cells in the hosted `compat` workflow ([run 41731431285](https://github.com/Kevinjohn/oss-adonisjs-masquerade/actions/runs/41731431285))
 on 3 November 2026 at `f40d95a9eecdc68fbcdc0c039fb23a8dae6b0f39`. The scoped `0.1.5` passed the same
 cells in [run 41642918567](https://github.com/Kevinjohn/oss-adonisjs-masquerade/actions/runs/41642918567)
