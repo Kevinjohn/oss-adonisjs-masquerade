@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+## 0.2.2 - 2026-11-07
+
 ### Added
 
 - Examples: Account Kit's Hypermedia and Inertia React starter examples with Masquerade added, in
