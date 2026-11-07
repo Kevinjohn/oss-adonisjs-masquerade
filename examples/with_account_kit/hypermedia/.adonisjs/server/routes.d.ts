@@ -26,8 +26,8 @@ export type ScannedRoutes = {
     'email_changes.edit': { paramsTuple?: []; params?: {} }
     'email_changes.store': { paramsTuple?: []; params?: {} }
     'email_changes.cancel': { paramsTuple?: []; params?: {} }
-    'session.destroy': { paramsTuple?: []; params?: {} }
     'account': { paramsTuple?: []; params?: {} }
+    'session.destroy': { paramsTuple?: []; params?: {} }
     'masquerade.accounts': { paramsTuple?: []; params?: {} }
     'masquerade.status': { paramsTuple?: []; params?: {} }
     'masquerade.start': { paramsTuple?: []; params?: {} }

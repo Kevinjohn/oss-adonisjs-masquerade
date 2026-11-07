@@ -51,7 +51,6 @@ router
 router
   .group(() => {
     router.on('/dashboard').renderInertia('dashboard', {}).as('dashboard')
-    router.post('logout', [controllers.Session, 'destroy'])
     router.post('email-verification', [controllers.EmailVerifications, 'store'])
     router.get('settings/profile', [controllers.Profile, 'edit'])
     router.post('settings/profile', [controllers.Profile, 'update'])
@@ -62,3 +61,9 @@ router
     router.post('settings/password', [controllers.Passwords, 'update']).use(sensitive())
   })
   .use(middleware.auth())
+
+// Logout stays on the raw `web` guard, so an operator can still sign out while masquerading.
+router
+  .post('logout', [controllers.Session, 'destroy'])
+  .as('session.destroy')
+  .use(middleware.auth({ guards: ['web'] }))

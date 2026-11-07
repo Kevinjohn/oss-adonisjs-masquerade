@@ -44,7 +44,6 @@ router
     router.get('settings/email', [controllers.EmailChanges, 'edit'])
     router.post('settings/email', [controllers.EmailChanges, 'store']).use(sensitive())
     router.post('settings/email/cancel', [controllers.EmailChanges, 'cancel'])
-    router.post('logout', [controllers.Session, 'destroy'])
   })
   .use(middleware.auth())
 
@@ -52,3 +51,9 @@ router
   .get('account', [controllers.Dashboard, 'protected'])
   .as('account')
   .use([middleware.auth(), middleware.verified()])
+
+// Logout stays on the raw `web` guard, so an operator can still sign out while masquerading.
+router
+  .post('logout', [controllers.Session, 'destroy'])
+  .as('session.destroy')
+  .use(middleware.auth({ guards: ['web'] }))

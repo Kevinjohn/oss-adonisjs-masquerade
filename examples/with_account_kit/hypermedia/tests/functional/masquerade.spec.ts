@@ -86,6 +86,19 @@ test.group('masquerade', (group) => {
     assert.notInclude(session.html, 'You are viewing as account')
   })
 
+  test('an operator can log out while masquerading', async ({ assert }) => {
+    const { operator, customer } = await createAccounts()
+    const session = new FormSession()
+    await session.login(operator.email, password)
+    await start(session, customer)
+
+    await session.request('/dashboard')
+    const loggedOut = await session.request('/logout', {})
+    assert.equal(loggedOut.headers.get('location'), '/login')
+    const after = await session.request('/dashboard')
+    assert.equal(after.headers.get('location'), '/login')
+  })
+
   test('an account that is not an operator cannot start', async ({ assert }) => {
     const { customer, operator } = await createAccounts()
     const session = new FormSession()
