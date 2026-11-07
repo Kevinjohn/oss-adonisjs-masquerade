@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+## 0.2.1 - 2026-11-07
+
 ### Changed
 
 - Support Account Kit `0.3.1`. The optional `@kevinjohn/adonisjs-account-kit` peer now declares
