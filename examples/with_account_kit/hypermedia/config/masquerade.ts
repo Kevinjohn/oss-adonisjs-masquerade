@@ -1,0 +1,54 @@
+import app from '@adonisjs/core/services/app'
+import type { HttpContext } from '@adonisjs/core/http'
+import UserModel from '#models/user'
+import { Database } from '@adonisjs/lucid/database'
+import { defineConfig } from '@kevinjohn/adonisjs-masquerade'
+import { sessionAuthority, stampFrom } from '@kevinjohn/adonisjs-masquerade/native'
+import { LucidControlStore } from '@kevinjohn/adonisjs-masquerade/stores/lucid'
+import { userProvider } from '#services/masquerade_user_provider'
+
+type User = InstanceType<typeof UserModel>
+
+function configureAccountIdentity(): never {
+  throw new Error('Configure immutable account incarnation and security stamp callbacks in config/masquerade.ts')
+}
+
+// The incarnation must change if an account ID can be deleted and reused.
+// The security stamp must change after privilege, password, suspension, and logout-all changes.
+// Replace these fail-closed callbacks with account-specific, stable implementations.
+const nativeAdapter = sessionAuthority<User>({
+  namespace: "starter",
+  guard: "web",
+  provider: userProvider,
+  incarnation: () => configureAccountIdentity(),
+  securityStamp: stampFrom<User>(() => [configureAccountIdentity()]),
+  isActive: () => false,
+})
+
+export { nativeAdapter }
+
+export default defineConfig<User, HttpContext>({
+  authority: nativeAdapter.authority,
+  policy: {
+    // Required global check: start receives reason/request; active admission does not.
+    async canMasquerade() {
+      return false
+    },
+    // Optional edit permission for starts and active edit admissions. Remove if edit is disabled.
+    async canEdit() {
+      return false
+    },
+    // Optional check for starts and active admissions, not idle routes. Remove if not needed.
+    async canUseRequest() {
+      return false
+    },
+  },
+  store: async () => {
+    const database = await app.container.make(Database)
+    return new LucidControlStore(database.connection())
+  },
+  contextEnforcement: 'report',
+  // A start reason is optional. Use 'required' when every start must be justified in the audit.
+  reason: 'optional',
+  retention: 'host-managed',
+})

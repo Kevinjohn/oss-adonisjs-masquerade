@@ -1,0 +1,20 @@
+import router from '@adonisjs/core/services/router'
+import { middleware } from '#start/kernel'
+import { startMasqueradeLimiter, stopMasqueradeLimiter } from '#start/masquerade_limiter'
+router
+  .group(() => {
+    router
+      .get('/', [() => import('#controllers/masquerade_form_controller'), 'status'])
+      .as('status')
+    router
+      .post('/start', [() => import('#controllers/masquerade_form_controller'), 'start'])
+      .as('start')
+      .use(startMasqueradeLimiter)
+    router
+      .post('/stop', [() => import('#controllers/masquerade_form_controller'), 'stop'])
+      .as('stop')
+      .use(stopMasqueradeLimiter)
+  })
+  .prefix('/masquerade')
+  .as('masquerade')
+  .use(middleware.auth({ guards: ['web'] }))
