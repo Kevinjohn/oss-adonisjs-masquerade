@@ -11,21 +11,21 @@ Hosts using Account Kit should also read the [Account Kit integration preview](a
 ## Generate the starter files
 
 Use Node 24 and pnpm. Masquerade is not published to a package registry. The
-`0.2.0` [GitHub release](https://github.com/Kevinjohn/oss-adonisjs-masquerade/releases/tag/v0.2.0)
+`0.2.1` [GitHub release](https://github.com/Kevinjohn/oss-adonisjs-masquerade/releases/tag/v0.2.1)
 carries the packed tarball. Install it directly in the AdonisJS application:
 
 ```sh
-pnpm add https://github.com/Kevinjohn/oss-adonisjs-masquerade/releases/download/v0.2.0/kevinjohn-adonisjs-masquerade-0.2.0.tgz
+pnpm add https://github.com/Kevinjohn/oss-adonisjs-masquerade/releases/download/v0.2.1/kevinjohn-adonisjs-masquerade-0.2.1.tgz
 ```
 
-The release notes list the tarball SHA-256, and the `v0.2.0` tag marks the source commit. To build
+The release notes list the tarball SHA-256, and the `v0.2.1` tag marks the source commit. To build
 the same version yourself, check out the tag in a clean worktree so the source and lockfile stay
 fixed:
 
 ```sh
 git fetch origin --tags
-git worktree add --detach ../masquerade-v0.2.0 v0.2.0
-cd ../masquerade-v0.2.0
+git worktree add --detach ../masquerade-v0.2.1 v0.2.1
+cd ../masquerade-v0.2.1
 nvm use
 pnpm install --frozen-lockfile
 pnpm build
