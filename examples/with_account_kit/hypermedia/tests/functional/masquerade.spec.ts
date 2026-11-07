@@ -1,4 +1,3 @@
-/* eslint-disable @unicorn/no-await-expression-member -- Keep each HTTP response beside its assertion. */
 import { test } from '@japa/runner'
 import { DateTime } from 'luxon'
 import db from '@adonisjs/lucid/services/db'
@@ -103,7 +102,7 @@ test.group('masquerade', (group) => {
     })
     assert.equal(refused.headers.get('location'), '/masquerade/accounts')
     await session.request('/masquerade/accounts')
-      assert.include(session.html, 'You cannot act as that account.')
+    assert.include(session.html, 'You cannot act as that account.')
     assert.lengthOf(await db.from('masquerade_modes').where('state', 'active'), 0)
     await session.request('/dashboard')
     assert.include(session.html, 'Signed in as <strong>customer@example.test</strong>')
