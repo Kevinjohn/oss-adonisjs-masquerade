@@ -26,6 +26,10 @@ export default await Env.create(new URL('../', import.meta.url), {
   // Session login needs a server-side store, so the cookie store is not allowed.
   SESSION_DRIVER: Env.schema.enum(['memory', 'database'] as const),
 
+  // Masquerade
+  // Comma-separated emails of the accounts that may act as other accounts. Missing means nobody.
+  MASQUERADE_OPERATOR_EMAILS: Env.schema.string.optional(),
+
   /*
   |----------------------------------------------------------
   | Variables for configuring the limiter package

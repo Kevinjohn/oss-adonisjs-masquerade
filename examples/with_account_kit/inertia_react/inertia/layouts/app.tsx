@@ -3,6 +3,7 @@ import { type ReactNode } from 'react'
 import { House, LogOut, Settings } from 'lucide-react'
 import { Form } from '@adonisjs/inertia/react'
 import FlashToasts from '~/components/flash_toasts'
+import MasqueradeBanner from '~/components/masquerade_banner'
 import ThemeToggle from '~/components/theme_toggle'
 import NavLink, { type NavItem } from '~/components/nav_link'
 
@@ -31,6 +32,7 @@ export default function AppLayout({ children }: { children: ReactNode }) {
           </div>
         </div>
       </header>
+      <MasqueradeBanner />
 
       <nav className="subnav" aria-label="Primary">
         <div className="subnav__inner">

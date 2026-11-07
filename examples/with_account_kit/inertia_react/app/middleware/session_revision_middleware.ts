@@ -11,11 +11,13 @@ import { accountKitSessionGuard } from '#services/session_guard'
  */
 export default class SessionRevisionMiddleware {
   async handle(ctx: HttpContext, next: NextFn) {
-    if (ctx.auth.isAuthenticated) {
+    // The raw `web` guard is the signed-in account, even while it masquerades as another.
+    const guard = ctx.auth.use('web')
+    if (await guard.check()) {
       const revision = ctx.session.get('accountKitRevision')
       try {
         await kit.authentication.current({
-          userId: ctx.auth.getUserOrFail().id,
+          userId: guard.getUserOrFail().id,
           // '' means "signed in before any credential change"; a missing value fails closed.
           ...(revision === undefined ? {} : { revision: revision === '' ? null : revision }),
         })

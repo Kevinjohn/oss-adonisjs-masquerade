@@ -4,6 +4,9 @@ import { startMasqueradeLimiter, stopMasqueradeLimiter } from '#start/masquerade
 router
   .group(() => {
     router
+      .get('/accounts', [() => import('#controllers/masquerade_accounts_controller'), 'index'])
+      .as('accounts')
+    router
       .get('/', [() => import('#controllers/masquerade_form_controller'), 'status'])
       .as('status')
     router

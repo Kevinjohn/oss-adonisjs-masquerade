@@ -1,6 +1,7 @@
 import env from '#start/env'
 import app from '@adonisjs/core/services/app'
 import { defineConfig, stores } from '@adonisjs/session'
+import { protectManagedSessionConfig } from '@kevinjohn/adonisjs-account-kit/http'
 
 const sessionConfig = defineConfig({
   /**
@@ -75,4 +76,11 @@ const sessionConfig = defineConfig({
   },
 })
 
-export default sessionConfig
+/**
+ * Masquerade's Account Kit adapter reads the session through Account Kit, which only trusts a
+ * server-side store that can revoke a session: the database store, or the memory store in
+ * development and tests. `start/env.ts` already refuses the cookie store.
+ */
+export default protectManagedSessionConfig(sessionConfig, {
+  verifyStore: (store) => ['DatabaseStore', 'MemoryStore'].includes(store?.constructor.name ?? ''),
+})

@@ -15,11 +15,11 @@ export type MasqueradeFormFlash =
 /** Host-owned HTML form adapter. Edit redirect paths and flash handling for this application. */
 export default class MasqueradeFormController extends MasqueradeController {
   protected redirectAfterStart(_ctx: HttpContext): string {
-    return '/'
+    return '/dashboard'
   }
 
   protected redirectAfterStop(_ctx: HttpContext): string {
-    return '/'
+    return '/masquerade/accounts'
   }
 
   override async start(ctx: HttpContext): Promise<void> {
@@ -56,7 +56,7 @@ export default class MasqueradeFormController extends MasqueradeController {
   }
 
   protected errorPath(_ctx: HttpContext, _action: FormAction): string {
-    return '/'
+    return '/masquerade/accounts'
   }
 }
 
@@ -79,9 +79,7 @@ function parseStartForm(ctx: HttpContext): StartInput {
     reason: body.reason as StartInput['reason'],
     // The body parser turns blank fields into null; a blank optional field takes its default.
     ...(blank(body.access) ? {} : { access: body.access as StartInput['access'] }),
-    ...(blank(body.durationSeconds)
-      ? {}
-      : { durationSeconds: formDuration(body.durationSeconds) }),
+    ...(blank(body.durationSeconds) ? {} : { durationSeconds: formDuration(body.durationSeconds) }),
     expectedContext: controlToken(ctx, body) ?? '',
   }
 }
@@ -110,7 +108,9 @@ function formBody(ctx: HttpContext, allowedKeys: Set<string>): Record<string, un
   const contentLength = ctx.request.header('content-length')
   const raw = ctx.request.raw()
   const body = ctx.request.body()
-  if (contentType !== 'application/x-www-form-urlencoded') return null
+  // Inertia's <Form> posts JSON; a native form posts URL-encoded fields.
+  const inertia = contentType === 'application/json' && ctx.request.header('x-inertia') === 'true'
+  if (contentType !== 'application/x-www-form-urlencoded' && !inertia) return null
   if (!body || typeof body !== 'object' || Array.isArray(body)) return null
   if (Object.keys(body).some((key) => !allowedKeys.has(key))) return null
   if (raw !== null) return Buffer.byteLength(raw, 'utf8') <= bodyLimit ? body : null
