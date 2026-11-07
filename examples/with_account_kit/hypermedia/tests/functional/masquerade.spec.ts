@@ -65,6 +65,15 @@ test.group('masquerade', (group) => {
       passwordConfirmation: 'ChangedPass123!',
     })
     assert.equal(refused.status, 403)
+    assert.deepEqual(await refused.json(), {
+      errors: [
+        {
+          code: 'E_MASQUERADE_ACTION_BLOCKED',
+          message: 'Action is blocked while masquerading',
+          blockedBy: 'sensitive',
+        },
+      ],
+    })
     const stored = await User.findOrFail(customer.id)
     assert.equal(stored.password, customer.password)
 
