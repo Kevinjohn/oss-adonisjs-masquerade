@@ -121,3 +121,53 @@ jobs:
           PORT: 3378
           SESSION_DRIVER: memory
         run: pnpm test:inertia-vue
+
+  with-account-kit:
+    # The starter examples that build on Account Kit's examples. Same start condition as above.
+    if: ${{ github.event_name == 'workflow_dispatch' || !github.event.repository.private }}
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    strategy:
+      fail-fast: false
+      matrix:
+        example: [hypermedia, inertia_react]
+    defaults:
+      run:
+        working-directory: examples/with_account_kit/${{ matrix.example }}
+    env:
+      HOST: 127.0.0.1
+      LIMITER_STORE: memory
+    steps:
+      - uses: actions/checkout@v7
+      - uses: pnpm/action-setup@v6
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 24
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+        working-directory: .
+      - run: pnpm kit:pack
+      # The packed archive's integrity changes with every build, so the lockfile cannot be frozen.
+      - run: pnpm install --no-frozen-lockfile
+      - name: Prepare the app
+        run: |
+          cp .env.example .env
+          pnpm exec node ace generate:key --force
+          pnpm exec node ace codegen
+          pnpm exec node ace migration:run --force
+      - run: pnpm lint
+      - run: pnpm typecheck
+      - run: pnpm build
+      - name: Test
+        run: |
+          PLAYWRIGHT_CLI=$(node -p "require('node:path').join(require('node:path').dirname(require.resolve('playwright/package.json', {paths:[require.resolve('@japa/browser-client')]})), 'cli.js')")
+          node "$PLAYWRIGHT_CLI" install --with-deps chromium
+          pnpm exec vite --host 127.0.0.1 --port 5173 --strictPort > /tmp/example-vite.log 2>&1 &
+          vite_pid=$!
+          trap 'kill "$vite_pid" 2>/dev/null || true; wait "$vite_pid" 2>/dev/null || true' EXIT
+          for attempt in {1..30}; do
+            if curl -fsS http://127.0.0.1:5173/@vite/client >/dev/null; then break; fi
+            sleep 1
+          done
+          curl -fsS http://127.0.0.1:5173/@vite/client >/dev/null
+          pnpm test
