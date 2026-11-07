@@ -1,0 +1,10 @@
+@let(titleFromSlot = await $slots.main())
+@let(classes = ['alert__title'])
+{{-- Slot markup is already rendered; the text prop is data and is escaped. --}}
+@if(titleFromSlot.trim())
+  <div {{ $props.except(['text']).merge({ class: classes }).toAttrs() }}>{{{ titleFromSlot }}}</div>
+@else
+  <div {{ $props.except(['text']).merge({ class: classes }).toAttrs() }}>
+    {{ $props.get('text') }}
+  </div>
+@end

@@ -2,6 +2,14 @@
 
 ## Unreleased
 
+### Added
+
+- Examples: Account Kit's Hypermedia and Inertia React starter examples with Masquerade added, in
+  `examples/with_account_kit/`. An operator listed in `MASQUERADE_OPERATOR_EMAILS` can act as
+  another account through Account Kit's adapter. They feed the
+  [starter examples sandbox](https://github.com/Kevinjohn/oss-adonisjs-starter-examples);
+  `pnpm test:with-account-kit` checks them.
+
 ## 0.2.1 - 2026-11-07
 
 ### Changed

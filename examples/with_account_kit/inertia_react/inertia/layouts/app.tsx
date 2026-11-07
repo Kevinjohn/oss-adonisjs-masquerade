@@ -1,0 +1,52 @@
+import Logo from '~/components/logo'
+import { type ReactNode } from 'react'
+import { House, LogOut, Settings } from 'lucide-react'
+import { Form } from '@adonisjs/inertia/react'
+import FlashToasts from '~/components/flash_toasts'
+import MasqueradeBanner from '~/components/masquerade_banner'
+import ThemeToggle from '~/components/theme_toggle'
+import NavLink, { type NavItem } from '~/components/nav_link'
+
+/**
+ * Top-level app navigation. Add an entry here for every new area of your
+ * app, and it shows up in the navigation bar with its active state handled.
+ */
+const nav: NavItem[] = [
+  { label: 'Dashboard', route: 'dashboard', icon: House },
+  { label: 'Settings', route: 'passwords.edit', icon: Settings, section: '/settings' },
+]
+
+export default function AppLayout({ children }: { children: ReactNode }) {
+  return (
+    <>
+      <header className="header header--bar">
+        <div className="header__inner">
+          <Logo size={28} />
+          <div className="header__right">
+            <ThemeToggle />
+            <Form route="session.destroy">
+              <button type="submit" className="btn btn--secondary btn--sm">
+                <LogOut size={15} /> Log out
+              </button>
+            </Form>
+          </div>
+        </div>
+      </header>
+      <MasqueradeBanner />
+
+      <nav className="subnav" aria-label="Primary">
+        <div className="subnav__inner">
+          {nav.map(({ label, route, icon: Icon, section }) => (
+            <NavLink key={label} route={route} section={section} className="subnav__item">
+              {Icon && <Icon size={14} />}
+              {label}
+            </NavLink>
+          ))}
+        </div>
+      </nav>
+
+      <main className="app-main">{children}</main>
+      <FlashToasts />
+    </>
+  )
+}
