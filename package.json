@@ -64,6 +64,7 @@
     "test:recipe": "node --import=@poppinss/ts-exec --enable-source-maps bin/test_recipe.ts",
     "test:inertia-vue": "node --import=@poppinss/ts-exec --enable-source-maps bin/test_inertia_vue.ts",
     "test:inertia-react": "node --import=@poppinss/ts-exec --enable-source-maps bin/test_inertia_react.ts",
+    "test:with-account-kit": "node --import=@poppinss/ts-exec --enable-source-maps bin/test_with_account_kit.ts",
     "pack:fixture": "pnpm pack --out tmp/native-session-package.tgz",
     "demo": "node --import=@poppinss/ts-exec --enable-source-maps bin/demo.ts",
     "demo:account-kit": "node --import=@poppinss/ts-exec --enable-source-maps bin/demo_account_kit.ts",
