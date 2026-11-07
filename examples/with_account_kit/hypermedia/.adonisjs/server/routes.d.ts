@@ -28,6 +28,10 @@ export type ScannedRoutes = {
     'email_changes.cancel': { paramsTuple?: []; params?: {} }
     'session.destroy': { paramsTuple?: []; params?: {} }
     'account': { paramsTuple?: []; params?: {} }
+    'masquerade.accounts': { paramsTuple?: []; params?: {} }
+    'masquerade.status': { paramsTuple?: []; params?: {} }
+    'masquerade.start': { paramsTuple?: []; params?: {} }
+    'masquerade.stop': { paramsTuple?: []; params?: {} }
   }
   GET: {
     'home': { paramsTuple?: []; params?: {} }
@@ -42,6 +46,8 @@ export type ScannedRoutes = {
     'passwords.edit': { paramsTuple?: []; params?: {} }
     'email_changes.edit': { paramsTuple?: []; params?: {} }
     'account': { paramsTuple?: []; params?: {} }
+    'masquerade.accounts': { paramsTuple?: []; params?: {} }
+    'masquerade.status': { paramsTuple?: []; params?: {} }
   }
   HEAD: {
     'home': { paramsTuple?: []; params?: {} }
@@ -56,6 +62,8 @@ export type ScannedRoutes = {
     'passwords.edit': { paramsTuple?: []; params?: {} }
     'email_changes.edit': { paramsTuple?: []; params?: {} }
     'account': { paramsTuple?: []; params?: {} }
+    'masquerade.accounts': { paramsTuple?: []; params?: {} }
+    'masquerade.status': { paramsTuple?: []; params?: {} }
   }
   POST: {
     'new_account.store': { paramsTuple?: []; params?: {} }
@@ -70,6 +78,8 @@ export type ScannedRoutes = {
     'email_changes.store': { paramsTuple?: []; params?: {} }
     'email_changes.cancel': { paramsTuple?: []; params?: {} }
     'session.destroy': { paramsTuple?: []; params?: {} }
+    'masquerade.start': { paramsTuple?: []; params?: {} }
+    'masquerade.stop': { paramsTuple?: []; params?: {} }
   }
 }
 declare module '@adonisjs/core/types/http' {

@@ -1,6 +1,7 @@
 import env from '#start/env'
 import app from '@adonisjs/core/services/app'
 import { defineConfig, stores } from '@adonisjs/session'
+import { protectManagedSessionConfig } from '@kevinjohn/adonisjs-account-kit/http'
 
 /**
  * Session configuration.
@@ -79,4 +80,10 @@ const sessionConfig = defineConfig({
   },
 })
 
-export default sessionConfig
+/**
+ * Masquerade's Account Kit adapter reads the session through Account Kit, which only trusts a
+ * server-side store that can revoke a session. The database store is the only one configured.
+ */
+export default protectManagedSessionConfig(sessionConfig, {
+  verifyStore: (store) => store?.constructor.name === 'DatabaseStore',
+})

@@ -1,0 +1,48 @@
+@layouts.app({ title: 'Masquerade' })
+  @page()
+    <h1>Masquerade</h1>
+    <p>Signed in as <strong>{{ operator.email }}</strong>.</p>
+    @if(outcome && outcome.type === 'error')
+      <p role="alert">{{ outcome.message }}</p>
+    @elseif(outcome && outcome.type === 'success')
+      <p role="status">{{ outcome.message }}</p>
+    @end
+    @if(mode.isMasquerading)
+      <p>
+        You are acting as
+        <strong>{{ target ? target.email : `account ${mode.targetId}` }}</strong>
+        ({{ mode.access === 'edit' ? 'can edit' : 'view only' }}) until
+        <time datetime="{{ mode.expiresAt }}">{{ mode.expiresAt }}</time>.
+      </p>
+      <p><a href="{{ urlFor('dashboard') }}">Open their dashboard</a></p>
+      @form({ route: 'masquerade.stop', method: 'POST' })
+        <input type="hidden" name="_masqueradeContext" value="{{ mode.contextToken }}" />
+        @!button({ text: 'Stop masquerade', type: 'submit' })
+      @end
+    @elseif(!canMasquerade)
+      <p>Your account is not a masquerade operator.</p>
+    @elseif(accounts.length === 0)
+      <p>There are no other accounts yet.</p>
+    @else
+      <ul class="masquerade-accounts">
+        @each(account in accounts)
+          <li>
+            @form({ route: 'masquerade.start', method: 'POST' })
+              <input type="hidden" name="_masqueradeContext" value="{{ mode.contextToken }}" />
+              <input type="hidden" name="targetId" value="{{ account.id }}" />
+              <span>{{ account.email }}</span>
+              <label>
+                Access
+                <select name="access">
+                  <option value="view">View only</option>
+                  <option value="edit">Can edit</option>
+                </select>
+              </label>
+              @!button({ text: `Act as ${account.email}`, type: 'submit', size: 'sm' })
+            @end
+          </li>
+        @end
+      </ul>
+    @end
+  @end
+@end

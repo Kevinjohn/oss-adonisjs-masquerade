@@ -26,4 +26,8 @@ export default await Env.create(new URL('../', import.meta.url), {
   // Server-side sessions only: a saved cookie session would replay after logout.
   SESSION_DRIVER: Env.schema.enum(['database'] as const),
   LIMITER_STORE: Env.schema.enum(['database', 'memory'] as const),
+
+  // Masquerade
+  // Comma-separated emails of the accounts that may act as other accounts. Missing means nobody.
+  MASQUERADE_OPERATOR_EMAILS: Env.schema.string.optional(),
 })
