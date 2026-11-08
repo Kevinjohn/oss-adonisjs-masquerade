@@ -244,6 +244,60 @@ test.group('Masquerade HTTP API', (group) => {
     assert.deepEqual(modeAfterRevocation, modeBeforeRevocation)
   })
 
+  test('active masquerade blocks the real password endpoint without changing either account', async ({
+    client,
+    assert,
+  }) => {
+    const actor = await createAdmittedUser('operator@example.test', 'OperatorPass123!')
+    const target = await createAdmittedUser('target@example.test', 'TargetPass123!')
+    masqueradeOperatorEmails.add(actor.email)
+    const actorToken = await login(client, actor.email, 'OperatorPass123!')
+    const status = await client.get('/masquerade').bearerToken(actorToken)
+    status.assertStatus(200)
+    const started = await client
+      .post('/masquerade/start')
+      .bearerToken(actorToken)
+      .header('X-Masquerade-Context', responseBody<ModeView>(status).contextToken)
+      .json({ targetId: String(target.id) })
+    started.assertStatus(200)
+
+    const attempted = await client
+      .post('/api/v1/account/password')
+      .bearerToken(actorToken)
+      .header('X-Masquerade-Context', responseBody<ModeView>(started).contextToken)
+      .json({
+        currentPassword: 'OperatorPass123!',
+        newPassword: 'ChangedPassword123!',
+        newPasswordConfirmation: 'ChangedPassword123!',
+      })
+    const storedActor = await User.findOrFail(actor.id)
+    const storedTarget = await User.findOrFail(target.id)
+    assert.deepEqual(
+      {
+        status: attempted.status(),
+        actorPasswordUnchanged: storedActor.password === actor.password,
+        targetPasswordUnchanged: storedTarget.password === target.password,
+      },
+      { status: 403, actorPasswordUnchanged: true, targetPasswordUnchanged: true }
+    )
+    assert.equal(
+      responseBody<{ errors: [{ code: string; blockedBy: string }] }>(attempted).errors[0].code,
+      'E_MASQUERADE_ACTION_BLOCKED'
+    )
+    assert.equal(
+      responseBody<{ errors: [{ blockedBy: string }] }>(attempted).errors[0].blockedBy,
+      'sensitive'
+    )
+    const proof = await client
+      .get('/api/v1/auth/password-reset/unused-token')
+      .bearerToken(actorToken)
+    proof.assertStatus(403)
+    assert.equal(
+      responseBody<{ errors: [{ code: string }] }>(proof).errors[0].code,
+      'E_MASQUERADE_ACTION_BLOCKED'
+    )
+  })
+
   test('token without masquerade ability can still use the profile API', async ({
     client,
     assert,
@@ -261,6 +315,45 @@ test.group('Masquerade HTTP API', (group) => {
     assert.equal(
       responseBody<{ errors: [{ code: string }] }>(refused).errors[0].code,
       'E_MASQUERADE_NOT_ALLOWED'
+    )
+  })
+
+  test('account routes block a raw actor token without masquerade ability while active', async ({
+    client,
+    assert,
+  }) => {
+    const actor = await createAdmittedUser('operator@example.test', 'OperatorPass123!')
+    const target = await createAdmittedUser('target@example.test', 'TargetPass123!')
+    masqueradeOperatorEmails.add(actor.email)
+
+    const operatorToken = await login(client, actor.email, 'OperatorPass123!')
+    const idleMode = responseBody<ModeView>(
+      await client.get('/masquerade').bearerToken(operatorToken)
+    )
+    const started = await client
+      .post('/masquerade/start')
+      .bearerToken(operatorToken)
+      .header('X-Masquerade-Context', idleMode.contextToken)
+      .json({ targetId: String(target.id) })
+    assert.equal(started.status(), 200)
+
+    const anonymousLogin = await client
+      .post('/api/v1/auth/login')
+      .json({ email: actor.email, password: 'OperatorPass123!' })
+    assert.equal(anonymousLogin.status(), 200)
+
+    const restrictedToken = await User.accessTokens.create(actor, ['profile:read'], {
+      expiresIn: '1d',
+    })
+    const attempted = await client
+      .get('/api/v1/account/profile')
+      .bearerToken(restrictedToken.value!.release())
+      .header('X-Masquerade-Context', responseBody<ModeView>(started).contextToken)
+
+    assert.equal(attempted.status(), 403)
+    assert.equal(
+      responseBody<{ errors: [{ code: string; blockedBy: string }] }>(attempted).errors[0].code,
+      'E_MASQUERADE_ACTION_BLOCKED'
     )
   })
 })

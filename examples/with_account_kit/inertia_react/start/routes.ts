@@ -10,7 +10,6 @@
 import { middleware } from '#start/kernel'
 import { controllers } from '#generated/controllers'
 import router from '@adonisjs/core/services/router'
-import { sensitive } from '@kevinjohn/adonisjs-masquerade/http'
 
 router.on('/').renderInertia('home', {}).as('home')
 
@@ -25,20 +24,32 @@ router
     router.get('forgot-password', [controllers.PasswordResets, 'create'])
     router.post('forgot-password', [controllers.PasswordResets, 'store'])
   })
-  .use(middleware.guest())
+  .use([middleware.accountKitBlocker(), middleware.guest()])
 
 // A reset link can belong to this session's account or to someone else using this browser.
 // Inspection never changes the signed-in identity; a successful reset ends the old session.
-router.get('reset-password/:token', [controllers.PasswordResets, 'edit'])
-router.post('reset-password/:token', [controllers.PasswordResets, 'update'])
+router
+  .get('reset-password/:token', [controllers.PasswordResets, 'edit'])
+  .use(middleware.accountKitBlocker())
+router
+  .post('reset-password/:token', [controllers.PasswordResets, 'update'])
+  .use(middleware.accountKitBlocker())
 
 // The link in a verification email works whether or not the user is signed in.
-router.get('verify-email/:token', [controllers.EmailVerifications, 'edit'])
-router.post('verify-email/:token', [controllers.EmailVerifications, 'update'])
+router
+  .get('verify-email/:token', [controllers.EmailVerifications, 'edit'])
+  .use(middleware.accountKitBlocker())
+router
+  .post('verify-email/:token', [controllers.EmailVerifications, 'update'])
+  .use(middleware.accountKitBlocker())
 
 // Inspect the address-owner's link without changing this browser's signed-in identity.
-router.get('confirm-email/:token', [controllers.EmailChanges, 'confirm'])
-router.post('confirm-email/:token', [controllers.EmailChanges, 'complete'])
+router
+  .get('confirm-email/:token', [controllers.EmailChanges, 'confirm'])
+  .use(middleware.accountKitBlocker())
+router
+  .post('confirm-email/:token', [controllers.EmailChanges, 'complete'])
+  .use(middleware.accountKitBlocker())
 
 // Application pages that need a confirmed address use the verified-account middleware.
 router
@@ -48,19 +59,20 @@ router
   .use(middleware.auth())
   .use(middleware.verifiedAccount())
 
+router.on('/dashboard').renderInertia('dashboard', {}).as('dashboard').use(middleware.auth())
+
 router
   .group(() => {
-    router.on('/dashboard').renderInertia('dashboard', {}).as('dashboard')
     router.post('email-verification', [controllers.EmailVerifications, 'store'])
     router.get('settings/profile', [controllers.Profile, 'edit'])
     router.post('settings/profile', [controllers.Profile, 'update'])
     router.get('settings/email', [controllers.EmailChanges, 'edit'])
-    router.post('settings/email', [controllers.EmailChanges, 'store']).use(sensitive())
+    router.post('settings/email', [controllers.EmailChanges, 'store'])
     router.post('settings/email/cancel', [controllers.EmailChanges, 'cancel'])
     router.get('settings/password', [controllers.Passwords, 'edit'])
-    router.post('settings/password', [controllers.Passwords, 'update']).use(sensitive())
+    router.post('settings/password', [controllers.Passwords, 'update'])
   })
-  .use(middleware.auth())
+  .use([middleware.accountKitBlocker(), middleware.auth({ guards: ['web'] })])
 
 // Logout stays on the raw `web` guard, so an operator can still sign out while masquerading.
 router

@@ -18,7 +18,7 @@ Everything Account Kit's README describes still applies.
 | `config/auth.ts`, `start/kernel.ts`, `adonisrc.ts`                                  | The `web_effective` guard, the context and status middleware, and the providers                              |
 | `start/masquerade_routes.ts`, `app/controllers/masquerade_*.ts`                     | The operator page and the start and stop forms; the form controller also accepts Inertia's JSON posts        |
 | `inertia/pages/masquerade/accounts.tsx`, `inertia/components/masquerade_banner.tsx` | The operator page and the banner shown in the app layout (the generated Edge banner is removed)              |
-| `start/routes.ts`                                                                   | Password and email changes are `sensitive()`; logout stays on the raw guard                                  |
+| `start/routes.ts`                                                                   | Native account routes use the raw guard and `AccountKitAccountBlocker`; logout stays available               |
 | `app/middleware/session_revision_middleware.ts`                                     | Checks the operator's own session, not the account being viewed                                              |
 | `database/migrations/1792342558358_create_masquerade_tables.ts`                     | Masquerade's tables                                                                                          |
 
@@ -68,6 +68,6 @@ pnpm build
 pnpm test
 ```
 
-`tests/functional/masquerade.spec.ts` covers start, acting as the target, the refused sensitive
-route, stop, a refused non-operator and a refused operator target, through Inertia requests.
+`tests/functional/masquerade.spec.ts` covers start, acting as the target, blocked native password changes,
+unchanged actor and target passwords, idle password changes, stop, a refused non-operator and a refused operator target, through Inertia requests.
 `tests/browser/masquerade.spec.ts` starts, sees the banner and stops in Chromium.
