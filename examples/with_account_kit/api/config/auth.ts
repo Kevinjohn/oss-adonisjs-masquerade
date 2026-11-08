@@ -1,25 +1,26 @@
 // Both guards exist so the test harness can switch auth strategy; an application keeps one.
 import { defineConfig } from '@adonisjs/auth'
 import { sessionGuard, sessionUserProvider } from '@adonisjs/auth/session'
-import { tokensGuard, tokensUserProvider } from '@adonisjs/auth/access_tokens'
+import { tokensGuard } from '@adonisjs/auth/access_tokens'
 import type { InferAuthenticators, InferAuthEvents, Authenticators } from '@adonisjs/auth/types'
+
+import { effectiveAccessTokensGuard } from '@kevinjohn/adonisjs-masquerade/auth'
+import { accessTokenUserProvider } from '#services/masquerade_user_provider'
+
+const apiGuard = tokensGuard({ provider: accessTokenUserProvider })
 
 const authConfig = defineConfig({
   /**
    * Default guard used when no guard is explicitly specified.
    */
-  default: 'api',
+  default: 'api_effective',
 
   guards: {
     /**
      * Token-based guard for stateless API authentication.
      */
-    api: tokensGuard({
-      provider: tokensUserProvider({
-        tokens: 'accessTokens',
-        model: () => import('#models/user'),
-      }),
-    }),
+    api: apiGuard,
+    api_effective: effectiveAccessTokensGuard(apiGuard, { guard: 'api' }),
 
     /**
      * Session-based guard for browser authentication.

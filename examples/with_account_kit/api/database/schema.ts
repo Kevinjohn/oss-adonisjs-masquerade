@@ -41,7 +41,7 @@ export class AccountAdmissionSchema extends BaseModel {
 }
 
 export class AccountInvitationSchema extends BaseModel {
-  static $columns = ['createdAt', 'email', 'expiresAt', 'id', 'inviterId', 'role', 'tokenHash', 'updatedAt'] as const
+  static $columns = ['createdAt', 'email', 'expiresAt', 'id', 'inviterId', 'role', 'scope', 'tokenHash', 'updatedAt'] as const
   $columns = AccountInvitationSchema.$columns
   @column.dateTime({ autoCreate: true })
   declare createdAt: DateTime
@@ -55,6 +55,8 @@ export class AccountInvitationSchema extends BaseModel {
   declare inviterId: number | null
   @column()
   declare role: string
+  @column()
+  declare scope: string
   @column()
   declare tokenHash: string
   @column.dateTime({ autoCreate: true, autoUpdate: true })
@@ -175,6 +177,76 @@ export class LoginLinkTokenSchema extends BaseModel {
   declare id: number
   @column()
   declare tokenableId: number
+}
+
+export class MasqueradeEventSchema extends BaseModel {
+  static $columns = ['access', 'actorId', 'actorIncarnation', 'at', 'authorityNamespace', 'id', 'kind', 'modeId', 'outcomeCode', 'reason', 'revision', 'targetId', 'targetIncarnation'] as const
+  $columns = MasqueradeEventSchema.$columns
+  @column()
+  declare access: string | null
+  @column()
+  declare actorId: string
+  @column()
+  declare actorIncarnation: string
+  @column()
+  declare at: string
+  @column()
+  declare authorityNamespace: string
+  @column({ isPrimary: true })
+  declare id: string
+  @column()
+  declare kind: string
+  @column()
+  declare modeId: string | null
+  @column()
+  declare outcomeCode: string
+  @column()
+  declare reason: string | null
+  @column()
+  declare revision: bigint | number
+  @column()
+  declare targetId: string | null
+  @column()
+  declare targetIncarnation: string | null
+}
+
+export class MasqueradeModeSchema extends BaseModel {
+  static $columns = ['access', 'actorId', 'actorIncarnation', 'actorStampHash', 'authorityNamespace', 'expiresAt', 'lastTransitionId', 'modeId', 'reason', 'revision', 'revisionNonce', 'startedAt', 'state', 'targetId', 'targetIncarnation', 'targetStampHash', 'updatedAt'] as const
+  $columns = MasqueradeModeSchema.$columns
+  @column()
+  declare access: string | null
+  @column()
+  declare actorId: string
+  @column()
+  declare actorIncarnation: string
+  @column()
+  declare actorStampHash: string | null
+  @column({ isPrimary: true })
+  declare authorityNamespace: string
+  @column()
+  declare expiresAt: string | null
+  @column()
+  declare lastTransitionId: string
+  @column()
+  declare modeId: string
+  @column()
+  declare reason: string | null
+  @column()
+  declare revision: bigint | number
+  @column()
+  declare revisionNonce: string
+  @column()
+  declare startedAt: string | null
+  @column()
+  declare state: string
+  @column()
+  declare targetId: string | null
+  @column()
+  declare targetIncarnation: string | null
+  @column()
+  declare targetStampHash: string | null
+  @column.dateTime({ autoCreate: true, autoUpdate: true })
+  declare updatedAt: DateTime
 }
 
 export class PasswordResetTokenSchema extends BaseModel {

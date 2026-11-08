@@ -30,6 +30,7 @@ export default defineConfig({
     () => import('@adonisjs/session/commands'),
     () => import('@kevinjohn/adonisjs-account-kit/commands'),
     () => import('@kevinjohn/adonisjs-account-kit/admission/commands'),
+    () => import('@kevinjohn/adonisjs-masquerade/commands'),
   ],
 
   /*
@@ -59,6 +60,9 @@ export default defineConfig({
     () => import('@adonisjs/limiter/limiter_provider'),
     () => import('@kevinjohn/adonisjs-account-kit/account_kit_provider'),
     () => import('@kevinjohn/adonisjs-account-kit/admission/provider'),
+    () => import('#providers/masquerade_native_provider'),
+    () => import('@kevinjohn/adonisjs-masquerade/masquerade_provider'),
+    () => import('@kevinjohn/adonisjs-masquerade/account-kit/provider'),
   ],
 
   /*
@@ -73,6 +77,7 @@ export default defineConfig({
     () => import('#start/routes'),
     () => import('#start/kernel'),
     () => import('#start/validator'),
+    () => import('#start/masquerade_routes'),
   ],
 
   /*

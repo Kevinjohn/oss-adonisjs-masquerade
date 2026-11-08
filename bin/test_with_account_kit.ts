@@ -6,9 +6,9 @@ import { chromiumInstallArgs } from './helpers/example_chromium.js'
 
 /**
  * Installs and checks one starter example built on Account Kit's examples, as CI does:
- * `pnpm test:with-account-kit --example=hypermedia` (or `inertia_react`).
+ * `pnpm test:with-account-kit --example=hypermedia`, `inertia_react`, or `api`.
  */
-const examples = ['hypermedia', 'inertia_react']
+const examples = ['hypermedia', 'inertia_react', 'api']
 const root = fileURLToPath(new URL('../', import.meta.url))
 const name = process.argv.find((arg) => arg.startsWith('--example='))?.slice('--example='.length)
 if (!name || !examples.includes(name))
@@ -33,33 +33,39 @@ if (!existsSync(join(example, '.env'))) {
 }
 run('codegen', ['exec', 'node', 'ace', 'codegen'])
 run('migrate', ['exec', 'node', 'ace', 'migration:run', '--force'])
+if (name === 'api') run('format check', ['format:check'])
 run('lint', ['lint'])
 run('typecheck', ['typecheck'])
 run('build', ['build'])
-run('install Chromium', chromiumInstallArgs(example))
 
-const vite = spawn(
-  'pnpm',
-  ['exec', 'vite', '--host', '127.0.0.1', '--port', '5173', '--strictPort'],
-  {
-    cwd: example,
-    env,
-    stdio: 'ignore',
-    detached: true,
-  }
-)
-try {
-  let ready = false
-  // A Vite already on the port would serve another app; strictPort makes this one exit instead.
-  for (let attempt = 0; attempt < 60 && !ready && vite.exitCode === null; attempt++) {
-    ready = await fetch('http://127.0.0.1:5173/@vite/client').then(
-      (response) => response.ok,
-      () => false
-    )
-    if (!ready) await new Promise((resolve) => setTimeout(resolve, 500))
-  }
-  if (!ready || vite.exitCode !== null) throw new Error('Vite did not start on 127.0.0.1:5173')
+if (name === 'api') {
   run('test', ['test'])
-} finally {
-  if (vite.pid) process.kill(-vite.pid)
+} else {
+  run('install Chromium', chromiumInstallArgs(example))
+
+  const vite = spawn(
+    'pnpm',
+    ['exec', 'vite', '--host', '127.0.0.1', '--port', '5173', '--strictPort'],
+    {
+      cwd: example,
+      env,
+      stdio: 'ignore',
+      detached: true,
+    }
+  )
+  try {
+    let ready = false
+    // A Vite already on the port would serve another app; strictPort makes this one exit instead.
+    for (let attempt = 0; attempt < 60 && !ready && vite.exitCode === null; attempt++) {
+      ready = await fetch('http://127.0.0.1:5173/@vite/client').then(
+        (response) => response.ok,
+        () => false
+      )
+      if (!ready) await new Promise((resolve) => setTimeout(resolve, 500))
+    }
+    if (!ready || vite.exitCode !== null) throw new Error('Vite did not start on 127.0.0.1:5173')
+    run('test', ['test'])
+  } finally {
+    if (vite.pid) process.kill(-vite.pid)
+  }
 }

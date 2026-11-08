@@ -13,7 +13,7 @@
 import { middleware } from '#start/kernel'
 import router from '@adonisjs/core/services/router'
 import { controllers } from '#generated/controllers'
-import { authStrategy } from '#services/auth_strategy'
+import { authStrategy, selectedGuardName } from '#services/auth_strategy'
 import { accountPublicLimit } from '#start/limiter'
 
 const strategy = authStrategy()
@@ -124,12 +124,12 @@ router
       })
       .prefix('account')
       .as('account')
-      .use(middleware.auth())
+      .use(middleware.auth({ guards: [selectedGuardName()] }))
 
     // Application data: admitted accounts only.
     router
       .get('reports', [controllers.Reports, 'index'])
-      .use(middleware.auth())
+      .use(middleware.auth({ guards: [selectedGuardName()] }))
       .use(middleware.admittedAccount())
   })
   .prefix('/api/v1')

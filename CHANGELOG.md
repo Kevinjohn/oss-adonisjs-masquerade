@@ -2,6 +2,11 @@
 
 ## Unreleased
 
+### Added
+
+- Examples: an Account Kit API example with CI checks for packing, installation, migrations,
+  formatting, linting, types, build and HTTP tests.
+
 ## 0.2.2 - 2026-11-07
 
 ### Added

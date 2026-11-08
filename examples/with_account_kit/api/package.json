@@ -12,7 +12,7 @@
     "./registry": "./.adonisjs/client/registry/index.ts"
   },
   "scripts": {
-    "kit:pack": "pnpm --dir ../.. build && pnpm --dir ../.. pack --out examples/api/vendor/kevinjohn-adonisjs-account-kit.tgz",
+    "kit:pack": "pnpm --dir ../../.. build && pnpm --dir ../../.. pack --out examples/with_account_kit/api/vendor/kevinjohn-adonisjs-masquerade.tgz",
     "start": "node bin/server.js",
     "build": "node ace build",
     "dev": "node ace serve --hmr",
@@ -78,7 +78,8 @@
     "luxon": "^3.7.2",
     "pg": "^8.23.1",
     "reflect-metadata": "^0.2.2",
-    "@kevinjohn/adonisjs-account-kit": "file:vendor/kevinjohn-adonisjs-account-kit.tgz"
+    "@kevinjohn/adonisjs-account-kit": "https://github.com/Kevinjohn/oss-adonisjs-account-kit/releases/download/v0.3.1/kevinjohn-adonisjs-account-kit-0.3.1.tgz",
+    "@kevinjohn/adonisjs-masquerade": "file:vendor/kevinjohn-adonisjs-masquerade.tgz"
   },
   "allowScripts": {
     "@swc/core": true,

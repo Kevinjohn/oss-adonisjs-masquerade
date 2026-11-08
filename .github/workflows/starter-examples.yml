@@ -17,7 +17,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        kit: [hypermedia, inertia-react]
+        kit: [hypermedia, inertia-react, api]
     steps:
       - uses: actions/checkout@v7
         with:
@@ -36,4 +36,9 @@ jobs:
       - run: pnpm --dir package install --frozen-lockfile
       - run: pnpm --dir starter-examples install --frozen-lockfile
       - run: pnpm --dir starter-examples assemble --kit ${{ matrix.kit }} --with-local "$GITHUB_WORKSPACE/package" --out "$GITHUB_WORKSPACE/starter-examples/tmp/combined"
-      - run: pnpm --dir starter-examples test:app --kit ${{ matrix.kit }} --dir tmp/combined --install-browsers
+      - name: Test starter example with browser support
+        if: ${{ matrix.kit != 'api' }}
+        run: pnpm --dir starter-examples test:app --kit ${{ matrix.kit }} --dir tmp/combined --install-browsers
+      - name: Test API starter example
+        if: ${{ matrix.kit == 'api' }}
+        run: pnpm --dir starter-examples test:app --kit ${{ matrix.kit }} --dir tmp/combined

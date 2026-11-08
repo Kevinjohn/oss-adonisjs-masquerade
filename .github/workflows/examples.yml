@@ -131,7 +131,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        example: [hypermedia, inertia_react]
+        example: [hypermedia, inertia_react, api]
     steps:
       - uses: actions/checkout@v7
       - uses: pnpm/action-setup@v6
