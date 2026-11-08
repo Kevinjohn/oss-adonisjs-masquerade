@@ -17,7 +17,7 @@ test('the changelog and maintainer records name the declared Account Kit peer', 
   assert.isString(peer)
 
   const changelog = await read('CHANGELOG.md')
-  assert.include(changelog.replace(/\s+/g, ' '), `\`${peerName}\` peer now declares \`${peer}\``)
+  assert.include(changelog.replace(/\s+/g, ' '), `Require Account Kit \`${peer}\` exactly.`)
 
   const conventions = await read('docs/maintainers/conventions.md')
   assert.include(conventions.replace(/\s+/g, ' '), `pinned to GitHub release artifact \`${peer}\``)

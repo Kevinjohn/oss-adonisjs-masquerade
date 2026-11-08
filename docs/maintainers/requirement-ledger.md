@@ -520,10 +520,11 @@ latest 7.6.0/10.1.0/4.0.1/22.4.2/8.3.0/6.0.3.
 
 ## V1.2 Account Kit acceptance (T-KIT and T-KIT-HTTP)
 
-**Matrix status:** The optional peer declares the scoped `@kevinjohn/adonisjs-account-kit` `0.3.1`
-only. All 16 floor/latest cells passed against its GitHub release artifact in the hosted `compat`
-workflow ([run 42310704826](https://github.com/Kevinjohn/oss-adonisjs-masquerade/actions/runs/42310704826))
-on 6 November 2026 at `d31bf7df0319c514a72f451df102b237fd4c8b69`. The scoped `0.3.0` passed all
+**Matrix status:** The optional peer now declares scoped `@kevinjohn/adonisjs-account-kit` `0.3.2` only.
+The previous `0.3.1` pin passed all 16 floor/latest cells against its GitHub release artifact in the
+hosted `compat` workflow ([run 42310704826](https://github.com/Kevinjohn/oss-adonisjs-masquerade/actions/runs/42310704826))
+on 6 November 2026 at `d31bf7df0319c514a72f451df102b237fd4c8b69`; the `0.3.2` compatibility matrix
+is pending in the update pull request. The scoped `0.3.0` passed all
 16 cells in the hosted `compat` workflow ([run 42168861107](https://github.com/Kevinjohn/oss-adonisjs-masquerade/actions/runs/42168861107))
 on 6 November 2026 at `ac627ce77bfc1e1746c286ce5dd3427b655f39e2`. The scoped `0.2.0` passed all
 16 cells in the hosted `compat` workflow ([run 41731431285](https://github.com/Kevinjohn/oss-adonisjs-masquerade/actions/runs/41731431285))
@@ -541,10 +542,12 @@ The six deliverables are implemented in open, unmerged PRs #100–#105 for issue
 The authority, blocker, consumer and documentation PRs remain drafts. Independent reviews are
 complete with reported findings resolved.
 
-Scoped Account Kit `0.3.1` is pinned to the GitHub release artifact with SHA-256
-`87a28f6756869f933827edbc00dbd8a37253cacad8d7ed823566cebd83fb7a9f`, built from source commit
-`52b32cef0b80e760d03b984b2391444d3f04d3f2` (tag `v0.3.1`). It changes only Account Kit's
-development dependencies. Masquerade runtime code did not change for this pin.
+Account Kit `0.3.2` updates example schemas and vendor comments without changing its package code.
+Scoped Account Kit `0.3.2` is pinned to the GitHub release artifact with SHA-256
+`82033c9acd74595b93abc3a8b85f66b5f7cd4da54c07d3a25a55a38308724b48`, built from source commit
+`623f562ba27d5e52ae91cc6e515b646276c16a5f` (tag `v0.3.2`). The previous `0.3.1` artifact had
+SHA-256 `87a28f6756869f933827edbc00dbd8a37253cacad8d7ed823566cebd83fb7a9f`, from commit
+`52b32cef0b80e760d03b984b2391444d3f04d3f2`; its dated matrix results above remain historical evidence.
 
 The previous pin, scoped Account Kit `0.3.0`, had SHA-256
 `c94ef9254abf27ba9565b74af05c98509fdfd8ffcd7e08fe30efe131898a9fcb`, built from source commit

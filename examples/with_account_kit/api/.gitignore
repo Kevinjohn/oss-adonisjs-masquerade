@@ -1,0 +1,29 @@
+# Dependencies and AdonisJS build
+node_modules
+build
+tmp/*
+!tmp/.gitkeep
+
+# Secrets
+.env
+.env.*
+!.env.example
+
+# Frontend assets compiled code
+public/assets
+
+# Packed package build, see README. The lockfile records the archive contents.
+vendor
+.adonisjs
+
+# Build tools specific
+npm-debug.log
+yarn-error.log
+
+# Editors specific
+.fleet
+.idea
+.vscode
+
+# Platform specific
+.DS_Store
