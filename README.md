@@ -20,15 +20,15 @@ credential.
 
 ## Install
 
-Masquerade requires Node.js 24+ and AdonisJS 7. Install the scoped `0.2.3` release from GitHub:
+Masquerade requires Node.js 24+ and AdonisJS 7. Install the scoped `0.2.4` release from GitHub:
 
 ```sh
-pnpm add https://github.com/Kevinjohn/oss-adonisjs-masquerade/releases/download/v0.2.3/kevinjohn-adonisjs-masquerade-0.2.3.tgz
+pnpm add https://github.com/Kevinjohn/oss-adonisjs-masquerade/releases/download/v0.2.4/kevinjohn-adonisjs-masquerade-0.2.4.tgz
 node ace configure @kevinjohn/adonisjs-masquerade --namespace=my_app --guard=web
 ```
 
-The release asset is `kevinjohn-adonisjs-masquerade-0.2.3.tgz`; verify it against the SHA-256 in
-the [release notes](https://github.com/Kevinjohn/oss-adonisjs-masquerade/releases/tag/v0.2.3). See the
+The release asset is `kevinjohn-adonisjs-masquerade-0.2.4.tgz`; verify it against the SHA-256 in
+the [release notes](https://github.com/Kevinjohn/oss-adonisjs-masquerade/releases/tag/v0.2.4). See the
 [setup guide](docs/guide/setup.md) for peer dependencies and generated files.
 
 ## Quick example

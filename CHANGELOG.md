@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+## 0.2.4 - 2026-11-08
+
 ### Added
 
 - `AccountKitAccountBlocker` middleware for host-owned native account routes, using the same
