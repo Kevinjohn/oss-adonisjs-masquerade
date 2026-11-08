@@ -5,7 +5,7 @@ show symbol signatures; those source paths are documentation locations, not supp
 
 ## Supported package imports
 
-This reference describes the scoped `0.2.5` release. Its sole core provider entry is
+This reference describes the scoped `0.2.6` release. Its sole core provider entry is
 `@kevinjohn/adonisjs-masquerade/masquerade_provider`. Configure registers this path automatically.
 
 | Import path                                                                                      | Use                                                                                                               | Public reference                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                 |
