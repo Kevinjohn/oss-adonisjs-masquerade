@@ -2,6 +2,11 @@
 
 ## Unreleased
 
+### Added
+
+- An Inertia Vue example built on Account Kit's Inertia Vue example, in
+  `examples/with_account_kit/inertia_vue`, for the starter examples sandbox.
+
 ## 0.2.4 - 2026-11-08
 
 ### Added

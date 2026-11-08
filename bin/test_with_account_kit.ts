@@ -6,9 +6,9 @@ import { chromiumInstallArgs } from './helpers/example_chromium.js'
 
 /**
  * Installs and checks one starter example built on Account Kit's examples, as CI does:
- * `pnpm test:with-account-kit --example=hypermedia`, `inertia_react`, or `api`.
+ * `pnpm test:with-account-kit --example=hypermedia`, `inertia_react`, `inertia_vue`, or `api`.
  */
-const examples = ['hypermedia', 'inertia_react', 'api']
+const examples = ['hypermedia', 'inertia_react', 'inertia_vue', 'api']
 const root = fileURLToPath(new URL('../', import.meta.url))
 const name = process.argv.find((arg) => arg.startsWith('--example='))?.slice('--example='.length)
 if (!name || !examples.includes(name))
