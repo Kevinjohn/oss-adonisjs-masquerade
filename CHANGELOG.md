@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+## 0.2.7 - 2026-11-08
+
 ### Changed
 
 - Require Account Kit `0.3.3` exactly. The Account Kit examples take its 0.3.3 example changes.
