@@ -106,7 +106,7 @@ const accountAdmission = () => app.container.make(AccountAdmission)
 export default defineConfig({
   authority: nativeAdapter.authority,
   policy: {
-    // Operators may support active customers, never another operator.
+    // Operators may support active customers. Refusing other operators is the recommended default.
     canMasquerade: async ({ actor, target }) =>
       Boolean(actor.user.masqueradeOperator) &&
       !target.user.masqueradeOperator &&

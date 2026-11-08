@@ -226,8 +226,8 @@ export { nativeAdapter }
 export default defineConfig<User, HttpContext>({
   authority: nativeAdapter.authority,
   policy: {
-    // Never let an operator act as another operator, an administrator or anyone with more
-    // privilege: edit access there lets them grant themselves that privilege.
+    // Never let an operator act as anyone with more privilege: edit access there lets them grant
+    // themselves that privilege. Refusing other operators is the recommended default.
     canMasquerade: ({ actor, target }) =>
       actor.user.masqueradeOperator &&
       !target.user.masqueradeOperator &&

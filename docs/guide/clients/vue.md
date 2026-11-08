@@ -57,7 +57,7 @@ const native = sessionAuthority({
 export default defineConfig({
   authority: native.authority,
   policy: {
-    // Operators may support active customers, never another operator.
+    // Operators may support active customers. Refusing other operators is the recommended default.
     canMasquerade: ({ actor, target }) =>
       Boolean(actor.user.isSupportOperator) &&
       !target.user.isSupportOperator &&
@@ -73,6 +73,10 @@ export default defineConfig({
   retention: 'host-managed',
 })
 ```
+
+Refusing operator targets is a recommended default; see
+[allow operator targets for view access](../../recipes/who-can-masquerade.md#allow-operator-targets-for-view-access)
+for the alternative.
 
 Register the app's native adapter provider and the package provider. Add the package's Lucid schema in a host migration. Keep customer eligibility in the host's policy and model callbacks; never issue a customer credential or broaden operator permissions.
 
