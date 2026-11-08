@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+## 0.2.5 - 2026-11-08
+
 ### Added
 
 - An Inertia Vue example built on Account Kit's Inertia Vue example, in
