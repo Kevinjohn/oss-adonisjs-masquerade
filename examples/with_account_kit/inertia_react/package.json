@@ -77,7 +77,7 @@
     "@inertiajs/react": "^3.7.1",
     "@tuyau/core": "^1.2.2",
     "@vinejs/vine": "^4.4.0",
-    "@kevinjohn/adonisjs-account-kit": "https://github.com/Kevinjohn/oss-adonisjs-account-kit/releases/download/v0.3.2/kevinjohn-adonisjs-account-kit-0.3.2.tgz",
+    "@kevinjohn/adonisjs-account-kit": "https://github.com/Kevinjohn/oss-adonisjs-account-kit/releases/download/v0.3.3/kevinjohn-adonisjs-account-kit-0.3.3.tgz",
     "@kevinjohn/adonisjs-masquerade": "file:vendor/kevinjohn-adonisjs-masquerade.tgz",
     "better-sqlite3": "^13.0.3",
     "edge.js": "^6.5.1",

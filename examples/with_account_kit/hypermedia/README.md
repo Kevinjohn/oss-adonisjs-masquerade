@@ -1,8 +1,8 @@
 # Masquerade with Account Kit: Hypermedia example
 
 This app is Account Kit's
-[Hypermedia example](https://github.com/Kevinjohn/oss-adonisjs-account-kit/tree/v0.3.2/examples/hypermedia)
-at `v0.3.2`, with Masquerade added. An operator can act as another account, see the app as that
+[Hypermedia example](https://github.com/Kevinjohn/oss-adonisjs-account-kit/tree/v0.3.3/examples/hypermedia)
+at `v0.3.3`, with Masquerade added. An operator can act as another account, see the app as that
 account does, and stop. It runs on the official AdonisJS Hypermedia starter at
 [`adonisjs/starter-kits` revision `46d235932e3eb6472a16b740fa0b47b5f69fc6fc`](https://github.com/adonisjs/starter-kits/tree/46d235932e3eb6472a16b740fa0b47b5f69fc6fc/hypermedia).
 Everything Account Kit's README describes still applies.
@@ -43,7 +43,7 @@ pnpm exec node ace migration:run
 PORT=3342 APP_URL=http://localhost:3342 pnpm dev
 ```
 
-`kit:pack` builds Masquerade from this checkout into `vendor/`. Account Kit comes from its `v0.3.2`
+`kit:pack` builds Masquerade from this checkout into `vendor/`. Account Kit comes from its `v0.3.3`
 GitHub release. The packed archive's checksum changes with every build, so the install does not
 use a frozen lockfile.
 

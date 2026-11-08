@@ -10,7 +10,7 @@ Use these notes to assess Masquerade and protect its guarantees. Human overview:
 ## Requirements
 
 Core 7, Auth 10; Lucid 22.4.2+ for the Lucid store; Session 8.1+ for session auth. Optional: Bouncer 4,
-Japa API client 3.2.1+ and Account Kit 0.3.2. Require `canMasquerade`; `canEdit` and `canUseRequest` are
+Japa API client 3.2.1+ and Account Kit 0.3.3. Require `canMasquerade`; `canEdit` and `canUseRequest` are
 optional.
 
 ## Install
