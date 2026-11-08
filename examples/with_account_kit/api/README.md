@@ -1,8 +1,8 @@
 # Masquerade with Account Kit: API example
 
 This app is Account Kit's
-[API example](https://github.com/Kevinjohn/oss-adonisjs-account-kit/tree/v0.3.1/examples/api)
-at `v0.3.1`, with Masquerade added through its `access_tokens` strategy and raw `api` guard.
+[API example](https://github.com/Kevinjohn/oss-adonisjs-account-kit/tree/v0.3.2/examples/api)
+at `v0.3.2`, with Masquerade added through its `access_tokens` strategy and raw `api` guard.
 It runs on the official AdonisJS API starter at
 [`adonisjs/starter-kits` revision `46d235932e3eb6472a16b740fa0b47b5f69fc6fc`](https://github.com/adonisjs/starter-kits/tree/46d235932e3eb6472a16b740fa0b47b5f69fc6fc/api).
 Account Kit's original controllers, admission rules, notifications and test harness remain here;
@@ -51,7 +51,7 @@ pnpm dev
 ```
 
 `kit:pack` builds Masquerade from this checkout into ignored `vendor/`. Account Kit comes from its
-`v0.3.1` GitHub release. Repacking changes the archive's checksum, so refresh the install without a
+`v0.3.2` GitHub release. Repacking changes the archive's checksum, so refresh the install without a
 frozen lockfile. The API listens at <http://localhost:3333> by default. OAuth settings are inert
 placeholders; core authentication does not need an OAuth account.
 

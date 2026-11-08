@@ -78,7 +78,7 @@
     "luxon": "^3.7.2",
     "pg": "^8.23.1",
     "reflect-metadata": "^0.2.2",
-    "@kevinjohn/adonisjs-account-kit": "https://github.com/Kevinjohn/oss-adonisjs-account-kit/releases/download/v0.3.1/kevinjohn-adonisjs-account-kit-0.3.1.tgz",
+    "@kevinjohn/adonisjs-account-kit": "https://github.com/Kevinjohn/oss-adonisjs-account-kit/releases/download/v0.3.2/kevinjohn-adonisjs-account-kit-0.3.2.tgz",
     "@kevinjohn/adonisjs-masquerade": "file:vendor/kevinjohn-adonisjs-masquerade.tgz"
   },
   "allowScripts": {

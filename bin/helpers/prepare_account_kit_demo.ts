@@ -67,7 +67,7 @@ export async function prepare(
     childEnv,
     signal
   )
-  await ensureKitArtifact(join(workspace, 'account-kit-0.3.1.tgz'), signal)
+  await ensureKitArtifact(join(workspace, 'account-kit-0.3.2.tgz'), signal)
   signal?.throwIfAborted()
   await copyNativeDemo(native, app)
   await overlay(demo, app)

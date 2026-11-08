@@ -2,6 +2,10 @@
 
 ## Unreleased
 
+### Changed
+
+- Require Account Kit `0.3.2` exactly.
+
 ### Added
 
 - Examples: an Account Kit API example with CI checks for packing, installation, migrations,
