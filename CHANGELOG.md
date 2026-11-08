@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+## 0.2.6 - 2026-11-08
+
 ### Changed
 
 - Examples: the API example's default operator is `operator@example.com`, as in the other
