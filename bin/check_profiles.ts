@@ -48,6 +48,7 @@ export const checkProfiles: Record<CheckProfile, CheckStep[]> = {
     { script: 'test:inertia-vue', env: { ...browserEnv, PORT: '3378' } },
     { script: 'test:with-account-kit', args: ['--example=hypermedia'] },
     { script: 'test:with-account-kit', args: ['--example=inertia_react'] },
+    { script: 'test:with-account-kit', args: ['--example=inertia_vue'] },
   ],
 }
 
