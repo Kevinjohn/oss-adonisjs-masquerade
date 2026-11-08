@@ -2,6 +2,11 @@
 
 ## Unreleased
 
+### Changed
+
+- Examples: the API example's default operator is `operator@example.com`, as in the other
+  examples built on Account Kit, so the starter examples sandbox shows one address in every app.
+
 ## 0.2.5 - 2026-11-08
 
 ### Added

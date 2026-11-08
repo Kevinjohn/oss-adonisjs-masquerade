@@ -71,7 +71,7 @@ and approval required by this example's admission configuration:
 const User = (await import('#models/user')).default
 const db = (await import('@adonisjs/lucid/services/db')).default
 const { DateTime } = await import('luxon')
-for (const email of ['operator@example.test', 'customer@example.test']) {
+for (const email of ['operator@example.com', 'customer@example.test']) {
   const user = await User.create({
     email,
     password: 'DemoPassword123!',
@@ -92,9 +92,9 @@ for (const email of ['operator@example.test', 'customer@example.test']) {
 }
 ```
 
-Use the printed customer ID below. With `MASQUERADE_OPERATOR_EMAILS=operator@example.test`:
+Use the printed customer ID below. With `MASQUERADE_OPERATOR_EMAILS=operator@example.com`:
 
-1. `POST /api/v1/auth/login` with JSON `{"email":"operator@example.test","password":"DemoPassword123!"}`.
+1. `POST /api/v1/auth/login` with JSON `{"email":"operator@example.com","password":"DemoPassword123!"}`.
    Keep `data.token` and send `Authorization: Bearer <token>` on all following requests.
 2. `GET /masquerade` returns the idle state and `contextToken`.
 3. `POST /masquerade/start` with JSON `{"targetId":"<customer ID>"}` and
