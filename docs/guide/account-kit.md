@@ -311,13 +311,83 @@ without a Masquerade store read. An authenticated request to another managed rou
 an active, unexpired mode is blocked; no row, an idle or expired row, or no active mode for that
 actor passes after the read. A store failure returns 503.
 
+## Block host-owned account routes
+
+The global blocker covers only Account Kit's registered `accountKit.*` routes. If your application
+serves account operations from its own controllers, opt those routes in with the named
+`AccountKitAccountBlocker` export from `@kevinjohn/adonisjs-masquerade/account-kit/middleware`.
+It applies the same raw-actor active-mode check, regardless of route name or HTTP method:
+
+```ts
+// start/kernel.ts: add to router.named({...})
+export const middleware = router.named({
+  // Existing named middleware, including auth...
+  accountKitAccountBlocker: () =>
+    import('@kevinjohn/adonisjs-masquerade/account-kit/middleware').then((module) => ({
+      default: module.AccountKitAccountBlocker,
+    })),
+})
+```
+
+```ts
+// start/routes.ts: host-owned native account controllers
+router
+  .group(() => {
+    router.post('/account/password', [controllers.AccountPassword, 'update'])
+    router.patch('/account/profile', [controllers.Profile, 'update'])
+    router.delete('/account/social/:id', [controllers.SocialIdentities, 'unlink'])
+    router.post('/account/invitations', [controllers.Invitations, 'send'])
+  })
+  .use(middleware.accountKitAccountBlocker())
+  .use(middleware.auth({ guards: ['web'] })) // Use the adapter's raw guard; e.g. 'api' for tokens.
+
+// Keep logout outside the blocked group, on the raw guard.
+router.post('/logout', [controllers.Session, 'destroy']).use(middleware.auth({ guards: ['web'] }))
+```
+
+Keep session setup and `initialize_auth` before this middleware. Host account routes must select
+the adapter's raw guard, so `masqueradeContext` does not perform effective business admission first.
+Retain the host's ordinary authentication, account-access and authorization checks: the blocker
+only prevents operations while a mode is active, and passes unauthenticated requests through.
+
+Include password, email, profile, social linking and unlinking, invitation management, session
+management and account deletion routes that your host provides, including their forms and reads.
+Public recovery, verification and OAuth routes may also opt in: an unauthenticated proof flow
+passes without reading mode, while an authenticated actor with an active mode is blocked.
+Do not rename host routes to `accountKit.*`; those names remain reserved for registered managed
+routes.
+
+An active mode returns the same `403` JSON error as the managed blocker:
+
+```json
+{
+  "errors": [
+    {
+      "code": "E_MASQUERADE_ACTION_BLOCKED",
+      "message": "Action is blocked while masquerading",
+      "blockedBy": "sensitive"
+    }
+  ]
+}
+```
+
+The application still owns message translation. Both view and edit modes are blocked, even when
+the raw token lacks the Masquerade ability. No row, an idle or expired row, or an unauthenticated
+request passes; an unavailable guard or store fails closed with `503 E_MASQUERADE_UNAVAILABLE`.
+The check neither clears nor extends mode and does not call Account Kit `current`.
+
+Apply this middleware only to the account routes you intend to block. Keep native logout, CSRF
+bootstrap, Masquerade status/start/stop controls and effective business routes outside its groups;
+it has no route-name exemptions of its own. The global blocker's managed logout and CSRF exemptions
+continue to apply. Hosts that do not install the named middleware keep their existing behavior.
+
 ## Review the route report
 
 Run `node ace masquerade:routes` after routes are registered. Account Kit routes are reported as
 managed and blocked only when the provider has verified the blocker. If the blocker is absent or
 unverified, the routes remain `UNCLASSIFIED` with an explanatory note. Review that report alongside
-the [route coverage guide](route-report.md); the report does not replace review of host middleware
-or route behavior.
+the [route coverage guide](route-report.md); host-owned routes using the named blocker are not classified as managed Account Kit routes. The
+report does not replace review of host middleware or route behavior.
 
 ## Database and verification boundary
 

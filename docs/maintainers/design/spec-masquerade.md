@@ -205,7 +205,7 @@ interface ResolvedContext {
 - Routes under an effective guard are business routes. GET, HEAD and OPTIONS are `read`; other methods are `mutation`. While active, unsafe methods require edit access and route/group `allowMutation()`; `sensitive()` denies regardless of access or `allowMutation()`. The access rules are superseded by [§14](#14-view-only-default-and-per-start-edit-access-accepted-22-october-2026).
 - Markers are explicit route or group middleware; an unsafe verb is at least `mutation` whatever the markers say. Idle requests follow ordinary actor policy and still need the context token.
 - Routes under a raw guard are control routes only if they are the package's start, stop and status routes or the host's login, signup, logout and public routes. A raw-guard route that runs business behavior is a coverage defect.
-  **Superseded for Account Kit managed routes only by [§15](#15-v12-account-kit-integration).**
+  **Superseded for Account Kit managed routes and explicitly opted-in host account routes by [§15](#15-v12-account-kit-integration).**
 - `node ace masquerade:routes` prints every route grouped by guard with its classification and flags raw-guard routes that are not recognized control routes. The host reviews that report as a release gate (PRD FR-09); it is not a boot gate.
 - One Edge share exposes the safe `ModeView` and renders the hidden field. Inertia and API clients read status and send the header.
 
@@ -476,7 +476,7 @@ start, and stop operations all require the one configured ability, even while id
 distinct from `canMasquerade`: host start and active-admission policy remain as in v1, and stop does
 not read start policy, actor or target stamps, or target account data.
 
-**Superseded for Account Kit managed routes only by [§15](#15-v12-account-kit-integration).**
+**Superseded for Account Kit managed routes and explicitly opted-in host account routes by [§15](#15-v12-account-kit-integration).**
 
 ### 13.3 Account mode, context, and credential boundaries
 
@@ -533,7 +533,7 @@ This family defines required acceptance evidence; it does not claim that a test 
 matrix has passed. Current evidence and any remaining gaps belong in the
 [requirement ledger](../requirement-ledger.md).
 
-**Superseded for Account Kit managed routes only by [§15](#15-v12-account-kit-integration).**
+**Superseded for Account Kit managed routes and explicitly opted-in host account routes by [§15](#15-v12-account-kit-integration).**
 
 ## 14. View-only default and per-start edit access (accepted 22 October 2026)
 
@@ -648,7 +648,8 @@ active, it blocks every such route except `accountKit.account.logout` and
 `accountKit.auth.csrf`, returning `E_MASQUERADE_ACTION_BLOCKED` with `blockedBy: 'sensitive'` before
 the handler. This applies to each HTTP method and to custom prefixes or excluded endpoints.
 
-Non-Account-Kit routes pass without a store read. The two exemptions pass without a store read.
+The global blocker passes non-Account-Kit routes without a store read. The two exemptions pass
+without a store read.
 Other managed requests whose raw guard does not authenticate pass without a store read, preserving
 unauthenticated public proof flows. An authenticated actor's request reads the existing owner row through a new
 symbol-keyed internal service method re-exported through the runtime, using the service's
@@ -694,5 +695,23 @@ evidence.
 
 This section supersedes DEVELOPMENT-PLAN items 3 and 4 only for Account Kit managed routes,
 SPEC §5.4's raw-business-route coverage rule only for those routes, §9's deferred status, and
-§13.2/§13.4's store-free/raw-route classification only for those routes. Raw routes outside
-`accountKit.*` retain their existing rules.
+§13.2/§13.4's store-free/raw-route classification only for those routes. Host-owned native account
+routes may opt in to the same check as specified below; other raw routes retain their existing rules.
+
+### 15.6 Host-owned account routes (issue #311)
+
+The named `AccountKitAccountBlocker` export from `account-kit/middleware` lets a host apply the
+managed blocker's exact raw-actor active-mode check to its own native account routes. The global
+managed blocker reuses this implementation; owner-row validation, clock and failure semantics remain
+those in §15.4. The named middleware requires neither a managed route name nor registration and does
+not require the Masquerade token ability, effective admission or a context token. Active view and
+edit modes both return 403 `E_MASQUERADE_ACTION_BLOCKED` with `blockedBy: 'sensitive'`.
+
+The host selects account routes explicitly and keeps native logout, CSRF bootstrap and Masquerade
+controls outside the blocked groups. The named middleware has no automatic route-name exemptions.
+Host account routes use the configured raw guard and retain ordinary host authentication and
+authorization. Unauthenticated requests pass without reading mode, preserving public proof flows.
+Hosts that do not opt in retain their existing behavior; global managed-route exemptions and
+registration checks remain unchanged. Explicitly opted-in native account routes are supported raw
+routes, rather than effective business-route coverage defects. Route reports do not certify this
+host middleware wiring; verify it through HTTP regression tests.
