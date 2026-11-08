@@ -237,7 +237,7 @@ in `canAccess`.
 
 ## Install the provider and blocker
 
-The provider example below targets the scoped Masquerade `0.2.2` release. Its configure hook
+The provider example below targets the scoped Masquerade `0.2.3` release. Its configure hook
 registers `@kevinjohn/adonisjs-masquerade/masquerade_provider` for the core provider.
 
 Register the Account Kit provider subpath and its global middleware in the host. The middleware
