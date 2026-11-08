@@ -246,6 +246,10 @@ export default defineConfig<User, HttpContext>({
 })
 ```
 
+Refusing operator targets is a recommended default; see
+[allow operator targets for view access](../recipes/who-can-masquerade.md#allow-operator-targets-for-view-access)
+for the alternative.
+
 This is a configuration fragment; add `stampFrom` to the generated import from
 `@kevinjohn/adonisjs-masquerade/native`, and retain the other generated imports, store, and retention settings.
 Set `contextEnforcement` to `enforce` when business forms carry a captured context token: the generated

@@ -156,6 +156,10 @@ export default defineConfig<User, HttpContext>({
 })
 ```
 
+Refusing operator targets is a recommended default; see
+[allow operator targets for view access](who-can-masquerade.md#allow-operator-targets-for-view-access)
+for the alternative.
+
 - `incarnation: 'id'` is safe because SQLite `AUTOINCREMENT` and PostgreSQL sequences never hand
   out a deleted ID again. If your database can reuse IDs, see
   [identity and policy](../guide/setup.md#configure-persistent-identity-and-policy).

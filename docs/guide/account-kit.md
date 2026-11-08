@@ -119,6 +119,10 @@ export default defineConfig({
 })
 ```
 
+Refusing operator targets is a recommended default; see
+[allow operator targets for view access](../recipes/who-can-masquerade.md#allow-operator-targets-for-view-access)
+for the alternative.
+
 This block is the session variant. For `access_tokens`, replace the provider import and adapter
 options with the exact shared token provider and capability used by the raw token guard:
 

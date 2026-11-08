@@ -2,6 +2,13 @@
 
 ## Unreleased
 
+### Changed
+
+- Docs: refusing operator targets is a recommended default, not a requirement. The policy recipe
+  (`docs/recipes/who-can-masquerade.md`) shows how to allow them for view access, and the tradeoff.
+  The 0.2.0 upgrade note is a recommendation in the same way. The examples keep refusing operator
+  targets. Closes #296.
+
 ## 0.2.6 - 2026-11-08
 
 ### Changed
