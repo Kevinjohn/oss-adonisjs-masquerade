@@ -226,8 +226,8 @@ export { nativeAdapter }
 export default defineConfig<User, HttpContext>({
   authority: nativeAdapter.authority,
   policy: {
-    // Never let an operator act as another operator, an administrator or anyone with more
-    // privilege: edit access there lets them grant themselves that privilege.
+    // Never let an operator act as anyone with more privilege: edit access there lets them grant
+    // themselves that privilege. Refusing other operators is the recommended default.
     canMasquerade: ({ actor, target }) =>
       actor.user.masqueradeOperator &&
       !target.user.masqueradeOperator &&
@@ -245,6 +245,10 @@ export default defineConfig<User, HttpContext>({
   contextEnforcement: 'enforce',
 })
 ```
+
+Refusing operator targets is a recommended default; see
+[allow operator targets for view access](../recipes/who-can-masquerade.md#allow-operator-targets-for-view-access)
+for the alternative.
 
 This is a configuration fragment; add `stampFrom` to the generated import from
 `@kevinjohn/adonisjs-masquerade/native`, and retain the other generated imports, store, and retention settings.

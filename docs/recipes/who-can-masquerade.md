@@ -13,8 +13,11 @@ own.
 
 Only a literal `true` allows. A callback that throws returns 503 and leaves the mode unchanged.
 
-**Never let an operator support another operator, an administrator, or anyone with more access.**
-With edit access they could change that account's permissions and grant themselves more.
+**Never let an operator support anyone with more access than they have.** With edit access they
+could change that account's permissions and grant themselves more. Refusing other operators as
+targets is the recommended default; see
+[allow operator targets for view access](#allow-operator-targets-for-view-access) for the
+alternative.
 
 ## A boolean operator flag
 
@@ -30,6 +33,30 @@ policy: {
 ```
 
 Without `canEdit`, every mode is view-only: reads work, writes are blocked.
+
+### Allow operator targets for view access
+
+```ts
+policy: {
+  canMasquerade: ({ actor, target }) =>
+    Boolean(actor.user.masqueradeOperator) && Boolean(target.user.active),
+  canEdit: ({ actor, target }) =>
+    Boolean(actor.user.masqueradeOperator) &&
+    !target.user.masqueradeOperator &&
+    Boolean(target.user.active),
+},
+```
+
+The package does not enforce either rule; the host chooses. This variant lets an operator view
+another operator's account, for example an Owner checking what an Admin sees, while `canEdit` still
+refuses them. It suits operators with equal access. When operators have different levels, also
+require the target to have less access than the actor in `canMasquerade`, so an Admin cannot view
+the Owner's account.
+
+- View access: one operator sees what another operator sees.
+- Edit access carries more risk: one operator can act as another, and an audit trail that records
+  only the effective user points at the wrong person. If you allow it, record both with
+  [`masqueradeAuditFields`](../guide/audit.md).
 
 ## Roles: everyone views, leads edit
 

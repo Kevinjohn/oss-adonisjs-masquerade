@@ -135,7 +135,7 @@ export { nativeAdapter }
 export default defineConfig<User, HttpContext>({
   authority: nativeAdapter.authority,
   policy: {
-    // Operators may support active customers, never another operator.
+    // Operators may support active customers. Refusing other operators is the recommended default.
     canMasquerade: ({ actor, target }) =>
       Boolean(actor.user.masqueradeOperator) &&
       !target.user.masqueradeOperator &&
@@ -155,6 +155,10 @@ export default defineConfig<User, HttpContext>({
   retention: 'host-managed',
 })
 ```
+
+Refusing operator targets is a recommended default; see
+[allow operator targets for view access](who-can-masquerade.md#allow-operator-targets-for-view-access)
+for the alternative.
 
 - `incarnation: 'id'` is safe because SQLite `AUTOINCREMENT` and PostgreSQL sequences never hand
   out a deleted ID again. If your database can reuse IDs, see
