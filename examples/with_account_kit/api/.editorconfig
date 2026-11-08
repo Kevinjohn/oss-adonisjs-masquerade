@@ -1,0 +1,26 @@
+# http://editorconfig.org
+
+[*]
+indent_style = space
+indent_size = 2
+end_of_line = lf
+charset = utf-8
+trim_trailing_whitespace = true
+insert_final_newline = true
+
+[*.json]
+insert_final_newline = unset
+
+[**.min.js]
+indent_style = unset
+insert_final_newline = unset
+
+[MakeFile]
+indent_style = space
+
+[*.md]
+trim_trailing_whitespace = false
+
+# node ace generate:key rewrites this file without a final newline
+[.env.example]
+insert_final_newline = false
