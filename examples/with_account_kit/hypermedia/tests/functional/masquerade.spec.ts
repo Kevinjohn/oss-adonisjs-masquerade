@@ -48,6 +48,8 @@ test.group('masquerade', (group) => {
     assert,
   }) => {
     const { operator, customer } = await createAccounts()
+    const operatorPasswordHash = operator.password
+    const customerPasswordHash = customer.password
     const session = new FormSession()
     await session.login(operator.email, password)
 
@@ -73,8 +75,22 @@ test.group('masquerade', (group) => {
         },
       ],
     })
+    // Authenticated proof flows must not bypass the same raw-account blocker.
+    const proof = await session.request('/reset-password/unused-token')
+    assert.equal(proof.status, 403)
+    assert.deepInclude((await proof.json()) as object, {
+      errors: [
+        {
+          code: 'E_MASQUERADE_ACTION_BLOCKED',
+          message: 'Action is blocked while masquerading',
+          blockedBy: 'sensitive',
+        },
+      ],
+    })
     const stored = await User.findOrFail(customer.id)
-    assert.equal(stored.password, customer.password)
+    const storedOperator = await User.findOrFail(operator.id)
+    assert.equal(stored.password, customerPasswordHash)
+    assert.equal(storedOperator.password, operatorPasswordHash)
 
     await session.request('/masquerade/accounts')
     const stopped = await session.request('/masquerade/stop', {
@@ -84,6 +100,21 @@ test.group('masquerade', (group) => {
     await session.request('/dashboard')
     assert.include(session.html, 'Signed in as <strong>operator@example.test</strong>')
     assert.notInclude(session.html, 'You are viewing as account')
+  })
+
+  test('an account can change its password while idle', async ({ assert }) => {
+    const { operator } = await createAccounts()
+    const session = new FormSession()
+    await session.login(operator.email, password)
+
+    const changed = await session.request('/settings/password', {
+      currentPassword: password,
+      password: 'ChangedPass123!',
+      passwordConfirmation: 'ChangedPass123!',
+    })
+    assert.equal(changed.headers.get('location'), '/settings/password')
+    const stored = await User.findOrFail(operator.id)
+    assert.notEqual(stored.password, operator.password)
   })
 
   test('an operator can log out while masquerading', async ({ assert }) => {

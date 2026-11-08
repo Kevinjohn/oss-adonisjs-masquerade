@@ -18,7 +18,7 @@ Everything Account Kit's README describes still applies.
 | `config/auth.ts`, `start/kernel.ts`, `adonisrc.ts`                                    | The `web_effective` guard, the context and status middleware, and the providers                |
 | `start/masquerade_routes.ts`, `app/controllers/masquerade_*.ts`                       | The operator page and the start and stop forms                                                 |
 | `resources/views/pages/masquerade/accounts.edge`, `components/masquerade/banner.edge` | The operator page and the banner shown in the app layout                                       |
-| `start/routes.ts`                                                                     | Password and email changes are `sensitive()`; logout stays on the raw guard                    |
+| `start/routes.ts`                                                                     | Native account routes use the raw guard and `AccountKitAccountBlocker`; logout stays available |
 | `app/middleware/session_revision_middleware.ts`                                       | Checks the operator's own session, not the account being viewed                                |
 | `database/migrations/1792342558358_create_masquerade_tables.ts`                       | Masquerade's tables                                                                            |
 
@@ -68,6 +68,6 @@ pnpm build
 pnpm test
 ```
 
-`tests/functional/masquerade.spec.ts` covers start, acting as the target, the refused sensitive
-route, stop, a refused non-operator and a refused operator target.
+`tests/functional/masquerade.spec.ts` covers start, acting as the target, blocked native password changes,
+unchanged actor and target passwords, idle password changes, stop, a refused non-operator and a refused operator target.
 `tests/browser/masquerade.spec.ts` starts, sees the banner and stops in Chromium.

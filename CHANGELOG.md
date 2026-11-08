@@ -2,6 +2,16 @@
 
 ## Unreleased
 
+### Added
+
+- `AccountKitAccountBlocker` middleware for host-owned native account routes, using the same
+  raw-actor active-mode check as the managed Account Kit blocker.
+
+### Fixed
+
+- Block native account operations while masquerading in the API, Hypermedia and Inertia React
+  Account Kit examples, keeping logout and Masquerade controls available. Closes #311.
+
 ## 0.2.3 - 2026-11-08
 
 ### Changed

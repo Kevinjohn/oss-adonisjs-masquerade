@@ -29,8 +29,9 @@ Account Kit supplies account activity, restrictions and credential revisions. Th
 the `masquerade` token ability (`*`, issued by this example's login, includes it).
 
 The demo's business routes select `api_effective`; status/start/stop select raw `api`. The original
-Account Kit account endpoints continue to manage the authenticated actor. They are not target
-business endpoints. The inherited `/api/v1/reports` endpoint remains an empty, raw-actor fixture;
+Account Kit account endpoints use the raw guard and `AccountKitAccountBlocker` to block account
+operations while that actor is masquerading. Logout and session CSRF bootstrap remain available;
+anonymous authentication and proof flows still work. These are native account endpoints. The inherited `/api/v1/reports` endpoint remains an empty, raw-actor fixture;
 add real target business data behind an explicitly effective guard. Masquerade does not mint a target token. This example keeps Account Kit's
 strategy switches for its existing harness; the Masquerade demo supports `access_tokens` only.
 
@@ -124,4 +125,5 @@ HOST=127.0.0.1 LIMITER_STORE=memory pnpm test
 Run code generation and migrations first, as in the setup above. The copied Account Kit suite
 expects loopback and the in-memory limiter. The functional Masquerade spec exercises bearer login,
 start, effective identity, sensitive refusal, stop, non-operator and operator-target refusals,
-admission protection and token capability enforcement. No browser is needed.
+admission protection, token capability enforcement and native account blocking with both password
+hashes unchanged. No browser is needed.

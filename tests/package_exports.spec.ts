@@ -43,6 +43,7 @@ if (process.env.TEST_BUILT_EXPORTS === '1') {
     assert.isFunction(accountKit.accountKitAuthority)
     assert.isFunction(accountKitProvider.default)
     assert.isFunction(accountKitMiddleware.default)
+    assert.isFunction(accountKitMiddleware.AccountKitAccountBlocker)
     for (const name of [
       'MasqueradeController',
       'masqueradeRoutes',
@@ -115,7 +116,8 @@ if (process.env.TEST_BUILT_EXPORTS === '1') {
           const provider = await import('@kevinjohn/adonisjs-masquerade/account-kit/provider')
           const middleware = await import('@kevinjohn/adonisjs-masquerade/account-kit/middleware')
           if (typeof integration.accountKitAuthority !== 'function' ||
-              typeof provider.default !== 'function' || typeof middleware.default !== 'function') {
+              typeof provider.default !== 'function' || typeof middleware.default !== 'function' ||
+              typeof middleware.AccountKitAccountBlocker !== 'function') {
             throw new Error('Account Kit integration export is missing')
           }
         `,
