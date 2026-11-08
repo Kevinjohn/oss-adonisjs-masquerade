@@ -13,7 +13,6 @@ env:
 jobs:
   combined:
     runs-on: ubuntu-24.04
-    continue-on-error: true
     strategy:
       fail-fast: false
       matrix:
