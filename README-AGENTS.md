@@ -16,7 +16,7 @@ optional.
 ## Install
 
 ```sh
-pnpm add https://github.com/Kevinjohn/oss-adonisjs-masquerade/releases/download/v0.2.6/kevinjohn-adonisjs-masquerade-0.2.6.tgz
+pnpm add https://github.com/Kevinjohn/oss-adonisjs-masquerade/releases/download/v0.2.7/kevinjohn-adonisjs-masquerade-0.2.7.tgz
 node ace configure @kevinjohn/adonisjs-masquerade --namespace=my_app --guard=web
 ```
 
