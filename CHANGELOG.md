@@ -4,6 +4,7 @@
 
 ### Changed
 
+- Require Account Kit `0.3.3` exactly. The Account Kit examples take its 0.3.3 example changes.
 - Docs: refusing operator targets is a recommended default, not a requirement. The policy recipe
   (`docs/recipes/who-can-masquerade.md`) shows how to allow them for view access, and the tradeoff.
   The 0.2.0 upgrade note is a recommendation in the same way. The examples keep refusing operator

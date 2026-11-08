@@ -1,16 +1,16 @@
 # Account Kit integration preview
 
 This page describes the Account Kit adapter planned for Masquerade v1.2. It is a prerelease
-integration preview using the scoped Account Kit `0.3.2` GitHub release. Install its tarball
+integration preview using the scoped Account Kit `0.3.3` GitHub release. Install its tarball
 with pnpm:
 
 ```sh
-pnpm add https://github.com/Kevinjohn/oss-adonisjs-account-kit/releases/download/v0.3.2/kevinjohn-adonisjs-account-kit-0.3.2.tgz
+pnpm add https://github.com/Kevinjohn/oss-adonisjs-account-kit/releases/download/v0.3.3/kevinjohn-adonisjs-account-kit-0.3.3.tgz
 ```
 
 The release artifact SHA-256 is
-`82033c9acd74595b93abc3a8b85f66b5f7cd4da54c07d3a25a55a38308724b48` and its source commit is
-`623f562ba27d5e52ae91cc6e515b646276c16a5f`. Verify a downloaded archive against this digest
+`38361949f135aeae18d92aee207754bacb8b6ef66436f96d523ddaf30a11bac0` and its source commit is
+`78a360b21e7540ab52562402e6fa9c085a52a0d8`. Verify a downloaded archive against this digest
 before installing it.
 
 Account Kit's HTTP integration requires the host-provided `@vinejs/vine` `^4.4.0` dependency. The
@@ -292,7 +292,7 @@ Ace command it commits the router itself first, and it never commits in other en
 commit the routes as `<group>.accountKit.*`, which the blocker does not match, so startup fails with
 `is not mounted`.
 
-This prerelease interface works with Account Kit `0.3.2`, the only version the optional peer
+This prerelease interface works with Account Kit `0.3.3`, the only version the optional peer
 declares. Historical matrix results cover the unscoped release for both strategies, with session
 management on and off, on SQLite and PostgreSQL at the declared floor and latest compatible peers.
 The scoped release is validated separately in the pull request that updates this dependency. Other Account Kit versions, MySQL and a second composed
