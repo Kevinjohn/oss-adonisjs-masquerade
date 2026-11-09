@@ -1,8 +1,9 @@
 # Account Kit integration fixture
 
 This folder is not a standalone app. `pnpm test:account-kit` copies `examples/native-session`,
-installs Masquerade and the pinned Account Kit `0.3.3` release, lays these files over the copy, and
-wires the Account Kit provider and active-mode blocker with `bin/helpers/account_kit_host_wiring.ts`.
+installs Masquerade and the verified Account Kit release pinned by the harness, lays these files
+over the copy, and wires the Account Kit provider and active-mode blocker with
+`bin/helpers/account_kit_host_wiring.ts`.
 The result runs Account Kit's session and access-token strategies, with and without session
 management, on SQLite and PostgreSQL.
 

@@ -2,6 +2,15 @@
 
 ## Unreleased
 
+## 0.2.8 - 2026-11-09
+
+### Changed
+
+- Require Account Kit `0.3.4` exactly.
+- Examples: the Account Kit API example uses integer user IDs and a `users` table, matching
+  Account Kit's defaults-only example. Remove the table and ID type environment switches from
+  its model, controllers, migrations and compatibility assertion.
+
 ## 0.2.7 - 2026-11-08
 
 ### Changed
