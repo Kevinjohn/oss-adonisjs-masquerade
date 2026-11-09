@@ -520,8 +520,8 @@ latest 7.6.0/10.1.0/4.0.1/22.4.2/8.3.0/6.0.3.
 
 ## V1.2 Account Kit acceptance (T-KIT and T-KIT-HTTP)
 
-**Matrix status:** The optional peer now declares scoped `@kevinjohn/adonisjs-account-kit` `0.3.3` only.
-The `0.3.3` compatibility matrix runs in the update pull request; the `compat` workflow runs on
+**Matrix status:** The optional peer now declares scoped `@kevinjohn/adonisjs-account-kit` `0.3.4` only.
+The `0.3.4` compatibility matrix runs in the update pull request; the `compat` workflow runs on
 every pull request that changes `package.json`. The `0.3.1` pin passed all 16 floor/latest cells
 against its GitHub release artifact in the
 hosted `compat` workflow ([run 42310704826](https://github.com/Kevinjohn/oss-adonisjs-masquerade/actions/runs/42310704826))
@@ -543,10 +543,13 @@ The six deliverables are implemented in open, unmerged PRs #100–#105 for issue
 The authority, blocker, consumer and documentation PRs remain drafts. Independent reviews are
 complete with reported findings resolved.
 
-Account Kit `0.3.3` adds `admission.record` and changes nothing Masquerade uses. Scoped Account
-Kit `0.3.3` is pinned to the GitHub release artifact with SHA-256
-`38361949f135aeae18d92aee207754bacb8b6ef66436f96d523ddaf30a11bac0`, built from source commit
-`78a360b21e7540ab52562402e6fa9c085a52a0d8` (tag `v0.3.3`). The previous `0.3.2` artifact had
+Account Kit `0.3.4` makes its API example defaults-only and changes no package code. Scoped
+Account Kit `0.3.4` is pinned to the GitHub release artifact with SHA-256
+`ae53db731a3350bc102a4fb6724f274220404dd090eb5176bcee0e50583d5612`, built from source commit
+`f9b6efda26737e5a5881438dfa51a2ff8e64a786` (tag `v0.3.4`). The previous `0.3.3` artifact had
+SHA-256 `38361949f135aeae18d92aee207754bacb8b6ef66436f96d523ddaf30a11bac0`, from commit
+`78a360b21e7540ab52562402e6fa9c085a52a0d8`; it added `admission.record`, which Masquerade does not
+use. The `0.3.2` artifact had
 SHA-256 `82033c9acd74595b93abc3a8b85f66b5f7cd4da54c07d3a25a55a38308724b48`, from commit
 `623f562ba27d5e52ae91cc6e515b646276c16a5f`; it updated example schemas and vendor comments
 without changing package code. The `0.3.1` artifact had
