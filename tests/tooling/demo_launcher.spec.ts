@@ -3,7 +3,7 @@ import { spawn, type ChildProcess } from 'node:child_process'
 import { createHash } from 'node:crypto'
 import { once } from 'node:events'
 import { createServer } from 'node:net'
-import { chmod, mkdtemp, mkdir, readFile, rm, symlink, writeFile } from 'node:fs/promises'
+import { chmod, mkdtemp, mkdir, readFile, rm, writeFile } from 'node:fs/promises'
 import os from 'node:os'
 import path from 'node:path'
 import { test } from '@japa/runner'
@@ -129,10 +129,6 @@ async function fixture(options: FixtureOptions = {}): Promise<DemoFixture> {
   if (options.missingAt === 'root-lock') await rm(path.join(root, 'pnpm-lock.yaml'))
   if (options.missingAt === 'env-example') await rm(path.join(example, '.env.example'))
   if (options.missingAt === 'example-lock') await rm(path.join(example, 'pnpm-lock.yaml'))
-  if (options.filesystemFailure === 'example-lock-eio') {
-    await rm(path.join(example, 'pnpm-lock.yaml'))
-    await symlink('/proc/self/mem', path.join(example, 'pnpm-lock.yaml'))
-  }
   await writeFile(
     path.join(example, 'ace'),
     `
@@ -182,15 +178,8 @@ if (args[0] === 'pack:fixture') {
   await mkdir(path.join(process.cwd(), 'tmp'), { recursive: true })
   const tarball = path.join(process.cwd(), 'tmp/native-session-package.tgz')
   if (process.env.DEMO_TEST_SKIP_TARBALL !== '1') await writeFile(tarball, 'tarball')
-  if (process.env.DEMO_TEST_TARBALL_EIO === '1') {
-    await import('node:fs/promises').then(({ rm, symlink }) => rm(tarball).then(() => symlink('/proc/self/mem', tarball)))
-  }
   if (process.env.DEMO_TEST_TARBALL_EACCES === '1') {
     await import('node:fs/promises').then(({ chmod }) => chmod(tarball, 0))
-  }
-  if (process.env.DEMO_TEST_LOCK_EIO === '1') {
-    const lockfile = path.join(process.cwd(), 'examples/native-session/pnpm-lock.yaml')
-    await import('node:fs/promises').then(({ rm, symlink }) => rm(lockfile).then(() => symlink('/proc/self/mem', lockfile)))
   }
 }
 if (args[0] === 'dev') {
@@ -239,9 +228,49 @@ if (args[0] === 'dev') {
   if (options.termResistantOrphan) env.DEMO_TEST_RESISTANT_ORPHAN = '1'
   if (options.serverExitFail) env.DEMO_TEST_SERVER_EXIT_FAIL = '1'
   if (options.missingAt === 'tarball') env.DEMO_TEST_SKIP_TARBALL = '1'
-  if (options.filesystemFailure === 'tarball-eio') env.DEMO_TEST_TARBALL_EIO = '1'
   if (options.filesystemFailure === 'tarball-eacces') env.DEMO_TEST_TARBALL_EACCES = '1'
-  if (options.filesystemFailure === 'example-lock-eio') env.DEMO_TEST_LOCK_EIO = '1'
+  if (
+    options.filesystemFailure === 'example-lock-eio' ||
+    options.filesystemFailure === 'tarball-eio'
+  ) {
+    const target =
+      options.filesystemFailure === 'example-lock-eio'
+        ? path.join(example, 'pnpm-lock.yaml')
+        : path.join(root, 'tmp/native-session-package.tgz')
+    const shimPath = path.join(directory, 'fail-read-file.cjs')
+    await writeFile(
+      shimPath,
+      `const path = require('node:path')
+const fsSync = require('node:fs')
+const fs = require('node:fs/promises')
+const { syncBuiltinESMExports } = require('node:module')
+const targetPath = path.resolve(process.env.DEMO_TEST_READFILE_EIO_PATH)
+const target = path.join(fsSync.realpathSync(path.dirname(targetPath)), path.basename(targetPath))
+if (
+  !process.argv[1] ||
+  fsSync.realpathSync(process.argv[1]) !== fsSync.realpathSync(process.env.DEMO_TEST_LAUNCHER_PATH)
+) return
+const originalReadFile = fs.readFile.bind(fs)
+fs.readFile = async (file, ...args) => {
+  if (
+    typeof file === 'string' &&
+    path.join(fsSync.realpathSync(path.dirname(path.resolve(file))), path.basename(file)) === target
+  ) {
+    const error = new Error('EIO: injected read failure')
+    error.code = 'EIO'
+    error.syscall = 'open'
+    error.path = target
+    throw error
+  }
+  return originalReadFile(file, ...args)
+}
+syncBuiltinESMExports()
+`
+    )
+    env.DEMO_TEST_READFILE_EIO_PATH = target
+    env.DEMO_TEST_LAUNCHER_PATH = path.join(root, 'bin/demo.ts')
+    env.NODE_OPTIONS = `${env.NODE_OPTIONS ?? ''} --require=${shimPath}`.trim()
+  }
   if (options.filesystemFailure === 'env-example-eacces') await chmod(example, 0)
   return { directory, root, example, port, env, logPath }
 }
