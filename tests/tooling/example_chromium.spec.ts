@@ -1,7 +1,7 @@
 import { test } from '@japa/runner'
 import assert from 'node:assert/strict'
 import { spawnSync } from 'node:child_process'
-import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs'
+import { mkdirSync, mkdtempSync, realpathSync, rmSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { chromiumInstallArgs } from '../../bin/helpers/example_chromium.js'
@@ -23,12 +23,12 @@ test('Chromium installation resolves the browser client peer and invokes its CLI
     'console.log(JSON.stringify({args:process.argv.slice(2),cwd:process.cwd()}))'
   )
   const args = chromiumInstallArgs(directory)
-  assert.deepEqual(args.slice(0, 3), ['exec', 'node', join(peer, 'cli.js')])
+  assert.deepEqual(args.slice(0, 3), ['exec', 'node', realpathSync(join(peer, 'cli.js'))])
   const result = spawnSync(process.execPath, args.slice(2), { cwd: directory, encoding: 'utf8' })
   assert.equal(result.status, 0, result.stderr)
   assert.deepEqual(JSON.parse(result.stdout), {
     args: ['install', ...(process.platform === 'linux' ? ['--with-deps'] : []), 'chromium'],
-    cwd: directory,
+    cwd: realpathSync(directory),
   })
 })
 
