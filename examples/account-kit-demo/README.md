@@ -14,9 +14,10 @@ pnpm install
 pnpm demo:account-kit
 ```
 
-The first run needs network access to download the pinned scoped Account Kit `0.3.3` GitHub
-release artifact. The launcher builds Masquerade from this checkout, prepares the local app, and starts it
-at <http://127.0.0.1:3335>. Wait for the `Account Kit demo ready` message before opening the URL;
+The first run needs network access to download the Account Kit GitHub release artifact pinned
+with its checksum in `bin/helpers/account_kit_host_wiring.ts`. The launcher builds Masquerade
+from this checkout, prepares the local app, and starts it at <http://127.0.0.1:3335>. Wait for the
+`Account Kit demo ready` message before opening the URL;
 the launcher prints the sign-in details after the app responds successfully. Keep the command
 running while you use the demo.
 

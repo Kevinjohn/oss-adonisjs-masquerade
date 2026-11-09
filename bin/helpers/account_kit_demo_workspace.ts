@@ -73,7 +73,7 @@ export async function rewriteDemoManifest(app: string): Promise<void> {
     allowScripts?: Record<string, boolean>
   }
   manifest.dependencies['@kevinjohn/adonisjs-masquerade'] = 'file:../masquerade.tgz'
-  manifest.dependencies['@kevinjohn/adonisjs-account-kit'] = 'file:../account-kit-0.3.3.tgz'
+  manifest.dependencies['@kevinjohn/adonisjs-account-kit'] = 'file:../account-kit-0.3.4.tgz'
   await writeFile(path, JSON.stringify(manifest, null, 2) + '\n')
   if (manifest.allowScripts) {
     const workspace = join(app, 'pnpm-workspace.yaml')

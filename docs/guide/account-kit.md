@@ -1,16 +1,15 @@
 # Account Kit integration preview
 
 This page describes the Account Kit adapter planned for Masquerade v1.2. It is a prerelease
-integration preview using the scoped Account Kit `0.3.3` GitHub release. Install its tarball
+integration preview using the scoped Account Kit `0.3.4` GitHub release. Install its tarball
 with pnpm:
 
 ```sh
-pnpm add https://github.com/Kevinjohn/oss-adonisjs-account-kit/releases/download/v0.3.3/kevinjohn-adonisjs-account-kit-0.3.3.tgz
+pnpm add https://github.com/Kevinjohn/oss-adonisjs-account-kit/releases/download/v0.3.4/kevinjohn-adonisjs-account-kit-0.3.4.tgz
 ```
 
-The release artifact SHA-256 is
-`38361949f135aeae18d92aee207754bacb8b6ef66436f96d523ddaf30a11bac0` and its source commit is
-`78a360b21e7540ab52562402e6fa9c085a52a0d8`. Verify a downloaded archive against this digest
+Verify the downloaded archive against the SHA-256 published in the
+[Account Kit 0.3.4 release notes](https://github.com/Kevinjohn/oss-adonisjs-account-kit/releases/tag/v0.3.4)
 before installing it.
 
 Account Kit's HTTP integration requires the host-provided `@vinejs/vine` `^4.4.0` dependency. The
@@ -241,7 +240,7 @@ in `canAccess`.
 
 ## Install the provider and blocker
 
-The provider example below targets the scoped Masquerade `0.2.7` release. Its configure hook
+The provider example below targets the scoped Masquerade `0.2.8` release. Its configure hook
 registers `@kevinjohn/adonisjs-masquerade/masquerade_provider` for the core provider.
 
 Register the Account Kit provider subpath and its global middleware in the host. The middleware
@@ -292,7 +291,7 @@ Ace command it commits the router itself first, and it never commits in other en
 commit the routes as `<group>.accountKit.*`, which the blocker does not match, so startup fails with
 `is not mounted`.
 
-This prerelease interface works with Account Kit `0.3.3`, the only version the optional peer
+This prerelease interface works with Account Kit `0.3.4`, the only version the optional peer
 declares. Historical matrix results cover the unscoped release for both strategies, with session
 management on and off, on SQLite and PostgreSQL at the declared floor and latest compatible peers.
 The scoped release is validated separately in the pull request that updates this dependency. Other Account Kit versions, MySQL and a second composed
