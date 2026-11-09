@@ -58,7 +58,8 @@ if (!target || !/^\d+\.\d+\.\d+$/.test(target)) {
   process.exit(1)
 }
 
-const root = (await git(['rev-parse', '--show-toplevel'])).trim()
+const topLevel = await git(['rev-parse', '--show-toplevel'])
+const root = topLevel.trim()
 const manifest = JSON.parse(await readFile(join(root, 'package.json'), 'utf8'))
 const current: unknown = manifest.peerDependencies?.[kitPackage]
 if (typeof current !== 'string' || !/^\d+\.\d+\.\d+$/.test(current)) {
@@ -79,7 +80,8 @@ if (manifest.version === current || manifest.version === target) {
 const [from, to] = await Promise.all([fetchRelease(current), fetchRelease(target)])
 
 const changed: string[] = []
-for (const path of (await git(['ls-files', '-z'], root)).split('\0').filter(Boolean)) {
+const tracked = await git(['ls-files', '-z'], root)
+for (const path of tracked.split('\0').filter(Boolean)) {
   const rewrite = rewriteFor(path)
   if (!rewrite) continue
   const file = join(root, path)
