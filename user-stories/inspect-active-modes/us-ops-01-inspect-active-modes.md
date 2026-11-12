@@ -11,9 +11,9 @@ As a Masquerade operator, I want to list active support modes so that I can see 
 
 ## Acceptance criteria
 
-| Option    | Control     | Required/default/conditions                                                                  |
-| --------- | ----------- | -------------------------------------------------------------------------------------------- |
-| `--limit` | Number flag | Defaults to `DEFAULT_ACTIVE_MODE_LIMIT`; safe integer from 1 through `MAX_ACTIVE_MODE_LIMIT` |
+| Option    | Control     | Required/default/conditions                                                                              |
+| --------- | ----------- | -------------------------------------------------------------------------------------------------------- |
+| `--limit` | Number flag | Defaults to 50 (`DEFAULT_ACTIVE_MODE_LIMIT`); safe integer from 1 through 1000 (`MAX_ACTIVE_MODE_LIMIT`) |
 
 - The command renders namespace, actor, actor incarnation, target, access and expiry for each returned mode.
 - When no modes are active it reports that state; it does not alter or expire a mode.
@@ -37,7 +37,7 @@ Scope: Ace command through the read-only active-mode store query.
 ```mermaid
 flowchart TD
     A["StatusCommand.run"] --> B["Validate limit and load masquerade config"]
-    B --> C["listActiveModes(config, environment, limit)"]
+    B --> C["listActiveModes(config, dependencies, { limit })"]
     C --> D["openOperatorStore and read active modes"]
     D --> E{"Any modes?"}
     E -->|No| F["Log No active masquerade modes"]

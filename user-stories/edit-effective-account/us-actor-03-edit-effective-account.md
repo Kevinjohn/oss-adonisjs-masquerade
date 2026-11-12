@@ -12,7 +12,7 @@ As a support actor, I want to make a customer-owned mutation only when I start a
 ## Acceptance criteria
 
 - View is selected explicitly or is the omitted `access` default; an edit request without approval is refused, never silently downgraded. An edit start requires `canEdit({ actor, target, reason, request })` to return exactly `true`; active edit admission rechecks `canEdit({ actor, target })`.
-- For an active mode, `masqueradeContext` rejects unsafe requests when the route is `sensitive`, access is not `edit`, or `allowMutation()` is absent.
+- For an active mode, `masqueradeContext` rejects sensitive routes for every HTTP method. On other unsafe requests it rejects access other than `edit` or a missing `allowMutation()` marker.
 - `allowMutation()` only marks a route; it does not grant target-side permission. The handler's ordinary Bouncer or authorization check must still allow the effective target.
 - Sensitive routes remain blocked even when a route also has `allowMutation()`.
 
@@ -36,15 +36,16 @@ Scope: route policy middleware; the host handler performs its normal target auth
 
 ```mermaid
 flowchart TD
-    A["allowMutation() returns marked middleware"] --> B["routeMarkers(ctx) reads matched route metadata"]
-    C["masqueradeContext(ctx, next)"] --> D["runtime.admit(ctx) calls MasqueradeService.admit"]
-    D --> E["Service rechecks canEdit for active edit mode"]
-    E --> F{"Unsafe request?"}
-    F -->|No| G["next()"]
-    F -->|Yes| H{"Sensitive, view-only, or missing allowMutation?"}
-    B --> H
-    H -->|Yes| I["Throw E_MASQUERADE_ACTION_BLOCKED"]
-    H -->|No| J["next() to host handler and target-side authorization"]
+    A["masqueradeContext(ctx, next)"] --> B["runtime.admit(ctx) calls MasqueradeService.admit"]
+    B --> C["Service rechecks canEdit for active edit mode"]
+    C --> D["Check unsafe-request context token under configured enforcement"]
+    D --> E{"Active mode and routeMarkers(ctx).sensitive?"}
+    E -->|Yes, any method| F["Throw E_MASQUERADE_ACTION_BLOCKED"]
+    E -->|No| G{"Active mode and unsafe method?"}
+    G -->|No| H["next() to host authorization and handler"]
+    G -->|Yes| I{"Edit access and allowMutation marker?"}
+    I -->|No| F
+    I -->|Yes| H
 ```
 
 **Code references:** [allowMutation and routeMarkers](../../src/integration/route_markers.ts), [masqueradeContext](../../http/context_middleware.ts), [MasqueradeService.admit](../../src/service.ts), [security rules](../../docs/guide/security.md#actor-target-and-scope).

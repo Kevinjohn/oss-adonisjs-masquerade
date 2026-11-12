@@ -48,11 +48,13 @@ flowchart TD
     B --> C{"all and force is false?"}
     C -->|Yes| D["Prompt for confirmation"]
     D -->|Declined| E["Log Nothing stopped and return"]
-    D -->|Confirmed| F["stopActiveModes selector all"]
-    C -->|No| G["stopActiveModes selector actor and incarnation"]
-    F --> H["Emit transitions and count stopped modes"]
-    G --> H
-    H --> I["Log stopped count or invalid actor error"]
+    D -->|Confirmed| F{"this.all?"}
+    C -->|No| F
+    F -->|Yes| G["stopActiveModes with selector all"]
+    F -->|No| H["stopActiveModes with actor and incarnation"]
+    G --> I["Emit transitions and count stopped modes"]
+    H --> I
+    I --> J["Log stopped count or invalid actor error"]
 ```
 
 **Code references:** [StopCommand](../../commands/stop.ts), [stopActiveModes](../../src/stop_modes.ts), [operator guide](../../docs/guide/operations.md#see-and-end-active-modes).

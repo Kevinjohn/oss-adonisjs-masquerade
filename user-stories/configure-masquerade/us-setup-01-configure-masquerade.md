@@ -2,7 +2,7 @@
 
 As an AdonisJS application developer, I want to scaffold and finish Masquerade integration so that control routes and business requests use the host's intended identity and policy boundaries.
 
-**Status:** Operator; current Ace setup path.
+**Status:** Operator; current Ace native-session scaffold.
 **Access:** Application developer with permission to configure providers, routes, middleware and schema.
 **Entry:** `node ace configure @kevinjohn/adonisjs-masquerade`; host config is completed from the emitted steps.
 **Documentation:** [Setup guide](../../docs/guide/setup.md), [configuration guide](../../docs/guide/getting-started.md).
@@ -13,7 +13,8 @@ As an AdonisJS application developer, I want to scaffold and finish Masquerade i
 
 - The command requires configured Adonis auth, a resolvable user model, assembler and Lucid. It accepts the configured namespace and raw guard; invalid values stop with an error.
 - Existing generated files are preserved unless `--force` is supplied. Optional `--banner` and `--form-controller` add those host scaffolds; `--no-wire` leaves auth/kernel/routes wiring steps for the maintainer.
-- The command creates configuration, native authority/user provider/context middleware and migration stubs, registers provider and Ace commands, and wires recognized auth/kernel/route shapes when enabled.
+- The command creates native-session configuration, authority/user provider/context middleware and migration stubs, registers provider and Ace commands, and wires recognized session auth/kernel/route shapes when enabled.
+- Native opaque access-token integration is host-configured separately with an effective token guard and authority, as described in the [access-token guide](../../docs/guide/access-tokens.md). Configure does not automatically wire token authentication.
 - Host completes account incarnation, security stamp, active-account and deny-by-default `canMasquerade` policy behavior, reviews and applies the migration, and verifies context enforcement before enforcing it.
 - `defineConfig` normalizes and validates config. Custom authorities/stores are explicit host integrations; this scaffold does not infer their policy.
 
@@ -32,7 +33,7 @@ flowchart TD
 
 ## Code flow
 
-Scope: Ace codemod scaffolding and recognized host wiring; host-specific policy implementation remains application-owned.
+Scope: Ace native-session scaffolding and recognized session host wiring; host-specific policy implementation remains application-owned.
 
 ```mermaid
 flowchart TD
