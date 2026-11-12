@@ -1,0 +1,129 @@
+# Story format
+
+A story records one meaningful operator or integration action and why it matters. Use actual
+permission roles, visible control names, route fields and command options. Keep implementation
+contracts in the accepted technical decision record, setup instructions in guides, and runnable
+scenarios in the test suite.
+
+Copy a story example below into a stable path such as
+`user-stories/control/US-CONTROL-01-read-mode-status.md`; replace its sample behavior with facts
+verified in this repository. The example's `../../` links resolve from that copied story path.
+Keep the writing and maintenance guidance in this file, outside individual stories. Omit the
+optional Coverage line when there is no useful test link. The field table is for form or API input
+actions; use the controls/results alternative for actions without input. Adapt both diagrams to the
+actual action rather than retaining the sample status flow.
+
+## Story example
+
+````markdown
+# US-CONTROL-01 — Read current masquerade status
+
+As a signed-in actor, I want to read my current masquerade status so that I can show whether a support mode is active and submit the current request context.
+
+**Status:** Current; source-reviewed API, not runtime-tested.
+**Access:** Actor authenticated by the configured raw control guard.
+**Entry:** `GET /masquerade` mounted by `masqueradeRoutes()`.
+**Documentation:** [Control routes and status](../../docs/guide/usage.md#mount-the-json-controls).
+**Source:** [MasqueradeController.status](../../http/controllers.ts).
+**Coverage:** [Controller tests](../../tests/http_controllers.spec.ts).
+
+## Acceptance criteria
+
+- The status response includes the actor's `ModeView` and current context token; it does not authenticate as the target.
+- The response is not cacheable and varies on `Accept` and `X-Masquerade-Context`.
+
+## User flow
+
+```mermaid
+flowchart TD
+    A["Signed-in actor requests GET /masquerade"] --> B["See idle or active mode status"]
+    B --> C["Keep current context token for covered unsafe requests"]
+```
+
+## Code flow
+
+Scope: raw-guarded control route through the service status response.
+
+```mermaid
+flowchart TD
+    A["masqueradeRoutes mounts GET /"] --> B["MasqueradeController.status"]
+    B --> C["MasqueradeController.control"]
+    C --> D["runtimeFor(ctx)"]
+    D --> E["runtime.service.status(ctx)"]
+    E --> F["ctx.response.status(200).json(result)"]
+```
+
+**Code references:** [control route and controller](../../http/control_routes.ts), [status handler](../../http/controllers.ts), [status guide](../../docs/guide/usage.md#read-status-and-start).
+````
+
+## Actions without input fields
+
+Replace the field table with a short list of controls and their visible results. Do not create empty
+or artificial field rows. For example, a route status action could use:
+
+```markdown
+## Acceptance criteria
+
+- **GET /masquerade** returns the actor's current mode and context token without authenticating as the target.
+```
+
+Use the actual control and behavior in the product. Include confirmation controls and relevant
+cancellation or failure results when they affect the action. Keep both diagrams in these stories.
+
+## Writing and maintenance rules
+
+- Use one story per meaningful outcome. An inseparable set of controls may share a story;
+  independently useful actions deserve their own. Start, stop and operator revocation are distinct
+  actions. Changing access requires a new mode, not an in-place edit.
+- Include every relevant field, including conditional and read-only fields. Record exact labels,
+  required/optional state, defaults, limits, available options and dependent choices. For dynamic
+  choices, describe their source and filtering rules rather than listing transient data.
+- Link an identical shared field list and describe action-specific differences locally. Do not make
+  readers chase several links to discover the controls for a journey.
+- Keep acceptance criteria concise and observable. Avoid detailed test scripts and exhaustive
+  backend guarantees; keep those in tests and the authoritative decision record.
+- Keep identifiers and filenames stable. Add the next unused identifier within the area. Retain
+  intent and mark availability when a feature disappears, unless retirement is explicitly authorized.
+- Use the availability definitions below. Explain unavailable entries and identify historical or
+  intended controls clearly. Retention does not promise restoration or authorize new functionality.
+- An optional **Coverage:** test link identifies supporting tests; it does not claim they were run.
+  Keep runtime results separate from source-reviewed availability.
+- Verify source rather than inheriting stale copy. Update the index (`README.md`), coverage matrix
+  (`COVERAGE.md`), shared reference (`REFERENCE.md`) and decision gaps (`GAPS.md`) alongside
+  affected stories. Adapt these names to established repository equivalents.
+- Record differences between agreed targets and current implementation in the gaps record without
+  silently changing either. “New” in the coverage matrix means newly documented, not newly implemented.
+
+## Availability definitions
+
+| Status   | Meaning                                                                 |
+| -------- | ----------------------------------------------------------------------- |
+| Current  | Exposed, subject to stated roles, configuration and conditions          |
+| Hidden   | Implementation remains but its ordinary entry or trigger is unavailable |
+| Removed  | Historical capability has no current product entry                      |
+| Demo     | Available only in the specified demo context                            |
+| Operator | Installation, hosting or recovery outside the ordinary application UI   |
+| Planned  | Agreed target without an ordinary implemented journey                   |
+
+Read Status with Access and Entry. A configured feature switch is a condition, not proof of removal.
+Current describes availability, not a browser test result. Preserve equivalent repository status
+semantics and explain their mapping where an established scheme differs.
+
+## Diagram conventions
+
+- Every story has User flow and Code flow sections, each containing a Mermaid flowchart. The first
+  uses screens, actions, decisions and outcomes a person understands; the second names the actual
+  implementation. Link supporting files under Code references.
+- Keep diagrams focused on the action. Include meaningful choices, cancellation, refusal, failure
+  and recovery where they affect the journey; avoid repeating every validation or security rule.
+- Trace producers and consumers: entry, handler, state or service, persistence where applicable
+  and resulting response. A retained component or setter alone does not prove a reachable journey.
+- Distinguish server writes and read-only control/status actions. Do not infer server authorization
+  from hidden controls.
+- Code labels must name existing symbols or explicitly identify absent/intended controls. State
+  the scope when a diagram stops at a shared boundary.
+- For Hidden, Removed or Planned features, label the intended user flow as unavailable. Show the
+  actual missing entry/trigger and retained support in the code flow without implying execution.
+- Reconcile labels and branches against source. Parse changed Mermaid diagrams and inspect
+  representative rendering; report any check that could not be completed. Syntax validation does
+  not establish behavioral correctness or prove an application journey was exercised.

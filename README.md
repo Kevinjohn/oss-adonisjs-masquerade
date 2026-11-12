@@ -78,3 +78,7 @@ opening a pull request. Report vulnerabilities privately as described in [SECURI
 ## License
 
 [MIT](LICENSE.md)
+
+## User story catalogue
+
+See the [source-reviewed user story catalogue](user-stories/README.md) for capability coverage and code-backed action flows.
