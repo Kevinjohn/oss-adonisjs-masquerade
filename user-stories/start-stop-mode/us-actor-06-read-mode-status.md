@@ -21,7 +21,7 @@ flowchart TD
  A["Actor requests GET /masquerade with raw control credentials"] --> B{"Can the control route read stored mode state?"}
  B -->|No| C["Receive a refusal or unavailable response"]
  B -->|Yes| D["See idle or stored active mode and current context token"]
- D --> E{"Does a later request trigger expiry or policy invalidation?"}
+ D --> E{"Does a later covered business admission trigger expiry or policy invalidation?"}
  E -->|No| F["Use context token for the intended control or covered unsafe request"]
  E -->|Yes| G["Admission processes the mode and refuses stale context; read status again"]
 ```
@@ -32,8 +32,8 @@ Scope: raw-guarded status read. It projects the stored row without expiring or r
 
 ```mermaid
 flowchart TD
- A["masqueradeRoutes mounts GET /"] --> B["MasqueradeController.status"]
- B --> C["MasqueradeController.control authenticates raw actor"]
+ A["masqueradeRoutes mounts GET / with raw-auth route middleware"] --> B["MasqueradeController.status"]
+ B --> C["MasqueradeController.control checks selected guard kind is raw"]
  C --> D["MasqueradeService.status reads actor's stored row"]
  D --> E["modeView projects idle/active fields and context token"]
  E --> F["Return ModeView without a mode write or policy check"]

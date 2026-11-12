@@ -42,17 +42,17 @@ flowchart TD
     B --> C{"Effective alias selected?"}
     C -->|No| D["Authenticate selected raw guard"]
     C -->|Yes| E["runtime.admit(ctx) calls MasqueradeService admission"]
-    E --> E2{"Active mode without enforced context middleware?"}
-    E2 -->|Yes| Z["assertContextEnforced throws E_MASQUERADE_UNAVAILABLE"]
-    E2 -->|No| F{"Idle, active valid or expired/invalid?"}
+    E --> F{"Idle, active valid or expired/invalid?"}
     F -->|Idle| G["admittedProjection uses actor as effective subject"]
     F -->|Expired/invalid| H["clear mode; throw E_MASQUERADE_CONTEXT_CHANGED"]
     F -->|Active valid| I["local checks canUseRequest"]
     I --> J{"Request permitted?"}
     J -->|No| K["Reject request without clearing mode"]
     J -->|Yes| L["admittedProjection uses target as effective subject"]
-    G --> M["Guard exposes admitted effective user"]
-    L --> M
+    G --> E2{"assertContextEnforced: active mode without enforced context middleware?"}
+    L --> E2
+    E2 -->|Yes| Z["Throw E_MASQUERADE_UNAVAILABLE"]
+    E2 -->|No| M["Guard exposes admitted effective user"]
     M --> N["Token facade omits currentAccessToken; raw credential stays actor-owned"]
 ```
 
