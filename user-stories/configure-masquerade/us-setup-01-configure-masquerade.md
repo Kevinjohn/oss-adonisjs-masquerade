@@ -11,7 +11,13 @@ As an AdonisJS application developer, I want to scaffold and finish Masquerade i
 
 ## Acceptance criteria
 
-- The command requires configured Adonis auth, a resolvable user model, assembler and Lucid. It accepts the configured namespace and raw guard; invalid values stop with an error.
+| Input             | Control                                          | Required/default/conditions                                                    |
+| ----------------- | ------------------------------------------------ | ------------------------------------------------------------------------------ |
+| Namespace         | `--namespace` or **Masquerade namespace** prompt | Required; no default. 1–128 ASCII bytes matching `[A-Za-z0-9][A-Za-z0-9_.:-]*` |
+| Raw session guard | `--guard` or **Raw session guard name** prompt   | Required; no default. 1–128 ASCII bytes matching `[A-Za-z][A-Za-z0-9_-]*`      |
+
+- Omitted flags prompt for their values. Invalid names stop with an error before scaffolding.
+- The command requires configured Adonis auth, a resolvable user model, assembler and Lucid.
 - Existing generated files are preserved unless `--force` is supplied. Optional `--banner` and `--form-controller` add those host scaffolds; `--no-wire` leaves auth/kernel/routes wiring steps for the maintainer.
 - The command creates native-session configuration, authority/user provider/context middleware and migration stubs, registers provider and Ace commands, and wires recognized session auth/kernel/route shapes when enabled.
 - Native opaque access-token integration is host-configured separately with an effective token guard and authority, as described in the [access-token guide](../../docs/guide/access-tokens.md). Configure does not automatically wire token authentication.
@@ -22,7 +28,9 @@ As an AdonisJS application developer, I want to scaffold and finish Masquerade i
 
 ```mermaid
 flowchart TD
-    A["Run Ace configure with namespace and raw guard"] --> B{"Auth, user model, assembler and Lucid available?"}
+    A["Run Ace configure; provide names by flags or prompts"] --> N{"Names valid?"}
+    N -->|No| O["See name error and correct input"]
+    N -->|Yes| B{"Auth, user model, assembler and Lucid available?"}
     B -->|No| C["See setup error and satisfy prerequisite"]
     B -->|Yes| D{"Generated destination already exists?"}
     D -->|Yes without force| E["Existing files remain unchanged; review or rerun with force"]
@@ -37,10 +45,12 @@ Scope: Ace native-session scaffolding and recognized session host wiring; host-s
 
 ```mermaid
 flowchart TD
-    A["configure(command)"] --> B["readOption namespace and guard"]
-    B --> C["fileExists auth, user model, assembler, Lucid"]
-    C --> D{"Prerequisites and names valid?"}
-    D -->|No| E["Log setup error and set exitCode"]
+    A["configure(command)"] --> B["readOption namespace and guard; prompt when omitted"]
+    B --> N{"isNamespace and isGuardName valid?"}
+    N -->|No| E["Log setup error and set exitCode"]
+    N -->|Yes| C["Check auth, user model, assembler and Lucid"]
+    C --> D{"Prerequisites available?"}
+    D -->|No| E
     D -->|Yes| F["codemods.makeUsingStub generated files"]
     F --> G["codemods.updateRcFile registers providers and commands"]
     G --> H{"noWire(command)?"}
