@@ -4,7 +4,7 @@ As an authorized support actor with an active mode, I want covered business rout
 
 **Status:** Current; source-reviewed native-session and native access-token integrations.
 **Access:** Actor retains their raw session or opaque access token; host `canMasquerade` and per-request admission determine whether the target is effective.
-**Entry:** Business route uses `web_effective` or host-configured `api_effective` (or the configured effective alias), plus `masqueradeContext` after auth initialization.
+**Entry:** Business route uses `web_effective` or host-configured `api_effective` (or the configured effective alias); `masqueradeContext` runs after auth initialization and before the effective guard authenticates.
 **Documentation:** [Use the effective customer identity](../../docs/guide/usage.md#use-the-effective-customer-identity), [security identity boundary](../../docs/guide/security.md#actor-target-and-scope).
 **Source:** [EffectiveSessionGuard](../../auth/effective_session_guard.ts), [EffectiveAccessTokensGuard](../../auth/effective_access_tokens_guard.ts), [request admission](../../src/service.ts).
 **Coverage:** [Session guard tests](../../tests/effective_session_guard.spec.ts), [access-token guard tests](../../tests/effective_access_tokens_guard.spec.ts), [route guard tests](../../tests/route_guard_selection.spec.ts).
@@ -42,7 +42,9 @@ flowchart TD
     B --> C{"Effective alias selected?"}
     C -->|No| D["Authenticate selected raw guard"]
     C -->|Yes| E["runtime.admit(ctx) calls MasqueradeService admission"]
-    E --> F{"Idle, active valid or expired/invalid?"}
+    E --> E2{"Active mode without enforced context middleware?"}
+    E2 -->|Yes| Z["assertContextEnforced throws E_MASQUERADE_UNAVAILABLE"]
+    E2 -->|No| F{"Idle, active valid or expired/invalid?"}
     F -->|Idle| G["admittedProjection uses actor as effective subject"]
     F -->|Expired/invalid| H["clear mode; throw E_MASQUERADE_CONTEXT_CHANGED"]
     F -->|Active valid| I["local checks canUseRequest"]
