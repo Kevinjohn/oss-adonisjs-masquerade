@@ -18,7 +18,7 @@ As a signed-in actor using a covered form or client, I want to submit the contex
 | Shield CSRF token      | Host form/client field or header | Still required by cookie-authenticated writes; Masquerade context does not replace it |
 
 - If both context transports are supplied, they must match. In enforce mode, missing or stale context on an unsafe request is rejected. HTTP control bodies are limited to 8 KiB; JSON and URL-encoded forms are supported, multipart and unknown fields are refused.
-- Start and stop rotate context; clients refresh status and rebuild the action instead of fetching a new token and replaying old intent.
+- State-changing start and stop rotate context; an authorized idle/absent stop returns unchanged context; clients refresh status and rebuild the action instead of fetching a new token and replaying old intent.
 - On API token routes, the token ability is checked separately from context freshness and cannot upgrade the mode access level.
 
 ## User flow
@@ -27,8 +27,11 @@ As a signed-in actor using a covered form or client, I want to submit the contex
 flowchart TD
     A["Render action with current context token"] --> B["Submit unsafe request with that token and CSRF"]
     B --> C{"Token matches current mode?"}
-    C -->|No| D["Receive context refusal; refresh status and rebuild the action"]
-    C -->|Yes| E["Request continues to route policy checks"]
+    C -->|No| R{"Enforce mode?"}
+    R -->|Yes| D["Receive context refusal; refresh status and rebuild the action"]
+    R -->|No, report mode| L["Log mismatch"]
+    L --> E["Continue to route policy checks"]
+    C -->|Yes| E
 ```
 
 ## Code flow

@@ -21,7 +21,7 @@ actual action rather than retaining the sample status flow.
 As a signed-in actor, I want to read my current masquerade status so that I can show whether a support mode is active and submit the current request context.
 
 **Status:** Current; source-reviewed API, not runtime-tested.
-**Access:** Actor authenticated by the configured raw control guard.
+**Access:** Actor authenticated by the configured raw control guard; native access tokens also require the configured `masquerade` ability.
 **Entry:** `GET /masquerade` mounted by `masqueradeRoutes()`.
 **Documentation:** [Control routes and status](../../docs/guide/usage.md#mount-the-json-controls).
 **Source:** [MasqueradeController.status](../../http/controllers.ts).
@@ -49,7 +49,7 @@ flowchart TD
     A["masqueradeRoutes mounts GET /"] --> B["MasqueradeController.status"]
     B --> C["MasqueradeController.control"]
     C --> D["runtimeFor(ctx)"]
-    D --> E["runtime.service.status(ctx)"]
+    D --> E["runtime.service.status(ctx) resolves actor and native token ability before row read"]
     E --> F["ctx.response.status(200).json(result)"]
 ```
 

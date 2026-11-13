@@ -3,7 +3,7 @@
 As a signed-in actor, I want to read my current support mode and context token so that I can show my mode state and submit a current control or business request.
 
 **Status:** Current; source-reviewed HTTP control.
-**Access:** Actor authenticates with the configured raw control guard. Status does not grant target access or permission to start or stop a mode.
+**Access:** Actor authenticates with the configured raw control guard. Native access tokens also require the configured `masquerade` ability before the actor is resolved and the row read. Status does not grant target access or permission to start or stop a mode.
 **Entry:** Read `GET /masquerade`, mounted by `masqueradeRoutes()`; this is independent of starting or stopping a mode.
 **Documentation:** [Read status and start](../../docs/guide/usage.md#read-status-and-start).
 **Source:** [MasqueradeController.status](../../http/controllers.ts), [MasqueradeService.status](../../src/service.ts), [mode projection](../../src/mode_projection.ts).
@@ -11,7 +11,7 @@ As a signed-in actor, I want to read my current support mode and context token s
 
 ## Acceptance criteria
 
-- The response shows the stored idle or active `ModeView` and a context token. An active stored row remains displayed as active even after its expiry until admission or cleanup processes it; status itself does not expire the mode, recheck policy, or write state.
+- The response shows the stored idle or active `ModeView` and a context token. An active stored row remains displayed as active even after its expiry until admission or cleanup processes it; status itself does not expire the mode, recheck target admission policy, or write mode state.
 - The context token identifies the current mode context for freshness checks; it does not authorize business access or replace route policy, context middleware, or the raw actor credential.
 
 ## User flow
@@ -34,9 +34,9 @@ Scope: raw-guarded status read. It projects the stored row without expiring or r
 flowchart TD
  A["masqueradeRoutes mounts GET / with raw-auth route middleware"] --> B["MasqueradeController.status"]
  B --> C["MasqueradeController.control checks selected guard kind is raw"]
- C --> D["MasqueradeService.status reads actor's stored row"]
+ C --> D["MasqueradeService.status resolves actor including native token ability, then reads stored row"]
  D --> E["modeView projects idle/active fields and context token"]
- E --> F["Return ModeView without a mode write or policy check"]
+ E --> F["Return ModeView without a mode write or target admission policy check"]
 ```
 
 **Code references:** [route mount](../../http/control_routes.ts), [controller](../../http/controllers.ts), [service status](../../src/service.ts), [mode projection](../../src/mode_projection.ts)

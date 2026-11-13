@@ -20,7 +20,7 @@ As a support actor, I want to make a customer-owned mutation only when I start a
 
 ```mermaid
 flowchart TD
-    A["Actor starts a mode and chooses view or edit"] --> B{"Does host policy allow edit?"}
+    A["Actor requests an edit mode"] --> B{"Does host policy allow edit?"}
     B -->|No| C["Requested edit is refused; no downgrade occurs"]
     B -->|Yes| D["Actor submits an unsafe customer action with current context"]
     D --> E{"Route allows mutation and is not sensitive?"}

@@ -20,7 +20,7 @@ As a host operator, I want to stop a selected actor's mode or confirm stopping a
 
 - Exactly one of `--actor` or `--all` is required; incarnation is allowed only with actor.
 - `--all` prompts “End every active masquerade mode?” unless `--force`; declining reports “Nothing stopped.”
-- Unknown actor/incarnation fails with a nonzero result. Successful operation reports number of modes stopped.
+- A well-formed explicit owner with no active matching row returns zero; resolving an omitted incarnation may fail if the actor cannot be found. Invalid input or unavailable storage returns an error. Success reports actual stopped transitions: expired rows clear without increasing that count, and contention can leave modes active after `--all`. Check status and retry remaining work.
 
 ## User flow
 
@@ -31,10 +31,10 @@ flowchart TD
     B -->|Actor| D["Stop that actor's mode"]
     B -->|All| E{"Confirm or pass force?"}
     E -->|Decline| F["Nothing is stopped"]
-    E -->|Confirm| G["Stop every active mode"]
-    D --> H{"Actor selection valid?"}
-    G --> I["Report stopped count"]
-    H -->|No| J["See invalid actor/incarnation error"]
+    E -->|Confirm| G["Attempt to stop active modes"]
+    D --> H{"Selection resolves and operation succeeds?"}
+    G --> I["Report actual stopped count, possibly zero; check status and retry contention"]
+    H -->|No| J["See input, unresolved incarnation or unavailable error"]
     H -->|Yes| I
 ```
 
@@ -54,7 +54,7 @@ flowchart TD
     F -->|No| H["stopActiveModes with actor and incarnation"]
     G --> I["Emit transitions and count stopped modes"]
     H --> I
-    I --> J["Log stopped count or invalid actor error"]
+    I --> J["Log actual stopped count, including zero; errors remain errors"]
 ```
 
 **Code references:** [StopCommand](../../commands/stop.ts), [stopActiveModes](../../src/stop_modes.ts), [operator guide](../../docs/guide/operations.md#see-and-end-active-modes).
