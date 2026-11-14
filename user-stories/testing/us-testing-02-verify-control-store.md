@@ -1,0 +1,44 @@
+# US-TESTING-02 — Verify a custom control store against the package contract
+
+As an application developer with a custom control store, I want to run the package's conformance suite against it so that behavior the package relies on is checked before the store is used.
+
+**Status:** Current; source-reviewed test helper, not runtime-tested.
+**Access:** Application test author with a factory that returns a fresh, isolated store per call.
+**Entry:** `await assertControlStoreConformance(createStore)` from `@kevinjohn/adonisjs-masquerade/testing`, inside a test.
+**Documentation:** [Run the conformance suite](../../docs/guide/custom-stores.md#run-the-conformance-suite).
+**Source:** [assertControlStoreConformance](../../testing/control_store_conformance.ts), [MemoryControlStore](../../testing/memory_control_store.ts).
+**Coverage:** [Conformance rejection tests](../../tests/control_store_conformance.spec.ts), [memory store tests](../../tests/memory_control_store.spec.ts).
+
+## Acceptance criteria
+
+- `createStore` is called once per run and must return a clean, isolated store.
+- The suite throws an assertion error when the store breaks the observable contract, for example owner isolation, detached reads, one winner among competing compare-and-set calls, revision and event agreement, control outcomes that create or change a mode row, expiry and active batch ordering, or bounded event pruning.
+- A pass does not prove database isolation or behavior under independent connections; the guide asks for adapter-level tests for those.
+- `MemoryControlStore` is an in-process test utility, not a production persistence choice.
+
+## User flow
+
+```mermaid
+flowchart TD
+    A["Author adds a conformance test with a fresh-store factory"] --> B["Run the test"]
+    B --> C{"Store meets the contract?"}
+    C -->|No| D["Test fails with an assertion error; inspect the failing assertion and fix the adapter"]
+    C -->|Yes| E["Add adapter-level tests for database guarantees"]
+```
+
+## Code flow
+
+Scope: the exported helper only; adapter implementations are host-owned.
+
+```mermaid
+flowchart TD
+    A["assertControlStoreConformance(createStore)"] --> B["createStore()"]
+    B --> C["store.read, compareAndSet and conflict checks"]
+    C --> D["recordControlOutcome never creates or changes a row"]
+    D --> E["pruneEvents, expiredBatch and activeBatch bounds and order"]
+    E --> F{"Every assertion holds?"}
+    F -->|No| G["Throw AssertionError"]
+    F -->|Yes| H["Resolve"]
+```
+
+**Code references:** [conformance helper](../../testing/control_store_conformance.ts), [custom stores guide](../../docs/guide/custom-stores.md#run-the-conformance-suite), [rejection tests](../../tests/control_store_conformance.spec.ts).

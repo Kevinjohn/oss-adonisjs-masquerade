@@ -18,7 +18,7 @@ As an AdonisJS application developer, I want to scaffold and finish Masquerade i
 
 - Omitted flags prompt for their values. Invalid names stop with an error before scaffolding.
 - The command requires configured Adonis auth, a resolvable user model, assembler and Lucid.
-- Existing generated files are preserved unless `--force` is supplied. Optional `--banner` and `--form-controller` add those host scaffolds; `--no-wire` leaves auth/kernel/routes wiring steps for the maintainer.
+- Without `--force`, any existing generated destination stops the command with an error and exit code 1 before files are written; if a stub is nonetheless skipped, the command stops with exit code 1 before providers or commands are registered. `--force` replaces existing generated files. Optional `--banner` and `--form-controller` add those host scaffolds; `--no-wire` leaves auth/kernel/routes wiring steps for the maintainer.
 - The command creates native-session configuration, authority/user provider/context middleware and migration stubs, registers provider and Ace commands, and wires recognized session auth/kernel/route shapes when enabled.
 - Native opaque access-token integration is host-configured separately with an effective token guard and authority, as described in the [access-token guide](../../docs/guide/access-tokens.md). Configure does not automatically wire token authentication.
 - Host completes account incarnation, security stamp, active-account and deny-by-default `canMasquerade` policy behavior, reviews and applies the migration, and verifies context enforcement before enforcing it.
@@ -34,7 +34,9 @@ flowchart TD
     B -->|No| C["See setup error and satisfy prerequisite"]
     B -->|Yes| D{"Generated destination already exists?"}
     D -->|Yes without force| E["Existing files remain unchanged; review or rerun with force"]
-    D -->|No or force| F["Review generated config, provider, migration and host wiring"]
+    D -->|No or force| S{"Any generated path skipped?"}
+    S -->|Yes| T["See partial-files error; nothing registered; review and rerun with force"]
+    S -->|No| F["Review generated config, provider, migration and host wiring"]
     F --> G["Implement host policy and apply migration"]
     G --> H["Exercise status/start/stop and context-protected routes"]
 ```
@@ -51,8 +53,12 @@ flowchart TD
     N -->|Yes| C["Check auth, user model, assembler and Lucid"]
     C --> D{"Prerequisites available?"}
     D -->|No| E
-    D -->|Yes| F["codemods.makeUsingStub generated files"]
-    F --> G["codemods.updateRcFile registers providers and commands"]
+    D -->|Yes| X{"Destinations exist and no force?"}
+    X -->|Yes| Y["Log existing-files error, exitCode 1, stop"]
+    X -->|No| F["codemods.makeUsingStub generated files"]
+    F --> Z{"Any stub skipped?"}
+    Z -->|Yes| Y2["Log skipped-paths error, exitCode 1, stop before registration"]
+    Z -->|No| G["codemods.updateRcFile registers providers and commands"]
     G --> H{"noWire(command)?"}
     H -->|Yes| I["Print required host wiring steps"]
     H -->|No| J["wireHost(command, codemods, guard, banner, formController)"]
