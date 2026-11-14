@@ -4,7 +4,7 @@ As an application developer rendering Edge pages, I want the current mode status
 
 **Status:** Current; source-reviewed helper. The `--banner` scaffold is optional.
 **Access:** Host controller or middleware that runs on a route whose handler renders an Edge view; the route may use the effective or a raw guard.
-**Entry:** Call `await shareMasquerade(ctx)` from `@kevinjohn/adonisjs-masquerade/http` before rendering, or generate the status middleware and banner with `node ace configure --banner` (see US-SETUP-01).
+**Entry:** Call `await shareMasquerade(ctx)` from `@kevinjohn/adonisjs-masquerade/http` before rendering, or generate the status middleware and banner with `node ace configure @kevinjohn/adonisjs-masquerade --banner` (see US-SETUP-01).
 **Documentation:** [Context tokens and browser clients](../../docs/guide/security.md#context-tokens-and-browser-clients), [Edge forms](../../docs/recipes/routes-and-forms.md#edge).
 **Source:** [shareMasquerade and contextField](../../http/edge.ts), [status middleware stub](../../stubs/configure/status_middleware.stub), [banner stub](../../stubs/configure/banner_edge.stub).
 **Coverage:** [Edge helper tests](../../tests/http_edge.spec.ts).
@@ -21,12 +21,14 @@ As an application developer rendering Edge pages, I want the current mode status
 
 ```mermaid
 flowchart TD
-    A["Developer calls shareMasquerade before rendering, or installs the banner middleware"] --> B["Page renders for the signed-in actor"]
-    B --> C{"Mode active?"}
-    C -->|Yes| D["Banner shows target, access and deadline with a Stop form"]
-    C -->|No| E["No banner"]
+    A{"Setup?"} -->|shareMasquerade before rendering| B["Page renders with masquerade and masqueradeContextField"]
+    A -->|Generated banner middleware| H["Page renders with masquerade only"]
     B --> F["Form includes masqueradeContextField and csrfField"]
+    H --> C{"Mode active?"}
+    C -->|Yes| D["Banner Stop form includes csrfField and masquerade.contextToken"]
+    C -->|No| E["No banner"]
     F --> G["Submit sends the token the page was rendered with"]
+    D --> G
 ```
 
 ## Code flow

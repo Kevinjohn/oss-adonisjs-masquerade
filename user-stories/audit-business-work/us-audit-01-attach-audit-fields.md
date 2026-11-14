@@ -37,9 +37,12 @@ flowchart TD
     A["masqueradeAuditFields(ctx)"] --> B["runtimeFor(ctx)"]
     B --> C{"runtime.selectGuard(ctx).kind is effective?"}
     C -->|No| D["runtime.actor(ctx); actor as both identities"]
-    C -->|Yes| E["runtime.service.resolve(ctx)"]
-    D --> F["Return frozen fields"]
-    E --> F
+    C -->|Yes| E["runtime.service.resolve(ctx) runs memoized admission"]
+    E --> G{"Admitted?"}
+    G -->|Yes| F["Return frozen fields"]
+    G -->|"Expired or invalidated mode"| H["Throw E_MASQUERADE_CONTEXT_CHANGED"]
+    G -->|"Store or policy failure"| I["Throw E_MASQUERADE_UNAVAILABLE"]
+    D --> F
 ```
 
 **Code references:** [audit fields](../../http/audit_fields.ts), [audit guide](../../docs/guide/audit.md).

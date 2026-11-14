@@ -17,7 +17,7 @@ As a signed-in actor, I want to stop my active support mode with the current con
 | Shield CSRF token                             | Host field/header                   | Required for cookie-authenticated writes; Masquerade context does not replace it |
 
 - For the active-mode scenario, a successful stop clears the actor's active mode and returns an idle `ModeView` with a new context token.
-- Stop always requires the expected token, whatever `contextEnforcement` is set to: a missing or malformed token is rejected with `E_MASQUERADE_CONTEXT_REQUIRED` and a stale one with `E_MASQUERADE_CONTEXT_CHANGED`. A concurrent or lost response requires reading `GET /masquerade`; clients must not automatically replay the old stop.
+- Stop always requires the expected token, whatever `contextEnforcement` is set to: a header and hidden field that disagree are rejected with `E_MASQUERADE_CONTEXT_CHANGED`; otherwise a missing or malformed token is rejected with `E_MASQUERADE_CONTEXT_REQUIRED` and a stale one with `E_MASQUERADE_CONTEXT_CHANGED`. A concurrent or lost response requires reading `GET /masquerade`; clients must not automatically replay the old stop.
 - Token transport also requires the configured `masquerade` ability; the ability does not grant edit access or bypass host policy.
 
 ## User flow
