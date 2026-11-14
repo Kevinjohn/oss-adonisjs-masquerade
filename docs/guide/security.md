@@ -164,7 +164,10 @@ await fetch('/business/mutate', {
 If a request sends both header and form tokens, they must match. Missing context is 428; stale or
 conflicting context is 409. Do not fetch a newer token and replay an old intent: refresh or rebuild
 the user's action under the current mode first.
-GET/HEAD/OPTIONS requests do not need the token, though active-mode policy still applies.
+GET/HEAD/OPTIONS requests do not need the token, though active-mode policy still applies. A
+GET/HEAD/OPTIONS request that does send `X-Masquerade-Context` is checked like an unsafe one: a
+stale value is refused with 409 (logged under `report`), so a client never shows data from a mode
+it does not know it is in.
 
 Start and stop always enforce their expected token. Business middleware may run in `report` while
 the host migrates forms; it logs would-be missing/stale errors and admits the request. Report mode
