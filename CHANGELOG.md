@@ -2,11 +2,13 @@
 
 ## Unreleased
 
+## 0.2.9 - 2026-11-14
+
 ### Changed
 
 - `masqueradeContext` refuses a GET, HEAD or OPTIONS request whose `X-Masquerade-Context` header
-  is stale with `E_MASQUERADE_CONTEXT_CHANGED` (409), or logs it under `contextEnforcement:
-'report'`. A safe request without the header is unchanged.
+  is stale with `E_MASQUERADE_CONTEXT_CHANGED` (409). Under report enforcement it logs the request
+  instead. A safe request without the header is unchanged.
 
 ## 0.2.8 - 2026-11-09
 
