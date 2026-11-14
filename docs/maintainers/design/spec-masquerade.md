@@ -197,7 +197,7 @@ interface ResolvedContext {
 - Validation parses the integer revision, compares it to the owner's current revision and compares the nonce for equality. No MAC, key provider or format version. Input is bounded to 128 bytes; malformed input is treated as missing.
 - Every covered unsafe request carries the token in the `X-Masquerade-Context` header or the `_masqueradeContext` hidden field. If both are present they must match. Missing is 428; stale is 409.
 - `contextEnforcement: 'report'` logs the would-be 428/409 outcome with route and actor ID and lets the request continue. `'enforce'` rejects. Hosts migrate forms in report mode, then flip to enforce before relying on T-CONTEXT.
-- Clients MUST NOT refresh the token and replay an old intent. GET/HEAD need no token. Start and stop require the expected token and rotate it on success.
+- Clients MUST NOT refresh the token and replay an old intent. GET/HEAD/OPTIONS need no token; one that sends `X-Masquerade-Context` is validated like an unsafe request, so a stale header is 409. Start and stop require the expected token and rotate it on success.
 - Idle rows are retained with their latest revision and nonce; pruning never removes them, or pre-start tokens would validate again.
 
 ### 5.4 Route classification and markers

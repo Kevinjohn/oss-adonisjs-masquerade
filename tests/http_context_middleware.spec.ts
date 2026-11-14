@@ -265,6 +265,43 @@ test.group('masquerade HTTP boundary', () => {
     }
   })
 
+  test('refuses a safe request whose context header is stale and admits a current one', async ({
+    assert,
+  }) => {
+    for (const enforcement of ['report', 'enforce'] as const) {
+      const f = fixture()
+      f.config.contextEnforcement = enforcement
+      const service = await f.create()
+      const idle = await service.status({})
+      // Another session starts a view, so the idle token this tab still holds is stale.
+      await f.start(service)
+      const current = await service.status({})
+      for (const method of ['GET', 'HEAD', 'OPTIONS']) {
+        for (const [header, stale] of [
+          [idle.contextToken, true],
+          [current.contextToken, false],
+        ] as const) {
+          const { ctx, warnings, responseState } = requestContext(f, { method, header })
+          let continued = false
+          await handleWithDefaultExceptionHandler(ctx, () =>
+            masqueradeContext(ctx, async () => {
+              continued = true
+            })
+          )
+          const label = `${enforcement} ${method} ${stale ? 'stale' : 'current'}`
+          if (stale && enforcement === 'enforce') {
+            assert.isFalse(continued, label)
+            assert.equal(responseState.status, 409, label)
+            assert.equal(errorCode(responseState.json), 'E_MASQUERADE_CONTEXT_CHANGED', label)
+          } else {
+            assert.isTrue(continued, label)
+            assert.lengthOf(warnings, stale ? 1 : 0, label)
+          }
+        }
+      }
+    }
+  })
+
   test('view mode admits GET, HEAD and OPTIONS', async ({ assert }) => {
     const f = fixture()
     const service = await f.create()

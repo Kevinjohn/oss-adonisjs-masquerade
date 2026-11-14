@@ -41,9 +41,10 @@ export async function masqueradeContext(
   }
   const { context } = admitted
   const method = ctx.request.method().toUpperCase()
-  if (isUnsafe(method)) {
+  const headerToken = ctx.request.header('X-Masquerade-Context')
+  // A safe request needs no token, but one that declares a stale context is refused like a write.
+  if (isUnsafe(method) || headerToken !== undefined) {
     const body = ctx.request.body()
-    const headerToken = ctx.request.header('X-Masquerade-Context')
     const formToken = body && typeof body === 'object' ? body._masqueradeContext : undefined
     const mismatch =
       headerToken !== undefined && formToken !== undefined && headerToken !== formToken
