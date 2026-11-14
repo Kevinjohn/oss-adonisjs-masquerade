@@ -22,6 +22,7 @@ As a signed-in actor, I want to start a temporary support mode for an eligible t
 - The body is at most 8 KiB and must be JSON or URL-encoded form data; multipart and unknown fields are refused.
 - If reason is configured as required, absent, null or blank reason is refused. A successful start stores one active mode and returns its `ModeView` with a fresh context token.
 - Invalid input, stale context, a failed `canMasquerade` policy or a failed edit policy refuses start; the actor remains authenticated as themselves.
+- Starting while a mode is already active is refused with `E_MASQUERADE_ALREADY_ACTIVE`; the active mode is not replaced or extended. Starting from an active row whose deadline has passed clears it to idle and then refuses with `E_MASQUERADE_CONTEXT_CHANGED`; no new mode starts from it.
 - A bearer token also needs the configured `masquerade` ability before status or start reads or changes mode state.
 
 ## User flow
@@ -30,9 +31,12 @@ As a signed-in actor, I want to start a temporary support mode for an eligible t
 flowchart TD
     A["Actor reads GET /masquerade"] --> B["Choose target and optional reason, duration and access"]
     B --> C["Submit POST /masquerade/start with current context and CSRF"]
-    C --> D{"Input and host policy accepted?"}
-    D -->|No| E["See refusal and refresh status before a new intent"]
-    D -->|Yes| F["Receive active ModeView and new context token"]
+    C --> D{"Mode already active or lapsed?"}
+    D -->|Active| E2["See already-active refusal; stop first, then start again"]
+    D -->|Lapsed| E3["Lapsed mode is cleared to idle; see context-changed refusal and refresh status"]
+    D -->|No| D2{"Input and host policy accepted?"}
+    D2 -->|No| E["See refusal and refresh status before a new intent"]
+    D2 -->|Yes| F["Receive active ModeView and new context token"]
 ```
 
 ## Code flow
@@ -46,10 +50,14 @@ flowchart TD
     C --> D["runtimeFor and raw-guard check"]
     D --> E["parseStartControl(ctx)"]
     E --> F["runtime.service.start(ctx, input)"]
-    F --> G["MasqueradeService.start validates actor, target, policies and context"]
-    G --> H{"Accepted?"}
+    F --> G["MasqueradeService.start validates input shape and context"]
+    G --> L{"Existing row active?"}
+    L -->|Lapsed| M["clear to idle, throw E_MASQUERADE_CONTEXT_CHANGED"]
+    L -->|Active| N["throw E_MASQUERADE_ALREADY_ACTIVE"]
+    L -->|No| P["Validate selection, actor, target and policies"]
+    P --> H{"Accepted?"}
     H -->|No| I["MasqueradeError path"]
     H -->|Yes| J["Return ModeView and rotated contextToken"]
 ```
 
-**Code references:** [route mount](../../http/control_routes.ts), [controller](../../http/controllers.ts), [parser](../../http/control_input.ts), [service start](../../src/service.ts), [start guide](../../docs/guide/usage.md#read-status-and-start).
+**Code references:** [route mount](../../http/control_routes.ts), [controller](../../http/controllers.ts), [parser](../../http/control_input.ts), [service start and active-row refusals](../../src/service.ts), [start guide](../../docs/guide/usage.md#read-status-and-start).

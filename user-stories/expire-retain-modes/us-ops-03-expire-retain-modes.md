@@ -1,4 +1,4 @@
-# US-OPS-03 — Expire inactive modes and prune retained events
+# US-OPS-03 — Expire lapsed modes and prune retained events
 
 As a host operator, I want a scheduled bounded cleanup pass so that expired modes and events beyond the configured retention are removed without adding a package-owned background worker.
 

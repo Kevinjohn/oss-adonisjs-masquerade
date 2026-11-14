@@ -14,7 +14,7 @@ As an application developer integrating Account Kit, I want account-management r
 - Host applies the blocker to account registration/management operations and authenticates them with the raw guard, not the effective target identity.
 - When unauthenticated, the blocker continues to the route's normal guest/auth handling. When authenticated and the actor has an active mode, it throws `E_MASQUERADE_ACTION_BLOCKED` with `blockedBy: sensitive`.
 - Logout and CSRF routes remain outside the blocked group so the actor can end their native session.
-- The package cannot enforce this boundary on host routes where the middleware/guard is omitted; `masquerade:routes` reports coverage for operator review.
+- The package cannot enforce this boundary on host routes where the middleware/guard is omitted. For host-owned account routes `masquerade:routes` shows only the guard category and the `sensitive`/`allowMutation` markers; it does not detect `AccountKitAccountBlocker`, so review blocker placement by hand. It classifies only `accountKit.*` route names as Account Kit managed.
 
 ## User flow
 
@@ -46,4 +46,4 @@ flowchart TD
     H -->|No| E
 ```
 
-**Code references:** [blocker](../../account_kit/middleware.ts), [example route grouping](../../examples/with_account_kit/hypermedia/start/routes.ts), [integration guide](../../docs/guide/account-kit.md#block-host-owned-account-routes).
+**Code references:** [blocker](../../account_kit/middleware.ts), [example route grouping](../../examples/with_account_kit/hypermedia/start/routes.ts), [integration guide](../../docs/guide/account-kit.md#block-host-owned-account-routes), [route report classification](../../commands/routes.ts), [recognized markers](../../src/integration/route_markers.ts).
