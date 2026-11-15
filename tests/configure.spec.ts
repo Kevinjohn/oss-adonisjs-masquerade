@@ -397,6 +397,60 @@ test.group('Masquerade configure scaffold', (group) => {
     }
   })
 
+  test('stops before writing when config/database.ts exists but fails to load', async ({
+    assert,
+  }) => {
+    const f = await configureFixture()
+    const load = f.app.import
+    try {
+      await mkdir(join(f.root, 'config'), { recursive: true })
+      await writeFile(join(f.root, 'config/database.ts'), 'export default {}\n')
+      f.app.import = async (specifier: string) => {
+        if (specifier === f.app.makeURL('config/database.ts').href)
+          throw new Error('database config exploded')
+        return load(specifier)
+      }
+      const configured = f.command({ namespace: 'support', guard: 'web' })
+      await assert.rejects(() => configure(configured as never), 'database config exploded')
+      assert.deepEqual(await listScaffoldPaths(f.root), [])
+    } finally {
+      f.app.import = load
+      await f.dispose()
+    }
+  })
+
+  test('stops before writing when package.json is not JSON', async ({ assert }) => {
+    const f = await configureFixture()
+    try {
+      await writeFile(join(f.root, 'package.json'), '{"imports":')
+      const configured = f.command({ namespace: 'support', guard: 'web' })
+      await assert.rejects(() => configure(configured as never), /JSON/)
+      assert.deepEqual(await listScaffoldPaths(f.root), [])
+    } finally {
+      await f.dispose()
+    }
+  })
+
+  test('falls back to database/migrations without config/database.ts or package.json', async ({
+    assert,
+  }) => {
+    const f = await configureFixture()
+    try {
+      await rm(join(f.root, 'config/database.ts'), { force: true })
+      await rm(join(f.root, 'package.json'), { force: true })
+      const configured = f.command({ namespace: 'support', guard: 'web' })
+      await configure(configured as never)
+      assert.equal(configured.exitCode, 0, configured.errors.join('\n'))
+      const files = await readdir(join(f.root, 'database/migrations'))
+      assert.lengthOf(
+        files.filter((file) => file.endsWith('_create_masquerade_tables.ts')),
+        1
+      )
+    } finally {
+      await f.dispose()
+    }
+  })
+
   test('reads config/database.ts when configure runs before the app boots', async ({ assert }) => {
     const f = await configureFixture()
     const load = f.app.import
