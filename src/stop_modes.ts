@@ -90,6 +90,14 @@ async function read(store: ControlStore, owner: OwnerKey): Promise<ModeRow | nul
   }
 }
 
+/** Errors thrown because the authority has no current account for the actor, not bad input. */
+const unknownAccounts = new WeakSet<MasqueradeError>()
+
+/** Whether `stopActiveModes` threw because the actor's account could not be found. */
+export function isUnknownAccount(error: unknown): boolean {
+  return error instanceof MasqueradeError && unknownAccounts.has(error)
+}
+
 async function resolveIncarnation<User, Request>(
   config: MasqueradeConfig<User, Request>,
   actorId: string,
@@ -104,8 +112,11 @@ async function resolveIncarnation<User, Request>(
     throw unavailable()
   }
   // A deleted or reused account has no current incarnation; the operator names the row's.
-  if (!snapshot || snapshot.subject.id !== actorId)
-    throw new MasqueradeError('E_MASQUERADE_INVALID_INPUT')
+  if (!snapshot || snapshot.subject.id !== actorId) {
+    const error = new MasqueradeError('E_MASQUERADE_INVALID_INPUT')
+    unknownAccounts.add(error)
+    throw error
+  }
   return snapshot.subject.incarnation
 }
 

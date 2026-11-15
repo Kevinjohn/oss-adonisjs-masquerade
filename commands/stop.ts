@@ -1,7 +1,7 @@
 import { InvalidArgumentsException } from '@adonisjs/core/exceptions'
 import { BaseCommand, flags } from '@adonisjs/core/ace'
 import { MasqueradeError } from '../src/errors.js'
-import { stopActiveModes } from '../src/stop_modes.js'
+import { isUnknownAccount, stopActiveModes } from '../src/stop_modes.js'
 import type { MasqueradeConfig } from '../src/types.js'
 
 /** End one operator's active mode, or every active mode, from the server. */
@@ -71,7 +71,9 @@ export default class StopCommand extends BaseCommand {
     } catch (error) {
       if (error instanceof MasqueradeError && error.code === 'E_MASQUERADE_INVALID_INPUT') {
         this.logger.error(
-          'Unknown operator account; pass --incarnation with the value from masquerade:status.'
+          isUnknownAccount(error)
+            ? 'Unknown operator account; pass --incarnation with the value from masquerade:status.'
+            : 'Invalid --actor or --incarnation: an actor id has at most 255 bytes and an incarnation at most 128.'
         )
         this.exitCode = 1
         return
