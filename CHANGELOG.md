@@ -2,6 +2,14 @@
 
 ## Unreleased
 
+### Fixed
+
+- `node ace configure` stops when `config/database.ts` exists but fails to load, or `package.json`
+  is not JSON, instead of writing the migration to `database/migrations` and assuming
+  `app/models/user`. A missing file still falls back to those defaults.
+- `masquerade:stop` reports an overlong `--actor` or `--incarnation` as invalid input. The advice to
+  pass `--incarnation` is kept for an account the authority cannot find.
+
 ## 0.2.9 - 2026-11-14
 
 ### Changed

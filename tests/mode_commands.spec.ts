@@ -160,7 +160,44 @@ test.group('masquerade:status and masquerade:stop Ace commands', () => {
     const service = await f.create()
     await f.start(service)
     f.users.delete('a')
-    assert.equal(await ace(f.config, ['masquerade:stop', '--actor=a']), 1)
+    const output: string[] = []
+    assert.equal(
+      await ace(f.config, ['masquerade:stop', '--actor=a'], undefined, undefined, output),
+      1
+    )
+    assert.isTrue(
+      output.some((line) =>
+        line.includes(
+          'Unknown operator account; pass --incarnation with the value from masquerade:status.'
+        )
+      )
+    )
+    const row = await f.store.read(f.owner)
+    assert.equal(row?.state, 'active')
+  })
+
+  test('stop reports an overlong identifier as invalid input, not an unknown account', async ({
+    assert,
+  }) => {
+    const f = fixture()
+    Object.defineProperty(f.store, 'testOnly', { value: false })
+    const service = await f.create()
+    await f.start(service)
+    const inspections = f.state.inspectCount
+    for (const argv of [
+      [`--actor=${'a'.repeat(256)}`, '--incarnation=a'],
+      [`--actor=${'a'.repeat(256)}`],
+      ['--actor=a', `--incarnation=${'a'.repeat(129)}`],
+    ]) {
+      const output: string[] = []
+      assert.equal(
+        await ace(f.config, ['masquerade:stop', ...argv], undefined, undefined, output),
+        1
+      )
+      assert.isTrue(output.some((line) => line.includes('Invalid --actor or --incarnation')))
+      assert.isFalse(output.some((line) => line.includes('Unknown operator account')))
+    }
+    assert.equal(f.state.inspectCount, inspections)
     const row = await f.store.read(f.owner)
     assert.equal(row?.state, 'active')
   })

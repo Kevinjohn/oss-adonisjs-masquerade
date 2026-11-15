@@ -298,11 +298,15 @@ async function migrationsFolder(command: Configure): Promise<string> {
 
 /** Where the host's `#models/*` import maps `#models/user`, without an extension. */
 async function userModelPath(command: Configure): Promise<string> {
-  let target: unknown
+  let text: string | undefined
   try {
-    const manifest = JSON.parse(await readFile(command.app.makePath('package.json'), 'utf8'))
-    target = manifest?.imports?.['#models/*']
-  } catch {}
+    text = await readFile(command.app.makePath('package.json'), 'utf8')
+  } catch (error) {
+    if (!(error && typeof error === 'object' && 'code' in error && error.code === 'ENOENT'))
+      throw error
+  }
+  // A package.json that exists but is not JSON stops configure rather than guessing the path.
+  const target: unknown = text === undefined ? undefined : JSON.parse(text)?.imports?.['#models/*']
   return typeof target === 'string' && target.includes('*')
     ? target
         .replace('*', 'user')
@@ -311,14 +315,16 @@ async function userModelPath(command: Configure): Promise<string> {
     : 'app/models/user'
 }
 
+/** `config/database.ts`, or `undefined` when the app has none. A file that fails to load throws. */
 async function databaseConfig(command: Configure): Promise<DatabaseConfig | undefined> {
   try {
     const module = (await command.app.import(command.app.makeURL('config/database.ts').href)) as {
       default?: DatabaseConfig
     }
     return module.default
-  } catch {
-    return undefined
+  } catch (error) {
+    if (!(await fileExists(command.app.makePath('config/database.ts')))) return undefined
+    throw error
   }
 }
 
