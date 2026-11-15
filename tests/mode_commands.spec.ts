@@ -165,7 +165,13 @@ test.group('masquerade:status and masquerade:stop Ace commands', () => {
       await ace(f.config, ['masquerade:stop', '--actor=a'], undefined, undefined, output),
       1
     )
-    assert.isTrue(output.some((line) => line.includes('Unknown operator account')))
+    assert.isTrue(
+      output.some((line) =>
+        line.includes(
+          'Unknown operator account; pass --incarnation with the value from masquerade:status.'
+        )
+      )
+    )
     const row = await f.store.read(f.owner)
     assert.equal(row?.state, 'active')
   })
