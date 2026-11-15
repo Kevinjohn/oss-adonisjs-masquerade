@@ -17,7 +17,7 @@ As an AdonisJS application developer, I want to scaffold and finish Masquerade i
 | Raw session guard | `--guard` or **Raw session guard name** prompt   | Required; no default. 1–128 ASCII bytes matching `[A-Za-z][A-Za-z0-9_-]*`      |
 
 - Omitted flags prompt for their values. Invalid names stop with an error before scaffolding.
-- The command requires configured Adonis auth, a resolvable user model, assembler and Lucid.
+- The command requires configured Adonis auth, a resolvable user model, assembler and Lucid. A `package.json` that cannot be read or is not JSON stops the command with that error before files are written. When no database config is already loaded, configure imports `config/database.ts`; if that file exists but fails to load, the error stops the command before files are written. Without `package.json` the user model is `app/models/user`; without a configured migrations path the migration goes to `database/migrations`.
 - Without `--force`, any existing generated destination stops the command with an error and exit code 1 before files are written; if a stub is nonetheless skipped, the command stops with exit code 1 before providers or commands are registered. `--force` replaces existing generated files. Optional `--banner` and `--form-controller` add those host scaffolds; `--no-wire` leaves auth/kernel/routes wiring steps for the maintainer.
 - The command creates native-session configuration, authority/user provider/context middleware and migration stubs, registers provider and Ace commands, and wires recognized session auth/kernel/route shapes when enabled.
 - Native opaque access-token integration is host-configured separately with an effective token guard and authority, as described in the [access-token guide](../../docs/guide/access-tokens.md). Configure does not automatically wire token authentication.
@@ -30,7 +30,7 @@ As an AdonisJS application developer, I want to scaffold and finish Masquerade i
 flowchart TD
     A["Run Ace configure; provide names by flags or prompts"] --> N{"Names valid?"}
     N -->|No| O["See name error and correct input"]
-    N -->|Yes| B{"Auth, user model, assembler and Lucid available?"}
+    N -->|Yes| B{"Auth, user model, assembler and Lucid available; package.json (when present) and any needed database config load?"}
     B -->|No| C["See setup error and satisfy prerequisite"]
     B -->|Yes| D{"Generated destination already exists?"}
     D -->|Yes without force| E["Existing files remain unchanged; review or rerun with force"]
@@ -50,7 +50,8 @@ flowchart TD
     A["configure(command)"] --> B["readOption namespace and guard; prompt when omitted"]
     B --> N{"isNamespace and isGuardName valid?"}
     N -->|No| E["Log setup error and set exitCode"]
-    N -->|Yes| C["Check auth, user model, assembler and Lucid"]
+    N -->|Yes| C["Check prerequisites; userModelPath reads package.json; migrationsFolder uses loaded config or databaseConfig"]
+    C -->|"package.json read/parse or databaseConfig throws"| R["Error propagates; nothing written"]
     C --> D{"Prerequisites available?"}
     D -->|No| E
     D -->|Yes| X{"Destinations exist and no force?"}
