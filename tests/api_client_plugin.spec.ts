@@ -75,6 +75,29 @@ test.group('masqueradeApiClient', (group) => {
       assert.equal(server.businessRequests, 1)
     })
   })
+
+  test('leaves a replacement mode active during teardown', async ({ assert }) => {
+    await withControlServer(async (server) => {
+      server.replaceOnBusiness = true
+      await authed(new ApiClient(server.url).post('/business')).masquerading('7')
+      assert.isTrue(server.active)
+      assert.equal(server.currentToken, 'replacement')
+      assert.equal(server.stopRequests, 0)
+    })
+  })
+
+  test('does not retry a stale cleanup token against a replacement mode', async ({ assert }) => {
+    await withControlServer(async (server) => {
+      server.replaceDuringCleanupStatus = true
+      await assert.rejects(
+        () => authed(new ApiClient(server.url).post('/business')).masquerading('7'),
+        /masquerading\(\) stop control returned 409/
+      )
+      assert.isTrue(server.active)
+      assert.equal(server.currentToken, 'replacement')
+      assert.equal(server.stopRequests, 1)
+    })
+  })
 })
 
 type ControlServer = {
@@ -85,6 +108,10 @@ type ControlServer = {
   idleStartResponse?: boolean
   activeStopResponse?: boolean
   businessRequests: number
+  currentToken: string
+  replaceOnBusiness?: boolean
+  replaceDuringCleanupStatus?: boolean
+  stopRequests: number
 }
 
 function authed<Request extends object>(request: Request): Request {
@@ -97,6 +124,8 @@ async function withControlServer(run: (server: ControlServer) => Promise<void>) 
     active: false,
     removeOperatorOnBusiness: false,
     businessRequests: 0,
+    currentToken: 'idle',
+    stopRequests: 0,
   }
   let removed = false
   const http = createServer((request, response) => {
@@ -107,20 +136,31 @@ async function withControlServer(run: (server: ControlServer) => Promise<void>) 
     request.resume()
     request.on('end', () => {
       if (removed) return json(401, { errors: [{ message: 'Unauthorized access' }] })
-      if (request.url === '/masquerade' && request.method === 'GET')
-        return json(200, {
+      if (request.url === '/masquerade' && request.method === 'GET') {
+        const body = {
           isMasquerading: state.active,
-          contextToken: state.active ? 'started' : 'idle',
-        })
+          contextToken: state.currentToken,
+        }
+        if (state.active && state.replaceDuringCleanupStatus) {
+          state.replaceDuringCleanupStatus = false
+          state.currentToken = 'replacement'
+        }
+        return json(200, body)
+      }
       if (request.url === '/masquerade/start') {
         state.active = !state.idleStartResponse
+        state.currentToken = 'started'
         return json(200, {
           isMasquerading: state.idleStartResponse ? false : true,
           contextToken: 'started',
         })
       }
       if (request.url === '/masquerade/stop') {
+        state.stopRequests++
+        if (request.headers['x-masquerade-context'] !== state.currentToken)
+          return json(409, { errors: [{ message: 'Stale context' }] })
         state.active = false
+        state.currentToken = 'idle'
         return json(200, {
           isMasquerading: state.activeStopResponse ? true : false,
           contextToken: 'idle',
@@ -128,6 +168,7 @@ async function withControlServer(run: (server: ControlServer) => Promise<void>) 
       }
       state.businessRequests++
       state.businessToken = request.headers['x-masquerade-context'] as string | undefined
+      if (state.replaceOnBusiness) state.currentToken = 'replacement'
       if (state.removeOperatorOnBusiness) removed = true
       return json(200, {})
     })

@@ -43,8 +43,11 @@ Before the request is sent, the plugin:
 3. adds the active context token as `X-Masquerade-Context` when the request method is not `GET`,
    `HEAD` or `OPTIONS`.
 
-After the response, it reads the status again and stops the mode if it is still active. The next
-request in the test is idle again.
+After the response, it reads the status again and stops the mode only if its context token still
+matches the mode this helper started. A replacement mode is left active. If the mode changes after
+that status read, the stop uses the original token and the host's normal stale-context handling
+applies. The next request in the test is idle again when this helper's mode is still active and
+unchanged.
 
 `masquerading(target, options)` takes a target with an `id`, or the ID itself. The options are
 `access` (`view` or `edit`), `reason`, `durationSeconds` and `prefix`. The control routes default to

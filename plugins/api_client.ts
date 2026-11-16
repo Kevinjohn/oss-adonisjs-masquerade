@@ -94,9 +94,11 @@ export function masqueradeApiClient(pluginOptions: MasqueradeApiClientOptions = 
         // HTTP; Masquerade invalidates it at that account's next admission.
         if (status.status() === 401) return
         const current = await expectMode(status, 'status')
-        if (!current.isMasquerading) return
+        if (!current.isMasquerading || current.contextToken !== started.contextToken) return
         await expectMode(
-          await control('POST', '/stop').header(CONTEXT_HEADER, current.contextToken).json({}),
+          await control('POST', '/stop')
+            .header(CONTEXT_HEADER, started.contextToken)
+            .json({}),
           'stop',
           false
         )
