@@ -278,8 +278,9 @@ test('a start that finds a lapsed mode records its denial against the idle row i
   assert.equal(expired!.kind, 'expired')
   assert.equal(denied!.kind, 'start_denied')
   assert.equal(denied!.revision, expired!.revision)
-  assert.notProperty(denied, 'targetId')
-  assert.notProperty(denied, 'access')
+  assert.equal(denied!.targetId, 'c')
+  assert.equal(denied!.access, 'view')
+  assert.notProperty(denied, 'targetIncarnation')
 })
 
 test('stopping a lapsed mode records expiry, as admission and prune do', async ({ assert }) => {
@@ -297,4 +298,28 @@ test('stopping a lapsed mode records expiry, as admission and prune do', async (
       ['expired', 'expired'],
     ]
   )
+})
+
+test('a denied second start records the attempted target without inheriting active target data', async ({
+  assert,
+}) => {
+  const f = fixture()
+  const service = await f.create()
+  const active = await f.start(service)
+  assert.equal(
+    await errorCode(() =>
+      service.start(
+        {},
+        { targetId: 'c', access: 'edit', reason: 'case', expectedContext: active.contextToken }
+      )
+    ),
+    'E_MASQUERADE_ALREADY_ACTIVE'
+  )
+  const denied = f.store.events.at(-1)!
+  assert.equal(denied.kind, 'start_denied')
+  assert.equal(denied.targetId, 'c')
+  assert.equal(denied.access, 'edit')
+  assert.notProperty(denied, 'targetIncarnation')
+  assert.notProperty(denied, 'reason')
+  assert.equal((await f.store.read(f.owner))?.state, 'active')
 })
