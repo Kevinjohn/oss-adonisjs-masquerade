@@ -197,9 +197,43 @@ function isConfiguredEffectiveGuard(
   const wrapper = call(wrapped?.getInitializer(), 'effectiveSessionGuard')
   const wrappedName = wrapper?.getArguments()[0]?.getText()
   if (!rawName || wrappedName !== rawName || !/^[$A-Z_a-z][$\w]*$/.test(rawName)) return false
-  const factory = file.getVariableDeclaration(rawName)?.getInitializer()
-  if (!call(factory, 'sessionGuard')) return false
-  return wrapped !== undefined
+  const options = soleObjectArgument(
+    call(file.getVariableDeclaration(rawName)?.getInitializer(), 'sessionGuard')
+  )
+  if (
+    !wrapped ||
+    !options ||
+    property(options, 'provider')?.getInitializer()?.getText() !== 'userProvider' ||
+    !hasNamedImportBinding(file, '@adonisjs/auth/session', 'sessionGuard') ||
+    !hasNamedImportBinding(file, '#services/masquerade_user_provider', 'userProvider') ||
+    !hasNamedImportBinding(file, '@kevinjohn/adonisjs-masquerade/auth', 'effectiveSessionGuard')
+  )
+    return false
+  return true
+}
+
+function hasNamedImportBinding(file: SourceFile, moduleSpecifier: string, name: string): boolean {
+  const bindings = file.getImportDeclarations().flatMap((declaration) => {
+    const module = declaration.getModuleSpecifierValue()
+    const imports: Array<{ local: string; imported: string }> = []
+    if (declaration.getDefaultImport())
+      imports.push({ local: declaration.getDefaultImport()!.getText(), imported: 'default' })
+    if (declaration.getNamespaceImport())
+      imports.push({ local: declaration.getNamespaceImport()!.getText(), imported: '*' })
+    for (const named of declaration.getNamedImports())
+      imports.push({
+        local: named.getAliasNode()?.getText() ?? named.getName(),
+        imported: named.getName(),
+      })
+    return imports.map((item) => ({ ...item, module }))
+  })
+  const matching = bindings.filter((binding) => binding.local === name)
+  return (
+    matching.length === 1 &&
+    matching[0].module === moduleSpecifier &&
+    matching[0].imported === name &&
+    !file.getVariableDeclaration(name)
+  )
 }
 
 /** Register the context middleware right after `initialize_auth` in the router stack. */
@@ -217,18 +251,20 @@ export async function wireContextMiddleware(
   const [list] = stacks[0].getArguments()
   if (!is<ArrayNode>(list, 'ArrayLiteralExpression')) return 'skipped'
   const entries = list.getElements().map((entry) => entry.getText())
-  const context = entries.findIndex((entry) =>
-    entry.includes('#middleware/masquerade_context_middleware')
-  )
-  const initialize = entries.findIndex((entry) =>
-    entry.includes("'@adonisjs/auth/initialize_auth_middleware'")
-  )
-  const silent = entries.findIndex((entry) => entry.includes('silent_auth_middleware'))
-  if (context !== -1)
-    return initialize !== -1 && context > initialize && (silent === -1 || context < silent)
-      ? 'already'
-      : 'skipped'
-  if (initialize === -1 || (silent !== -1 && silent < initialize)) return 'skipped'
+  const contexts = entries
+    .map((entry, index) => ({ entry, index }))
+    .filter(({ entry }) => entry.includes('#middleware/masquerade_context_middleware'))
+  const initializers = entries
+    .map((entry, index) => ({ entry, index }))
+    .filter(({ entry }) => entry.includes("'@adonisjs/auth/initialize_auth_middleware'"))
+  if (initializers.length !== 1) return 'skipped'
+  const initialize = initializers[0].index
+  const authBeforeInitialize = entries
+    .slice(0, initialize)
+    .some((entry) => entry.toLowerCase().includes('auth'))
+  if (authBeforeInitialize) return 'skipped'
+  if (contexts.length)
+    return contexts.length === 1 && contexts[0].index === initialize + 1 ? 'already' : 'skipped'
   list.insertElement(initialize + 1, contextMiddleware)
   await save(file, contextMiddleware)
   return 'wired'

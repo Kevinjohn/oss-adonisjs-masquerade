@@ -181,30 +181,52 @@ test.group('configure wiring', (group) => {
     try {
       assert.equal(await wireAuthGuards(h.project(), h.auth, 'web'), 'wired')
       const configured = await readFile(h.auth, 'utf8')
-      const wrongFactory = configured.replace(
-        'effectiveSessionGuard(webGuard)',
-        'effectiveSessionGuard(customGuard)'
-      )
-      assert.notEqual(wrongFactory, configured)
-      await writeFile(h.auth, wrongFactory)
-      assert.equal(await wireAuthGuards(h.project(), h.auth, 'web'), 'skipped')
-      assert.equal(await readFile(h.auth, 'utf8'), wrongFactory)
+      const invalid = [
+        configured.replace('effectiveSessionGuard(webGuard)', 'effectiveSessionGuard(customGuard)'),
+        configured.replace('provider: userProvider,', 'provider: otherProvider,'),
+        configured.replace(
+          "from '#services/masquerade_user_provider'",
+          "from '#services/other_user_provider'"
+        ),
+        configured.replace(
+          "from '@kevinjohn/adonisjs-masquerade/auth'",
+          "from '#services/other_effective_guard'"
+        ),
+        configured.replace("from '@adonisjs/auth/session'", "from '#services/other_session_guard'"),
+      ]
+      for (const source of invalid) {
+        assert.notEqual(source, configured)
+        await writeFile(h.auth, source)
+        assert.equal(await wireAuthGuards(h.project(), h.auth, 'web'), 'skipped')
+        assert.equal(await readFile(h.auth, 'utf8'), source)
+      }
     } finally {
       await rm(h.root, { recursive: true, force: true })
     }
   })
 
   test('does not accept existing context middleware in the wrong order', async ({ assert }) => {
-    const misplaced = starterKernel.replace(
-      "  () => import('@adonisjs/auth/initialize_auth_middleware'),\n  () => import('#middleware/silent_auth_middleware'),",
-      "  () => import('#middleware/masquerade_context_middleware'),\n  () => import('@adonisjs/auth/initialize_auth_middleware'),\n  () => import('#middleware/silent_auth_middleware'),"
-    )
-    const h = await host({ kernel: misplaced })
-    try {
-      assert.equal(await wireContextMiddleware(h.project(), h.kernel), 'skipped')
-      assert.equal(await readFile(h.kernel, 'utf8'), misplaced)
-    } finally {
-      await rm(h.root, { recursive: true, force: true })
+    const initialize = "  () => import('@adonisjs/auth/initialize_auth_middleware'),"
+    const silent = "  () => import('#middleware/silent_auth_middleware'),"
+    const context = "  () => import('#middleware/masquerade_context_middleware'),"
+    const variants = [
+      starterKernel.replace(initialize, `${context}\n${initialize}`),
+      starterKernel.replace(
+        initialize,
+        `${initialize}\n  () => import('#middleware/extra_middleware'),\n${context}`
+      ),
+      starterKernel.replace(initialize, `${initialize}\n${context}\n${silent}\n${context}`),
+      starterKernel.replace(`${initialize}\n${silent}`, `${silent}\n${initialize}\n${context}`),
+    ]
+    for (const source of variants) {
+      assert.notEqual(source, starterKernel)
+      const h = await host({ kernel: source })
+      try {
+        assert.equal(await wireContextMiddleware(h.project(), h.kernel), 'skipped')
+        assert.equal(await readFile(h.kernel, 'utf8'), source)
+      } finally {
+        await rm(h.root, { recursive: true, force: true })
+      }
     }
   })
 
@@ -242,7 +264,15 @@ test.group('configure wiring', (group) => {
     for (const source of variants) {
       const h = await host({ auth: source })
       try {
-        assert.equal(await wireAuthGuards(h.project(), h.auth, 'web'), 'wired')
+        let outcome: string | undefined
+        let failure: unknown
+        try {
+          outcome = await wireAuthGuards(h.project(), h.auth, 'web')
+        } catch (error) {
+          failure = error
+        }
+        assert.isUndefined(failure)
+        assert.equal(outcome, 'wired')
         const configured = await readFile(h.auth, 'utf8')
         assert.match(
           configured,
