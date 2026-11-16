@@ -18,6 +18,7 @@ export default class MasqueradeAccountsController {
       operator,
       canMasquerade,
       mode,
+      expired: mode.isMasquerading && Date.parse(mode.expiresAt) <= Date.now(),
       accounts,
       target,
       outcome: outcomeFrom(ctx.session.flashMessages.get('masquerade')),
