@@ -17,8 +17,8 @@ const from: KitRelease = {
   revision: 'b'.repeat(40),
 }
 const to: KitRelease = {
-  version: '0.3.4',
-  url: kitReleaseUrl('0.3.4'),
+  version: '0.4.0',
+  url: kitReleaseUrl('0.4.0'),
   integrity: 'sha512-NEW==',
   sha256: 'c'.repeat(64),
   revision: 'd'.repeat(40),
@@ -58,10 +58,10 @@ test.group('Account Kit bump', () => {
         'packages:',
         "  '@kevinjohn/adonisjs-access-control@0.1.7':",
         '    peerDependencies:',
-        "      '@kevinjohn/adonisjs-account-kit': 0.3.4",
+        "      '@kevinjohn/adonisjs-account-kit': 0.4.0",
         `  '@kevinjohn/adonisjs-account-kit@${to.url}':`,
         `    resolution: {integrity: ${to.integrity}, tarball: ${to.url}}`,
-        '    version: 0.3.4',
+        '    version: 0.4.0',
         "  'youch-core@0.3.3':",
         '    resolution: {integrity: sha512-KEEP==}',
         '    version: 0.3.3',
@@ -86,7 +86,7 @@ test.group('Account Kit bump', () => {
       version: '0.2.8',
       dependencies: { other: '0.3.3' },
       devDependencies: { '@kevinjohn/adonisjs-account-kit': to.url },
-      peerDependencies: { '@kevinjohn/adonisjs-account-kit': '0.3.4' },
+      peerDependencies: { '@kevinjohn/adonisjs-account-kit': '0.4.0' },
     })
   })
 
@@ -105,10 +105,10 @@ test.group('Account Kit bump', () => {
       [
         `export const kitReleaseSha256 = '${to.sha256}'`,
         `export const kitSourceRevision = '${to.revision}'`,
-        "export const kitReleaseVersion = '0.3.4'",
-        String.raw`assert.match(source, /releases\/download\/v0\.3\.4\//)`,
-        String.raw`new RegExp('0\\.3\\.4')`,
-        'Account Kit `0.3.4` at `v0.3.4`; youch 10.3.3 and 0.3.30 stay.',
+        "export const kitReleaseVersion = '0.4.0'",
+        String.raw`assert.match(source, /releases\/download\/v0\.4\.0\//)`,
+        String.raw`new RegExp('0\\.4\\.0')`,
+        'Account Kit `0.4.0` at `v0.4.0`; youch 10.3.3 and 0.3.30 stay.',
       ].join('\n')
     )
   })
@@ -125,8 +125,8 @@ test.group('Account Kit bump', () => {
     assert.equal(
       rewriteLedger(ledger, from, to),
       [
-        '**Matrix status:** The optional peer declares `@kevinjohn/adonisjs-account-kit` `0.3.4` only.',
-        'The `0.3.4` matrix runs in the update pull request.',
+        '**Matrix status:** The optional peer declares `@kevinjohn/adonisjs-account-kit` `0.4.0` only.',
+        'The `0.4.0` matrix runs in the update pull request.',
         '',
         'Account Kit `0.3.3` adds `admission.record`, SHA-256 `' + from.sha256 + '`.',
         '',

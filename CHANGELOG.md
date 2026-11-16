@@ -2,6 +2,10 @@
 
 ## Unreleased
 
+### Changed
+
+- Align the Account Kit integration peer, pinned release artifact and examples with Account Kit `0.4.0`.
+
 ### Fixed
 
 - `node ace configure` stops when `config/database.ts` exists but fails to load, or `package.json`
