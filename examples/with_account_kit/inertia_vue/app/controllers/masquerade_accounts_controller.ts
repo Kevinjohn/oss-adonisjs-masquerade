@@ -2,7 +2,7 @@ import type { HttpContext } from '@adonisjs/core/http'
 import type { MasqueradeRuntime } from '@kevinjohn/adonisjs-masquerade/masquerade_provider'
 import User from '#models/user'
 import type { MasqueradeFormFlash } from '#controllers/masquerade_form_controller'
-import { isMasqueradeOperator } from '#services/masquerade_operators'
+import { isMasqueradeOperator, masqueradeOperatorEmails } from '#services/masquerade_operators'
 
 /** The operator's own page, on the raw `web` guard: start and stop forms. */
 export default class MasqueradeAccountsController {
@@ -12,7 +12,7 @@ export default class MasqueradeAccountsController {
     const runtime = (await ctx.containerResolver.make('masquerade.runtime')) as MasqueradeRuntime
     const mode = await runtime.service.status(ctx)
     const canMasquerade = isMasqueradeOperator(operator)
-    const users = canMasquerade ? await User.query().orderBy('email') : []
+    const accounts = canMasquerade && !mode.isMasquerading ? await candidateAccounts() : []
     const target = mode.isMasquerading ? await User.find(mode.targetId) : null
     return ctx.inertia.render('masquerade/accounts', {
       operatorEmail: operator.email,
@@ -26,9 +26,7 @@ export default class MasqueradeAccountsController {
             expiresAt: mode.expiresAt,
           }
         : { isMasquerading: false as const, contextToken: mode.contextToken },
-      accounts: users
-        .filter((user) => !isMasqueradeOperator(user))
-        .map((user) => ({ id: user.id, email: user.email })),
+      accounts: accounts.map((user) => ({ id: user.id, email: user.email })),
       targetEmail: target?.email ?? null,
       outcome: outcomeFrom(ctx.session.flashMessages.get('masquerade')) ?? null,
     })
@@ -54,4 +52,14 @@ function outcomeFrom(flash: unknown) {
     type: 'error' as const,
     message: errorMessages[message.code] ?? 'Masquerade is not available right now. Try again.',
   }
+}
+
+/** Keep the demo chooser bounded; a production host should add search or pagination. */
+async function candidateAccounts() {
+  const query = User.query().select('id', 'email').orderBy('email').limit(50)
+  if (masqueradeOperatorEmails.size) {
+    const operators = [...masqueradeOperatorEmails]
+    query.whereRaw(`lower(email) not in (${operators.map(() => '?').join(', ')})`, operators)
+  }
+  return query
 }
