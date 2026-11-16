@@ -2,6 +2,10 @@
 
 ## Unreleased
 
+### Changed
+
+- Align the Account Kit integration peer, pinned release artifact and examples with Account Kit `0.4.0`.
+
 ### Fixed
 
 - Native-session and combined API example tests use separate SQLite files from their running
