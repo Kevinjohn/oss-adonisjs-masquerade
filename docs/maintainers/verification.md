@@ -15,7 +15,9 @@ Kit demo, native-session browser suite, and Inertia React and Vue examples. Thes
 profiles, not a complete mirror of every CI matrix: for example, CI also runs the combined API
 starter. Run that case locally with `pnpm test:with-account-kit --example=api`. `bin/check_profiles.ts`
 defines the local steps. `pnpm check:changed [base]` selects checks while working; it does not
-replace the full gate.
+replace the full gate. Its recipe step follows the files consumed by `bin/test_recipe.ts`; the
+examples workflow uses a broader pull request path filter, so an examples workflow trigger does not
+necessarily select the local recipe step.
 
 The Account Kit and consumer latest profiles query versions already filtered by each peer range.
 Their shared selector accepts canonical stable `x.y.z` versions and compares numeric components;
