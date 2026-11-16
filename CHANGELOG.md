@@ -2,6 +2,10 @@
 
 ## Unreleased
 
+### Changed
+
+- Align the Account Kit integration peer, pinned release artifact and examples with Account Kit `0.4.0`.
+
 ### Fixed
 
 - `node ace configure` validates existing middleware order and effective guard factories before
