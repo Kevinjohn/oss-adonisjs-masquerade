@@ -15,6 +15,7 @@ export async function nativeRuntimeFixture(
     missingRaw?: boolean
     rawDefault?: boolean
     aliases?: boolean
+    unadaptedGuard?: string
   } = {}
 ) {
   const f = fixture()
@@ -93,6 +94,7 @@ export async function nativeRuntimeFixture(
       default: options.rawDefault ? 'web' : 'web_effective',
       guards: {
         ...(options.missingRaw ? {} : { web: rawFactory }),
+        ...(options.unadaptedGuard ? { [options.unadaptedGuard]: rawFactory } : {}),
         web_effective: effectiveFactory,
         ...(aliasFactory ? { support_effective: aliasFactory } : {}),
       },

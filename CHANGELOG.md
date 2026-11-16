@@ -8,6 +8,8 @@
 
 ### Fixed
 
+- Provider readiness rejects a control route guard without a configured native adapter while
+  allowing unrelated unadapted raw guards.
 - `node ace configure` stops when `config/database.ts` exists but fails to load, or `package.json`
   is not JSON, instead of writing the migration to `database/migrations` and assuming
   `app/models/user`. A missing file still falls back to those defaults.
