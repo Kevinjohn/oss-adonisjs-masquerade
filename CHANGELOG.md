@@ -8,6 +8,8 @@
 
 ### Fixed
 
+- Verify stale expiry batches against newer modes on independent SQL connections.
+
 - Record the attempted target and access for a denied second start without copying the active target's incarnation.
 - Check exact applied transition acknowledgements in the control store conformance helper.
 - Reject SQL end events that change the active mode ID or carry a start-only reason.

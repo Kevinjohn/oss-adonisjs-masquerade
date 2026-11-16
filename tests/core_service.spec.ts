@@ -321,5 +321,6 @@ test('a denied second start records the attempted target without inheriting acti
   assert.equal(denied.access, 'edit')
   assert.notProperty(denied, 'targetIncarnation')
   assert.notProperty(denied, 'reason')
-  assert.equal((await f.store.read(f.owner))?.state, 'active')
+  const persisted = await f.store.read(f.owner)
+  assert.equal(persisted?.state, 'active')
 })
