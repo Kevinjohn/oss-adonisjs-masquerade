@@ -185,6 +185,28 @@ test.group('masquerade:status and masquerade:stop Ace commands', () => {
     assert.equal(f.store.events.at(-1)?.outcomeCode, OPERATOR_STOP_OUTCOME)
   })
 
+  test('stop --all reports a conflict-limited scan without overstating the stopped count', async ({
+    assert,
+  }) => {
+    const f = fixture()
+    f.state.now = Date.now()
+    const service = await f.create()
+    await f.start(service)
+    f.store.compareAndSet = async () => ({ status: 'conflict' })
+    const output: string[] = []
+
+    assert.notEqual(
+      await ace(f.config, ['masquerade:stop', '--all', '--force'], undefined, undefined, output),
+      1
+    )
+    const remaining = await f.store.read(f.owner)
+    assert.equal(remaining?.state, 'active')
+    assert.include(
+      output.join('\n'),
+      'Stopped 0 mode(s); the scan made no progress. Run masquerade:stop --all again to retry remaining modes.'
+    )
+  })
+
   test('stop --all --force ends every mode; bad flag combinations stop nothing', async ({
     assert,
   }) => {

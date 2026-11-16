@@ -80,6 +80,10 @@ export default class StopCommand extends BaseCommand {
       }
       throw error
     }
-    this.logger.info(`Stopped ${result.stopped} mode(s).`)
+    this.logger.info(
+      result.drained === false
+        ? `Stopped ${result.stopped} mode(s); the scan made no progress. Run masquerade:stop --all again to retry remaining modes.`
+        : `Stopped ${result.stopped} mode(s).`
+    )
   }
 }
