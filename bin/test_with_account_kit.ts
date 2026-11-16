@@ -1,9 +1,14 @@
-import { spawnSync } from 'node:child_process'
+import { spawn, spawnSync } from 'node:child_process'
 import { copyFileSync, existsSync } from 'node:fs'
 import { join } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { chromiumInstallArgs } from './helpers/example_chromium.js'
-import { spawnVite, stopOwnedVite, waitForViteAddress } from './helpers/owned_vite.js'
+import {
+  runWithOwnedVite,
+  spawnVite,
+  stopOwnedProcessGroup,
+  waitForViteReady,
+} from './helpers/owned_vite.js'
 
 /**
  * Installs and checks one starter example built on Account Kit's examples, as CI does:
@@ -46,11 +51,28 @@ if (name === 'api') {
   run('install Chromium', chromiumInstallArgs(example))
 
   const vite = spawnVite(example, env)
+  let failed = false
+  let failure: unknown
   try {
-    const address = await waitForViteAddress(vite)
+    const address = await waitForViteReady(vite)
     console.log(`[${name}] Vite ready at ${address}`)
-    run('test', ['test'])
-  } finally {
-    stopOwnedVite(vite)
+    await runWithOwnedVite(vite, 'test', () => {
+      console.log(`[${name}] test: pnpm test`)
+      return spawn('pnpm', ['test'], { cwd: example, stdio: 'inherit', env, detached: true })
+    })
+  } catch (error) {
+    failed = true
+    failure = error
   }
+  try {
+    stopOwnedProcessGroup(vite)
+  } catch (error) {
+    if (!failed) {
+      failed = true
+      failure = error
+    } else {
+      console.error(`[${name}] Could not stop Vite after test failure:`, error)
+    }
+  }
+  if (failed) throw failure
 }
