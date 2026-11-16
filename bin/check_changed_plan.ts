@@ -23,9 +23,12 @@ export interface SkippedCheckStep {
 
 export type PlannedCheckStep = ChangedCheckStep | SkippedCheckStep
 
-// The examples workflow's pull request paths, plus the recipe's own script, configure and manifest.
+// Inputs read or copied by test_recipe.ts, plus the package setup it exercises.
 const recipeInputs = [
-  /^(examples|http|stubs|docs\/guide)\//,
+  /^examples\/recipe-host\//,
+  /^docs\/guide\/(setup|usage)\.md$/,
+  /^docs\/guide\/clients\/edge\.md$/,
+  /^stubs\/configure\//,
   /^(configure\.ts|src\/configure_wiring\.ts)$/,
   /^bin\/test_recipe\.ts$/,
   /^package\.json$/,
@@ -164,7 +167,7 @@ export function planChangedChecks(
     ),
     suiteStep(
       paths.some((path) => recipeInputs.some((input) => input.test(path))),
-      'no recipe inputs changed; pnpm check --full always runs it',
+      'no local recipe inputs changed; pnpm check --full always runs it',
       'recipe',
       ['pnpm', 'test:recipe', '--database=sqlite']
     ),
