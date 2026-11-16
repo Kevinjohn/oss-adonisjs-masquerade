@@ -4,6 +4,8 @@
 
 ### Fixed
 
+- Native-session and combined API example tests use separate SQLite files from their running
+  demos and require an explicit, distinct PostgreSQL test database before changing tables.
 - `node ace configure` stops when `config/database.ts` exists but fails to load, or `package.json`
   is not JSON, instead of writing the migration to `database/migrations` and assuming
   `app/models/user`. A missing file still falls back to those defaults.

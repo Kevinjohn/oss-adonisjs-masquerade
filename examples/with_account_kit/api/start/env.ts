@@ -27,6 +27,7 @@ export default await Env.create(new URL('../', import.meta.url), {
   DB_USER: Env.schema.string.optional(),
   DB_PASSWORD: Env.schema.string.optional(),
   DB_DATABASE: Env.schema.string.optional(),
+  DB_TEST_DATABASE: Env.schema.string.optional(),
   ACCOUNT_KIT_AUTH_STRATEGY: Env.schema.enum.optional(['session', 'access_tokens'] as const),
   MASQUERADE_OPERATOR_EMAILS: Env.schema.string.optional(),
   ACCOUNT_KIT_ADMISSION_DOMAINS: Env.schema.string.optional(),

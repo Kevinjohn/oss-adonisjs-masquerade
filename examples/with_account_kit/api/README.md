@@ -128,3 +128,10 @@ expects loopback and the in-memory limiter. The functional Masquerade spec exerc
 start, effective identity, sensitive refusal, stop, non-operator and operator-target refusals,
 admission protection, token capability enforcement and native account blocking with both password
 hashes unchanged. No browser is needed.
+
+Tests use `tmp/test-db.sqlite3`; the development app and its migrations use `tmp/db.sqlite3`.
+Migrate the test database with `NODE_ENV=test node ace migration:run --force` before a direct
+`pnpm test` run. For PostgreSQL tests, set `DB_CONNECTION=postgres` and `DB_TEST_DATABASE` to
+an explicitly provisioned disposable database distinct from `DB_DATABASE` before migration or
+tests. The repository `pnpm test:with-account-kit --example=api` runner selects test mode before
+its migration step. PostgreSQL tests refuse a missing or matching test database.

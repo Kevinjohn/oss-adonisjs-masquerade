@@ -15,7 +15,8 @@ if (!name || !examples.includes(name))
   throw new Error(`Use --example=<${examples.join('|')}>; got ${name ?? 'nothing'}`)
 if (Number(process.versions.node.split('.')[0]) !== 24) throw new Error('Use Node 24')
 const example = join(root, 'examples/with_account_kit', name)
-const env = { ...process.env, HOST: '127.0.0.1', LIMITER_STORE: 'memory' }
+const env: NodeJS.ProcessEnv = { ...process.env, HOST: '127.0.0.1', LIMITER_STORE: 'memory' }
+if (name === 'api') env.NODE_ENV = 'test'
 
 function run(label: string, args: string[]) {
   console.log(`[${name}] ${label}: pnpm ${args.join(' ')}`)
