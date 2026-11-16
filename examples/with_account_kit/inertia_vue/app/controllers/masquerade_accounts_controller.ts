@@ -17,6 +17,7 @@ export default class MasqueradeAccountsController {
     return ctx.inertia.render('masquerade/accounts', {
       operatorEmail: operator.email,
       canMasquerade,
+      expired: mode.isMasquerading && Date.parse(mode.expiresAt) <= Date.now(),
       mode: mode.isMasquerading
         ? {
             isMasquerading: true as const,
