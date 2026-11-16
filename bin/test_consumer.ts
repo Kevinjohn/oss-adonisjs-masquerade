@@ -12,6 +12,7 @@ import {
   issueNativePgLease,
   nativePgTarget,
   revokeNativePgLease,
+  withoutNativePgTestTargets,
 } from './helpers/native_pg_lease.js'
 
 const root = fileURLToPath(new URL('../', import.meta.url))
@@ -61,7 +62,7 @@ for (const [name, version] of Object.entries(floor)) {
 }
 const results: unknown[] = []
 let ownsPostgres = false
-const baseEnv = {
+const baseEnv = withoutNativePgTestTargets({
   ...process.env,
   NODE_ENV: 'test',
   TZ: 'UTC',
@@ -74,17 +75,7 @@ const baseEnv = {
   DB_CLIENT: 'sqlite',
   FORCE_COLOR: '0',
   NO_COLOR: '1',
-}
-for (const key of Object.keys(baseEnv)) {
-  if (
-    key.startsWith('PG') ||
-    key.startsWith('DB_TEST_') ||
-    key === 'DB_SCHEMA' ||
-    key === 'NATIVE_TEST_SQLITE' ||
-    key.startsWith('NATIVE_PG_TEST_LEASE')
-  )
-    delete (baseEnv as NodeJS.ProcessEnv)[key]
-}
+})
 
 async function verifyConfigure(app: string, profileName: string): Promise<void> {
   const check = join(app, 'configure-check')
@@ -95,7 +86,6 @@ async function verifyConfigure(app: string, profileName: string): Promise<void> 
   await cp(join(app, 'bin/console.ts'), join(check, 'bin/console.ts'))
   await mkdir(join(check, 'start'), { recursive: true })
   await cp(join(app, 'start/env.ts'), join(check, 'start/env.ts'))
-  await cp(join(app, 'start/test_database_target.ts'), join(check, 'start/test_database_target.ts'))
   await cp(join(app, 'tsconfig.json'), join(check, 'tsconfig.json'))
   const manifest = JSON.parse(await readFile(join(app, 'package.json'), 'utf8'))
   await writeFile(

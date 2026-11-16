@@ -132,7 +132,8 @@ admission protection, token capability enforcement and native account blocking w
 hashes unchanged. No browser is needed.
 
 Tests use `tmp/test-db.sqlite3`; the development app and its migrations use `tmp/db.sqlite3`.
-For PostgreSQL tests, export the ordinary app's nonblank `DB_DATABASE` in the launch environment
+For PostgreSQL tests, set `DB_CONNECTION=postgres`, export the ordinary app's nonblank
+`DB_DATABASE` in the launch environment
 and set `DB_TEST_DATABASE` to a separately provisioned disposable database before migration or
 tests. The ordinary name must match what the separately launched demo uses; a name present only
 in `.env` is insufficient to establish that identity. Supply the intended `DB_HOST`, `DB_PORT`,

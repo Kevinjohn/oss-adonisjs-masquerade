@@ -9,6 +9,7 @@ import {
   issueNativePgLease,
   nativePgTarget,
   revokeNativePgLease,
+  withoutNativePgTestTargets,
 } from './helpers/native_pg_lease.js'
 import {
   kitReleaseSha256,
@@ -96,7 +97,7 @@ for (const signal of ['SIGINT', 'SIGTERM'] as const)
     activeDownload?.abort(new Error(`Interrupted by ${signal}`))
     terminateActive(signal)
   })
-const baseEnv: NodeJS.ProcessEnv = {
+const baseEnv: NodeJS.ProcessEnv = withoutNativePgTestTargets({
   ...process.env,
   NODE_ENV: 'test',
   TZ: 'UTC',
@@ -113,18 +114,8 @@ const baseEnv: NodeJS.ProcessEnv = {
   DB_DATABASE: process.env.DB_DATABASE ?? 'package_test',
   FORCE_COLOR: '0',
   NO_COLOR: '1',
-}
+})
 delete baseEnv.ACCOUNT_KIT_SOURCE
-for (const key of Object.keys(baseEnv)) {
-  if (
-    key.startsWith('PG') ||
-    key.startsWith('DB_TEST_') ||
-    key === 'DB_SCHEMA' ||
-    key === 'NATIVE_TEST_SQLITE' ||
-    key.startsWith('NATIVE_PG_TEST_LEASE')
-  )
-    delete baseEnv[key]
-}
 
 async function run(
   cwd: string,

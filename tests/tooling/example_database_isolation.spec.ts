@@ -18,6 +18,7 @@ import {
   issueNativePgLease,
   nativePgTarget,
   revokeNativePgLease,
+  withoutNativePgTestTargets,
 } from '../../bin/helpers/native_pg_lease.js'
 
 const root = resolve(import.meta.dirname, '../..')
@@ -200,6 +201,35 @@ for (const kind of ['native', 'api'] as const) {
     assert.equal(distinct.output.database, 'test_database')
     if (kind === 'native') assert.equal(distinct.output.schema, 'public')
   })
+
+  test(`${kind} accepts distinct connection names through the PostgreSQL byte limit`, ({
+    assert,
+  }) => {
+    const engine = { DB_CLIENT: 'pg', DB_CONNECTION: 'postgres' }
+    const hyphenated = fixture(kind, {
+      ...engine,
+      DB_DATABASE: 'team-demo',
+      DB_TEST_DATABASE: 'team-test',
+    })
+    assert.equal(hyphenated.status, 0, hyphenated.stderr)
+    assert.equal(hyphenated.output.database, 'team-test')
+    const valid63 = `${'é'.repeat(31)}a`
+    const distinct63 = `${'é'.repeat(31)}b`
+    const multibyte = fixture(kind, {
+      ...engine,
+      DB_DATABASE: valid63,
+      DB_TEST_DATABASE: distinct63,
+    })
+    assert.equal(multibyte.status, 0, multibyte.stderr)
+    assert.equal(multibyte.output.database, distinct63)
+    const tooLong = fixture(kind, {
+      ...engine,
+      DB_DATABASE: valid63,
+      DB_TEST_DATABASE: 'é'.repeat(32),
+    })
+    assert.notEqual(tooLong.status, 0)
+    assert.match(tooLong.stderr, /valid DB_TEST_DATABASE/)
+  })
 }
 
 test('native demo command children select the guarded test file in development and production', ({
@@ -229,8 +259,8 @@ test('native shared PostgreSQL target requires the exact live runner lease', ({ 
   const nonce = '11111111-1111-4111-8111-111111111111'
   const env = {
     DB_CLIENT: 'pg',
-    DB_DATABASE: 'demo_database',
-    DB_TEST_DATABASE: 'demo_database',
+    DB_DATABASE: 'team-demo',
+    DB_TEST_DATABASE: 'team-demo',
     DB_TEST_SCHEMA: schema,
     DB_HOST: '127.0.0.1',
     DB_PORT: '55441',
@@ -239,7 +269,7 @@ test('native shared PostgreSQL target requires the exact live runner lease', ({ 
     NATIVE_PG_TEST_LEASE_OWNER: String(process.pid),
   }
   const record = {
-    database: 'demo_database',
+    database: 'team-demo',
     schema,
     host: '127.0.0.1',
     port: '55441',
@@ -252,7 +282,7 @@ test('native shared PostgreSQL target requires the exact live runner lease', ({ 
   assert.match(missing.stderr, /runner lease/)
   const valid = fixture('native', env, { 'tmp/pg-test-lease.json': JSON.stringify(record) })
   assert.equal(valid.status, 0, valid.stderr)
-  assert.equal(valid.output.database, 'demo_database')
+  assert.equal(valid.output.database, 'team-demo')
   assert.equal(valid.output.schema, schema)
   const mismatch = fixture(
     'native',
@@ -304,4 +334,57 @@ test('matrix lease writer refuses collisions and revokes its record', async ({ a
   } finally {
     rmSync(directory, { recursive: true, force: true })
   }
+})
+
+test('matrix environment preserves PostgreSQL TLS and authentication for each phase', ({
+  assert,
+}) => {
+  const inherited = {
+    PGSSLMODE: 'require',
+    PGPASSWORD: 'fixture_password',
+    PGPASSFILE: '/tmp/fixture-passfile',
+    PGOPTIONS: '-c statement_timeout=1000',
+    PGDATABASE: 'misleading_database',
+    DB_TEST_DATABASE: 'misleading_test',
+    DB_TEST_SCHEMA: 'public',
+    DB_SCHEMA: 'public',
+    NATIVE_PG_TEST_LEASE: 'stale',
+  }
+  const selected = withoutNativePgTestTargets(inherited)
+  selected.DB_CLIENT = 'pg'
+  selected.DB_HOST = '127.0.0.1'
+  selected.DB_PORT = '55441'
+  selected.DB_USER = 'fixture_user'
+  selected.DB_PASSWORD = ''
+  selected.DB_DATABASE = 'team-demo'
+  const schema = `kit_${'a'.repeat(32)}`
+  const target = nativePgTarget(selected, schema)
+  selected.DB_TEST_DATABASE = target.database
+  selected.DB_TEST_SCHEMA = target.schema
+  selected.DB_SCHEMA = target.schema
+  for (const phase of ['create', 'application', 'drop']) {
+    assert.equal(selected.PGSSLMODE, 'require', phase)
+    assert.equal(selected.PGPASSWORD, 'fixture_password', phase)
+    assert.equal(selected.PGPASSFILE, '/tmp/fixture-passfile', phase)
+    assert.equal(selected.PGOPTIONS, '-c statement_timeout=1000', phase)
+    assert.equal(selected.DB_DATABASE, 'team-demo', phase)
+    assert.equal(selected.DB_TEST_DATABASE, 'team-demo', phase)
+    assert.equal(selected.DB_TEST_SCHEMA, schema, phase)
+  }
+  assert.isUndefined(selected.NATIVE_PG_TEST_LEASE)
+  const probe = spawnSync(
+    process.execPath,
+    [
+      '--input-type=module',
+      '-e',
+      "import pg from 'pg'; const c = new pg.Client({host:process.env.DB_HOST,port:Number(process.env.DB_PORT),user:process.env.DB_USER,password:process.env.DB_PASSWORD,database:process.env.DB_DATABASE}); console.log(JSON.stringify({ssl:c.connectionParameters.ssl,hasPassword:Boolean(c.connectionParameters.password),database:c.connectionParameters.database,options:c.connectionParameters.options}))",
+    ],
+    { cwd: root, env: { ...process.env, ...selected }, encoding: 'utf8' }
+  )
+  assert.equal(probe.status, 0, probe.stderr)
+  const connection = JSON.parse(probe.stdout.trim())
+  assert.equal(connection.ssl, true)
+  assert.equal(connection.hasPassword, true)
+  assert.equal(connection.database, 'team-demo')
+  assert.equal(connection.options, '-c statement_timeout=1000')
 })

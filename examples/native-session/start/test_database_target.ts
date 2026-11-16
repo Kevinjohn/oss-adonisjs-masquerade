@@ -2,26 +2,35 @@ import { lstatSync, readFileSync, statSync } from 'node:fs'
 import { fileURLToPath } from 'node:url'
 
 const leasePath = fileURLToPath(new URL('../tmp/pg-test-lease.json', import.meta.url))
-const databaseName = /^[A-Za-z_][A-Za-z0-9_]{0,62}$/
 const schemaName = /^(?:consumer_(?:floor|latest)|kit)_[0-9a-f]{32}$/
+
+function validDatabaseName(name: string | undefined): name is string {
+  return (
+    !!name?.trim() &&
+    !name.includes('\0') &&
+    Buffer.byteLength(name, 'utf8') <= 63 &&
+    Buffer.from(name, 'utf8').toString('utf8') === name
+  )
+}
 
 /** Validate the destination before any test-mode PostgreSQL migration can boot. */
 export function testPostgresTarget(ordinaryDatabase: string | undefined) {
   const target = process.env.DB_TEST_DATABASE
   const schema = process.env.DB_TEST_SCHEMA ?? 'public'
-  if (!ordinaryDatabase?.trim() || !databaseName.test(ordinaryDatabase)) {
+  if (!validDatabaseName(ordinaryDatabase)) {
     throw new Error('PostgreSQL tests require an exported, nonblank ordinary DB_DATABASE')
   }
-  if (!target?.trim() || !databaseName.test(target)) {
+  if (!validDatabaseName(target)) {
     throw new Error('PostgreSQL tests require an explicit, valid DB_TEST_DATABASE')
   }
 
   const leaseFile = lstatSync(leasePath, { throwIfNoEntry: false })
   if (leaseFile) {
     if (!leaseFile.isFile()) throw new Error('PostgreSQL test lease must be a regular file')
+    const contents = readFileSync(leasePath, 'utf8')
     let lease: unknown
     try {
-      lease = JSON.parse(readFileSync(leasePath, 'utf8'))
+      lease = JSON.parse(contents)
     } catch {
       throw new Error('PostgreSQL test lease is invalid')
     }

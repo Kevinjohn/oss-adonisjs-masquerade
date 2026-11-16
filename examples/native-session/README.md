@@ -330,8 +330,8 @@ remember token. The short age is enabled only by `NATIVE_CREDENTIALS_SESSION=tru
 `test:credentials`.
 
 Tests use `tmp/test-db.sqlite3`; the running demo uses `tmp/db.sqlite3`. Test migrations,
-resets and truncation affect only the test file. For direct PostgreSQL tests, export the ordinary
-app's `DB_DATABASE` in the launch environment and set `DB_TEST_DATABASE` to a separately
+resets and truncation affect only the test file. For direct PostgreSQL tests, set `DB_CLIENT=pg`,
+export the ordinary app's `DB_DATABASE` in the launch environment and set `DB_TEST_DATABASE` to a separately
 provisioned disposable database. The names must differ. A name present only in `.env` does not
 establish which database the separately launched demo uses, so destructive tests refuse it.
 Use the same exported ordinary name when launching the demo and tests, along with the intended

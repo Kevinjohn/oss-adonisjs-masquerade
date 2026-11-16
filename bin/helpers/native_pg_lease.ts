@@ -4,6 +4,30 @@ import { join } from 'node:path'
 
 export const nativePgLeaseName = 'pg-test-lease.json'
 
+/** Keep inherited PostgreSQL transport and auth settings while clearing stale test targets. */
+export function withoutNativePgTestTargets(environment: NodeJS.ProcessEnv): NodeJS.ProcessEnv {
+  const selected = { ...environment }
+  for (const key of Object.keys(selected)) {
+    if (
+      key.startsWith('DB_TEST_') ||
+      key === 'DB_SCHEMA' ||
+      key === 'NATIVE_TEST_SQLITE' ||
+      key.startsWith('NATIVE_PG_TEST_LEASE')
+    )
+      delete selected[key]
+  }
+  return selected
+}
+
+function validDatabaseName(name: string): boolean {
+  return (
+    !!name.trim() &&
+    !name.includes('\0') &&
+    Buffer.byteLength(name, 'utf8') <= 63 &&
+    Buffer.from(name, 'utf8').toString('utf8') === name
+  )
+}
+
 type PgTarget = {
   database: string
   schema: string
@@ -23,6 +47,7 @@ export function nativePgTarget(env: NodeJS.ProcessEnv, schema: string): PgTarget
   }
   if (
     Object.values(target).some((value) => !value.trim()) ||
+    !validDatabaseName(target.database) ||
     !Number.isInteger(Number(target.port)) ||
     Number(target.port) < 1 ||
     Number(target.port) > 65535

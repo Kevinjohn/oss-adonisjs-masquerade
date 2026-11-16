@@ -54,13 +54,20 @@ const env = await Env.create(new URL('../', import.meta.url), {
   LIMITER_STORE: Env.schema.enum(['database', 'memory'] as const),
 })
 
-const databaseName = /^[A-Za-z_][A-Za-z0-9_]{0,62}$/
+function validDatabaseName(name: string | undefined): name is string {
+  return (
+    !!name?.trim() &&
+    !name.includes('\0') &&
+    Buffer.byteLength(name, 'utf8') <= 63 &&
+    Buffer.from(name, 'utf8').toString('utf8') === name
+  )
+}
 const testDatabase = env.get('DB_TEST_DATABASE')
 if (env.get('NODE_ENV') === 'test' && env.get('DB_CONNECTION') === 'postgres') {
-  if (!ordinaryDatabaseFromLaunch?.trim() || !databaseName.test(ordinaryDatabaseFromLaunch)) {
+  if (!validDatabaseName(ordinaryDatabaseFromLaunch)) {
     throw new Error('PostgreSQL tests require an exported, nonblank ordinary DB_DATABASE')
   }
-  if (!testDatabase?.trim() || !databaseName.test(testDatabase)) {
+  if (!validDatabaseName(testDatabase)) {
     throw new Error('PostgreSQL tests require an explicit, valid DB_TEST_DATABASE')
   }
   if (testDatabase === ordinaryDatabaseFromLaunch) {
