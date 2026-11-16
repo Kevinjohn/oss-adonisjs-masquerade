@@ -118,3 +118,20 @@ for (const [name, Store] of [
     await assertControlStoreConformance(async () => new DelegatingStore())
     await assert.rejects(() => assertControlStoreConformance(async () => new Store()))
   })
+
+class WrongAppliedAcknowledgement extends DelegatingStore {
+  override async compareAndSet(input: CompareAndSetInput) {
+    const result = await super.compareAndSet(input)
+    return result.status === 'applied'
+      ? { status: 'applied' as const, transitionId: 'wrong' }
+      : result
+  }
+}
+
+test('conformance rejects an applied acknowledgement for another transition', async ({
+  assert,
+}) => {
+  await assert.rejects(() =>
+    assertControlStoreConformance(async () => new WrongAppliedAcknowledgement())
+  )
+})
