@@ -3,3 +3,7 @@
 @import './primitives.css';
 @import './surfaces.css';
 @import './responsive.css';
+
+html[data-identity-pending='true'] body {
+  visibility: hidden;
+}

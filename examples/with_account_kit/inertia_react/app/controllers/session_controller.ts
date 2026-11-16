@@ -14,11 +14,13 @@ export default class SessionController {
       { email, password, clientKey: ctx.request.ip() },
       accountKitSessionGuard(ctx)
     )
+    ctx.session.flash('masqueradeClearHistory', true)
     return ctx.response.redirect().toRoute('dashboard')
   }
 
   async destroy(ctx: HttpContext) {
     await kit.authentication.logout(accountKitSessionGuard(ctx))
+    ctx.session.flash('masqueradeClearHistory', true)
     return ctx.response.redirect().toRoute('session.create')
   }
 }

@@ -1,9 +1,12 @@
 import './css/app.css'
 import { client } from './client'
+import { installMasqueradeHistoryRecovery } from './masquerade_history'
 import { createRoot } from 'react-dom/client'
 import { TuyauProvider } from '@adonisjs/inertia/react'
 import { resolvePageComponent } from '@adonisjs/inertia/helpers'
 import { createInertiaApp, type ResolvedComponent } from '@inertiajs/react'
+
+installMasqueradeHistoryRecovery()
 
 const appName = import.meta.env.VITE_APP_NAME || 'AdonisJS'
 
