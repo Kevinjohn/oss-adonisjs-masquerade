@@ -81,7 +81,9 @@ export function routeCoverageReport(
           const note = verifiedAccountKitBlocker ? '' : ' (blocker missing or unverified)'
           const line = `  ${route.methods.join(',').padEnd(18)} ${route.pattern}${domain === 'root' ? '' : ` [${domain}]`} [${category} ${action}]${note}`
           const group = verifiedAccountKitBlocker ? 'Account Kit managed' : 'unprotected'
-          grouped.set(group, [...(grouped.get(group) ?? []), line])
+          const lines = grouped.get(group)
+          if (lines) lines.push(line)
+          else grouped.set(group, [line])
           continue
         }
         const guards = routeGuards(route, effectiveGuardName)
@@ -134,7 +136,9 @@ export function routeCoverageReport(
             .filter(Boolean)
             .join(',')
           const line = `  ${methods.padEnd(18)} ${route.pattern}${domain === 'root' ? '' : ` [${domain}]`} [${category} ${action}]${flags ? ` (${flags})` : ''}`
-          grouped.set(guard, [...(grouped.get(guard) ?? []), line])
+          const lines = grouped.get(guard)
+          if (lines) lines.push(line)
+          else grouped.set(guard, [line])
         }
       }
     }
