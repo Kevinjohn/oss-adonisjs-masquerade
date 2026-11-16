@@ -3,6 +3,12 @@ import { copyFileSync, existsSync } from 'node:fs'
 import { join } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { chromiumInstallArgs } from './helpers/example_chromium.js'
+import {
+  runWithOwnedVite,
+  spawnVite,
+  stopOwnedProcessGroup,
+  waitForViteReady,
+} from './helpers/owned_vite.js'
 
 /**
  * Installs and checks one starter example built on Account Kit's examples, as CI does:
@@ -44,29 +50,29 @@ if (name === 'api') {
 } else {
   run('install Chromium', chromiumInstallArgs(example))
 
-  const vite = spawn(
-    'pnpm',
-    ['exec', 'vite', '--host', '127.0.0.1', '--port', '5173', '--strictPort'],
-    {
-      cwd: example,
-      env,
-      stdio: 'ignore',
-      detached: true,
-    }
-  )
+  const vite = spawnVite(example, env)
+  let failed = false
+  let failure: unknown
   try {
-    let ready = false
-    // A Vite already on the port would serve another app; strictPort makes this one exit instead.
-    for (let attempt = 0; attempt < 60 && !ready && vite.exitCode === null; attempt++) {
-      ready = await fetch('http://127.0.0.1:5173/@vite/client').then(
-        (response) => response.ok,
-        () => false
-      )
-      if (!ready) await new Promise((resolve) => setTimeout(resolve, 500))
-    }
-    if (!ready || vite.exitCode !== null) throw new Error('Vite did not start on 127.0.0.1:5173')
-    run('test', ['test'])
-  } finally {
-    if (vite.pid) process.kill(-vite.pid)
+    const address = await waitForViteReady(vite)
+    console.log(`[${name}] Vite ready at ${address}`)
+    await runWithOwnedVite(vite, 'test', () => {
+      console.log(`[${name}] test: pnpm test`)
+      return spawn('pnpm', ['test'], { cwd: example, stdio: 'inherit', env, detached: true })
+    })
+  } catch (error) {
+    failed = true
+    failure = error
   }
+  try {
+    stopOwnedProcessGroup(vite)
+  } catch (error) {
+    if (!failed) {
+      failed = true
+      failure = error
+    } else {
+      console.error(`[${name}] Could not stop Vite after test failure:`, error)
+    }
+  }
+  if (failed) throw failure
 }
