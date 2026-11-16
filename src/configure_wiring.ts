@@ -167,6 +167,23 @@ async function save(file: SourceFile, inserted: string): Promise<void> {
   await file.save()
 }
 
+function isConfiguredEffectiveGuard(
+  file: SourceFile,
+  guards: ObjectNode,
+  guard: string,
+  effective: string
+): boolean {
+  const raw = property(guards, guard)
+  const wrapped = property(guards, effective)
+  const rawName = raw?.getInitializer()?.getText()
+  const wrapper = call(wrapped?.getInitializer(), 'effectiveSessionGuard')
+  const wrappedName = wrapper?.getArguments()[0]?.getText()
+  if (!rawName || wrappedName !== rawName || !/^[$A-Z_a-z][$\w]*$/.test(rawName)) return false
+  const factory = file.getVariableDeclaration(rawName)?.getInitializer()
+  if (!call(factory, 'sessionGuard')) return false
+  return wrapped !== undefined
+}
+
 /** Register the context middleware right after `initialize_auth` in the router stack. */
 export async function wireContextMiddleware(
   project: Project,
@@ -182,12 +199,17 @@ export async function wireContextMiddleware(
   const [list] = stacks[0].getArguments()
   if (!is<ArrayNode>(list, 'ArrayLiteralExpression')) return 'skipped'
   const entries = list.getElements().map((entry) => entry.getText())
-  if (entries.some((entry) => entry.includes('#middleware/masquerade_context_middleware')))
-    return 'already'
+  const context = entries.findIndex((entry) =>
+    entry.includes('#middleware/masquerade_context_middleware')
+  )
   const initialize = entries.findIndex((entry) =>
     entry.includes("'@adonisjs/auth/initialize_auth_middleware'")
   )
   const silent = entries.findIndex((entry) => entry.includes('silent_auth_middleware'))
+  if (context !== -1)
+    return initialize !== -1 && context > initialize && (silent === -1 || context < silent)
+      ? 'already'
+      : 'skipped'
   if (initialize === -1 || (silent !== -1 && silent < initialize)) return 'skipped'
   list.insertElement(initialize + 1, contextMiddleware)
   await save(file, contextMiddleware)
@@ -242,7 +264,8 @@ export async function wireAuthGuards(
   const guards = property(config, 'guards')?.getInitializer()
   if (!defaultGuard || !is<ObjectNode>(guards, 'ObjectLiteralExpression')) return 'skipped'
   const defaultName = defaultGuard.getInitializer()?.getText()
-  if (defaultName === `'${effective}'` && guards.getProperty(effective)) return 'already'
+  if (defaultName === `'${effective}'`)
+    return isConfiguredEffectiveGuard(file, guards, guard, effective) ? 'already' : 'skipped'
   if (defaultName !== `'${guard}'` || guards.getProperty(effective)) return 'skipped'
 
   const raw = property(guards, guard)

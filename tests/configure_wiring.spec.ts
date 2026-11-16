@@ -148,7 +148,36 @@ test.group('configure wiring', (group) => {
       await rm(h.root, { recursive: true, force: true })
     }
   })
-
+  test('checks the effective factory before accepting existing auth wiring', async ({ assert }) => {
+    const h = await host({ auth: starterAuthConfig })
+    try {
+      assert.equal(await wireAuthGuards(h.project(), h.auth, 'web'), 'wired')
+      const configured = await readFile(h.auth, 'utf8')
+      const wrongFactory = configured.replace(
+        'effectiveSessionGuard(webGuard)',
+        'effectiveSessionGuard(customGuard)'
+      )
+      assert.notEqual(wrongFactory, configured)
+      await writeFile(h.auth, wrongFactory)
+      assert.equal(await wireAuthGuards(h.project(), h.auth, 'web'), 'skipped')
+      assert.equal(await readFile(h.auth, 'utf8'), wrongFactory)
+    } finally {
+      await rm(h.root, { recursive: true, force: true })
+    }
+  })
+  test('does not accept existing context middleware in the wrong order', async ({ assert }) => {
+    const misplaced = starterKernel.replace(
+      "  () => import('@adonisjs/auth/initialize_auth_middleware'),\n  () => import('#middleware/silent_auth_middleware'),",
+      "  () => import('#middleware/masquerade_context_middleware'),\n  () => import('@adonisjs/auth/initialize_auth_middleware'),\n  () => import('#middleware/silent_auth_middleware'),"
+    )
+    const h = await host({ kernel: misplaced })
+    try {
+      assert.equal(await wireContextMiddleware(h.project(), h.kernel), 'skipped')
+      assert.equal(await readFile(h.kernel, 'utf8'), misplaced)
+    } finally {
+      await rm(h.root, { recursive: true, force: true })
+    }
+  })
   test('inserts opt-in status sharing after silent auth without duplicating it', async ({
     assert,
   }) => {
