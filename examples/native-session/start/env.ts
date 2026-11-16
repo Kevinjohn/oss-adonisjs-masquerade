@@ -10,8 +10,12 @@
 */
 
 import { Env } from '@adonisjs/core/env'
+import { testPostgresTarget } from './test_database_target.js'
 
-export default await Env.create(new URL('../', import.meta.url), {
+export const ordinaryDatabaseFromLaunch = process.env.DB_DATABASE
+export const nativeTestSqliteFromLaunch = process.env.NATIVE_TEST_SQLITE === '1'
+
+const env = await Env.create(new URL('../', import.meta.url), {
   // Node
   NODE_ENV: Env.schema.enum(['development', 'production', 'test'] as const),
   PORT: Env.schema.number(),
@@ -33,3 +37,14 @@ export default await Env.create(new URL('../', import.meta.url), {
   // Masquerade alerts
   MASQUERADE_ALERT_WEBHOOK_URL: Env.schema.string.optional({ format: 'url', tld: false }),
 })
+
+export const postgresTestTarget =
+  process.env.NODE_ENV === 'test' && process.env.DB_CLIENT === 'pg'
+    ? testPostgresTarget(ordinaryDatabaseFromLaunch)
+    : undefined
+
+if (nativeTestSqliteFromLaunch && process.env.DB_CLIENT === 'pg') {
+  throw new Error('NATIVE_TEST_SQLITE is only valid for SQLite')
+}
+
+export default env
