@@ -109,6 +109,9 @@ const statusMiddleware = "() => import('#middleware/share_masquerade_status_midd
 interface AstNode {
   getKindName(): string
   getText(): string
+  getEnd(): number
+  getStart(): number
+  replaceWithText(text: string): unknown
 }
 interface CallNode extends AstNode {
   getExpression(): AstNode
@@ -128,6 +131,10 @@ interface ObjectNode extends AstNode {
   getProperties(): AstNode[]
   getProperty(name: string): AstNode | undefined
   insertPropertyAssignment(index: number, structure: { name: string; initializer: string }): unknown
+}
+interface FormattableSourceFile extends SourceFile {
+  insertText(position: number, text: string): this
+  getFullText(): string
 }
 
 function is<T extends AstNode>(node: AstNode | undefined, kind: string): node is T {
@@ -153,17 +160,28 @@ function soleObjectArgument(node: CallNode | undefined): ObjectNode | undefined 
 }
 
 /**
- * Format like the AdonisJS codemods, then restore the starter's Prettier shape: a trailing comma
- * after the inserted entry and `{}` interface bodies.
+ * Let ts-morph format the transformed file. Formatting the whole source file preserves runtime
+ * string values; post-format text substitutions can accidentally edit matching string literals.
  */
 async function save(file: SourceFile, inserted: string): Promise<void> {
   file.formatText(editorSettings)
-  file.replaceWithText(
-    file
-      .getFullText()
-      .replace(`${inserted}\n`, `${inserted},\n`)
-      .replace(/(\bextends [^\n{]+)\{ \}/g, '$1{}')
-  )
+  const formattable = file as FormattableSourceFile
+  const insertedNode = file.getDescendants().find((node) => node.getText() === inserted)
+  if (insertedNode && formattable.getFullText()[insertedNode.getEnd()] !== ',')
+    formattable.insertText(insertedNode.getEnd(), ',')
+  const authenticators = file
+    .getDescendants()
+    .filter(
+      (node) =>
+        node.getKindName() === 'InterfaceDeclaration' &&
+        /\bextends [^\n{]+\{ \}$/.test(node.getText())
+    )
+    .sort((left, right) => right.getStart() - left.getStart())
+  for (const node of authenticators) {
+    const text = node.getText()
+    const compact = text.replace(/(\bextends [^\n{]+)\{ \}$/, '$1{}')
+    if (compact !== text) node.replaceWithText(compact)
+  }
   await file.save()
 }
 

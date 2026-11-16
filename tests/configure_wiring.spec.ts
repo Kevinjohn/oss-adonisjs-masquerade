@@ -34,7 +34,12 @@ test.group('configure wiring', (group) => {
   group.each.timeout(30_000)
 
   test('rewires the starter-kit auth config and kernel once', async ({ assert }) => {
-    const h = await host({ auth: starterAuthConfig, kernel: starterKernel })
+    const literal = "const hostValue = 'interface HostShape extends HostType { }'"
+    const kernelSource = starterKernel.replace(
+      'export const middleware',
+      `${literal}\n\nexport const middleware`
+    )
+    const h = await host({ auth: starterAuthConfig, kernel: kernelSource })
     try {
       assert.equal(await wireAuthGuards(h.project(), h.auth, 'web'), 'wired')
       assert.equal(await wireContextMiddleware(h.project(), h.kernel), 'wired')
@@ -54,6 +59,7 @@ test.group('configure wiring', (group) => {
       assert.notInclude(auth, 'sessionUserProvider')
       assert.include(auth, 'InferAuthenticators<typeof authConfig> {}')
       const kernel = await readFile(h.kernel, 'utf8')
+      assert.include(kernel, literal)
       assert.include(
         kernel,
         [
@@ -169,6 +175,7 @@ test.group('configure wiring', (group) => {
       await rm(h.root, { recursive: true, force: true })
     }
   })
+
   test('checks the effective factory before accepting existing auth wiring', async ({ assert }) => {
     const h = await host({ auth: starterAuthConfig })
     try {
@@ -186,6 +193,7 @@ test.group('configure wiring', (group) => {
       await rm(h.root, { recursive: true, force: true })
     }
   })
+
   test('does not accept existing context middleware in the wrong order', async ({ assert }) => {
     const misplaced = starterKernel.replace(
       "  () => import('@adonisjs/auth/initialize_auth_middleware'),\n  () => import('#middleware/silent_auth_middleware'),",
@@ -199,6 +207,7 @@ test.group('configure wiring', (group) => {
       await rm(h.root, { recursive: true, force: true })
     }
   })
+
   test('inserts opt-in status sharing after silent auth without duplicating it', async ({
     assert,
   }) => {
