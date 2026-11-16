@@ -20,7 +20,7 @@ test('every check step names an existing script', ({ assert }) => {
   assert.deepEqual(missing, [])
 })
 
-test('the check profiles cover every pnpm script the CI workflows run', ({ assert }) => {
+test('the check profiles use only scripts invoked by CI workflows', ({ assert }) => {
   const covered = new Set(allSteps.map((step) => step.script))
   const ignored = new Set(['install', 'dlx', 'add', 'list', 'update', 'pack'])
   const uncovered = ['checks.yml', 'examples.yml', 'compat.yml', 'docs.yml', 'release.yml'].flatMap(

@@ -4,6 +4,8 @@
 
 ### Fixed
 
+- Maintainer checks clarify that local full and browser profiles select CI coverage rather than
+  mirroring every matrix, and document the separate API starter command.
 - `node ace configure` stops when `config/database.ts` exists but fails to load, or `package.json`
   is not JSON, instead of writing the migration to `database/migrations` and assuming
   `app/models/user`. A missing file still falls back to those defaults.

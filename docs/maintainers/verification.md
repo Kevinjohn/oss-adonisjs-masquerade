@@ -10,8 +10,12 @@ pnpm check --full
 
 The quick profile checks formatting, lint, types, SQLite tests, the build, and built exports.
 The full profile adds PostgreSQL 16, coverage, the documented recipe, the docs
-build, and packed native-session and Account Kit consumers. `bin/check_profiles.ts` defines the
-steps. `pnpm check:changed [base]` selects checks while working; it does not replace the full gate.
+build, and packed native-session and Account Kit consumers. The browser profile adds the Account
+Kit demo, native-session browser suite, and Inertia React and Vue examples. These are selected local
+profiles, not a complete mirror of every CI matrix: for example, CI also runs the combined API
+starter. Run that case locally with `pnpm test:with-account-kit --example=api`. `bin/check_profiles.ts`
+defines the local steps. `pnpm check:changed [base]` selects checks while working; it does not
+replace the full gate.
 
 The Account Kit and consumer latest profiles query versions already filtered by each peer range.
 Their shared selector accepts canonical stable `x.y.z` versions and compares numeric components;
