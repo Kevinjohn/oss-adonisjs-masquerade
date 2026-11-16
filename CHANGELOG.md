@@ -19,6 +19,9 @@
 - `node ace configure` preserves unrelated host string literals while formatting generated wiring.
 - Use the Node environment when opening stores from Ace commands.
 - Report when `masquerade:stop --all` stops after a no-progress batch.
+- Match history labels to the current account ID and incarnation before showing a name.
+- Validate audit-history date and page filters before converting dates or querying.
+
 - Verify stale expiry batches against newer modes on independent SQL connections.
 
 - Record the attempted target and access for a denied second start without copying the active target's incarnation.
