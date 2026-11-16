@@ -8,6 +8,7 @@
 
 ### Fixed
 
+- `shareMasquerade` sets private, no-store cache headers after sharing owner-specific status.
 - Provider readiness rejects a control route guard without a configured native adapter while
   allowing unrelated unadapted raw guards.
 - `node ace configure` stops when `config/database.ts` exists but fails to load, or `package.json`
