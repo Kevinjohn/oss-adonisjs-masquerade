@@ -109,6 +109,9 @@ const statusMiddleware = "() => import('#middleware/share_masquerade_status_midd
 interface AstNode {
   getKindName(): string
   getText(): string
+  getEnd(): number
+  getStart(): number
+  replaceWithText(text: string): unknown
 }
 interface CallNode extends AstNode {
   getExpression(): AstNode
@@ -128,6 +131,10 @@ interface ObjectNode extends AstNode {
   getProperties(): AstNode[]
   getProperty(name: string): AstNode | undefined
   insertPropertyAssignment(index: number, structure: { name: string; initializer: string }): unknown
+}
+interface FormattableSourceFile extends SourceFile {
+  insertText(position: number, text: string): this
+  getFullText(): string
 }
 
 function is<T extends AstNode>(node: AstNode | undefined, kind: string): node is T {
@@ -153,18 +160,80 @@ function soleObjectArgument(node: CallNode | undefined): ObjectNode | undefined 
 }
 
 /**
- * Format like the AdonisJS codemods, then restore the starter's Prettier shape: a trailing comma
- * after the inserted entry and `{}` interface bodies.
+ * Let ts-morph format the transformed file. Formatting the whole source file preserves runtime
+ * string values; post-format text substitutions can accidentally edit matching string literals.
  */
 async function save(file: SourceFile, inserted: string): Promise<void> {
   file.formatText(editorSettings)
-  file.replaceWithText(
-    file
-      .getFullText()
-      .replace(`${inserted}\n`, `${inserted},\n`)
-      .replace(/(\bextends [^\n{]+)\{ \}/g, '$1{}')
-  )
+  const formattable = file as FormattableSourceFile
+  const insertedNode = file.getDescendants().find((node) => node.getText() === inserted)
+  if (insertedNode && formattable.getFullText()[insertedNode.getEnd()] !== ',')
+    formattable.insertText(insertedNode.getEnd(), ',')
+  const authenticators = file
+    .getDescendants()
+    .filter(
+      (node) =>
+        node.getKindName() === 'InterfaceDeclaration' &&
+        /\bextends [^\n{]+\{ \}$/.test(node.getText())
+    )
+    .sort((left, right) => right.getStart() - left.getStart())
+  for (const node of authenticators) {
+    const text = node.getText()
+    const compact = text.replace(/(\bextends [^\n{]+)\{ \}$/, '$1{}')
+    if (compact !== text) node.replaceWithText(compact)
+  }
   await file.save()
+}
+
+function isConfiguredEffectiveGuard(
+  file: SourceFile,
+  guards: ObjectNode,
+  guard: string,
+  effective: string
+): boolean {
+  const raw = property(guards, guard)
+  const wrapped = property(guards, effective)
+  const rawName = raw?.getInitializer()?.getText()
+  const wrapper = call(wrapped?.getInitializer(), 'effectiveSessionGuard')
+  const wrappedName = wrapper?.getArguments()[0]?.getText()
+  if (!rawName || wrappedName !== rawName || !/^[$A-Z_a-z][$\w]*$/.test(rawName)) return false
+  const options = soleObjectArgument(
+    call(file.getVariableDeclaration(rawName)?.getInitializer(), 'sessionGuard')
+  )
+  if (
+    !wrapped ||
+    !options ||
+    property(options, 'provider')?.getInitializer()?.getText() !== 'userProvider' ||
+    !hasNamedImportBinding(file, '@adonisjs/auth/session', 'sessionGuard') ||
+    !hasNamedImportBinding(file, '#services/masquerade_user_provider', 'userProvider') ||
+    !hasNamedImportBinding(file, '@kevinjohn/adonisjs-masquerade/auth', 'effectiveSessionGuard')
+  )
+    return false
+  return true
+}
+
+function hasNamedImportBinding(file: SourceFile, moduleSpecifier: string, name: string): boolean {
+  const bindings = file.getImportDeclarations().flatMap((declaration) => {
+    const module = declaration.getModuleSpecifierValue()
+    const imports: Array<{ local: string; imported: string }> = []
+    if (declaration.getDefaultImport())
+      imports.push({ local: declaration.getDefaultImport()!.getText(), imported: 'default' })
+    if (declaration.getNamespaceImport())
+      imports.push({ local: declaration.getNamespaceImport()!.getText(), imported: '*' })
+    for (const named of declaration.getNamedImports())
+      imports.push({
+        local: named.getAliasNode()?.getText() ?? named.getName(),
+        imported: named.getName(),
+      })
+    return imports.map((item) => ({ ...item, module }))
+  })
+  const matching = bindings.filter((binding) => binding.local === name)
+  return (
+    matching.length === 1 &&
+    matching[0].module === moduleSpecifier &&
+    matching[0].imported === name &&
+    !file.getVariableDeclaration(name)
+  )
 }
 
 /** Register the context middleware right after `initialize_auth` in the router stack. */
@@ -182,13 +251,20 @@ export async function wireContextMiddleware(
   const [list] = stacks[0].getArguments()
   if (!is<ArrayNode>(list, 'ArrayLiteralExpression')) return 'skipped'
   const entries = list.getElements().map((entry) => entry.getText())
-  if (entries.some((entry) => entry.includes('#middleware/masquerade_context_middleware')))
-    return 'already'
-  const initialize = entries.findIndex((entry) =>
-    entry.includes("'@adonisjs/auth/initialize_auth_middleware'")
-  )
-  const silent = entries.findIndex((entry) => entry.includes('silent_auth_middleware'))
-  if (initialize === -1 || (silent !== -1 && silent < initialize)) return 'skipped'
+  const contexts = entries
+    .map((entry, index) => ({ entry, index }))
+    .filter(({ entry }) => entry.includes('#middleware/masquerade_context_middleware'))
+  const initializers = entries
+    .map((entry, index) => ({ entry, index }))
+    .filter(({ entry }) => entry.includes("'@adonisjs/auth/initialize_auth_middleware'"))
+  if (initializers.length !== 1) return 'skipped'
+  const initialize = initializers[0].index
+  const authBeforeInitialize = entries
+    .slice(0, initialize)
+    .some((entry) => entry.toLowerCase().includes('auth'))
+  if (authBeforeInitialize) return 'skipped'
+  if (contexts.length)
+    return contexts.length === 1 && contexts[0].index === initialize + 1 ? 'already' : 'skipped'
   list.insertElement(initialize + 1, contextMiddleware)
   await save(file, contextMiddleware)
   return 'wired'
@@ -221,6 +297,21 @@ export async function wireStatusMiddleware(
   return 'wired'
 }
 
+function hasLocalBinding(file: SourceFile, name: string): boolean {
+  if (file.getVariableDeclaration(name)) return true
+  for (const declaration of file.getImportDeclarations()) {
+    if (declaration.getDefaultImport()?.getText() === name) return true
+    if (declaration.getNamespaceImport()?.getText() === name) return true
+    if (
+      declaration
+        .getNamedImports()
+        .some((named) => (named.getAliasNode()?.getText() ?? named.getName()) === name)
+    )
+      return true
+  }
+  return false
+}
+
 /**
  * Turn the starter-kit session guard into a raw guard that reuses the generated user provider,
  * add its effective guard and make that the default. Any other shape is left unchanged.
@@ -242,7 +333,8 @@ export async function wireAuthGuards(
   const guards = property(config, 'guards')?.getInitializer()
   if (!defaultGuard || !is<ObjectNode>(guards, 'ObjectLiteralExpression')) return 'skipped'
   const defaultName = defaultGuard.getInitializer()?.getText()
-  if (defaultName === `'${effective}'` && guards.getProperty(effective)) return 'already'
+  if (defaultName === `'${effective}'`)
+    return isConfiguredEffectiveGuard(file, guards, guard, effective) ? 'already' : 'skipped'
   if (defaultName !== `'${guard}'` || guards.getProperty(effective)) return 'skipped'
 
   const raw = property(guards, guard)
@@ -260,22 +352,13 @@ export async function wireAuthGuards(
   )
     return 'skipped'
   const rawName = `${guard.replace(/[-_]+([a-z0-9])/gi, (_, next: string) => next.toUpperCase())}Guard`
-  const taken = ['userProvider', 'effectiveSessionGuard', rawName]
-  if (
-    taken.some(
-      (name) =>
-        file.getVariableDeclaration(name) ||
-        file.getImportDeclaration((entry) =>
-          entry.getNamedImports().some((named) => named.getName() === name)
-        )
-    )
-  )
-    return 'skipped'
+  const taken = new Set(['userProvider', 'effectiveSessionGuard', rawName])
+  if ([...taken].some((name) => hasLocalBinding(file, name))) return 'skipped'
 
   provider.setInitializer('userProvider')
   const rawFactory = raw.getInitializer()!.getText()
   raw.setInitializer(rawName)
-  guards.insertPropertyAssignment(raw.getChildIndex() + 1, {
+  guards.insertPropertyAssignment(guards.getProperties().indexOf(raw) + 1, {
     name: /^[A-Za-z_$][\w$]*$/.test(effective) ? effective : `'${effective}'`,
     initializer: `effectiveSessionGuard(${rawName})`,
   })
