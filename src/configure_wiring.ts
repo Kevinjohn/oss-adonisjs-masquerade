@@ -304,7 +304,7 @@ export async function wireAuthGuards(
   provider.setInitializer('userProvider')
   const rawFactory = raw.getInitializer()!.getText()
   raw.setInitializer(rawName)
-  guards.insertPropertyAssignment(raw.getChildIndex() + 1, {
+  guards.insertPropertyAssignment(guards.getProperties().indexOf(raw) + 1, {
     name: /^[A-Za-z_$][\w$]*$/.test(effective) ? effective : `'${effective}'`,
     initializer: `effectiveSessionGuard(${rawName})`,
   })

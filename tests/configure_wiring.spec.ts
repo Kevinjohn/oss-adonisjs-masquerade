@@ -221,4 +221,27 @@ test.group('configure wiring', (group) => {
       await rm(h.root, { recursive: true, force: true })
     }
   })
+
+  test('inserts the effective guard by property position for either guard order', async ({
+    assert,
+  }) => {
+    const guard = `\n    api: sessionGuard({\n      useRememberMeTokens: false,\n      provider: sessionUserProvider({ model: () => import('#models/user') }),\n    }),`
+    const variants = [
+      starterAuthConfig.replace('  guards: {', `  guards: {${guard}`),
+      starterAuthConfig.replace('    }),\n  },\n})', `    }),${guard}\n  },\n})`),
+    ]
+    for (const source of variants) {
+      const h = await host({ auth: source })
+      try {
+        assert.equal(await wireAuthGuards(h.project(), h.auth, 'web'), 'wired')
+        const configured = await readFile(h.auth, 'utf8')
+        assert.match(
+          configured,
+          /web: webGuard,[\s\S]*web_effective: effectiveSessionGuard\(webGuard\),/
+        )
+      } finally {
+        await rm(h.root, { recursive: true, force: true })
+      }
+    }
+  })
 })
