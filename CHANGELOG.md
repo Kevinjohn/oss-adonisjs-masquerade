@@ -8,6 +8,8 @@
 
 ### Fixed
 
+- Match history labels to the current account ID and incarnation before showing a name.
+
 - Verify stale expiry batches against newer modes on independent SQL connections.
 
 - Record the attempted target and access for a denied second start without copying the active target's incarnation.

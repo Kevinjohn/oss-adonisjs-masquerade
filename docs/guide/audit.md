@@ -29,35 +29,11 @@ request bodies as identity metadata.
 The package's control ledger is the `masquerade_events` table created by the generated migration.
 The package ships no history page; a host can list the ledger with its own query and its own admin
 authorization. Keep the route behind the raw `web` guard so an active mode never changes who is
-reviewing:
-
-```ts
-// app/controllers/masquerade_history_controller.ts
-import db from '@adonisjs/lucid/services/db'
-import type { HttpContext } from '@adonisjs/core/http'
-
-export default class MasqueradeHistoryController {
-  async index({ request, view, bouncer }: HttpContext) {
-    await bouncer.authorize('viewMasqueradeHistory')
-    const { actorId, targetId, from, to, page = 1 } = request.qs()
-    const events = await db
-      .from('masquerade_events')
-      .where('authority_namespace', 'my_app')
-      .if(actorId, (query) => query.where('actor_id', String(actorId)))
-      .if(targetId, (query) => query.where('target_id', String(targetId)))
-      // `at` is a UTC ISO 8601 string, so string comparison orders by time.
-      .if(from, (query) => query.where('at', '>=', new Date(from).toISOString()))
-      .if(to, (query) => query.where('at', '<', new Date(to).toISOString()))
-      .select('at', 'kind', 'outcome_code', 'actor_id', 'target_id', 'access', 'reason')
-      .orderBy([
-        { column: 'at', order: 'desc' },
-        { column: 'id', order: 'desc' },
-      ])
-      .paginate(Number(page) || 1, 50)
-    return view.render('admin/masquerade_history', { events })
-  }
-}
-```
+reviewing. The controller below matches the runnable native-session example. It queries only the
+configured authority namespace, selects both stored incarnations, and resolves a current name only
+when that same authority verifies the exact stored ID and incarnation. If an account was deleted,
+its ID was reused, or an event has no verified incarnation, show the stored ID instead. Names are
+current display values, not historical snapshots; the ledger stores IDs and incarnations only.
 
 ```ts
 // start/routes.ts
@@ -68,6 +44,66 @@ router
   ])
   .as('admin.masquerade_history')
   .use(middleware.auth({ guards: ['web'] }))
+```
+
+<!-- host-recipe:masquerade-history -->
+
+```ts
+import type { HttpContext } from '@adonisjs/core/http'
+import db from '@adonisjs/lucid/services/db'
+import { currentAccountForAuditIdentity } from '#services/audit_history_identity'
+import { nativeAdapter } from '#config/masquerade'
+
+export default class MasqueradeHistoryController {
+  async index({ request, view, bouncer }: HttpContext) {
+    await bouncer.authorize('viewMasqueradeHistory')
+
+    const { from, to, page = 1 } = request.qs()
+
+    const events = await db
+      .from('masquerade_events')
+      .where('authority_namespace', nativeAdapter.authority.namespace)
+      .if(from, (query) => query.where('at', '>=', new Date(from).toISOString()))
+      .if(to, (query) => query.where('at', '<', new Date(to).toISOString()))
+      .select(
+        'at',
+        'kind',
+        'outcome_code',
+        'actor_id',
+        'actor_incarnation',
+        'target_id',
+        'target_incarnation',
+        'access',
+        'reason'
+      )
+      .orderBy([
+        { column: 'at', order: 'desc' },
+        { column: 'id', order: 'desc' },
+      ])
+      .paginate(Number(page) || 1, 50)
+
+    const rows = await Promise.all(
+      events.all().map(async (event) => {
+        const [actor, target] = await Promise.all([
+          currentAccountForAuditIdentity(event.actor_id, event.actor_incarnation, (id) =>
+            nativeAdapter.authority.inspectAccount(id)
+          ),
+          currentAccountForAuditIdentity(event.target_id, event.target_incarnation, (id) =>
+            nativeAdapter.authority.inspectAccount(id)
+          ),
+        ])
+
+        return {
+          ...event,
+          actorName: actor?.fullName ?? event.actor_id,
+          targetName: target?.fullName ?? event.target_id,
+        }
+      })
+    )
+
+    return view.render('admin/masquerade_history', { events: { ...events.toJSON(), data: rows } })
+  }
+}
 ```
 
 Each row is one control event: `kind` is `started`, `stopped`, `expired`, `invalidated`,
