@@ -345,16 +345,18 @@ class CoreService<User, Request extends object> implements MasqueradeService<Req
       row = await this.read(owner)
       // §7.1 step 1: input shape, then the expected context (§6.4 Any: mismatch is 409).
       validateStartInputShape(input)
-      // Project only bounded request fields before checks that may reject an active mode.
-      const projectedTargetId =
-        typeof input.targetId === 'number' && Number.isSafeInteger(input.targetId)
-          ? String(input.targetId)
-          : input.targetId
-      attempted = {
-        ...(boundedString(projectedTargetId, 255) ? { targetId: projectedTargetId } : {}),
-        ...(input.access === undefined || input.access === 'view' || input.access === 'edit'
-          ? { access: input.access ?? 'view' }
-          : {}),
+      if (row?.state === 'active') {
+        // Project only bounded request fields before checks that may reject an active mode.
+        const projectedTargetId =
+          typeof input.targetId === 'number' && Number.isSafeInteger(input.targetId)
+            ? String(input.targetId)
+            : input.targetId
+        attempted = {
+          ...(boundedString(projectedTargetId, 255) ? { targetId: projectedTargetId } : {}),
+          ...(input.access === undefined || input.access === 'view' || input.access === 'edit'
+            ? { access: input.access ?? 'view' }
+            : {}),
+        }
       }
       requireContext(input.expectedContext, contextToken(owner, row))
       // §6.4 Any: a revision at Number.MAX_SAFE_INTEGER fails closed.

@@ -59,6 +59,10 @@ test('applies optional Account Kit host route imports and other wiring', async (
       "import './demo_json_routes.js'\nimport './custom_account_routes.js'\nimport './custom_fixture_routes.js'"
     )
     assert.include(
+      routes,
+      "if (process.env.ACCOUNT_KIT_AUTH_STRATEGY === 'access_tokens') {\n  await import('./token_control_routes.js')\n}"
+    )
+    assert.include(
       await readFile(join(patchedApp, 'config/auth.ts'), 'utf8'),
       ': { web: guards.web, web_effective: guards.web_effective, members: guards.members }) as unknown as typeof guards,'
     )
