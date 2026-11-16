@@ -4,7 +4,7 @@
 
 ### Changed
 
-- Align the Account Kit integration peer, pinned release artifact and examples with Account Kit `0.4.0`.
+- Require Account Kit `0.4.0` exactly. Align the pinned release artifact and examples with this release.
 
 ### Fixed
 
