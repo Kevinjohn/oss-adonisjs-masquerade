@@ -28,7 +28,7 @@ test.group('masquerade HTTP boundary', () => {
       reads++
       return read(owner)
     }
-    const { ctx } = requestContext(f, { method: 'GET' })
+    const { ctx, responseState } = requestContext(f, { method: 'GET' })
     let shared: Record<string, unknown> | undefined
     ;(ctx as { view: { share(value: Record<string, unknown>): void } }).view = {
       share: (value) => {
@@ -38,6 +38,7 @@ test.group('masquerade HTTP boundary', () => {
     const mode = await shareMasquerade(ctx)
     assert.equal(reads, 1)
     assert.deepEqual(shared?.masquerade, mode)
+    assert.equal(responseState.headers.get('cache-control'), 'private, no-store')
     assert.deepEqual(await shareMasquerade(ctx), mode)
     assert.equal(reads, 1)
   })
@@ -46,7 +47,7 @@ test.group('masquerade HTTP boundary', () => {
     assert,
   }) => {
     const f = fixture()
-    const { ctx } = requestContext(f, {
+    const { ctx, responseState } = requestContext(f, {
       method: 'GET',
       routeMiddleware: [{ name: 'auth', args: [{ guards: ['web'] }] }],
     })
@@ -56,5 +57,35 @@ test.group('masquerade HTTP boundary', () => {
     const mode = await shareMasquerade(ctx)
     assert.isTrue(mode.isMasquerading)
     assert.deepEqual(await f.store.read(f.owner), before)
+    assert.equal(responseState.headers.get('cache-control'), 'private, no-store')
+  })
+
+  test('shares owner status on an unclassified page with private headers and no admission', async ({
+    assert,
+  }) => {
+    const f = fixture()
+    const { ctx, responseState } = requestContext(f, { method: 'GET', routeMiddleware: [] })
+    await f.start(await f.create(), ctx)
+    const before = await f.store.read(f.owner)
+    const policyCalls = f.state.policyCount
+
+    const mode = await shareMasquerade(ctx)
+
+    assert.isTrue(mode.isMasquerading)
+    if (mode.isMasquerading) assert.equal(mode.targetId, 'b')
+    assert.deepEqual(await f.store.read(f.owner), before)
+    assert.equal(f.state.policyCount, policyCalls)
+    assert.equal(responseState.headers.get('cache-control'), 'private, no-store')
+  })
+
+  test('does not set cache headers when reading status fails', async ({ assert }) => {
+    const f = fixture()
+    const { ctx, responseState } = requestContext(f, { method: 'GET', routeMiddleware: [] })
+    f.store.read = async () => {
+      throw new Error('store unavailable')
+    }
+
+    await assert.rejects(() => shareMasquerade(ctx))
+    assert.isEmpty(responseState.headers)
   })
 })

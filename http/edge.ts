@@ -14,6 +14,7 @@ export async function shareMasquerade(ctx: HttpContext): Promise<ModeView> {
     const admitted = await runtime.admit(ctx)
     mode = admitted.view
   } else mode = await runtime.service.status(ctx)
+  ctx.response.header('Cache-Control', 'private, no-store')
   const edge = ctx as HttpContext & {
     view?: { share(values: Record<string, unknown>): unknown }
   }

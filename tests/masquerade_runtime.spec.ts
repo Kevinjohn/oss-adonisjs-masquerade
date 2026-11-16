@@ -202,8 +202,8 @@ test.group('control route guard check', (group) => {
   })
   const limiter = async (_ctx: unknown, next: () => Promise<unknown>) => next()
   const otherLimiter = async (_ctx: unknown, next: () => Promise<unknown>) => next()
-  const mount = async (guard: string) => {
-    const f = await nativeRuntimeFixture()
+  const mount = async (guard: string, unadaptedGuard?: string) => {
+    const f = await nativeRuntimeFixture({ unadaptedGuard })
     await f.app.boot()
     const router = await f.app.container.make('router')
     const auth = router.named({
@@ -238,6 +238,49 @@ test.group('control route guard check', (group) => {
       assert.isTrue(app.isReady)
     } finally {
       await app.terminate()
+    }
+  })
+
+  test('an unrelated registered raw guard without an adapter does not block readiness', async ({
+    assert,
+  }) => {
+    const app = await mount('web', 'legacy')
+    try {
+      await app.start(() => {})
+      assert.isTrue(app.isReady)
+    } finally {
+      await app.terminate()
+    }
+  })
+
+  test('the provider rejects control routes on a registered raw guard without an adapter', async ({
+    assert,
+  }) => {
+    const f = await nativeRuntimeFixture({ unadaptedGuard: 'legacy' })
+    try {
+      await f.app.boot()
+      const router = await f.app.container.make('router')
+      const auth = router.named({
+        auth: async () => ({
+          default: class {
+            async handle(_ctx: unknown, next: () => Promise<unknown>) {
+              await next()
+            }
+          },
+        }),
+      }).auth
+      masqueradeRoutes(router, {
+        auth,
+        guard: 'legacy',
+        startLimiter: limiter,
+        stopLimiter: otherLimiter,
+      })
+      await assert.rejects(
+        () => f.app.start(() => {}),
+        'masqueradeRoutes guard legacy has no native adapter'
+      )
+    } finally {
+      await f.app.terminate()
     }
   })
 })

@@ -177,6 +177,52 @@ test('native adapter rejects an actual non-session raw guard before credential v
   assert.equal(authentications, 0)
 })
 
+test('native adapter maps guard lookup failures to unavailable and preserves unauthorized errors', async ({
+  assert,
+}) => {
+  const user = { id: 'a' }
+  const native = sessionAuthority({
+    namespace: 'users',
+    guard: 'web',
+    provider: {
+      [symbols.PROVIDER_REAL_USER]: undefined as unknown as typeof user,
+      createUserForGuard: async () => ({ getId: () => 'a', getOriginal: () => user }),
+      findById: async () => null,
+    },
+    incarnation: 'id',
+    securityStamp: () => 'stamp',
+    isActive: () => true,
+  })
+  let lookupFailure: Error | undefined
+  const ctx = {
+    auth: {
+      use: () => {
+        if (lookupFailure) throw lookupFailure
+        return { driverName: 'session', authenticate: async () => user }
+      },
+    },
+  } as unknown as HttpContext
+
+  lookupFailure = new Error('guard factory failed')
+  assert.equal(await errorCode(() => native.authenticateActor(ctx)), 'E_MASQUERADE_UNAVAILABLE')
+
+  const unauthorized = new errors.E_UNAUTHORIZED_ACCESS('Missing credential', {
+    guardDriverName: 'session',
+  })
+  lookupFailure = unauthorized
+  let caught: unknown
+  try {
+    await native.authenticateActor(ctx)
+  } catch (error) {
+    caught = error
+  }
+  assert.strictEqual(caught, unauthorized)
+
+  lookupFailure = undefined
+  const actor = await native.authenticateActor(ctx)
+  assert.equal(actor.id, 'a')
+})
+
 test('native session inspection reports isActive exactly and rejects a non-boolean', async ({
   assert,
 }) => {
