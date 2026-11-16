@@ -33,7 +33,7 @@ and create the `admin/masquerade_history` view. Adapt the example's `nativeAdapt
 field to your application's configured authority and display field. The recipe authorizes first,
 then validates optional ISO `from` and `to` filters and a positive safe-integer `page`. Invalid
 input returns a 400 without package-owned error text; adapt that response to the host's validation
-renderer. The example's `audit_history_handler`, `audit_history_identity` and
+renderer. The example's `audit_history_identity` and
 `audit_history_query` modules are host-local supporting files, not package exports; copy and adapt
 them with the controller. The native-session example typechecks this source but does not register
 the history route or provide its ability or view.
