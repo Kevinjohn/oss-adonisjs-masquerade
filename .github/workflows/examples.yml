@@ -140,4 +140,22 @@ jobs:
           node-version: 24
           cache: pnpm
       - run: pnpm install --frozen-lockfile
-      - run: pnpm test:with-account-kit --example=${{ matrix.example }}
+      - name: Check hypermedia with the former Vite port occupied
+        if: matrix.example == 'hypermedia'
+        run: |
+          ready_file="$(mktemp)"
+          rm "$ready_file"
+          node -e 'const { createServer } = require("node:http"); const { writeFileSync } = require("node:fs"); createServer((_, response) => { response.writeHead(503); response.end("occupied") }).listen(5173, "127.0.0.1", () => writeFileSync(process.argv[1], "ready"))' "$ready_file" &
+          listener_pid=$!
+          trap 'kill "$listener_pid" 2>/dev/null || true; rm -f "$ready_file"' EXIT
+          for attempt in {1..50}; do
+            if test -s "$ready_file"; then break; fi
+            if ! kill -0 "$listener_pid" 2>/dev/null; then break; fi
+            sleep 0.1
+          done
+          test -s "$ready_file"
+          pnpm test:with-account-kit --example=hypermedia
+          kill -0 "$listener_pid"
+      - name: Check Account Kit example
+        if: matrix.example != 'hypermedia'
+        run: pnpm test:with-account-kit --example=${{ matrix.example }}
