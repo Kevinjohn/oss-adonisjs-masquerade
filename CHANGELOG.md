@@ -2,6 +2,9 @@
 
 ## Unreleased
 
+- Start Account Kit example Vite servers on an OS-assigned port and wait for the spawned process
+  to report its own address, avoiding false readiness from another local server.
+
 ### Changed
 
 - Align the Account Kit integration peer, pinned release artifact and examples with Account Kit `0.4.0`.
