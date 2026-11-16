@@ -43,6 +43,7 @@ export default class MasqueradeFormController extends MasqueradeController {
       else await runtime.service.stop(ctx, parseStopForm(ctx))
 
       flash(ctx, { type: 'success', action: action === 'start' ? 'started' : 'stopped' })
+      ctx.session.flash('masqueradeClearHistory', true)
       ctx.response.redirect().toPath(this.successPath(ctx, action))
     } catch (error) {
       if (!(error instanceof MasqueradeError)) throw error

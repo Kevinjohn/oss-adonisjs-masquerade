@@ -25,6 +25,9 @@ export default class InertiaMiddleware extends BaseInertiaMiddleware {
      * Data shared with all Inertia pages. Make sure you are using
      * transformers for rich data-types like Models.
      */
+    if (ctx.session?.flashMessages.get('masqueradeClearHistory')) ctx.inertia.clearHistory()
+    ctx.inertia.encryptHistory()
+
     return {
       errors: ctx.inertia.always(this.getValidationErrors(ctx)),
       user: ctx.inertia.always(auth?.user ? UserTransformer.transform(auth.user) : undefined),

@@ -8,17 +8,21 @@
       <p role="status">{{ outcome.message }}</p>
     @end
     @if(mode.isMasquerading)
-      <p>
+      <div data-masquerade-deadline="{{ mode.expiresAt }}">
+      <p data-masquerade-expired @if(!expired) hidden @end role="status">The persisted masquerade mode has expired for this page. Refresh status or stop it.</p>
+      <p data-masquerade-active @if(expired) hidden @end>
         You are acting as
         <strong>{{ target ? target.email : `account ${mode.targetId}` }}</strong>
         ({{ mode.access === 'edit' ? 'can edit' : 'view only' }}) until
         <time datetime="{{ mode.expiresAt }}">{{ mode.expiresAt }}</time>.
       </p>
-      <p><a href="{{ urlFor('dashboard') }}">Open their dashboard</a></p>
+      <p data-masquerade-active @if(expired) hidden @end><a href="{{ urlFor('dashboard') }}">Open their dashboard</a></p>
+      <p data-masquerade-expired @if(!expired) hidden @end><a href="{{ urlFor('masquerade.accounts') }}">Refresh status</a></p>
       @form({ route: 'masquerade.stop', method: 'POST' })
         <input type="hidden" name="_masqueradeContext" value="{{ mode.contextToken }}" />
         @!button({ text: 'Stop masquerade', type: 'submit' })
       @end
+      </div>
     @elseif(!canMasquerade)
       <p>Your account is not a masquerade operator.</p>
     @elseif(accounts.length === 0)

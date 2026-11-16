@@ -4,6 +4,9 @@ import { createApp, h, type DefineComponent } from 'vue'
 import { resolvePageComponent } from '@adonisjs/inertia/helpers'
 import { TuyauProvider } from '@adonisjs/inertia/vue'
 import { client } from './client'
+import { installMasqueradeHistoryRecovery } from './masquerade_history'
+
+installMasqueradeHistoryRecovery()
 
 const appName = import.meta.env.VITE_APP_NAME || 'AdonisJS'
 
