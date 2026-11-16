@@ -27,16 +27,22 @@ request bodies as identity metadata.
 ## Review masquerade history
 
 The package's control ledger is the `masquerade_events` table created by the generated migration.
-The package ships no history page; a host can list the ledger with its own query and its own admin
-authorization. Keep the route behind the raw `web` guard so an active mode never changes who is
-reviewing. The controller below matches the runnable native-session example. After admin
-authorization, it validates optional ISO `from` and `to` filters and a positive safe-integer
-`page`. Invalid input returns a 400 without package-owned error text; adapt that response to the
-host’s validation renderer. The query is limited to the
-configured authority namespace, selects both stored incarnations, and resolves a current name only
-when that same authority verifies the exact stored ID and incarnation. If an account was deleted,
-its ID was reused, or an event has no verified incarnation, show the stored ID instead. Names are
-current display values, not historical snapshots; the ledger stores IDs and incarnations only.
+The package ships no history page or admin ability. The controller below is a host recipe: before
+using it, register a route behind the raw `web` guard, provide the `viewMasqueradeHistory` ability,
+and create the `admin/masquerade_history` view. Adapt the example's `nativeAdapter` and user name
+field to your application's configured authority and display field. The recipe authorizes first,
+then validates optional ISO `from` and `to` filters and a positive safe-integer `page`. Invalid
+input returns a 400 without package-owned error text; adapt that response to the host's validation
+renderer. The example's `audit_history_handler`, `audit_history_identity` and
+`audit_history_query` modules are host-local supporting files, not package exports; copy and adapt
+them with the controller. The native-session example typechecks this source but does not register
+the history route or provide its ability or view.
+
+The query is limited to the configured authority namespace and selects both stored incarnations.
+Resolve a current name only when that same authority verifies the exact stored ID and incarnation.
+If an account was deleted, its ID was reused, or an event has no verified incarnation, show the
+stored ID instead. Names are current display values, not historical snapshots; the ledger stores
+IDs and incarnations, not name snapshots.
 
 ```ts
 // start/routes.ts
@@ -54,17 +60,16 @@ router
 ```ts
 import type { HttpContext } from '@adonisjs/core/http'
 import db from '@adonisjs/lucid/services/db'
-import { parseAuditHistoryFilters } from '#services/audit_history_query'
-import { currentAccountForAuditIdentity } from '#services/audit_history_identity'
+import type User from '#models/user'
 import { nativeAdapter } from '#config/masquerade'
+import { createAuditHistoryIndex, type AuditHistoryEvent } from '#services/audit_history_handler'
 
-export default class MasqueradeHistoryController {
-  async index({ request, response, view, bouncer }: HttpContext) {
-    await bouncer.authorize('viewMasqueradeHistory')
+type MasqueradeHistoryContext = Omit<HttpContext, 'bouncer'> & {
+  bouncer: { authorize(ability: string): Promise<unknown> }
+}
 
-    const filters = parseAuditHistoryFilters(request.qs())
-    if (filters === null) return response.badRequest()
-
+const indexHistory = createAuditHistoryIndex<User, AuditHistoryEvent & Record<string, unknown>>({
+  async query(filters) {
     const events = await db
       .from('masquerade_events')
       .where('authority_namespace', nativeAdapter.authority.namespace)
@@ -87,26 +92,15 @@ export default class MasqueradeHistoryController {
       ])
       .paginate(filters.page, 50)
 
-    const rows = await Promise.all(
-      events.all().map(async (event) => {
-        const [actor, target] = await Promise.all([
-          currentAccountForAuditIdentity(event.actor_id, event.actor_incarnation, (id) =>
-            nativeAdapter.authority.inspectAccount(id)
-          ),
-          currentAccountForAuditIdentity(event.target_id, event.target_incarnation, (id) =>
-            nativeAdapter.authority.inspectAccount(id)
-          ),
-        ])
+    return { metadata: events.toJSON().meta, rows: events.all() }
+  },
+  inspectAccount: (id) => nativeAdapter.authority.inspectAccount(id),
+  displayName: (user) => user.fullName,
+})
 
-        return {
-          ...event,
-          actorName: actor?.fullName ?? event.actor_id,
-          targetName: target?.fullName ?? event.target_id,
-        }
-      })
-    )
-
-    return view.render('admin/masquerade_history', { events: { ...events.toJSON(), data: rows } })
+export default class MasqueradeHistoryController {
+  index(ctx: MasqueradeHistoryContext) {
+    return indexHistory(ctx)
   }
 }
 ```
@@ -114,8 +108,10 @@ export default class MasqueradeHistoryController {
 Each row is one control event: `kind` is `started`, `stopped`, `expired`, `invalidated`,
 `start_denied`, `stop_denied` or `control_noop`, and `outcome_code` says why (for example
 `edit_denied` for an invalidation). `reason` is set only on `started` rows, and is null when the
-host's reason policy is optional and none was given. Join `actor_id` and `target_id` to the host's
-users table to show names; the ledger stores IDs only. The ledger keeps events for the configured
+host's reason policy is optional and none was given. Render the verified `actorName` and
+`targetName` values from the controller. Never join by ID alone: names are shown only after the
+current account has the exact stored ID and incarnation; otherwise display the stored ID. The ledger
+keeps events for the configured
 [retention](operations.md#event-retention-and-store-scope); choose `retention: { days: n }` or
 `'host-managed'` to match the host's compliance period.
 

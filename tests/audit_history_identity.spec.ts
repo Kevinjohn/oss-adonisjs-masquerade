@@ -1,5 +1,28 @@
 import { test } from '@japa/runner'
-import { currentAccountForAuditIdentity } from '../examples/native-session/app/services/audit_history_identity.js'
+
+interface CurrentAccountSnapshot<User> {
+  subject: { id: string; incarnation: string; user: User }
+}
+
+interface IdentityModule {
+  currentAccountForAuditIdentity<User>(
+    id: string | null,
+    incarnation: string | null,
+    inspectAccount: (id: string) => Promise<CurrentAccountSnapshot<User> | null>
+  ): Promise<User | null>
+}
+
+async function currentAccountForAuditIdentity<User>(
+  id: string | null,
+  incarnation: string | null,
+  inspectAccount: (id: string) => Promise<CurrentAccountSnapshot<User> | null>
+): Promise<User | null> {
+  const module = (await import(
+    new URL('../examples/native-session/app/services/audit_history_identity.ts', import.meta.url)
+      .href
+  )) as IdentityModule
+  return module.currentAccountForAuditIdentity(id, incarnation, inspectAccount)
+}
 
 test.group('audit history identity labels', () => {
   test('uses a current name only for the exact stored ID and incarnation', async ({ assert }) => {
