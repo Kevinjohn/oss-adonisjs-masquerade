@@ -2,6 +2,10 @@
 
 ## Unreleased
 
+### Changed
+
+- Align the Account Kit integration peer, pinned release artifact and examples with Account Kit `0.4.0`.
+
 ### Fixed
 
 - Maintainer checks clarify that local full and browser profiles select CI coverage rather than
