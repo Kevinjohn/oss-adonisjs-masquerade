@@ -96,9 +96,7 @@ export function masqueradeApiClient(pluginOptions: MasqueradeApiClientOptions = 
         const current = await expectMode(status, 'status')
         if (!current.isMasquerading || current.contextToken !== started.contextToken) return
         await expectMode(
-          await control('POST', '/stop')
-            .header(CONTEXT_HEADER, started.contextToken)
-            .json({}),
+          await control('POST', '/stop').header(CONTEXT_HEADER, started.contextToken).json({}),
           'stop',
           false
         )
@@ -109,6 +107,8 @@ export function masqueradeApiClient(pluginOptions: MasqueradeApiClientOptions = 
 
 function targetId(target: MasqueradeTarget): string {
   const id = typeof target === 'object' && target !== null ? target.id : target
+  if (typeof id === 'number' && !Number.isSafeInteger(id))
+    throw new InvalidArgumentsException('masquerading() requires a target with an id')
   if (!['string', 'number', 'bigint'].includes(typeof id) || String(id) === '')
     throw new InvalidArgumentsException('masquerading() requires a target with an id')
   return String(id)

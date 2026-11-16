@@ -17,6 +17,31 @@ test.group('masqueradeApiClient', (group) => {
     const request = new ApiClient('http://127.0.0.1:9').get('/business')
     assert.throws(() => request.masquerading({} as never), 'requires a target with an id')
     assert.throws(() => request.masquerading(''), 'requires a target with an id')
+    for (const id of [
+      Number.NaN,
+      Number.POSITIVE_INFINITY,
+      Number.NEGATIVE_INFINITY,
+      1.5,
+      Number.MAX_SAFE_INTEGER + 1,
+    ]) {
+      assert.throws(() => request.masquerading(id), 'requires a target with an id')
+    }
+  })
+
+  test('preserves accepted string, safe integer and bigint IDs', async ({ assert }) => {
+    await withControlServer(async (server) => {
+      for (const [id, expected] of [
+        ['NaN', 'NaN'],
+        ['Infinity', 'Infinity'],
+        ['1.5', '1.5'],
+        [Number.MIN_SAFE_INTEGER, String(Number.MIN_SAFE_INTEGER)],
+        [Number.MAX_SAFE_INTEGER, String(Number.MAX_SAFE_INTEGER)],
+        [10n ** 254n, String(10n ** 254n)],
+      ] as const) {
+        await authed(new ApiClient(server.url).post('/business')).masquerading(id)
+        assert.equal(server.startTargetId, expected)
+      }
+    })
   })
 
   test('fails before sending when the request has no loginAs actor', async ({ assert }) => {
@@ -112,6 +137,7 @@ type ControlServer = {
   replaceOnBusiness?: boolean
   replaceDuringCleanupStatus?: boolean
   stopRequests: number
+  startTargetId?: string
 }
 
 function authed<Request extends object>(request: Request): Request {
@@ -133,11 +159,12 @@ async function withControlServer(run: (server: ControlServer) => Promise<void>) 
       response.writeHead(status, { 'content-type': 'application/json' })
       response.end(JSON.stringify(body))
     }
-    request.resume()
+    const bodyChunks: Buffer[] = []
+    request.on('data', (chunk: Buffer) => bodyChunks.push(chunk))
     request.on('end', () => {
       if (removed) return json(401, { errors: [{ message: 'Unauthorized access' }] })
       if (request.url === '/masquerade' && request.method === 'GET') {
-        const body = {
+        const statusBody = {
           isMasquerading: state.active,
           contextToken: state.currentToken,
         }
@@ -145,9 +172,10 @@ async function withControlServer(run: (server: ControlServer) => Promise<void>) 
           state.replaceDuringCleanupStatus = false
           state.currentToken = 'replacement'
         }
-        return json(200, body)
+        return json(200, statusBody)
       }
       if (request.url === '/masquerade/start') {
+        state.startTargetId = JSON.parse(Buffer.concat(bodyChunks).toString()).targetId
         state.active = !state.idleStartResponse
         state.currentToken = 'started'
         return json(200, {
