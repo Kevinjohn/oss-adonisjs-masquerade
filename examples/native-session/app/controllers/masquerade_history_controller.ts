@@ -1,15 +1,20 @@
 import type { HttpContext } from '@adonisjs/core/http'
 import db from '@adonisjs/lucid/services/db'
-import type User from '#models/user'
+import { parseAuditHistoryFilters } from '#services/audit_history_query'
+import { currentAccountForAuditIdentity } from '#services/audit_history_identity'
 import { nativeAdapter } from '#config/masquerade'
-import { createAuditHistoryIndex, type AuditHistoryEvent } from '#services/audit_history_handler'
 
 type MasqueradeHistoryContext = Omit<HttpContext, 'bouncer'> & {
   bouncer: { authorize(ability: string): Promise<unknown> }
 }
 
-const indexHistory = createAuditHistoryIndex<User, AuditHistoryEvent & Record<string, unknown>>({
-  async query(filters) {
+export default class MasqueradeHistoryController {
+  async index({ request, response, view, bouncer }: MasqueradeHistoryContext) {
+    await bouncer.authorize('viewMasqueradeHistory')
+
+    const filters = parseAuditHistoryFilters(request.qs())
+    if (filters === null) return response.badRequest()
+
     const events = await db
       .from('masquerade_events')
       .where('authority_namespace', nativeAdapter.authority.namespace)
@@ -32,14 +37,25 @@ const indexHistory = createAuditHistoryIndex<User, AuditHistoryEvent & Record<st
       ])
       .paginate(filters.page, 50)
 
-    return { metadata: events.toJSON().meta, rows: events.all() }
-  },
-  inspectAccount: (id) => nativeAdapter.authority.inspectAccount(id),
-  displayName: (user) => user.fullName,
-})
+    const rows = await Promise.all(
+      events.all().map(async (event) => {
+        const [actor, target] = await Promise.all([
+          currentAccountForAuditIdentity(event.actor_id, event.actor_incarnation, (id) =>
+            nativeAdapter.authority.inspectAccount(id)
+          ),
+          currentAccountForAuditIdentity(event.target_id, event.target_incarnation, (id) =>
+            nativeAdapter.authority.inspectAccount(id)
+          ),
+        ])
 
-export default class MasqueradeHistoryController {
-  index(ctx: MasqueradeHistoryContext) {
-    return indexHistory(ctx)
+        return {
+          ...event,
+          actorName: actor?.fullName ?? event.actor_id,
+          targetName: target?.fullName ?? event.target_id,
+        }
+      })
+    )
+
+    return view.render('admin/masquerade_history', { events: { ...events.toJSON(), data: rows } })
   }
 }
