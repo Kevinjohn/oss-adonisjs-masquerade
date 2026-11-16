@@ -2,8 +2,8 @@
 
 ## Unreleased
 
-- Start Account Kit example Vite servers on an OS-assigned port and wait for the spawned process
-  to report its own address, avoiding false readiness from another local server.
+- Start Account Kit example Vite servers on an OS-assigned port and wait for the server
+  to bind its own listener, avoiding false readiness from another local server.
 
 ### Changed
 
