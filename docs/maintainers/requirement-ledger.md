@@ -520,8 +520,8 @@ latest 7.6.0/10.1.0/4.0.1/22.4.2/8.3.0/6.0.3.
 
 ## V1.2 Account Kit acceptance (T-KIT and T-KIT-HTTP)
 
-**Matrix status:** The optional peer now declares scoped `@kevinjohn/adonisjs-account-kit` `0.3.4` only.
-The `0.3.4` compatibility matrix runs in the update pull request; the `compat` workflow runs on
+**Matrix status:** The optional peer now declares scoped `@kevinjohn/adonisjs-account-kit` `0.4.0` only.
+The `0.4.0` compatibility matrix runs in the update pull request; the `compat` workflow runs on
 every pull request that changes `package.json`. The `0.3.1` pin passed all 16 floor/latest cells
 against its GitHub release artifact in the
 hosted `compat` workflow ([run 42310704826](https://github.com/Kevinjohn/oss-adonisjs-masquerade/actions/runs/42310704826))
