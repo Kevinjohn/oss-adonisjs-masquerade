@@ -72,6 +72,7 @@ const baseEnv = withoutNativePgTestTargets({
   APP_KEY: 'consumer_fixture_key_01234567890123456789',
   LOG_LEVEL: 'error',
   SESSION_DRIVER: 'memory',
+  LIMITER_STORE: 'memory',
   DB_CLIENT: 'sqlite',
   FORCE_COLOR: '0',
   NO_COLOR: '1',
