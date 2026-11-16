@@ -6,6 +6,11 @@ import { join, relative, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { selectRegistryVersion } from './helpers/registry_version.js'
 import {
+  issueNativePgLease,
+  nativePgTarget,
+  revokeNativePgLease,
+} from './helpers/native_pg_lease.js'
+import {
   kitReleaseSha256,
   kitReleaseUrl,
   kitReleaseVersion,
@@ -100,6 +105,7 @@ const baseEnv: NodeJS.ProcessEnv = {
   APP_URL: 'http://127.0.0.1:3397',
   APP_KEY: 'account_kit_consumer_fixture_key_0123456789',
   SESSION_DRIVER: 'database',
+  DB_CLIENT: 'sqlite',
   DB_HOST: process.env.DB_HOST ?? '127.0.0.1',
   DB_PORT: process.env.DB_PORT ?? '55432',
   DB_USER: process.env.DB_USER ?? 'account_kit',
@@ -109,6 +115,16 @@ const baseEnv: NodeJS.ProcessEnv = {
   NO_COLOR: '1',
 }
 delete baseEnv.ACCOUNT_KIT_SOURCE
+for (const key of Object.keys(baseEnv)) {
+  if (
+    key.startsWith('PG') ||
+    key.startsWith('DB_TEST_') ||
+    key === 'DB_SCHEMA' ||
+    key === 'NATIVE_TEST_SQLITE' ||
+    key.startsWith('NATIVE_PG_TEST_LEASE')
+  )
+    delete baseEnv[key]
+}
 
 async function run(
   cwd: string,
@@ -370,7 +386,7 @@ try {
           await cp(kitArtifact, join(app, 'account-kit.tgz'))
           await rewriteManifest(app, versions, selectedProfile)
           const schema = `kit_${randomUUID().replaceAll('-', '')}`
-          const env = {
+          const env: NodeJS.ProcessEnv = {
             ...baseEnv,
             DB_CLIENT: selectedDb,
             DB_SCHEMA: schema,
@@ -387,7 +403,8 @@ try {
           }
           ;(evidence.matrix as unknown[]).push(cell)
           try {
-            let schemaAttempted = false
+            let ownsSchema = false
+            let hasLease = false
             let primaryError: unknown
             try {
               const installation = await run(
@@ -448,8 +465,24 @@ try {
                 cell.postgresVersion = pgVersion.trim()
                 if (!/^16\./m.test(pgVersion.trim()))
                   throw new Error(`PostgreSQL 16 required; found ${pgVersion.trim()}`)
-                schemaAttempted = true
-                await setupPostgres(app, schema, 'create', env)
+                nativePgTarget(env, schema)
+                try {
+                  await setupPostgres(app, schema, 'create', env)
+                } catch (error) {
+                  console.error(
+                    `[account-kit] CREATE SCHEMA not confirmed; left ${schema} untouched`
+                  )
+                  throw error
+                }
+                ownsSchema = true
+                env.DB_TEST_DATABASE = env.DB_DATABASE
+                env.DB_TEST_SCHEMA = schema
+                env.NATIVE_PG_TEST_LEASE = await issueNativePgLease(
+                  app,
+                  nativePgTarget(env, schema)
+                )
+                env.NATIVE_PG_TEST_LEASE_OWNER = String(process.pid)
+                hasLease = true
               }
               await run(
                 app,
@@ -643,12 +676,29 @@ try {
             } catch (error) {
               primaryError = error
             } finally {
-              if (schemaAttempted)
+              if (hasLease)
+                try {
+                  await revokeNativePgLease(app)
+                } catch (error) {
+                  cell.cleanupError = String(error)
+                  primaryError = primaryError
+                    ? new AggregateError(
+                        [primaryError, error],
+                        'Operation and lease cleanup failed'
+                      )
+                    : error
+                }
+              if (ownsSchema)
                 try {
                   await setupPostgres(app, schema, 'drop', env, true)
                 } catch (error) {
                   cell.cleanupError = String(error)
-                  if (!primaryError) primaryError = error
+                  primaryError = primaryError
+                    ? new AggregateError(
+                        [primaryError, error],
+                        'Operation and schema cleanup failed'
+                      )
+                    : error
                 }
             }
             if (primaryError) throw primaryError

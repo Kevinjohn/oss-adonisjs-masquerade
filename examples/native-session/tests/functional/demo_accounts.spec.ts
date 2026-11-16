@@ -331,6 +331,7 @@ function runDemoCommand(
         APP_URL: 'http://localhost:3333',
         SESSION_DRIVER: 'memory',
         DB_CLIENT: dbClient,
+        NATIVE_TEST_SQLITE: dbClient === 'sqlite' ? '1' : undefined,
       },
       encoding: 'utf8',
       stdio: 'pipe',

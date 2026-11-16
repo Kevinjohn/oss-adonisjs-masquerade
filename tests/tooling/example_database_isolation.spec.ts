@@ -1,63 +1,141 @@
 import { test } from '@japa/runner'
 import { spawnSync } from 'node:child_process'
-import { mkdtempSync, rmSync } from 'node:fs'
+import {
+  existsSync,
+  linkSync,
+  mkdtempSync,
+  mkdirSync,
+  readFileSync,
+  rmSync,
+  symlinkSync,
+  writeFileSync,
+} from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join, resolve } from 'node:path'
+import ts from 'typescript'
+import Database from 'better-sqlite3'
+import {
+  issueNativePgLease,
+  nativePgTarget,
+  revokeNativePgLease,
+} from '../../bin/helpers/native_pg_lease.js'
 
 const root = resolve(import.meta.dirname, '../..')
-const nativeConfig = join(root, 'examples/native-session/config/database.ts')
-const apiConfig = join(root, 'examples/with_account_kit/api/config/database.ts')
-
-// Execute the real config module with only its framework imports replaced. Each run owns
-// separate SQLite files, so the fixture can prove the demo's sentinel survives test cleanup.
-const inspectConfig = String.raw`
-import { linkSync, readFileSync, symlinkSync } from 'node:fs'
+const apps = {
+  native: join(root, 'examples/native-session'),
+  api: join(root, 'examples/with_account_kit/api'),
+}
+const envFixture = `NODE_ENV=development
+PORT=3333
+HOST=127.0.0.1
+LOG_LEVEL=error
+APP_KEY=01234567890123456789012345678901
+APP_URL=http://127.0.0.1:3333
+SESSION_DRIVER=memory
+LIMITER_STORE=memory
+DB_CONNECTION=sqlite
+DB_DATABASE=demo_database
+`
+const childScript = String.raw`
+import { readFileSync } from 'node:fs'
 import { join } from 'node:path'
+import { pathToFileURL } from 'node:url'
 import ts from 'typescript'
 import Database from 'better-sqlite3'
 const [configFile, directory] = process.argv.slice(1)
-if (process.env.DB_CLIENT !== 'pg' && process.env.DB_CONNECTION !== 'postgres') {
-  const demo = new Database(join(directory, 'db.sqlite3'))
-  demo.exec("CREATE TABLE users (value TEXT); INSERT INTO users VALUES ('preserve')")
-  demo.close()
-  if (process.env.ISOLATION_LINK === 'symlink') symlinkSync(join(directory, 'db.sqlite3'), join(directory, 'test-db.sqlite3'))
-  if (process.env.ISOLATION_LINK === 'hardlink') linkSync(join(directory, 'db.sqlite3'), join(directory, 'test-db.sqlite3'))
-}
 const moduleUrl = (source) => 'data:text/javascript;base64,' + Buffer.from(source).toString('base64')
-const appUrl = moduleUrl('export default { tmpPath: (name) => ' + JSON.stringify(directory) + ' + "/" + name, inDev: false }')
+const appUrl = moduleUrl('export default { tmpPath: (name) => ' + JSON.stringify(join(directory, 'tmp')) + ' + "/" + name, inDev: false }')
 const lucidUrl = moduleUrl('export const defineConfig = (value) => value')
-const envUrl = moduleUrl('export default { get: (key) => process.env[key] }')
+const envUrl = pathToFileURL(join(directory, 'start/env.js')).href
+const helperUrl = pathToFileURL(join(directory, 'start/test_database_target.js')).href
 let source = readFileSync(configFile, 'utf8')
-if (process.env.ISOLATION_MUTANT === '1') source = source.replace('test-db.sqlite3', 'db.sqlite3')
 source = source.replace("'@adonisjs/core/services/app'", JSON.stringify(appUrl))
 source = source.replace("'@adonisjs/lucid'", JSON.stringify(lucidUrl))
 source = source.replace("'#start/env'", JSON.stringify(envUrl))
+source = source.replace("'#start/test_database_target'", JSON.stringify(helperUrl))
 const compiled = ts.transpileModule(source, { compilerOptions: { module: ts.ModuleKind.ESNext, target: ts.ScriptTarget.ES2022 } }).outputText
 const config = (await import(moduleUrl(compiled))).default
 const active = config.connections[config.connection]
 if (config.connection === 'pg' || config.connection === 'postgres') {
   console.log(JSON.stringify({ database: active.connection.database, schema: active.searchPath?.[0] }))
 } else {
-  const demoFile = join(directory, 'db.sqlite3')
+  const demoFile = join(directory, 'tmp/db.sqlite3')
+  let mutationCount = 0
+  if (process.env.ISOLATION_MUTANT === '1') {
+    active.connection.filename = demoFile
+    mutationCount++
+  }
   const testDb = new Database(active.connection.filename)
-  testDb.exec("CREATE TABLE IF NOT EXISTS users (value TEXT); INSERT INTO users VALUES ('discard'); DELETE FROM users")
+  testDb.exec("CREATE TABLE IF NOT EXISTS users (email TEXT); INSERT INTO users VALUES ('discard@example.test'); DELETE FROM users")
   testDb.close()
   const reopened = new Database(demoFile, { readonly: true })
-  const value = reopened.prepare('SELECT value FROM users').pluck().get()
+  const value = reopened.prepare('SELECT email FROM users').pluck().get()
   reopened.close()
-  console.log(JSON.stringify({ demoFile, testFile: active.connection.filename, value }))
+  console.log(JSON.stringify({ value, demoFile, testFile: active.connection.filename, mutationCount }))
 }
 `
 
-function runConfig(configFile: string, kind: string, environment: Record<string, string>) {
+function fixture(
+  kind: keyof typeof apps,
+  overrides: Record<string, string> = {},
+  files: Record<string, string> = {},
+  link?: 'symlink' | 'hardlink' | 'dangling'
+) {
   const directory = mkdtempSync(join(tmpdir(), 'example-database-isolation-'))
+  const source = apps[kind]
   try {
+    mkdirSync(join(directory, 'start'))
+    mkdirSync(join(directory, 'tmp'))
+    symlinkSync(join(root, 'node_modules'), join(directory, 'node_modules'), 'dir')
+    writeFileSync(join(directory, 'package.json'), '{"type":"module"}')
+    for (const name of ['env.ts', ...(kind === 'native' ? ['test_database_target.ts'] : [])]) {
+      const input = readFileSync(join(source, 'start', name), 'utf8')
+      const output = ts.transpileModule(input, {
+        compilerOptions: { module: ts.ModuleKind.ESNext, target: ts.ScriptTarget.ES2022 },
+      }).outputText
+      writeFileSync(join(directory, 'start', name.replace(/\.ts$/, '.js')), output)
+    }
+    writeFileSync(join(directory, '.env'), envFixture)
+    for (const [name, content] of Object.entries(files))
+      writeFileSync(join(directory, name), content)
+    if (overrides.DB_CLIENT !== 'pg' && overrides.DB_CONNECTION !== 'postgres') {
+      const demo = new Database(join(directory, 'tmp/db.sqlite3'))
+      demo.exec(
+        "CREATE TABLE users (email TEXT); INSERT INTO users VALUES ('operator@example.test')"
+      )
+      demo.close()
+      if (link === 'symlink')
+        symlinkSync(join(directory, 'tmp/db.sqlite3'), join(directory, 'tmp/test-db.sqlite3'))
+      if (link === 'dangling')
+        symlinkSync(join(directory, 'tmp/missing.sqlite3'), join(directory, 'tmp/test-db.sqlite3'))
+      if (link === 'hardlink')
+        linkSync(join(directory, 'tmp/db.sqlite3'), join(directory, 'tmp/test-db.sqlite3'))
+    }
+    const environment = Object.fromEntries(
+      Object.entries(process.env).filter(
+        ([key]) =>
+          !key.startsWith('DB_') &&
+          !key.startsWith('PG') &&
+          !key.startsWith('ISOLATION_') &&
+          !key.startsWith('NATIVE_PG_TEST_LEASE') &&
+          key !== 'ENV_PATH' &&
+          key !== 'NATIVE_TEST_SQLITE' &&
+          key !== 'RUN_CAUSAL_MUTANT'
+      )
+    )
     const result = spawnSync(
       process.execPath,
-      ['--input-type=module', '-e', inspectConfig, configFile, directory, kind],
+      ['--input-type=module', '-e', childScript, join(source, 'config/database.ts'), directory],
       {
         cwd: root,
-        env: { ...process.env, NODE_ENV: 'test', ...environment },
+        env: {
+          ...environment,
+          NODE_ENV: 'test',
+          ...overrides,
+          ...(process.env.RUN_CAUSAL_MUTANT === '1' && (overrides.NODE_ENV ?? 'test') === 'test'
+            ? { ISOLATION_MUTANT: '1' }
+            : {}),
+        },
         encoding: 'utf8',
       }
     )
@@ -67,42 +145,163 @@ function runConfig(configFile: string, kind: string, environment: Record<string,
   }
 }
 
-for (const [kind, configFile, pgConnection] of [
-  ['native', nativeConfig, 'pg'],
-  ['api', apiConfig, 'postgres'],
-] as const) {
-  test(`${kind} tests preserve a separate SQLite demo database`, ({ assert }) => {
-    const result = runConfig(configFile, kind, { DB_CLIENT: 'sqlite', DB_CONNECTION: 'sqlite' })
+for (const kind of ['native', 'api'] as const) {
+  test(`${kind} test cleanup preserves the temporary demo database`, ({ assert }) => {
+    const result = fixture(kind, { DB_CLIENT: 'sqlite', DB_CONNECTION: 'sqlite' })
     assert.equal(result.status, 0, result.stderr)
+    assert.equal(result.output.mutationCount, process.env.RUN_CAUSAL_MUTANT === '1' ? 1 : 0)
+    assert.equal(result.output.value, 'operator@example.test')
     assert.notEqual(result.output.demoFile, result.output.testFile)
-    assert.equal(result.output.value, 'preserve')
   })
 
-  test(`${kind} tests reject a linked demo database`, ({ assert }) => {
-    for (const link of ['symlink', 'hardlink']) {
-      const result = runConfig(configFile, kind, {
-        DB_CLIENT: 'sqlite',
-        DB_CONNECTION: 'sqlite',
-        ISOLATION_LINK: link,
-      })
+  test(`${kind} refuses linked SQLite test files`, ({ assert }) => {
+    for (const link of ['symlink', 'hardlink', 'dangling'] as const) {
+      const result = fixture(kind, { DB_CLIENT: 'sqlite', DB_CONNECTION: 'sqlite' }, {}, link)
       assert.notEqual(result.status, 0)
       assert.match(result.stderr, /SQLite test database must/)
     }
   })
 
-  test(`${kind} PostgreSQL tests require a distinct database`, ({ assert }) => {
-    const common = { DB_CLIENT: 'pg', DB_CONNECTION: pgConnection, DB_DATABASE: 'demo_db' }
-    const missing = runConfig(configFile, kind, common)
-    assert.notEqual(missing.status, 0)
-    assert.match(missing.stderr, /DB_TEST_DATABASE/)
-    const same = runConfig(configFile, kind, { ...common, DB_TEST_DATABASE: 'demo_db' })
-    assert.notEqual(same.status, 0)
-    assert.match(same.stderr, /DB_TEST_DATABASE/)
-    const distinct = runConfig(configFile, kind, {
-      ...common,
-      DB_TEST_DATABASE: 'isolated_test_db',
+  test(`${kind} refuses PostgreSQL without a launch-time ordinary database`, ({ assert }) => {
+    const engine = { DB_CLIENT: 'pg', DB_CONNECTION: 'postgres', DB_TEST_DATABASE: 'test_database' }
+    const fileOnly = fixture(kind, engine)
+    assert.notEqual(fileOnly.status, 0)
+    assert.match(fileOnly.stderr, /exported, nonblank ordinary DB_DATABASE/)
+    const driverDefault = fixture(kind, {
+      ...engine,
+      PGDATABASE: 'demo_database',
+      PGUSER: 'demo_user',
+    })
+    assert.notEqual(driverDefault.status, 0)
+    assert.match(driverDefault.stderr, /exported, nonblank ordinary DB_DATABASE/)
+    const empty = fixture(kind, { ...engine, DB_DATABASE: '' })
+    assert.notEqual(empty.status, 0)
+    assert.match(empty.stderr, /exported, nonblank ordinary DB_DATABASE/)
+  })
+
+  test(`${kind} protects the exported ordinary database through test overlays`, ({ assert }) => {
+    const engine = { DB_CLIENT: 'pg', DB_CONNECTION: 'postgres', DB_DATABASE: 'demo_database' }
+    for (const overlay of ['.env.test', '.env.test.local', '.env.local']) {
+      const result = fixture(
+        kind,
+        { ...engine, DB_TEST_DATABASE: 'demo_database' },
+        { [overlay]: 'DB_DATABASE=shadow_database\n' }
+      )
+      assert.notEqual(result.status, 0)
+      assert.match(result.stderr, /DB_TEST_DATABASE must differ/)
+    }
+    const distinct = fixture(kind, {
+      ...engine,
+      DB_TEST_DATABASE: 'test_database',
+      DB_TEST_SCHEMA: 'public',
+      DB_SCHEMA: 'public',
     })
     assert.equal(distinct.status, 0, distinct.stderr)
-    assert.equal(distinct.output.database, 'isolated_test_db')
+    assert.equal(distinct.output.database, 'test_database')
+    if (kind === 'native') assert.equal(distinct.output.schema, 'public')
   })
 }
+
+test('native demo command children select the guarded test file in development and production', ({
+  assert,
+}) => {
+  for (const mode of ['development', 'production']) {
+    const result = fixture('native', {
+      NODE_ENV: mode,
+      DB_CLIENT: 'sqlite',
+      NATIVE_TEST_SQLITE: '1',
+    })
+    assert.equal(result.status, 0, result.stderr)
+    assert.equal(result.output.value, 'operator@example.test')
+    assert.notEqual(result.output.demoFile, result.output.testFile)
+  }
+  const postgres = fixture('native', {
+    NODE_ENV: 'development',
+    DB_CLIENT: 'pg',
+    NATIVE_TEST_SQLITE: '1',
+  })
+  assert.notEqual(postgres.status, 0)
+  assert.match(postgres.stderr, /only valid for SQLite/)
+})
+
+test('native shared PostgreSQL target requires the exact live runner lease', ({ assert }) => {
+  const schema = `kit_${'a'.repeat(32)}`
+  const nonce = '11111111-1111-4111-8111-111111111111'
+  const env = {
+    DB_CLIENT: 'pg',
+    DB_DATABASE: 'demo_database',
+    DB_TEST_DATABASE: 'demo_database',
+    DB_TEST_SCHEMA: schema,
+    DB_HOST: '127.0.0.1',
+    DB_PORT: '55441',
+    DB_USER: 'fixture_user',
+    NATIVE_PG_TEST_LEASE: nonce,
+    NATIVE_PG_TEST_LEASE_OWNER: String(process.pid),
+  }
+  const record = {
+    database: 'demo_database',
+    schema,
+    host: '127.0.0.1',
+    port: '55441',
+    user: 'fixture_user',
+    nonce,
+    ownerPid: process.pid,
+  }
+  const missing = fixture('native', env)
+  assert.notEqual(missing.status, 0)
+  assert.match(missing.stderr, /runner lease/)
+  const valid = fixture('native', env, { 'tmp/pg-test-lease.json': JSON.stringify(record) })
+  assert.equal(valid.status, 0, valid.stderr)
+  assert.equal(valid.output.database, 'demo_database')
+  assert.equal(valid.output.schema, schema)
+  const mismatch = fixture(
+    'native',
+    { ...env, DB_TEST_SCHEMA: `kit_${'b'.repeat(32)}` },
+    {
+      'tmp/pg-test-lease.json': JSON.stringify(record),
+    }
+  )
+  assert.notEqual(mismatch.status, 0)
+  assert.match(mismatch.stderr, /lease does not match/)
+  const stale = fixture(
+    'native',
+    { ...env, NATIVE_PG_TEST_LEASE_OWNER: '99999999' },
+    {
+      'tmp/pg-test-lease.json': JSON.stringify({ ...record, ownerPid: 99999999 }),
+    }
+  )
+  assert.notEqual(stale.status, 0)
+  assert.match(stale.stderr, /owner is no longer running/)
+})
+
+test('matrix lease writer refuses collisions and revokes its record', async ({ assert }) => {
+  const directory = mkdtempSync(join(tmpdir(), 'native-pg-lease-'))
+  mkdirSync(join(directory, 'tmp'))
+  try {
+    const target = nativePgTarget(
+      {
+        DB_DATABASE: 'fixture_db',
+        DB_HOST: '127.0.0.1',
+        DB_PORT: '55441',
+        DB_USER: 'fixture_user',
+      },
+      `kit_${'a'.repeat(32)}`
+    )
+    const nonce = await issueNativePgLease(directory, target)
+    const record = JSON.parse(readFileSync(join(directory, 'tmp/pg-test-lease.json'), 'utf8'))
+    assert.equal(record.nonce, nonce)
+    assert.equal(record.database, target.database)
+    assert.equal(record.schema, target.schema)
+    let collision: unknown
+    try {
+      await issueNativePgLease(directory, target)
+    } catch (error) {
+      collision = error
+    }
+    assert.equal((collision as NodeJS.ErrnoException)?.code, 'EEXIST')
+    await revokeNativePgLease(directory)
+    assert.isFalse(existsSync(join(directory, 'tmp/pg-test-lease.json')))
+  } finally {
+    rmSync(directory, { recursive: true, force: true })
+  }
+})

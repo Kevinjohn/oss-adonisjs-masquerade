@@ -1,31 +1,27 @@
 import app from '@adonisjs/core/services/app'
 import env from '#start/env'
 import { defineConfig } from '@adonisjs/lucid'
-import { existsSync, lstatSync, statSync } from 'node:fs'
+import { lstatSync, statSync } from 'node:fs'
 
 const testing = env.get('NODE_ENV') === 'test'
 const demoSqlite = app.tmpPath('db.sqlite3')
 const testSqlite = app.tmpPath('test-db.sqlite3')
 
-if (testing && env.get('DB_CONNECTION') === 'sqlite' && existsSync(testSqlite)) {
-  if (lstatSync(testSqlite).isSymbolicLink())
-    throw new Error('SQLite test database must not be a symlink')
-  if (existsSync(demoSqlite)) {
-    const testFile = statSync(testSqlite)
+const testFile =
+  testing && env.get('DB_CONNECTION') === 'sqlite'
+    ? lstatSync(testSqlite, { throwIfNoEntry: false })
+    : undefined
+if (testFile) {
+  if (testFile.isSymbolicLink()) throw new Error('SQLite test database must not be a symlink')
+  if (lstatSync(demoSqlite, { throwIfNoEntry: false })) {
+    const selected = statSync(testSqlite)
     const demoFile = statSync(demoSqlite)
-    if (testFile.dev === demoFile.dev && testFile.ino === demoFile.ino) {
+    if (selected.dev === demoFile.dev && selected.ino === demoFile.ino) {
       throw new Error('SQLite test database must differ from the demo database')
     }
   }
 }
 const postgresDatabase = testing ? env.get('DB_TEST_DATABASE') : env.get('DB_DATABASE')
-if (
-  testing &&
-  env.get('DB_CONNECTION') === 'postgres' &&
-  (!postgresDatabase || postgresDatabase === env.get('DB_DATABASE'))
-) {
-  throw new Error('PostgreSQL tests require DB_TEST_DATABASE distinct from DB_DATABASE')
-}
 
 const dbConfig = defineConfig({
   /**
