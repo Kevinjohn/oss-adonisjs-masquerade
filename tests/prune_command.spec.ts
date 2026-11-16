@@ -15,7 +15,8 @@ test.group('masquerade:prune Ace command', () => {
 
   test('executes through Ace with the native application services', async ({ assert }) => {
     const f = fixture()
-    Object.defineProperty(f.store, 'testOnly', { value: false })
+    const previousNodeEnvironment = process.env.NODE_ENV
+    process.env.NODE_ENV = 'test'
     const service = await f.create()
     await f.start(service)
     const ignitor = new IgnitorFactory()
@@ -33,20 +34,25 @@ test.group('masquerade:prune Ace command', () => {
     const listenerRejected = new Promise<unknown>((resolve) => {
       resolveListenerError = resolve
     })
-    await ignitor
-      .ace()
-      .configure(async (app) => {
-        await app.boot()
-        const emitter = (await app.container.make('emitter')) as unknown as {
-          on(event: string, listener: () => void): void
-          onError(callback: (event: string, error: unknown, data: unknown) => void): void
-        }
-        emitter.onError((_event, error) => resolveListenerError(error))
-        emitter.on('masquerade:expired', () => {
-          throw new Error('expiry listener rejected')
+    try {
+      await ignitor
+        .ace()
+        .configure(async (app) => {
+          await app.boot()
+          const emitter = (await app.container.make('emitter')) as unknown as {
+            on(event: string, listener: () => void): void
+            onError(callback: (event: string, error: unknown, data: unknown) => void): void
+          }
+          emitter.onError((_event, error) => resolveListenerError(error))
+          emitter.on('masquerade:expired', () => {
+            throw new Error('expiry listener rejected')
+          })
         })
-      })
-      .handle(['masquerade:prune', '--batch-size=1'])
+        .handle(['masquerade:prune', '--batch-size=1'])
+    } finally {
+      if (previousNodeEnvironment === undefined) delete process.env.NODE_ENV
+      else process.env.NODE_ENV = previousNodeEnvironment
+    }
     const row = await f.store.read(f.owner)
     assert.equal(row?.state, 'idle')
     const listenerError = await listenerRejected

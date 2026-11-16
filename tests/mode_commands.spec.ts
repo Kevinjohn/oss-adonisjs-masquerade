@@ -9,8 +9,13 @@ async function ace(
   argv: string[],
   logger?: { info(...args: unknown[]): void; error(...args: unknown[]): void },
   answer?: boolean,
-  output?: string[]
+  output?: string[],
+  nodeEnvironment = 'test'
 ) {
+  const previousNodeEnvironment = process.env.NODE_ENV
+  const previousExitCode = process.exitCode
+  process.env.NODE_ENV = nodeEnvironment
+  process.exitCode = 0
   const ignitor = new IgnitorFactory()
     .withCoreProviders()
     .withCoreConfig()
@@ -30,25 +35,29 @@ async function ace(
     console.log = (...args: unknown[]) => output.push(args.map(String).join(' '))
     console.error = console.log
   }
-  await kernel
-    .configure(async (app) => {
-      await app.boot()
-      if (logger) app.container.bindValue('logger', logger as never)
-      if (answer !== undefined) {
-        const commands = await app.container.make('ace')
-        commands.executing((command) => {
-          const trap = command.prompt.trap('End every active masquerade mode?')
-          if (answer) trap.accept()
-          else trap.reject()
-        })
-      }
-    })
-    .handle(argv)
-    .finally(() => {
-      console.log = print.log
-      console.error = print.error
-    })
-  exitCode = process.exitCode as number | undefined
+  try {
+    await kernel
+      .configure(async (app) => {
+        await app.boot()
+        if (logger) app.container.bindValue('logger', logger as never)
+        if (answer !== undefined) {
+          const commands = await app.container.make('ace')
+          commands.executing((command) => {
+            const trap = command.prompt.trap('End every active masquerade mode?')
+            if (answer) trap.accept()
+            else trap.reject()
+          })
+        }
+      })
+      .handle(argv)
+    exitCode = process.exitCode as number | undefined
+  } finally {
+    console.log = print.log
+    console.error = print.error
+    if (previousNodeEnvironment === undefined) delete process.env.NODE_ENV
+    else process.env.NODE_ENV = previousNodeEnvironment
+    process.exitCode = previousExitCode
+  }
   process.exitCode = 0
   return exitCode
 }
@@ -73,7 +82,6 @@ test.group('masquerade:status and masquerade:stop Ace commands', () => {
 
   test('status lists and stop ends a mode through Ace', async ({ assert }) => {
     const f = fixture()
-    Object.defineProperty(f.store, 'testOnly', { value: false })
     // The command reads the real clock, so the mode must still be live now.
     f.state.now = Date.now()
     const service = await f.create()
@@ -94,11 +102,60 @@ test.group('masquerade:status and masquerade:stop Ace commands', () => {
     assert.equal(f.store.events.at(-1)?.outcomeCode, OPERATOR_STOP_OUTCOME)
   })
 
+  test('operator commands accept the test-only store only in the Node test environment', async ({
+    assert,
+  }) => {
+    for (const command of ['status', 'stop --all --force', 'prune']) {
+      const f = fixture()
+      f.state.now = Date.now()
+      const service = await f.create()
+      await f.start(service)
+      const argv = [
+        'masquerade:' + command.replace(' --all --force', ''),
+        ...command.split(' ').slice(1),
+      ]
+      assert.notEqual(await ace(f.config, argv), 1)
+
+      const production = fixture()
+      production.state.now = Date.now()
+      const productionService = await production.create()
+      await production.start(productionService)
+      let storeFactories = 0
+      production.config.store = async () => {
+        storeFactories++
+        return production.store
+      }
+      const requiredOperation = command === 'prune' ? 'expiredBatch' : 'activeBatch'
+      let operationCalls = 0
+      if (requiredOperation === 'activeBatch') {
+        const originalOperation = production.store.activeBatch.bind(production.store)
+        production.store.activeBatch = async (input) => {
+          operationCalls++
+          return originalOperation(input)
+        }
+      } else {
+        const originalOperation = production.store.expiredBatch.bind(production.store)
+        production.store.expiredBatch = async (input) => {
+          operationCalls++
+          return originalOperation(input)
+        }
+      }
+      const output: string[] = []
+      assert.equal(
+        await ace(production.config, argv, undefined, undefined, output, 'production'),
+        1
+      )
+      assert.equal(storeFactories, 1)
+      assert.equal(operationCalls, 0)
+      const remaining = await production.store.read(production.owner)
+      assert.equal(remaining?.state, 'active')
+    }
+  })
+
   test('out-of-range --limit and --batch-size are input errors, not outages', async ({
     assert,
   }) => {
     const f = fixture()
-    Object.defineProperty(f.store, 'testOnly', { value: false })
     for (const [argv, flag] of [
       [['masquerade:status', '--limit=0'], '--limit'],
       [['masquerade:prune', '--batch-size=1001'], '--batch-size'],
@@ -116,7 +173,6 @@ test.group('masquerade:status and masquerade:stop Ace commands', () => {
 
   test('stop --all asks first and stops nothing when the answer is no', async ({ assert }) => {
     const f = fixture()
-    Object.defineProperty(f.store, 'testOnly', { value: false })
     f.state.now = Date.now()
     const service = await f.create()
     await f.start(service)
@@ -129,13 +185,34 @@ test.group('masquerade:status and masquerade:stop Ace commands', () => {
     assert.equal(f.store.events.at(-1)?.outcomeCode, OPERATOR_STOP_OUTCOME)
   })
 
+  test('stop --all reports a conflict-limited scan without overstating the stopped count', async ({
+    assert,
+  }) => {
+    const f = fixture()
+    f.state.now = Date.now()
+    const service = await f.create()
+    await f.start(service)
+    f.store.compareAndSet = async () => ({ status: 'conflict' })
+    const output: string[] = []
+
+    assert.notEqual(
+      await ace(f.config, ['masquerade:stop', '--all', '--force'], undefined, undefined, output),
+      1
+    )
+    const remaining = await f.store.read(f.owner)
+    assert.equal(remaining?.state, 'active')
+    assert.include(
+      output.join('\n'),
+      'Stopped 0 mode(s); the scan made no progress. Run masquerade:stop --all again to retry remaining modes.'
+    )
+  })
+
   test('stop --all --force ends every mode; bad flag combinations stop nothing', async ({
     assert,
   }) => {
     const f = fixture()
     // The command reads the real clock, so the modes must be live by it.
     f.state.now = Date.now()
-    Object.defineProperty(f.store, 'testOnly', { value: false })
     const service = await f.create()
     await f.start(service)
     await f.start(service, { actorId: 'c' })
@@ -156,7 +233,6 @@ test.group('masquerade:status and masquerade:stop Ace commands', () => {
 
   test('stop reports an unknown operator account without stopping anything', async ({ assert }) => {
     const f = fixture()
-    Object.defineProperty(f.store, 'testOnly', { value: false })
     const service = await f.create()
     await f.start(service)
     f.users.delete('a')
@@ -180,7 +256,6 @@ test.group('masquerade:status and masquerade:stop Ace commands', () => {
     assert,
   }) => {
     const f = fixture()
-    Object.defineProperty(f.store, 'testOnly', { value: false })
     const service = await f.create()
     await f.start(service)
     const inspections = f.state.inspectCount

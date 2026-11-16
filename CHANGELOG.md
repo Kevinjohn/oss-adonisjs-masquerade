@@ -17,6 +17,8 @@
   the generated `userProvider` import.
 - `node ace configure` inserts the effective guard by property order when another guard comes first.
 - `node ace configure` preserves unrelated host string literals while formatting generated wiring.
+- Use the Node environment when opening stores from Ace commands.
+- Report when `masquerade:stop --all` stops after a no-progress batch.
 - Verify stale expiry batches against newer modes on independent SQL connections.
 
 - Record the attempted target and access for a denied second start without copying the active target's incarnation.

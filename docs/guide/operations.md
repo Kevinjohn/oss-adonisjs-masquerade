@@ -110,7 +110,9 @@ node ace masquerade:stop --all
   authority (`incarnation: 'id'` uses the ID). For a deleted or reused account, pass
   `--incarnation` with the value `masquerade:status` prints.
 - `--all` asks for confirmation; pass `--force` in scripts. It processes active modes in batches
-  until none are left or a batch makes no progress.
+  until it reads an empty batch or a batch makes no progress. If contention prevents progress,
+  the command reports the stopped count and asks you to run it again; it does not claim that all
+  modes were stopped.
 - Each stop re-reads the row and uses a conditional transition, and writes one `invalidated`
   event with the outcome code `operator_stopped`. If the operator stops the mode at the same time,
   one transition wins and one event is written. A mode already past its deadline is recorded as

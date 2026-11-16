@@ -128,6 +128,8 @@ test.group('masquerade:routes Ace command', () => {
       assert.include(report, 'web\n')
       assert.include(report, 'GET')
       assert.include(report, '/admin/accounts')
+      assert.isBelow(report.indexOf('/admin/accounts'), report.indexOf('/masquerade/start'))
+      assert.isBelow(report.indexOf('/masquerade/start'), report.indexOf('/business/start'))
       assert.include(report, 'sensitive')
       assert.include(report, 'RAW-GUARD BUSINESS')
       assert.include(report, '/masquerade/start [CONTROL MUTATION]')
