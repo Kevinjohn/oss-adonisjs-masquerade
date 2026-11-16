@@ -8,6 +8,8 @@
 
 ### Fixed
 
+- The Japa API client helper requires a successful start control to report an active mode and a
+  successful stop control to report an idle mode before treating either operation as complete.
 - `node ace configure` stops when `config/database.ts` exists but fails to load, or `package.json`
   is not JSON, instead of writing the migration to `database/migrations` and assuming
   `app/models/user`. A missing file still falls back to those defaults.

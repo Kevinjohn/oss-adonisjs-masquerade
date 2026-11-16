@@ -53,6 +53,28 @@ test.group('masqueradeApiClient', (group) => {
       assert.equal(server.businessToken, 'started')
     })
   })
+
+  test('does not send the business request when start reports an idle mode', async ({ assert }) => {
+    await withControlServer(async (server) => {
+      server.idleStartResponse = true
+      await assert.rejects(
+        () => authed(new ApiClient(server.url).post('/business')).masquerading('7'),
+        /masquerading\(\) start control returned 200/
+      )
+      assert.equal(server.businessRequests, 0)
+    })
+  })
+
+  test('reports a stop response that still says the mode is active', async ({ assert }) => {
+    await withControlServer(async (server) => {
+      server.activeStopResponse = true
+      await assert.rejects(
+        () => authed(new ApiClient(server.url).post('/business')).masquerading('7'),
+        /masquerading\(\) stop control returned 200/
+      )
+      assert.equal(server.businessRequests, 1)
+    })
+  })
 })
 
 type ControlServer = {
@@ -60,6 +82,9 @@ type ControlServer = {
   active: boolean
   businessToken?: string
   removeOperatorOnBusiness: boolean
+  idleStartResponse?: boolean
+  activeStopResponse?: boolean
+  businessRequests: number
 }
 
 function authed<Request extends object>(request: Request): Request {
@@ -67,7 +92,12 @@ function authed<Request extends object>(request: Request): Request {
 }
 
 async function withControlServer(run: (server: ControlServer) => Promise<void>) {
-  const state: ControlServer = { url: '', active: false, removeOperatorOnBusiness: false }
+  const state: ControlServer = {
+    url: '',
+    active: false,
+    removeOperatorOnBusiness: false,
+    businessRequests: 0,
+  }
   let removed = false
   const http = createServer((request, response) => {
     const json = (status: number, body: unknown) => {
@@ -83,13 +113,20 @@ async function withControlServer(run: (server: ControlServer) => Promise<void>) 
           contextToken: state.active ? 'started' : 'idle',
         })
       if (request.url === '/masquerade/start') {
-        state.active = true
-        return json(200, { isMasquerading: true, contextToken: 'started' })
+        state.active = !state.idleStartResponse
+        return json(200, {
+          isMasquerading: state.idleStartResponse ? false : true,
+          contextToken: 'started',
+        })
       }
       if (request.url === '/masquerade/stop') {
         state.active = false
-        return json(200, { isMasquerading: false, contextToken: 'idle' })
+        return json(200, {
+          isMasquerading: state.activeStopResponse ? true : false,
+          contextToken: 'idle',
+        })
       }
+      state.businessRequests++
       state.businessToken = request.headers['x-masquerade-context'] as string | undefined
       if (state.removeOperatorOnBusiness) removed = true
       return json(200, {})

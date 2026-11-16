@@ -80,7 +80,8 @@ export function masqueradeApiClient(pluginOptions: MasqueradeApiClientOptions = 
             ...(reason === undefined ? {} : { reason }),
             ...(durationSeconds === undefined ? {} : { durationSeconds }),
           }),
-        'start'
+        'start',
+        true
       )
       // A token the test set itself is what it means to send, such as a stale one.
       const explicit = (request.request as { get(field: string): unknown }).get(CONTEXT_HEADER)
@@ -96,7 +97,8 @@ export function masqueradeApiClient(pluginOptions: MasqueradeApiClientOptions = 
         if (!current.isMasquerading) return
         await expectMode(
           await control('POST', '/stop').header(CONTEXT_HEADER, current.contextToken).json({}),
-          'stop'
+          'stop',
+          false
         )
       }
     })
@@ -112,13 +114,15 @@ function targetId(target: MasqueradeTarget): string {
 
 async function expectMode(
   response: ApiResponse,
-  control: string
+  control: string,
+  expectedState?: boolean
 ): Promise<{ isMasquerading: boolean; contextToken: string }> {
   const body = response.body() as { isMasquerading?: unknown; contextToken?: unknown } | undefined
   if (
     response.status() !== 200 ||
     typeof body?.isMasquerading !== 'boolean' ||
-    typeof body.contextToken !== 'string'
+    typeof body.contextToken !== 'string' ||
+    (expectedState !== undefined && body.isMasquerading !== expectedState)
   )
     throw new RuntimeException(
       `masquerading() ${control} control returned ${response.status()}: ${JSON.stringify(body)}`
