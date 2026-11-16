@@ -2,54 +2,33 @@
 
 ## Unreleased
 
-- Start Account Kit example Vite servers on an OS-assigned port and wait for the server
-  to bind its own listener, avoiding false readiness from another local server.
+## 0.3.0 - 2026-11-16
 
 ### Changed
 
 - Require Account Kit `0.4.0` exactly. Align the pinned release artifact and examples with this release.
+- Isolate destructive native-session and combined API example tests from ordinary demo databases;
+  PostgreSQL matrix runs use owned schemas and explicit test targets.
 
 ### Fixed
 
-- Combined React and Vue examples clear identity-bearing history after account transitions.
-- Combined workspaces retain a stop action for expired modes and load a bounded account chooser only while idle.
-- The route coverage command preserves route order without copying every prior line on each append.
-
-- Maintainer checks clarify that local full and browser profiles select CI coverage rather than
-  mirroring every matrix, and document the separate API starter command.
-- The changed-check planner runs the SQLite recipe only for files its recipe runner consumes.
-- `node ace configure` validates existing middleware order and effective guard factories before
-  accepting host wiring as complete.
-- `node ace configure` checks default, namespace, named alias and variable bindings before adding
-  the generated `userProvider` import.
-- `node ace configure` inserts the effective guard by property order when another guard comes first.
-- `node ace configure` preserves unrelated host string literals while formatting generated wiring.
-- Use the Node environment when opening stores from Ace commands.
-- Report when `masquerade:stop --all` stops after a no-progress batch.
-- Match history labels to the current account ID and incarnation before showing a name.
-- Validate audit-history date and page filters before converting dates or querying.
-- Verify stale expiry batches against newer modes on independent SQL connections.
-- Record the attempted target and access for a denied second start without copying the active target's incarnation.
-- Check exact applied transition acknowledgements in the control store conformance helper.
-- Reject SQL end events that change the active mode ID or carry a start-only reason.
-- The Japa API client helper requires a successful start control to report an active mode and a
-  successful stop control to report an idle mode before treating either operation as complete.
-- The Japa API client helper stops only the mode it started; a replacement mode remains active.
-- The Japa API client helper rejects numeric target IDs that are not safe integers before
-  converting them to strings; explicit string and bigint IDs remain supported.
-- Native-session and combined API example tests use separate SQLite files from their running
-  demos and require an exported ordinary PostgreSQL database plus an explicit test target before
-  changing tables. The native consumer matrices authorize only their own created test schemas.
-- Native session guard lookup failures are reported as unavailable while native unauthorized
-  exceptions pass through unchanged.
-- `shareMasquerade` sets private, no-store cache headers after sharing owner-specific status.
-- Provider readiness rejects a control route guard without a configured native adapter while
-  allowing unrelated unadapted raw guards.
-- `node ace configure` stops when `config/database.ts` exists but fails to load, or `package.json`
-  is not JSON, instead of writing the migration to `database/migrations` and assuming
-  `app/models/user`. A missing file still falls back to those defaults.
-- `masquerade:stop` reports an overlong `--actor` or `--incarnation` as invalid input. The advice to
-  pass `--incarnation` is kept for an account the authority cannot find.
+- `node ace configure` checks existing auth and middleware wiring, import bindings and guard order
+  before reporting success; formatting preserves unrelated host string values. Invalid database
+  configuration or package JSON now stops setup without guessing output paths.
+- Audit-history recipes validate date and page filters and show current account names only for an
+  exact stored ID and incarnation match.
+- Store transitions reject mismatched end events and reasons; denied starts record the attempted
+  target without borrowing the active mode's identity. Conformance checks verify applied IDs.
+- Japa helpers reject malformed successful control responses and unsafe numeric IDs, and clean up
+  only the mode they started.
+- Native guard lookup failures retain their meaning; shared Edge status uses private, no-store
+  cache headers, and provider readiness checks control route adapters.
+- Ace commands use the Node environment, validate oversized stop arguments, and report when an
+  all-mode stop scan makes no progress. Route coverage preserves order efficiently.
+- Combined workspaces retain stop controls for expired modes, bound account chooser loading, and
+  clear identity-bearing history after account transitions.
+- Local check profiles and recipe selection now describe their actual coverage. Account Kit example
+  Vite servers use an OS-assigned port and wait for their own listener.
 
 ## 0.2.9 - 2026-11-14
 
