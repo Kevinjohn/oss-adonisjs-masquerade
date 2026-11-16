@@ -1,9 +1,7 @@
 import { test } from '@japa/runner'
 import { readFile } from 'node:fs/promises'
 
-test('the audit history guide matches the native-session recipe controller', async ({
-  assert,
-}) => {
+test('the audit history guide matches the native-session recipe controller', async ({ assert }) => {
   const page = await readFile(new URL('../docs/guide/audit.md', import.meta.url), 'utf8')
   const controller = await readFile(
     new URL(
