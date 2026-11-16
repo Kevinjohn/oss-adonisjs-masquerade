@@ -113,6 +113,27 @@ test.group('configure wiring', (group) => {
     }
   })
 
+  test('skips auth wiring when generated import names collide with local bindings', async ({
+    assert,
+  }) => {
+    const declarations = [
+      "import userProvider from '#services/other_provider'\n",
+      "import * as userProvider from '#services/other_provider'\n",
+      "import { otherProvider as userProvider } from '#services/other_provider'\n",
+      'const userProvider = customProvider\n',
+    ]
+    for (const declaration of declarations) {
+      const source = `${declaration}${starterAuthConfig}`
+      const h = await host({ auth: source })
+      try {
+        assert.equal(await wireAuthGuards(h.project(), h.auth, 'web'), 'skipped')
+        assert.equal(await readFile(h.auth, 'utf8'), source)
+      } finally {
+        await rm(h.root, { recursive: true, force: true })
+      }
+    }
+  })
+
   test('only inserts the context middleware right after initialize_auth', async ({ assert }) => {
     const silentFirst = starterKernel.replace(
       "  () => import('@adonisjs/auth/initialize_auth_middleware'),\n  () => import('#middleware/silent_auth_middleware'),",

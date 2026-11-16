@@ -243,6 +243,21 @@ export async function wireStatusMiddleware(
   return 'wired'
 }
 
+function hasLocalBinding(file: SourceFile, name: string): boolean {
+  if (file.getVariableDeclaration(name)) return true
+  for (const declaration of file.getImportDeclarations()) {
+    if (declaration.getDefaultImport()?.getText() === name) return true
+    if (declaration.getNamespaceImport()?.getText() === name) return true
+    if (
+      declaration
+        .getNamedImports()
+        .some((named) => (named.getAliasNode()?.getText() ?? named.getName()) === name)
+    )
+      return true
+  }
+  return false
+}
+
 /**
  * Turn the starter-kit session guard into a raw guard that reuses the generated user provider,
  * add its effective guard and make that the default. Any other shape is left unchanged.
@@ -283,17 +298,8 @@ export async function wireAuthGuards(
   )
     return 'skipped'
   const rawName = `${guard.replace(/[-_]+([a-z0-9])/gi, (_, next: string) => next.toUpperCase())}Guard`
-  const taken = ['userProvider', 'effectiveSessionGuard', rawName]
-  if (
-    taken.some(
-      (name) =>
-        file.getVariableDeclaration(name) ||
-        file.getImportDeclaration((entry) =>
-          entry.getNamedImports().some((named) => named.getName() === name)
-        )
-    )
-  )
-    return 'skipped'
+  const taken = new Set(['userProvider', 'effectiveSessionGuard', rawName])
+  if ([...taken].some((name) => hasLocalBinding(file, name))) return 'skipped'
 
   provider.setInitializer('userProvider')
   const rawFactory = raw.getInitializer()!.getText()
