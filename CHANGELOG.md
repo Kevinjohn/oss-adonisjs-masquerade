@@ -8,6 +8,10 @@
 
 ### Fixed
 
+- Record the attempted target and access for a denied second start without copying the active target's incarnation.
+- Check exact applied transition acknowledgements in the control store conformance helper.
+- Reject SQL end events that change the active mode ID or carry a start-only reason.
+
 - `node ace configure` stops when `config/database.ts` exists but fails to load, or `package.json`
   is not JSON, instead of writing the migration to `database/migrations` and assuming
   `app/models/user`. A missing file still falls back to those defaults.

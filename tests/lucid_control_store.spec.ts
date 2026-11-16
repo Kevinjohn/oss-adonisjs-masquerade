@@ -158,6 +158,63 @@ test.group('Lucid control store', () => {
       await f.cleanup()
     }
   })
+  test('rejects malformed end events without changing the active row or ledger', async ({
+    assert,
+  }) => {
+    const f = await sqlFixture()
+    try {
+      const start = transition()
+      start.next = {
+        ...start.next,
+        state: 'active',
+        access: 'view',
+        targetId: 'target',
+        targetIncarnation: 'target-v1',
+        actorStampHash: 'a'.repeat(64),
+        targetStampHash: 'b'.repeat(64),
+        reason: 'case',
+        startedAt: start.event.at,
+        expiresAt: '2026-01-01T00:15:00.000Z',
+      }
+      start.event = {
+        ...start.event,
+        kind: 'started',
+        outcomeCode: 'started',
+        targetId: 'target',
+        targetIncarnation: 'target-v1',
+        access: 'view',
+        reason: 'case',
+      }
+      await f.store.compareAndSet(start)
+      const end = transition(2)
+      end.owner = start.owner
+      end.expected = 1
+      end.next = { ...end.next, ...start.owner, modeId: start.next.modeId }
+      end.event = {
+        ...end.event,
+        ...start.owner,
+        modeId: start.next.modeId,
+        targetId: 'target',
+        targetIncarnation: 'target-v1',
+        access: 'view',
+      }
+      for (const malformed of [
+        {
+          next: { ...end.next, modeId: randomUUID() },
+          event: { ...end.event, modeId: randomUUID() },
+        },
+        { next: end.next, event: { ...end.event, reason: 'start-only' } },
+      ]) {
+        const command = { ...end, ...malformed }
+        if (command.next.modeId !== end.next.modeId) command.event.modeId = command.next.modeId
+        await assert.rejects(() => f.other.compareAndSet(command))
+        assert.deepEqual(await f.store.read(start.owner), start.next)
+        assert.lengthOf(await f.client.from('masquerade_events'), 1)
+      }
+    } finally {
+      await f.cleanup()
+    }
+  })
   test('retention is bounded, strict before, preserves rows and outcome payload', async ({
     assert,
   }) => {

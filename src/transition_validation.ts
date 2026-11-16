@@ -20,7 +20,9 @@ export function validateTransition(input: CompareAndSetInput, current: ModeRow |
     // A start produces an active row; every other transition kind produces an idle row.
     (next.state === 'active') !== (event.kind === 'started') ||
     !['started', 'stopped', 'expired', 'invalidated'].includes(event.kind) ||
-    (event.kind === 'started' && (event.reason ?? null) !== next.reason)
+    (event.kind === 'started' && (event.reason ?? null) !== next.reason) ||
+    (event.kind !== 'started' && event.reason !== undefined) ||
+    (current?.state === 'active' && next.state === 'idle' && next.modeId !== current.modeId)
   )
     throw unavailable()
 
