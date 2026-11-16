@@ -29,7 +29,10 @@ request bodies as identity metadata.
 The package's control ledger is the `masquerade_events` table created by the generated migration.
 The package ships no history page; a host can list the ledger with its own query and its own admin
 authorization. Keep the route behind the raw `web` guard so an active mode never changes who is
-reviewing. The controller below matches the runnable native-session example. It queries only the
+reviewing. The controller below matches the runnable native-session example. After admin
+authorization, it validates optional ISO `from` and `to` filters and a positive safe-integer
+`page`. Invalid input returns a 400 without package-owned error text; adapt that response to the
+host’s validation renderer. The query is limited to the
 configured authority namespace, selects both stored incarnations, and resolves a current name only
 when that same authority verifies the exact stored ID and incarnation. If an account was deleted,
 its ID was reused, or an event has no verified incarnation, show the stored ID instead. Names are
@@ -51,20 +54,22 @@ router
 ```ts
 import type { HttpContext } from '@adonisjs/core/http'
 import db from '@adonisjs/lucid/services/db'
+import { parseAuditHistoryFilters } from '#services/audit_history_query'
 import { currentAccountForAuditIdentity } from '#services/audit_history_identity'
 import { nativeAdapter } from '#config/masquerade'
 
 export default class MasqueradeHistoryController {
-  async index({ request, view, bouncer }: HttpContext) {
+  async index({ request, response, view, bouncer }: HttpContext) {
     await bouncer.authorize('viewMasqueradeHistory')
 
-    const { from, to, page = 1 } = request.qs()
+    const filters = parseAuditHistoryFilters(request.qs())
+    if (filters === null) return response.badRequest()
 
     const events = await db
       .from('masquerade_events')
       .where('authority_namespace', nativeAdapter.authority.namespace)
-      .if(from, (query) => query.where('at', '>=', new Date(from).toISOString()))
-      .if(to, (query) => query.where('at', '<', new Date(to).toISOString()))
+      .if(filters.from, (query) => query.where('at', '>=', filters.from!))
+      .if(filters.to, (query) => query.where('at', '<', filters.to!))
       .select(
         'at',
         'kind',
@@ -80,7 +85,7 @@ export default class MasqueradeHistoryController {
         { column: 'at', order: 'desc' },
         { column: 'id', order: 'desc' },
       ])
-      .paginate(Number(page) || 1, 50)
+      .paginate(filters.page, 50)
 
     const rows = await Promise.all(
       events.all().map(async (event) => {

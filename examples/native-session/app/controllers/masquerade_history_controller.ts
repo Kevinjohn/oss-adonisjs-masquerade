@@ -1,19 +1,21 @@
 import type { HttpContext } from '@adonisjs/core/http'
 import db from '@adonisjs/lucid/services/db'
+import { parseAuditHistoryFilters } from '#services/audit_history_query'
 import { currentAccountForAuditIdentity } from '#services/audit_history_identity'
 import { nativeAdapter } from '#config/masquerade'
 
 export default class MasqueradeHistoryController {
-  async index({ request, view, bouncer }: HttpContext) {
+  async index({ request, response, view, bouncer }: HttpContext) {
     await bouncer.authorize('viewMasqueradeHistory')
 
-    const { from, to, page = 1 } = request.qs()
+    const filters = parseAuditHistoryFilters(request.qs())
+    if (filters === null) return response.badRequest()
 
     const events = await db
       .from('masquerade_events')
       .where('authority_namespace', nativeAdapter.authority.namespace)
-      .if(from, (query) => query.where('at', '>=', new Date(from).toISOString()))
-      .if(to, (query) => query.where('at', '<', new Date(to).toISOString()))
+      .if(filters.from, (query) => query.where('at', '>=', filters.from!))
+      .if(filters.to, (query) => query.where('at', '<', filters.to!))
       .select(
         'at',
         'kind',
@@ -29,7 +31,7 @@ export default class MasqueradeHistoryController {
         { column: 'at', order: 'desc' },
         { column: 'id', order: 'desc' },
       ])
-      .paginate(Number(page) || 1, 50)
+      .paginate(filters.page, 50)
 
     const rows = await Promise.all(
       events.all().map(async (event) => {
