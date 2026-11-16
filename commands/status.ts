@@ -27,7 +27,7 @@ export default class StatusCommand extends BaseCommand {
     if (!config) throw new InvalidArgumentsException('Masquerade configuration is required')
     const modes = await listActiveModes(
       config,
-      { environment: this.app.getEnvironment() },
+      { environment: this.app.nodeEnvironment },
       { limit }
     )
     if (modes.length === 0) {
