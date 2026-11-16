@@ -18,6 +18,7 @@ const consumerRunnerPath = path.join(repoRoot, 'bin/test_consumer.ts')
 const processHelperPath = path.join(repoRoot, 'bin/helpers/consumer_process.ts')
 const artifactHelperPath = path.join(repoRoot, 'bin/helpers/consumer_artifact.ts')
 const registryVersionPath = path.join(repoRoot, 'bin/helpers/registry_version.ts')
+const nativePgLeasePath = path.join(repoRoot, 'bin/helpers/native_pg_lease.ts')
 
 type FixtureOptions = {
   mode?: 'normal' | 'late-output' | 'hang' | 'timeout' | 'silent-descendant'
@@ -89,6 +90,10 @@ async function fixture(options: FixtureOptions = {}): Promise<Fixture> {
   await writeFile(
     path.join(root, 'bin/helpers/registry_version.ts'),
     await readFile(registryVersionPath)
+  )
+  await writeFile(
+    path.join(root, 'bin/helpers/native_pg_lease.ts'),
+    await readFile(nativePgLeasePath)
   )
 
   const peers = {
