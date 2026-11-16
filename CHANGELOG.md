@@ -8,6 +8,8 @@
 
 ### Fixed
 
+- Native session guard lookup failures are reported as unavailable while native unauthorized
+  exceptions pass through unchanged.
 - `shareMasquerade` sets private, no-store cache headers after sharing owner-specific status.
 - Provider readiness rejects a control route guard without a configured native adapter while
   allowing unrelated unadapted raw guards.

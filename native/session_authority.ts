@@ -78,7 +78,13 @@ export function sessionAuthority<User>(
   return Object.freeze({
     authority: Object.freeze(authority),
     async authenticateActor(ctx: HttpContext) {
-      const raw = ctx.auth.use(guard as never) as GuardContract<User>
+      let raw: GuardContract<User>
+      try {
+        raw = ctx.auth.use(guard as never) as GuardContract<User>
+      } catch (error) {
+        if (error instanceof errors.E_UNAUTHORIZED_ACCESS) throw error
+        throw unavailable()
+      }
       if (raw.driverName !== 'session') throw unavailable()
       let user: User
       try {

@@ -72,7 +72,7 @@ test.group('masquerade HTTP boundary', () => {
     const mode = await shareMasquerade(ctx)
 
     assert.isTrue(mode.isMasquerading)
-    assert.equal(mode.targetId, 'b')
+    if (mode.isMasquerading) assert.equal(mode.targetId, 'b')
     assert.deepEqual(await f.store.read(f.owner), before)
     assert.equal(f.state.policyCount, policyCalls)
     assert.equal(responseState.headers.get('cache-control'), 'private, no-store')
