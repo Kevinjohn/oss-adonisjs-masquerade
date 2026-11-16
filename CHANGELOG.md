@@ -11,6 +11,10 @@
 
 ### Fixed
 
+- Combined React and Vue examples clear identity-bearing history after account transitions.
+- Combined workspaces retain a stop action for expired modes and load a bounded account chooser only while idle.
+- The route coverage command preserves route order without copying every prior line on each append.
+
 - Maintainer checks clarify that local full and browser profiles select CI coverage rather than
   mirroring every matrix, and document the separate API starter command.
 - The changed-check planner runs the SQLite recipe only for files its recipe runner consumes.
@@ -24,13 +28,10 @@
 - Report when `masquerade:stop --all` stops after a no-progress batch.
 - Match history labels to the current account ID and incarnation before showing a name.
 - Validate audit-history date and page filters before converting dates or querying.
-
 - Verify stale expiry batches against newer modes on independent SQL connections.
-
 - Record the attempted target and access for a denied second start without copying the active target's incarnation.
 - Check exact applied transition acknowledgements in the control store conformance helper.
 - Reject SQL end events that change the active mode ID or carry a start-only reason.
-
 - The Japa API client helper requires a successful start control to report an active mode and a
   successful stop control to report an idle mode before treating either operation as complete.
 - The Japa API client helper stops only the mode it started; a replacement mode remains active.
