@@ -26,7 +26,6 @@ export default class InertiaMiddleware extends BaseInertiaMiddleware {
      * transformers for rich data-types like Models.
      */
     if (ctx.session?.flashMessages.get('masqueradeClearHistory')) ctx.inertia.clearHistory()
-    ctx.inertia.encryptHistory()
 
     return {
       errors: ctx.inertia.always(this.getValidationErrors(ctx)),
