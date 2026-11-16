@@ -140,7 +140,8 @@ function waitForCommand(child: ChildProcess, label: string): Promise<void> {
 export async function runWithOwnedVite(
   vite: ChildProcess,
   label: string,
-  startCommand: () => ChildProcess
+  startCommand: () => ChildProcess,
+  cleanupDeadlineMs = 10_000
 ): Promise<void> {
   if (childExit(vite)) throw new Error(`Vite exited before ${label} started`)
 
@@ -159,6 +160,29 @@ export async function runWithOwnedVite(
   } catch (error) {
     console.error(`Could not stop ${label} after Vite exited:`, error)
   }
-  await commandExit.catch(() => {})
+  let deadline: ReturnType<typeof setTimeout> | undefined
+  try {
+    await Promise.race([
+      commandExit.catch(() => {}),
+      new Promise<void>((_, reject) => {
+        deadline = setTimeout(() => {
+          if (command.pid) {
+            try {
+              process.kill(-command.pid, 'SIGKILL')
+            } catch (error) {
+              if ((error as NodeJS.ErrnoException).code !== 'ESRCH') console.error(error)
+            }
+          }
+          reject(
+            new Error(
+              `Vite exited during ${label} (${exitDescription(outcome.exit)}); ${label} did not exit after Vite stopped`
+            )
+          )
+        }, cleanupDeadlineMs)
+      }),
+    ])
+  } finally {
+    if (deadline) clearTimeout(deadline)
+  }
   throw new Error(`Vite exited during ${label} (${exitDescription(outcome.exit)})`)
 }

@@ -134,4 +134,28 @@ test.group('owned Vite readiness', () => {
     command.emit('close', 9, null)
     await assert.rejects(result, /test failed \(9\)/)
   })
+
+  test('bounds cleanup when the test command never closes after Vite exits', async () => {
+    const vite = controlledProcess(12345)
+    const command = controlledProcess(12346)
+    const originalKill = process.kill
+    const signals: Array<[number, string | number | undefined]> = []
+    process.kill = ((pid: number, signal?: NodeJS.Signals | number) => {
+      signals.push([pid, signal])
+      return true
+    }) as typeof process.kill
+
+    try {
+      const result = runWithOwnedVite(vite, 'test', () => command, 1)
+      Object.assign(vite, { exitCode: 1 })
+      vite.emit('exit', 1, null)
+      await assert.rejects(result, /test did not exit after Vite stopped/)
+      assert.deepEqual(signals, [
+        [-12346, 'SIGTERM'],
+        [-12346, 'SIGKILL'],
+      ])
+    } finally {
+      process.kill = originalKill
+    }
+  })
 })
