@@ -16,7 +16,6 @@ on:
       - bin/test_recipe.ts
       - 'bin/test_inertia_*.ts'
       - bin/test_account_kit_demo.ts
-      - bin/test_with_account_kit.ts
       - bin/demo.ts
       - bin/demo_account_kit.ts
       - 'bin/helpers/*account_kit_demo*.ts'
@@ -122,40 +121,3 @@ jobs:
           PORT: 3378
           SESSION_DRIVER: memory
         run: pnpm test:inertia-vue
-
-  with-account-kit:
-    # The starter examples that build on Account Kit's examples. Same start condition as above.
-    if: ${{ github.event_name == 'workflow_dispatch' || !github.event.repository.private }}
-    runs-on: ubuntu-24.04
-    timeout-minutes: 30
-    strategy:
-      fail-fast: false
-      matrix:
-        example: [hypermedia, inertia_react, inertia_vue, api]
-    steps:
-      - uses: actions/checkout@v7
-      - uses: pnpm/action-setup@v6
-      - uses: actions/setup-node@v7
-        with:
-          node-version: 24
-          cache: pnpm
-      - run: pnpm install --frozen-lockfile
-      - name: Check hypermedia with the former Vite port occupied
-        if: matrix.example == 'hypermedia'
-        run: |
-          ready_file="$(mktemp)"
-          rm "$ready_file"
-          node -e 'const { createServer } = require("node:http"); const { writeFileSync } = require("node:fs"); createServer((_, response) => { response.writeHead(503); response.end("occupied") }).listen(5173, "127.0.0.1", () => writeFileSync(process.argv[1], "ready"))' "$ready_file" &
-          listener_pid=$!
-          trap 'kill "$listener_pid" 2>/dev/null || true; rm -f "$ready_file"' EXIT
-          for attempt in {1..50}; do
-            if test -s "$ready_file"; then break; fi
-            if ! kill -0 "$listener_pid" 2>/dev/null; then break; fi
-            sleep 0.1
-          done
-          test -s "$ready_file"
-          pnpm test:with-account-kit --example=hypermedia
-          kill -0 "$listener_pid"
-      - name: Check Account Kit example
-        if: matrix.example != 'hypermedia'
-        run: pnpm test:with-account-kit --example=${{ matrix.example }}

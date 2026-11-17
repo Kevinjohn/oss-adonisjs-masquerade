@@ -60,6 +60,8 @@ router.post('/account/password', [AccountController, 'update']).use(sensitive())
 
 ## Documentation
 
+The [four released starter apps](https://github.com/Kevinjohn/oss-adonisjs-starter-examples/tree/v0.13.0/apps) show Masquerade with Account Kit and Access Control. Follow the [shared integration recipes](https://github.com/Kevinjohn/oss-adonisjs-starter-examples/tree/v0.13.0/docs/cookbook) for the tested route and guard setup.
+
 - [Add support mode to a new AdonisJS app](docs/recipes/starter-kit.md): tested, step by step
 - [Recipes by task](docs/recipes/index.md) and [terms](docs/guide/glossary.md)
 - [Getting started](docs/guide/getting-started.md)

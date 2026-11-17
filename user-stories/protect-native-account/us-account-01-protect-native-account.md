@@ -6,7 +6,7 @@ As an application developer integrating Account Kit, I want account-management r
 **Access:** Host route configuration; blocker checks the authenticated raw account and its active mode.
 **Entry:** Apply `AccountKitAccountBlocker` and raw guard to native account routes; keep logout and CSRF outside the blocked group.
 **Documentation:** [Account Kit integration](../../docs/guide/account-kit.md#block-host-owned-account-routes), [security boundary](../../docs/guide/security.md#account-kit-admission-and-managed-actions).
-**Source:** [AccountKitAccountBlocker](../../account_kit/middleware.ts), [Account Kit example routes](../../examples/with_account_kit/hypermedia/start/routes.ts).
+**Source:** [AccountKitAccountBlocker](../../account_kit/middleware.ts), [Account Kit example routes](https://github.com/Kevinjohn/oss-adonisjs-starter-examples/blob/v0.13.0/apps/hypermedia/start/routes.ts).
 **Coverage:** [Blocker tests](../../tests/account_kit_account_blocker.spec.ts), [Account Kit route tests](../../examples/account-kit/tests/functional/account_kit_routes.spec.ts).
 
 ## Acceptance criteria
@@ -46,4 +46,4 @@ flowchart TD
     H -->|No| E
 ```
 
-**Code references:** [blocker](../../account_kit/middleware.ts), [example route grouping](../../examples/with_account_kit/hypermedia/start/routes.ts), [integration guide](../../docs/guide/account-kit.md#block-host-owned-account-routes), [route report classification](../../commands/routes.ts), [recognized markers](../../src/integration/route_markers.ts).
+**Code references:** [blocker](../../account_kit/middleware.ts), [example route grouping](https://github.com/Kevinjohn/oss-adonisjs-starter-examples/blob/v0.13.0/apps/hypermedia/start/routes.ts), [integration guide](../../docs/guide/account-kit.md#block-host-owned-account-routes), [route report classification](../../commands/routes.ts), [recognized markers](../../src/integration/route_markers.ts).
