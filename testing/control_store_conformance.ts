@@ -23,17 +23,96 @@ export async function assertControlStoreConformance(
     id: randomUUID(),
     modeId: randomUUID(),
     at: '2026-01-01T00:00:00.000Z',
-    kind: 'stopped',
-    outcomeCode: 'stopped',
+    kind: 'started',
+    outcomeCode: 'started',
     revision: 1,
+    targetId: 'initial-target',
+    targetIncarnation: 'target-v1',
+    access: 'view',
+    reason: 'Support ticket 42',
   }
-  const row: IdleModeRow = {
+  const started: ActiveModeRow = {
     ...owner,
     revision: 1,
     revisionNonce: 'a'.repeat(32),
     modeId: event.modeId!,
     lastTransitionId: event.id,
     updatedAt: event.at,
+    state: 'active',
+    access: 'view',
+    targetId: 'initial-target',
+    targetIncarnation: 'target-v1',
+    actorStampHash: 'a'.repeat(64),
+    targetStampHash: 'b'.repeat(64),
+    reason: 'Support ticket 42',
+    startedAt: event.at,
+    expiresAt: '2026-01-01T00:15:00.000Z',
+  }
+  assert.equal(await store.read(owner), null)
+  const competitorId = randomUUID()
+  const competitorModeId = randomUUID()
+  const competitor = {
+    ...started,
+    modeId: competitorModeId,
+    revisionNonce: 'b'.repeat(32),
+    lastTransitionId: competitorId,
+  }
+  const commands = await Promise.all([
+    store.compareAndSet({ owner, expected: null, next: started, event }),
+    store.compareAndSet({
+      owner,
+      expected: null,
+      next: competitor,
+      event: { ...event, id: competitorId, modeId: competitorModeId },
+    }),
+  ])
+  assert.equal(commands.filter((result) => result.status === 'applied').length, 1)
+  assert.equal(commands.filter((result) => result.status === 'conflict').length, 1)
+  for (const [index, result] of commands.entries())
+    if (result.status === 'applied')
+      assert.equal(result.transitionId, index === 0 ? event.id : competitorId)
+  const winner = (await store.read(owner))!
+  const winningIndex = commands.findIndex((result) => result.status === 'applied')
+  assert.deepEqual(winner, winningIndex === 0 ? started : competitor)
+  assert.equal(winner.revision, 1)
+  winner.revision = 99
+  assert.equal((await store.read(owner))!.revision, 1)
+  // The store keeps its own copy of the committed row, not the caller's object.
+  const committedNonce = winner.revisionNonce
+  started.revisionNonce = 'z'.repeat(32)
+  competitor.revisionNonce = 'z'.repeat(32)
+  assert.equal((await store.read(owner))!.revisionNonce, committedNonce)
+  started.revisionNonce = 'a'.repeat(32)
+  competitor.revisionNonce = 'b'.repeat(32)
+  for (const other of [
+    { ...owner, namespace: 'other' },
+    { ...owner, actorId: randomUUID() },
+    { ...owner, actorIncarnation: 'replacement' },
+  ])
+    assert.equal(await store.read(other), null)
+  const stale = await store.compareAndSet({
+    owner,
+    expected: 0,
+    next: { ...started, revision: 2 },
+    event: { ...event, id: randomUUID(), revision: 2 },
+  })
+  assert.equal(stale.status, 'conflict')
+  const skippedId = randomUUID()
+  await assert.rejects(() =>
+    store.compareAndSet({
+      owner,
+      expected: 1,
+      next: { ...started, revision: 3, revisionNonce: 'c'.repeat(32), lastTransitionId: skippedId },
+      event: { ...event, id: skippedId, revision: 3 },
+    })
+  )
+  assert.equal((await store.read(owner))!.revision, 1)
+  const transitionId = randomUUID()
+  const update: IdleModeRow = {
+    ...winner,
+    revision: 2,
+    revisionNonce: 'c'.repeat(32),
+    lastTransitionId: transitionId,
     state: 'idle',
     access: null,
     targetId: null,
@@ -44,82 +123,37 @@ export async function assertControlStoreConformance(
     startedAt: null,
     expiresAt: null,
   }
-  assert.equal(await store.read(owner), null)
-  const competitorId = randomUUID()
-  const commands = await Promise.all([
-    store.compareAndSet({ owner, expected: null, next: row, event }),
-    store.compareAndSet({
-      owner,
-      expected: null,
-      next: { ...row, revisionNonce: 'b'.repeat(32), lastTransitionId: competitorId },
-      event: { ...event, id: competitorId },
-    }),
-  ])
-  assert.equal(commands.filter((result) => result.status === 'applied').length, 1)
-  assert.equal(commands.filter((result) => result.status === 'conflict').length, 1)
-  for (const [index, result] of commands.entries())
-    if (result.status === 'applied')
-      assert.equal(result.transitionId, index === 0 ? event.id : competitorId)
-  const winner = (await store.read(owner))!
-  assert.equal(winner.revision, 1)
-  winner.revision = 99
-  assert.equal((await store.read(owner))!.revision, 1)
-  // The store keeps its own copy of the committed row, not the caller's object.
-  const committedNonce = winner.revisionNonce
-  row.revisionNonce = 'z'.repeat(32)
-  assert.equal((await store.read(owner))!.revisionNonce, committedNonce)
-  row.revisionNonce = 'a'.repeat(32)
-  for (const other of [
-    { ...owner, namespace: 'other' },
-    { ...owner, actorId: randomUUID() },
-    { ...owner, actorIncarnation: 'replacement' },
-  ])
-    assert.equal(await store.read(other), null)
-  const stale = await store.compareAndSet({
-    owner,
-    expected: 0,
-    next: { ...row, revision: 2 },
-    event: { ...event, id: randomUUID(), revision: 2 },
-  })
-  assert.equal(stale.status, 'conflict')
-  // A transition advances the revision by exactly one.
-  const skippedId = randomUUID()
-  await assert.rejects(() =>
-    store.compareAndSet({
-      owner,
-      expected: 1,
-      next: { ...row, revision: 3, revisionNonce: 'c'.repeat(32), lastTransitionId: skippedId },
-      event: { ...event, id: skippedId, revision: 3 },
-    })
-  )
-  assert.equal((await store.read(owner))!.revision, 1)
-  const transitionId = randomUUID()
-  const update = {
-    ...row,
-    revision: 2,
-    revisionNonce: 'c'.repeat(32),
-    lastTransitionId: transitionId,
-  }
   const updated = await store.compareAndSet({
     owner,
     expected: 1,
     next: update,
-    event: { ...event, id: transitionId, revision: 2 },
+    event: {
+      ...event,
+      id: transitionId,
+      modeId: winner.modeId,
+      kind: 'stopped',
+      outcomeCode: 'stopped',
+      revision: 2,
+      reason: undefined,
+    },
   })
   assert.deepEqual(updated, { status: 'applied', transitionId })
   await store.recordControlOutcome({
-    ...event,
+    ...owner,
     id: randomUUID(),
+    modeId: winner.modeId,
+    at: event.at,
     kind: 'control_noop',
+    outcomeCode: 'idle',
     revision: 2,
   })
   assert.deepEqual(await store.read(owner), update)
   // A control outcome is audit only: it never creates or changes a mode row.
   const absent = { ...owner, actorId: randomUUID() }
   await store.recordControlOutcome({
-    ...event,
     ...absent,
     id: randomUUID(),
+    at: event.at,
     kind: 'start_denied',
     outcomeCode: 'E_MASQUERADE_NOT_ALLOWED',
     revision: 0,
@@ -151,8 +185,9 @@ export async function assertControlStoreConformance(
     const id = randomUUID()
     const at = `2026-01-01T00:00:0${index}.000Z`
     const active = {
-      ...row,
+      ...started,
       ...activeOwner,
+      modeId: randomUUID(),
       revision: index === 0 ? 3 : 1,
       revisionNonce: 'd'.repeat(32),
       lastTransitionId: id,
@@ -175,6 +210,7 @@ export async function assertControlStoreConformance(
         ...event,
         ...activeOwner,
         id,
+        modeId: active.modeId,
         at,
         kind: 'started',
         outcomeCode: 'started',
@@ -365,6 +401,7 @@ export async function assertControlStoreConformance(
   const unreasoned = {
     ...activeRows[1]!,
     ...unreasonedOwner,
+    modeId: randomUUID(),
     lastTransitionId: unreasonedId,
     reason: null,
   }
@@ -376,6 +413,7 @@ export async function assertControlStoreConformance(
       ...event,
       ...unreasonedOwner,
       id: unreasonedId,
+      modeId: unreasoned.modeId,
       at: unreasoned.updatedAt,
       kind: 'started',
       outcomeCode: 'started',
@@ -383,6 +421,7 @@ export async function assertControlStoreConformance(
       targetId: unreasoned.targetId,
       targetIncarnation: unreasoned.targetIncarnation,
       access: unreasoned.access,
+      reason: undefined,
     },
   })
   assert.deepEqual(unreasonedResult, { status: 'applied', transitionId: unreasonedId })

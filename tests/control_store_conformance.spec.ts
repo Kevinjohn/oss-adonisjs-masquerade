@@ -128,6 +128,20 @@ class WrongAppliedAcknowledgement extends DelegatingStore {
   }
 }
 
+class ReachableTransitionsOnly extends DelegatingStore {
+  override compareAndSet(input: CompareAndSetInput) {
+    return this.read(input.owner).then((current) => {
+      if ((current === null || current.state === 'idle') && input.next.state === 'idle')
+        throw new Error('Unreachable idle transition')
+      return super.compareAndSet(input)
+    })
+  }
+}
+
+test('conformance uses only reachable idle transitions', async () => {
+  await assertControlStoreConformance(async () => new ReachableTransitionsOnly())
+})
+
 test('conformance rejects an applied acknowledgement for another transition', async ({
   assert,
 }) => {
