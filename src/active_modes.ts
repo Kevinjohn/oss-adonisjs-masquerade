@@ -3,7 +3,14 @@ import { unavailable } from './error_helpers.js'
 import { boundedString } from './bounded_string.js'
 import { openControlStore } from './control_store.js'
 import { validateRow } from './row_validation.js'
-import type { ActiveModeRow, ControlStore, MasqueradeConfig, ModeRow, OwnerKey } from './types.js'
+import type {
+  ActiveModeRow,
+  ControlStore,
+  MasqueradeConfig,
+  ModeRow,
+  OwnerKey,
+  RequestControlStore,
+} from './types.js'
 
 export const DEFAULT_ACTIVE_MODE_LIMIT = 50
 export const MAX_ACTIVE_MODE_LIMIT = 1000
@@ -46,11 +53,11 @@ export function activeCandidate(candidate: ModeRow): ActiveModeRow {
   }
 }
 
-export async function openOperatorStore<User, Request>(
-  config: MasqueradeConfig<User, Request>,
+export async function openOperatorStore<User, Request, K extends keyof ControlStore>(
+  config: MasqueradeConfig<User, Request, RequestControlStore>,
   environment: string,
-  required: readonly (keyof ControlStore)[]
-): Promise<ControlStore> {
+  required: readonly K[]
+): Promise<RequestControlStore & Pick<ControlStore, K>> {
   const validated = defineConfig(config)
   try {
     return await openControlStore(validated.store, environment, required)
@@ -61,7 +68,7 @@ export async function openOperatorStore<User, Request>(
 
 /** Read at most limit active modes visible through the configured store, oldest update first. */
 export async function listActiveModes<User, Request>(
-  config: MasqueradeConfig<User, Request>,
+  config: MasqueradeConfig<User, Request, RequestControlStore>,
   dependencies: { environment: string },
   options: { limit?: number } = {}
 ): Promise<ActiveModeSummary[]> {

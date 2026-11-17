@@ -7,6 +7,8 @@ The [`API entry-point map`](https://kevinjohn.github.io/oss-adonisjs-masquerade/
 
 Masquerade stores one mode per owner and appends an audit event for each committed transition. The public `ControlStore` type is exported from `@kevinjohn/adonisjs-masquerade/types`; a reusable behavioral suite is exported from `@kevinjohn/adonisjs-masquerade/testing`.
 
+An application that serves requests through a separate store can implement `RequestControlStore`: `read`, `compareAndSet`, and `recordControlOutcome`. Supply it through `MasqueradeConfig.store` without a cast. The service checks these request capabilities at creation. The operator listing, stop, and prune commands check their additional store capabilities when invoked. A full `ControlStore` still satisfies the configuration type and remains the contract for the conformance suite. Test-only stores are rejected outside the test environment.
+
 ## Contract
 
 The owner key is the complete tuple `(namespace, actorId, actorIncarnation)`. Treat all three values as part of every read, uniqueness constraint, comparison, and event projection. An account ID reused for a new account lifetime has a different owner key when its incarnation changes.

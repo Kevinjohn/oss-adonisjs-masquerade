@@ -59,6 +59,19 @@ test.group('masquerade in the browser', (group) => {
     await page.goto('/masquerade/accounts')
     await page.getByRole('button', { name: 'Act as customer@example.test' }).waitFor()
     assert.equal(await page.getByRole('button', { name: /^Act as / }).count(), 50)
+    await page.getByText('Showing up to 50 accounts, ordered by email.').waitFor()
+    const displayed = await page.getByRole('button', { name: /^Act as / }).allTextContents()
+    const expected = [
+      'customer@example.test',
+      ...Array.from({ length: 55 }, (_, index) => `zz${index}@example.test`),
+    ]
+      .sort()
+      .slice(0, 50)
+      .map((email) => `Act as ${email}`)
+    assert.deepEqual(
+      displayed.map((text) => text.trim()),
+      expected
+    )
     await page.getByRole('button', { name: 'Act as customer@example.test' }).click()
     await page.getByText('Signed in as customer@example.test.').waitFor()
     assert.equal(
@@ -75,5 +88,60 @@ test.group('masquerade in the browser', (group) => {
     await page.getByRole('link', { name: 'Refresh status' }).waitFor()
     await page.getByRole('link', { name: 'Open their dashboard' }).waitFor({ state: 'hidden' })
     await page.getByText('You are acting as').waitFor({ state: 'hidden' })
+  })
+
+  test('a restored workspace updates at its deadline and keeps the stop action', async ({
+    visit,
+  }) => {
+    masqueradeOperatorEmails.add('operator@example.test')
+    await User.create({ email: 'operator@example.test', password })
+    await User.create({ email: 'customer@example.test', password })
+
+    const page = await visit('/login')
+    await page.getByLabel('Email').fill('operator@example.test')
+    await page.getByLabel('Password').fill(password)
+    await page.getByRole('button', { name: 'Sign in' }).click()
+    await page.getByRole('heading', { name: 'Your account' }).waitFor()
+    await page.goto('/masquerade/accounts')
+    await page.getByRole('button', { name: 'Act as customer@example.test' }).click()
+    await page.getByText('Signed in as customer@example.test.').waitFor()
+
+    await page.goto('/masquerade/accounts')
+    await page.getByText('You are acting as').waitFor()
+    const deadline = Date.parse(
+      (await page.locator('[data-masquerade-deadline]').getAttribute('data-masquerade-deadline'))!
+    )
+    await page.clock.install({ time: deadline - 3_000 })
+    await page.reload()
+    await page.getByText('You are acting as').waitFor()
+    const dispatchPageTransition = (type: 'pagehide' | 'pageshow') =>
+      page.evaluate((eventType) => {
+        const browser = globalThis as unknown as {
+          dispatchEvent: (event: unknown) => boolean
+          PageTransitionEvent: new (type: string, init: { persisted: boolean }) => unknown
+        }
+        browser.dispatchEvent(new browser.PageTransitionEvent(eventType, { persisted: true }))
+      }, type)
+
+    await dispatchPageTransition('pagehide')
+    await page.clock.runFor(1_000)
+    await dispatchPageTransition('pageshow')
+    await page.getByText('You are acting as').waitFor()
+
+    await page.clock.runFor(2_001)
+    await page.getByText('The persisted masquerade mode has expired for this page.').waitFor()
+    await page.getByRole('button', { name: 'Stop masquerade' }).waitFor()
+    await page.getByRole('link', { name: 'Open their dashboard' }).waitFor({ state: 'hidden' })
+
+    await page.clock.setFixedTime(deadline - 2_000)
+    await page.reload()
+    await page.getByText('You are acting as').waitFor()
+    await dispatchPageTransition('pagehide')
+    await page.clock.setFixedTime(deadline + 1)
+    await page.getByText('You are acting as').waitFor()
+    await dispatchPageTransition('pageshow')
+    await page.getByText('The persisted masquerade mode has expired for this page.').waitFor()
+    await page.getByRole('button', { name: 'Stop masquerade' }).waitFor()
+    await page.getByRole('link', { name: 'Open their dashboard' }).waitFor({ state: 'hidden' })
   })
 })

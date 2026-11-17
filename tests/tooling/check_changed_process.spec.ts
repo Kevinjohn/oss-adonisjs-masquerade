@@ -33,11 +33,15 @@ async function fixture(options: FixtureOptions = {}): Promise<Fixture> {
   const root = path.join(directory, 'checkout')
   const bin = path.join(directory, 'bin')
   const supportBin = path.join(directory, 'support-bin')
-  await mkdir(path.join(root, 'bin'), { recursive: true })
+  await mkdir(path.join(root, 'bin/helpers'), { recursive: true })
   await mkdir(bin)
   await mkdir(supportBin)
   await writeFile(path.join(root, 'bin/check_changed.ts'), await readFile(runnerPath))
   await writeFile(path.join(root, 'bin/check_changed_plan.ts'), await readFile(plannerPath))
+  await writeFile(
+    path.join(root, 'bin/helpers/owned_process.ts'),
+    await readFile(path.join(repoRoot, 'bin/helpers/owned_process.ts'))
+  )
   await writeFile(path.join(root, 'package.json'), '{"type":"module"}\n')
   await writeFile(path.join(root, 'README.md'), 'fixture baseline\n')
   await symlink(path.join(repoRoot, 'node_modules'), path.join(root, 'node_modules'), 'dir')

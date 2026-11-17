@@ -1,6 +1,11 @@
 import { InvalidArgumentsException } from '@adonisjs/core/exceptions'
 import { BaseCommand, flags } from '@adonisjs/core/ace'
-import { pruneMasquerade, DEFAULT_PRUNE_BATCH_SIZE, MAX_PRUNE_BATCH_SIZE } from '../src/prune.js'
+import {
+  pruneMasquerade,
+  PruneProgressError,
+  DEFAULT_PRUNE_BATCH_SIZE,
+  MAX_PRUNE_BATCH_SIZE,
+} from '../src/prune.js'
 import type { MasqueradeConfig } from '../src/types.js'
 
 /** Expire outdated modes and apply the configured audit-event retention policy. */
@@ -29,20 +34,29 @@ export default class PruneCommand extends BaseCommand {
     const emitter = emitterService as unknown as {
       emit(name: string, event: unknown): unknown
     }
-    const result = await pruneMasquerade(
-      config,
-      {
-        environment: this.app.nodeEnvironment,
-        emitter: { emit: (name, event) => emitter.emit(name, event) },
-        logger: {
-          info: (event) => logger.info(event, 'Masquerade transition'),
-          error: (event) => logger.error(event, 'Masquerade diagnostic'),
+    let result
+    try {
+      result = await pruneMasquerade(
+        config,
+        {
+          environment: this.app.nodeEnvironment,
+          emitter: { emit: (name, event) => emitter.emit(name, event) },
+          logger: {
+            info: (event) => logger.info(event, 'Masquerade transition'),
+            error: (event) => logger.error(event, 'Masquerade diagnostic'),
+          },
+          observerErrorHandler: () =>
+            logger.error({ code: 'E_MASQUERADE_OBSERVER_FAILED' }, 'Masquerade observer failed'),
         },
-        observerErrorHandler: () =>
-          logger.error({ code: 'E_MASQUERADE_OBSERVER_FAILED' }, 'Masquerade observer failed'),
-      },
-      { batchSize }
-    )
+        { batchSize }
+      )
+    } catch (error) {
+      if (error instanceof PruneProgressError)
+        this.logger.error(
+          `Prune failed during ${error.phase}: confirmed expired ${error.completed.expired} mode(s); confirmed deleted ${error.completed.eventsDeleted} event(s).${error.indeterminate ? ' The failed operation may also have committed.' : ''}`
+        )
+      throw error
+    }
     this.logger.info(`Expired ${result.expired} mode(s); deleted ${result.eventsDeleted} event(s).`)
   }
 }

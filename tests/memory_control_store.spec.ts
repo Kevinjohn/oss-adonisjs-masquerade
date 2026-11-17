@@ -115,3 +115,28 @@ test('memory CAS rejects a malformed row as the Lucid store does', async ({ asse
     )
   assert.deepEqual(await f.store.read(f.owner), row)
 })
+
+test('memory store rejects duplicate retained event IDs without changing row or revision', async ({
+  assert,
+}) => {
+  const f = fixture()
+  await f.start(await f.create())
+  const row = (await f.store.read(f.owner))!
+  const event = f.store.events[0] as TransitionEvent
+  await assert.rejects(() => f.store.recordControlOutcome({ ...event, kind: 'control_noop' }))
+  assert.lengthOf(f.store.events, 1)
+  const duplicate = {
+    owner: f.owner,
+    expected: row.revision,
+    next: { ...row, revision: row.revision + 1, lastTransitionId: event.id },
+    event: { ...event, revision: row.revision + 1 },
+  }
+  await assert.rejects(() => f.store.compareAndSet(duplicate))
+  assert.deepEqual(await f.store.read(f.owner), row)
+  assert.lengthOf(f.store.events, 1)
+  assert.equal(await f.store.pruneEvents({ before: '2027-01-01T00:00:00.000Z', limit: 1 }), 1)
+  assert.deepEqual(await f.store.compareAndSet(duplicate), {
+    status: 'applied',
+    transitionId: event.id,
+  })
+})

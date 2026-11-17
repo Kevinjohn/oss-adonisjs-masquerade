@@ -58,7 +58,7 @@ const fullInputs = [
   /^(account_kit|native|auth)\//,
   /^examples\/(native-session|account-kit)\//,
   /^bin\/(test_consumer|test_account_kit)\.ts$/,
-  /^bin\/helpers\/(consumer_[a-z_]+|registry_version|account_kit_host_wiring)\.ts$/,
+  /^bin\/helpers\/(consumer_[a-z_]+|owned_process|registry_version|account_kit_host_wiring)\.ts$/,
 ]
 
 const isSpec = (path: string) => /^tests\/.+\.spec\.ts$/.test(path)

@@ -7,7 +7,7 @@ import type {
   ActiveModeRow,
   AuditEvent,
   CompareAndSetInput,
-  ControlStore,
+  RequestControlStore,
   IdleModeRow,
   ModeRow,
 } from './types.js'
@@ -48,7 +48,7 @@ export function idleAfterTransition(row: ActiveModeRow, event: AuditEvent): Idle
 
 /** Apply one audited transition; callers decide what a conflict means. */
 export async function commitTransition(
-  store: ControlStore,
+  store: RequestControlStore,
   dependencies: ObserverDependencies,
   input: CompareAndSetInput
 ): Promise<'applied' | 'conflict'> {

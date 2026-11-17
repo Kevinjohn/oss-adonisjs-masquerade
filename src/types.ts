@@ -186,12 +186,17 @@ export interface ControlStore {
   /** Delete at most limit events older than before. Never delete mode rows, including idle rows. */
   pruneEvents(input: { before: Instant; limit: number }): Promise<number>
 }
+/** Request-serving capabilities; operator housekeeping is optional for a host store. */
+export type RequestControlStore = Pick<
+  ControlStore,
+  'testOnly' | 'read' | 'compareAndSet' | 'recordControlOutcome'
+>
 /** Masquerade configuration, validated by `defineConfig`. */
-export interface MasqueradeConfig<User, Request> {
+export interface MasqueradeConfig<User, Request, Store extends RequestControlStore = ControlStore> {
   authority: NativeAuthority<User>
   policy: MasqueradePolicy<User, Request>
   /** Opens the control store when the service is created. */
-  store: () => Promise<ControlStore>
+  store: () => Promise<Store>
   /** Default mode length, 60 to `maxDurationSeconds`; defaults to 900. */
   durationSeconds?: number
   /** Longest mode a start may request, 60 to 3600; defaults to 3600. */

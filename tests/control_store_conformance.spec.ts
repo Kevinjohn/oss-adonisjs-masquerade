@@ -128,6 +128,38 @@ class WrongAppliedAcknowledgement extends DelegatingStore {
   }
 }
 
+class ReachableTransitionsOnly extends DelegatingStore {
+  override compareAndSet(input: CompareAndSetInput) {
+    return this.read(input.owner).then((current) => {
+      if ((current === null || current.state === 'idle') && input.next.state === 'idle')
+        throw new Error('Unreachable idle transition')
+      return super.compareAndSet(input)
+    })
+  }
+}
+
+class IgnoresStoppedTargetProjection extends DelegatingStore {
+  override async compareAndSet(input: CompareAndSetInput) {
+    const current = await this.read(input.owner)
+    if (current?.state === 'active' && input.event.kind === 'stopped')
+      return super.compareAndSet({
+        ...input,
+        event: { ...input.event, targetId: current.targetId },
+      })
+    return super.compareAndSet(input)
+  }
+}
+
+test('conformance uses only reachable idle transitions', async () => {
+  await assertControlStoreConformance(async () => new ReachableTransitionsOnly())
+})
+
+test('conformance detects a store that ignores stopped target projection', async ({ assert }) => {
+  await assert.rejects(() =>
+    assertControlStoreConformance(async () => new IgnoresStoppedTargetProjection())
+  )
+})
+
 test('conformance rejects an applied acknowledgement for another transition', async ({
   assert,
 }) => {

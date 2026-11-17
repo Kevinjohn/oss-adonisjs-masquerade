@@ -32,6 +32,8 @@ export class MemoryControlStore implements ControlStore {
     const current = this.#rows.get(key(input.owner))
     if ((current?.revision ?? null) !== input.expected) return { status: 'conflict' }
     validateTransition(input, current ?? null)
+    if (this.#events.some((event) => event.id === input.event.id))
+      throw new Error('Duplicate audit event ID')
     const next = structuredClone(input.next)
     const event = structuredClone(input.event)
     this.#rows.set(key(input.owner), next)
@@ -40,6 +42,8 @@ export class MemoryControlStore implements ControlStore {
   }
   async recordControlOutcome(event: ControlOutcomeEvent): Promise<void> {
     validateControlOutcome(event)
+    if (this.#events.some((existing) => existing.id === event.id))
+      throw new Error('Duplicate audit event ID')
     this.#events.push(structuredClone(event))
   }
   async expiredBatch(input: { now: Instant; limit: number }): Promise<ModeRow[]> {

@@ -59,4 +59,71 @@ test.group('masquerade:prune Ace command', () => {
     assert.equal((listenerError as Error).message, 'expiry listener rejected')
     assert.equal(f.store.events.find((event) => event.kind === 'expired')?.outcomeCode, 'expired')
   })
+
+  test('reports confirmed partial progress and fails after a later read error', async ({
+    assert,
+  }) => {
+    const f = fixture()
+    f.config.retention = { days: 1 }
+    await f.start(await f.create())
+    f.state.now += 2 * 86_400_000
+    const candidate = (await f.store.read(f.owner))!
+    const read = f.store.read.bind(f.store)
+    f.store.expiredBatch = async () => [candidate, candidate]
+    let reads = 0
+    f.store.read = async (owner) => {
+      if (++reads === 2) throw new Error('later read failed')
+      return read(owner)
+    }
+    const ignitor = new IgnitorFactory()
+      .withCoreProviders()
+      .withCoreConfig()
+      .merge({
+        config: { masquerade: f.config },
+        rcFileContents: {
+          commands: [() => import('../commands/main.js')],
+          providers: [() => import('@adonisjs/core/providers/app_provider')],
+        },
+      })
+      .create(new URL('../', import.meta.url))
+    const output: string[] = []
+    const originalWrite = process.stdout.write.bind(process.stdout)
+    const originalErrorWrite = process.stderr.write.bind(process.stderr)
+    const originalExitCode = process.exitCode
+    const previousNodeEnvironment = process.env.NODE_ENV
+    process.env.NODE_ENV = 'test'
+    process.stdout.write = ((chunk: string | Uint8Array, ...args: unknown[]) => {
+      output.push(String(chunk))
+      return originalWrite(chunk, ...(args as []))
+    }) as typeof process.stdout.write
+    process.stderr.write = ((chunk: string | Uint8Array, ...args: unknown[]) => {
+      output.push(String(chunk))
+      return originalErrorWrite(chunk, ...(args as []))
+    }) as typeof process.stderr.write
+    try {
+      await ignitor.ace().handle(['masquerade:prune', '--batch-size=2'])
+      assert.equal(process.exitCode, 1)
+    } finally {
+      process.stdout.write = originalWrite
+      process.stderr.write = originalErrorWrite
+      process.exitCode = originalExitCode
+      if (previousNodeEnvironment === undefined) delete process.env.NODE_ENV
+      else process.env.NODE_ENV = previousNodeEnvironment
+    }
+    const text = output.join('')
+    assert.include(text, 'Prune failed during read')
+    assert.include(text, 'confirmed expired 1 mode(s); confirmed deleted 1 event(s)')
+    const persisted = await read(f.owner)
+    assert.equal(persisted?.state, 'idle')
+    assert.deepEqual(
+      f.store.events.map((event) => event.kind),
+      ['expired']
+    )
+    f.store.read = read
+    const { pruneMasquerade } = await import('../src/prune.js')
+    assert.deepEqual(await pruneMasquerade(f.config, f.dependencies), {
+      expired: 0,
+      eventsDeleted: 0,
+    })
+  })
 })

@@ -166,6 +166,7 @@ test('consumer and Account Kit integration inputs note the full profile', ({ ass
     'account_kit/main.ts',
     'bin/test_account_kit.ts',
     'bin/helpers/registry_version.ts',
+    'bin/helpers/owned_process.ts',
   ])
     assert.deepInclude(planChangedChecks(changed(path)), note, path)
   assert.notDeepInclude(planChangedChecks(changed('docs/guide/setup.md')), note)

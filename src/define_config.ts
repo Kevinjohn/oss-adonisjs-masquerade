@@ -1,4 +1,4 @@
-import type { MasqueradeConfig } from './types.js'
+import type { ControlStore, MasqueradeConfig, RequestControlStore } from './types.js'
 import { boundedString } from './bounded_string.js'
 import { MasqueradeSetupError } from './errors.js'
 import type { MasqueradeSetupErrorField } from './errors.js'
@@ -7,9 +7,9 @@ import type { MasqueradeSetupErrorField } from './errors.js'
 export const MAX_RETENTION_DAYS = 36_500
 
 /** Validate synchronously; resolving the store is deferred to service creation. */
-export function defineConfig<User, Request>(
-  config: MasqueradeConfig<User, Request>
-): MasqueradeConfig<User, Request> {
+export function defineConfig<User, Request, Store extends RequestControlStore = ControlStore>(
+  config: MasqueradeConfig<User, Request, Store>
+): MasqueradeConfig<User, Request, Store> {
   const fail = (field: MasqueradeSetupErrorField): never => {
     throw new MasqueradeSetupError('E_MASQUERADE_INVALID_CONFIGURATION', field)
   }

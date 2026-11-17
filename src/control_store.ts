@@ -1,7 +1,7 @@
 import { MasqueradeSetupError } from './errors.js'
 import { unavailable } from './error_helpers.js'
 import type { MasqueradeSetupErrorField } from './errors.js'
-import type { ControlStore } from './types.js'
+import type { ControlStore, RequestControlStore } from './types.js'
 
 const storeErrorFields: Record<keyof ControlStore, MasqueradeSetupErrorField> = {
   testOnly: 'store.testOnly',
@@ -14,12 +14,12 @@ const storeErrorFields: Record<keyof ControlStore, MasqueradeSetupErrorField> = 
 }
 
 /** Resolve the host store and validate the capabilities needed by its caller. */
-export async function openControlStore(
-  factory: () => Promise<ControlStore>,
+export async function openControlStore<K extends keyof ControlStore>(
+  factory: () => Promise<RequestControlStore>,
   environment: string,
-  required: readonly (keyof ControlStore)[]
-): Promise<ControlStore> {
-  let store: ControlStore
+  required: readonly K[]
+): Promise<RequestControlStore & Pick<ControlStore, K>> {
+  let store: RequestControlStore
   try {
     store = await factory()
   } catch {
@@ -28,8 +28,10 @@ export async function openControlStore(
   if (!store) throw new MasqueradeSetupError('E_MASQUERADE_INVALID_STORE', 'store')
   if (store.testOnly && environment !== 'test')
     throw new MasqueradeSetupError('E_MASQUERADE_INVALID_STORE', 'store.testOnly')
-  const missing = required.find((name) => typeof store[name] !== 'function')
+  const missing = required.find(
+    (name) => typeof (store as Partial<ControlStore>)[name] !== 'function'
+  )
   if (missing)
     throw new MasqueradeSetupError('E_MASQUERADE_INVALID_STORE', storeErrorFields[missing])
-  return store
+  return store as RequestControlStore & Pick<ControlStore, K>
 }

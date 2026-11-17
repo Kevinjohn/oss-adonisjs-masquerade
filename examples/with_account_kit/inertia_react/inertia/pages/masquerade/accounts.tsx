@@ -84,27 +84,30 @@ export default function MasqueradeAccounts({
       ) : accounts.length === 0 ? (
         <p>There are no other accounts yet.</p>
       ) : (
-        <ul>
-          {accounts.map((account) => (
-            <li key={account.id}>
-              <Form route="masquerade.start">
-                <input type="hidden" name="_masqueradeContext" value={mode.contextToken} />
-                <input type="hidden" name="targetId" value={account.id} />
-                <span>{account.email}</span>{' '}
-                <label>
-                  Access{' '}
-                  <select name="access" defaultValue="view">
-                    <option value="view">View only</option>
-                    <option value="edit">Can edit</option>
-                  </select>
-                </label>{' '}
-                <button type="submit" className="btn btn--primary btn--sm">
-                  Act as {account.email}
-                </button>
-              </Form>
-            </li>
-          ))}
-        </ul>
+        <>
+          <p>Showing up to 50 accounts, ordered by email.</p>
+          <ul>
+            {accounts.map((account) => (
+              <li key={account.id}>
+                <Form route="masquerade.start">
+                  <input type="hidden" name="_masqueradeContext" value={mode.contextToken} />
+                  <input type="hidden" name="targetId" value={account.id} />
+                  <span>{account.email}</span>{' '}
+                  <label>
+                    Access{' '}
+                    <select name="access" defaultValue="view">
+                      <option value="view">View only</option>
+                      <option value="edit">Can edit</option>
+                    </select>
+                  </label>{' '}
+                  <button type="submit" className="btn btn--primary btn--sm">
+                    Act as {account.email}
+                  </button>
+                </Form>
+              </li>
+            ))}
+          </ul>
+        </>
       )}
     </Page>
   )

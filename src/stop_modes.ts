@@ -8,7 +8,7 @@ import { activeCandidate, openOperatorStore } from './active_modes.js'
 import type { ObserverDependencies } from './observers.js'
 import type {
   ActiveModeRow,
-  ControlStore,
+  RequestControlStore,
   MasqueradeConfig,
   ModeRow,
   OwnerKey,
@@ -52,7 +52,7 @@ function now(dependencies: StopModesDependencies): string {
  * past its deadline is recorded as `expired`, as admission and prune record it.
  */
 async function invalidate(
-  store: ControlStore,
+  store: RequestControlStore,
   dependencies: StopModesDependencies,
   current: ActiveModeRow,
   at: string
@@ -84,7 +84,7 @@ async function invalidate(
   return outcome === 'applied' && lapsed ? 'expired' : outcome
 }
 
-async function read(store: ControlStore, owner: OwnerKey): Promise<ModeRow | null> {
+async function read(store: RequestControlStore, owner: OwnerKey): Promise<ModeRow | null> {
   try {
     return validateRow(await store.read(owner), owner)
   } catch {
@@ -101,7 +101,7 @@ export function isUnknownAccount(error: unknown): boolean {
 }
 
 async function resolveIncarnation<User, Request>(
-  config: MasqueradeConfig<User, Request>,
+  config: MasqueradeConfig<User, Request, RequestControlStore>,
   actorId: string,
   actorIncarnation: string | undefined
 ): Promise<string> {
@@ -127,7 +127,7 @@ async function resolveIncarnation<User, Request>(
  * commits an `invalidated` event through CAS and leaves the operator's next request idle.
  */
 export async function stopActiveModes<User, Request>(
-  config: MasqueradeConfig<User, Request>,
+  config: MasqueradeConfig<User, Request, RequestControlStore>,
   dependencies: StopModesDependencies,
   selection: StopModesSelection
 ): Promise<StopModesResult> {

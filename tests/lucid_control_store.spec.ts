@@ -1,5 +1,6 @@
 import { test } from '@japa/runner'
 import { randomUUID } from 'node:crypto'
+import { createRequire, syncBuiltinESMExports } from 'node:module'
 import { assertControlStoreConformance } from '../testing/main.js'
 import { LucidControlStore } from '../stores/lucid.js'
 import { parseRevision } from '../stores/lucid_row.js'
@@ -413,6 +414,93 @@ test.group('Lucid control store', () => {
     ])
       assert.throws(() => parseRevision(value))
   })
+  if (process.env.DB_CLIENT !== 'pg')
+    test('SQLite returns its only checkout before busy retry delay', async ({ assert }) => {
+      const f = await sqlFixture({ poolMax: 1 })
+      const timers = createRequire(import.meta.url)('node:timers/promises') as {
+        setTimeout: typeof import('node:timers/promises').setTimeout
+      }
+      const originalDelay = timers.setTimeout
+      let releaseDelay!: () => void
+      const controlledDelay = new Promise<void>((resolve) => {
+        releaseDelay = resolve
+      })
+      let signalDelay!: () => void
+      const delayEntered = new Promise<void>((resolve) => {
+        signalDelay = resolve
+      })
+      timers.setTimeout = ((milliseconds: number) => {
+        assert.equal(milliseconds, 200)
+        signalDelay()
+        return controlledDelay
+      }) as typeof timers.setTimeout
+      syncBuiltinESMExports()
+      let pending: ReturnType<LucidControlStore['compareAndSet']> | undefined
+      try {
+        const command = transition()
+        const knex = f.client.getWriteClient()
+        let attempts = 0
+        let released!: () => void
+        const checkoutReleased = new Promise<void>((resolve) => {
+          released = resolve
+        })
+        const originalRelease = knex.client.releaseConnection.bind(knex.client)
+        knex.client.releaseConnection = async (
+          connection: Parameters<typeof originalRelease>[0]
+        ) => {
+          await originalRelease(connection)
+          released()
+        }
+        const client = {
+          dialect: f.client.dialect,
+          isTransaction: false,
+          mode: f.client.mode,
+          knexQuery: f.client.knexQuery.bind(f.client),
+          getWriteClient: () =>
+            new Proxy(knex, {
+              get(target, property, receiver) {
+                if (property !== 'transaction') return Reflect.get(target, property, receiver)
+                return async (config: { connection: unknown }) => {
+                  attempts++
+                  const tx = await target.transaction(config)
+                  const commit = tx.commit.bind(tx)
+                  tx.commit = (async () => {
+                    if (attempts === 1)
+                      throw Object.assign(new Error('busy commit'), { code: 'SQLITE_BUSY' })
+                    await commit()
+                  }) as unknown as typeof tx.commit
+                  return tx
+                }
+              },
+            }),
+        }
+        const store = new LucidControlStore(client as typeof f.client, {
+          sqliteBusyRetries: 1,
+          sqliteBusyDelayMs: 200,
+        })
+        pending = store.compareAndSet(command)
+        await checkoutReleased
+        await delayEntered
+        const read = f.store.read(command.owner)
+        const deadline = globalThis.setTimeout(() => releaseDelay(), 1000)
+        try {
+          assert.isNull(await read)
+        } finally {
+          globalThis.clearTimeout(deadline)
+        }
+        assert.equal(attempts, 1)
+        releaseDelay()
+        assert.deepEqual(await pending, { status: 'applied', transitionId: command.event.id })
+        assert.equal(attempts, 2)
+        assert.deepEqual(await f.store.read(command.owner), command.next)
+      } finally {
+        releaseDelay()
+        await pending?.catch(() => {})
+        timers.setTimeout = originalDelay
+        syncBuiltinESMExports()
+        await f.cleanup()
+      }
+    })
   if (process.env.DB_CLIENT !== 'pg')
     test('SQLite bounded busy handling throws without effects and retries safely before commit', async ({
       assert,
