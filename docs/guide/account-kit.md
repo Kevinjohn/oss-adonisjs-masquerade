@@ -18,8 +18,9 @@ standard AdonisJS native-auth host already includes it.
 Masquerade remains optional and core does not import Account Kit. The Account Kit integration
 provides the native authority, checks the actor's configured credential, and installs middleware to
 block managed account actions while a mode is active. Configure exactly one transport: the session
-or access-token strategy selected by the Account Kit instance. A second Masquerade transport is not
-covered by this integration.
+or access-token strategy selected by the Account Kit instance. In Masquerade 0.3.0, one Account Kit
+host supports either a session-only configuration or an access-token-only configuration. Combining
+both Masquerade transports in one host is unsupported.
 
 ## Run the local demo
 
@@ -294,8 +295,7 @@ commit the routes as `<group>.accountKit.*`, which the blocker does not match, s
 This prerelease interface works with Account Kit `0.4.0`, the only version the optional peer
 declares. Historical matrix results cover the unscoped release for both strategies, with session
 management on and off, on SQLite and PostgreSQL at the declared floor and latest compatible peers.
-The scoped release is validated separately in the pull request that updates this dependency. Other Account Kit versions, MySQL and a second composed
-Masquerade transport are not tested. Account Kit `0.1.1` and later resolve `configProvider` through
+The scoped release is validated separately in the pull request that updates this dependency. Other Account Kit versions and MySQL are not tested; a second composed Masquerade transport is unsupported. Account Kit `0.1.1` and later resolve `configProvider` through
 `@adonisjs/core`, addressing the Core `7.0.0` Ace-startup failure documented in the
 [0.1.1 release notes](https://github.com/Kevinjohn/oss-adonisjs-account-kit/releases/tag/v0.1.1).
 The tested artifact hashes and matrix are recorded in the
