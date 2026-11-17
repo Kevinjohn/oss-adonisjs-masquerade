@@ -76,6 +76,10 @@ async function fixture(options: FixtureOptions = {}): Promise<Fixture> {
   await mkdir(path.join(app, 'start'))
   await mkdir(path.join(app, 'bin'))
   await mkdir(pkg, { recursive: true })
+  await writeFile(
+    path.join(root, 'bin/helpers/owned_process.ts'),
+    await readFile(path.join(repoRoot, 'bin/helpers/owned_process.ts'))
+  )
   await writeFile(path.join(root, 'package.json'), '{"type":"module"}\n')
   await symlink(path.join(repoRoot, 'node_modules'), path.join(root, 'node_modules'), 'dir')
   await writeFile(path.join(root, 'bin/test_consumer.ts'), await readFile(consumerRunnerPath))

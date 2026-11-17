@@ -1,10 +1,9 @@
 import { spawn, type ChildProcess } from 'node:child_process'
 import { writeFile } from 'node:fs/promises'
+import { signalOwnedProcess, terminateOwnedProcess } from './owned_process.js'
 import { join } from 'node:path'
 
 export const consumerCommandTimeoutMs = 10 * 60_000
-const terminationGraceMs = 5_000
-const finalReapGraceMs = 5_000
 
 type ActiveCommand = {
   child: ChildProcess
@@ -40,89 +39,6 @@ function describeError(error: unknown): string {
   return error instanceof Error ? error.message : String(error)
 }
 
-function groupExists(groupId: number): boolean {
-  try {
-    process.kill(-groupId, 0)
-    return true
-  } catch (error) {
-    const code = (error as NodeJS.ErrnoException).code
-    if (code === 'EPERM') return true
-    if (code === 'ESRCH') return false
-    throw error
-  }
-}
-
-function signalOwnedGroup(child: ChildProcess, signal: NodeJS.Signals): void {
-  if (process.platform !== 'win32' && child.pid) {
-    try {
-      process.kill(-child.pid, signal)
-    } catch (error) {
-      if ((error as NodeJS.ErrnoException).code !== 'ESRCH') throw error
-    }
-    return
-  }
-  if (child.exitCode === null && child.signalCode === null && !child.kill(signal)) {
-    throw new Error(`Could not send ${signal} to the owned consumer command.`)
-  }
-}
-
-function waitForOwnedGroup(child: ChildProcess, timeoutMs: number): Promise<boolean> {
-  return new Promise<boolean>((resolve, reject) => {
-    const deadline = Date.now() + timeoutMs
-    const poll = setInterval(() => {
-      try {
-        const exists =
-          process.platform !== 'win32' && child.pid
-            ? groupExists(child.pid)
-            : child.exitCode === null && child.signalCode === null
-        if (!exists) {
-          clearInterval(poll)
-          resolve(true)
-        } else if (Date.now() >= deadline) {
-          clearInterval(poll)
-          resolve(false)
-        }
-      } catch (error) {
-        clearInterval(poll)
-        reject(error)
-      }
-    }, 40)
-  })
-}
-
-async function terminateOwnedGroup(child: ChildProcess): Promise<void> {
-  const failures: unknown[] = []
-  try {
-    signalOwnedGroup(child, 'SIGTERM')
-  } catch (error) {
-    failures.push(error)
-  }
-
-  let stopped = false
-  try {
-    stopped = await waitForOwnedGroup(child, terminationGraceMs)
-  } catch (error) {
-    failures.push(error)
-  }
-  if (!stopped) {
-    try {
-      signalOwnedGroup(child, 'SIGKILL')
-    } catch (error) {
-      failures.push(error)
-    }
-    try {
-      stopped = await waitForOwnedGroup(child, finalReapGraceMs)
-    } catch (error) {
-      failures.push(error)
-    }
-    if (!stopped)
-      failures.push(new Error('The owned consumer process group did not exit after SIGKILL.'))
-  }
-  if (failures.length) {
-    throw new AggregateError(failures, 'Could not clean up the owned consumer process group.')
-  }
-}
-
 /** Runs only harness-owned consumer commands and reaps their detached process groups. */
 export class ConsumerProcessRunner {
   private active?: ActiveCommand
@@ -147,7 +63,7 @@ export class ConsumerProcessRunner {
 
     if (!this.active) return
     try {
-      signalOwnedGroup(this.active.child, 'SIGKILL')
+      signalOwnedProcess(this.active.child, 'SIGKILL')
     } catch (error) {
       this.signalErrors.push(error)
     }
@@ -159,7 +75,7 @@ export class ConsumerProcessRunner {
       active.cleanupPromise = Promise.resolve()
       return
     }
-    active.cleanupPromise = terminateOwnedGroup(active.child)
+    active.cleanupPromise = terminateOwnedProcess(active.child)
     void active.cleanupPromise.catch(() => active.failCleanup?.())
   }
 
