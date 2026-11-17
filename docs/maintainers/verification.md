@@ -11,9 +11,7 @@ pnpm check --full
 The quick profile checks formatting, lint, types, SQLite tests, the build, and built exports.
 The full profile adds PostgreSQL 16, coverage, the documented recipe, the docs
 build, and packed native-session and Account Kit consumers. The browser profile adds the Account
-Kit demo, native-session browser suite, and Inertia React and Vue examples. These are selected local
-profiles, not a complete mirror of every CI matrix: for example, CI also runs the combined API
-starter. Run that case locally with `pnpm test:with-account-kit --example=api`. `bin/check_profiles.ts`
+Kit demo, native-session browser suite, and Inertia React and Vue examples. The [released apps](https://github.com/Kevinjohn/oss-adonisjs-starter-examples/tree/v0.13.0/apps) own the combined starter journeys. `bin/check_profiles.ts`
 defines the local steps. `pnpm check:changed [base]` selects checks while working; it does not
 replace the full gate. Its recipe step follows the files consumed by `bin/test_recipe.ts`; the
 examples workflow uses a broader pull request path filter, so an examples workflow trigger does not
