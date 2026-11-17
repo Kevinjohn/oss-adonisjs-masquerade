@@ -57,7 +57,7 @@ export default class StopCommand extends BaseCommand {
       result = await stopActiveModes(
         config,
         {
-          environment: this.app.getEnvironment(),
+          environment: this.app.nodeEnvironment,
           emitter: { emit: (name, event) => emitter.emit(name, event) },
           logger: {
             info: (event) => logger.info(event, 'Masquerade transition'),
@@ -80,6 +80,10 @@ export default class StopCommand extends BaseCommand {
       }
       throw error
     }
-    this.logger.info(`Stopped ${result.stopped} mode(s).`)
+    this.logger.info(
+      result.drained === false
+        ? `Stopped ${result.stopped} mode(s); the scan made no progress. Run masquerade:stop --all again to retry remaining modes.`
+        : `Stopped ${result.stopped} mode(s).`
+    )
   }
 }

@@ -11,7 +11,9 @@
 
 import { Env } from '@adonisjs/core/env'
 
-export default await Env.create(new URL('../', import.meta.url), {
+export const ordinaryDatabaseFromLaunch = process.env.DB_DATABASE
+
+const env = await Env.create(new URL('../', import.meta.url), {
   // Node
   NODE_ENV: Env.schema.enum(['development', 'production', 'test'] as const),
   PORT: Env.schema.number(),
@@ -27,6 +29,7 @@ export default await Env.create(new URL('../', import.meta.url), {
   DB_USER: Env.schema.string.optional(),
   DB_PASSWORD: Env.schema.string.optional(),
   DB_DATABASE: Env.schema.string.optional(),
+  DB_TEST_DATABASE: Env.schema.string.optional(),
   ACCOUNT_KIT_AUTH_STRATEGY: Env.schema.enum.optional(['session', 'access_tokens'] as const),
   MASQUERADE_OPERATOR_EMAILS: Env.schema.string.optional(),
   ACCOUNT_KIT_ADMISSION_DOMAINS: Env.schema.string.optional(),
@@ -50,3 +53,26 @@ export default await Env.create(new URL('../', import.meta.url), {
   */
   LIMITER_STORE: Env.schema.enum(['database', 'memory'] as const),
 })
+
+function validDatabaseName(name: string | undefined): name is string {
+  return (
+    !!name?.trim() &&
+    !name.includes('\0') &&
+    Buffer.byteLength(name, 'utf8') <= 63 &&
+    Buffer.from(name, 'utf8').toString('utf8') === name
+  )
+}
+const testDatabase = env.get('DB_TEST_DATABASE')
+if (env.get('NODE_ENV') === 'test' && env.get('DB_CONNECTION') === 'postgres') {
+  if (!validDatabaseName(ordinaryDatabaseFromLaunch)) {
+    throw new Error('PostgreSQL tests require an exported, nonblank ordinary DB_DATABASE')
+  }
+  if (!validDatabaseName(testDatabase)) {
+    throw new Error('PostgreSQL tests require an explicit, valid DB_TEST_DATABASE')
+  }
+  if (testDatabase === ordinaryDatabaseFromLaunch) {
+    throw new Error('DB_TEST_DATABASE must differ from ordinary DB_DATABASE')
+  }
+}
+
+export default env

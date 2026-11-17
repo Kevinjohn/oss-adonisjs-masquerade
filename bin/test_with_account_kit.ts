@@ -1,7 +1,9 @@
-import { spawn, spawnSync } from 'node:child_process'
+import { spawnSync } from 'node:child_process'
 import { copyFileSync, existsSync } from 'node:fs'
+import { createRequire } from 'node:module'
 import { join } from 'node:path'
-import { fileURLToPath } from 'node:url'
+import { fileURLToPath, pathToFileURL } from 'node:url'
+import { runDemoCommand } from './helpers/account_kit_demo_process.js'
 import { chromiumInstallArgs } from './helpers/example_chromium.js'
 
 /**
@@ -15,7 +17,8 @@ if (!name || !examples.includes(name))
   throw new Error(`Use --example=<${examples.join('|')}>; got ${name ?? 'nothing'}`)
 if (Number(process.versions.node.split('.')[0]) !== 24) throw new Error('Use Node 24')
 const example = join(root, 'examples/with_account_kit', name)
-const env = { ...process.env, HOST: '127.0.0.1', LIMITER_STORE: 'memory' }
+const env: NodeJS.ProcessEnv = { ...process.env, HOST: '127.0.0.1', LIMITER_STORE: 'memory' }
+if (name === 'api') env.NODE_ENV = 'test'
 
 function run(label: string, args: string[]) {
   console.log(`[${name}] ${label}: pnpm ${args.join(' ')}`)
@@ -43,29 +46,24 @@ if (name === 'api') {
 } else {
   run('install Chromium', chromiumInstallArgs(example))
 
-  const vite = spawn(
-    'pnpm',
-    ['exec', 'vite', '--host', '127.0.0.1', '--port', '5173', '--strictPort'],
-    {
-      cwd: example,
-      env,
-      stdio: 'ignore',
-      detached: true,
-    }
-  )
+  const requireFromExample = createRequire(join(example, 'package.json'))
+  const { createServer } = await import(pathToFileURL(requireFromExample.resolve('vite')).href)
+  const vite = await createServer({
+    root: example,
+    configFile: join(example, 'vite.config.ts'),
+    server: { host: '127.0.0.1', port: 0 },
+  })
+  const interruption = new AbortController()
+  const stop = () => interruption.abort(new Error('Browser run interrupted'))
+  process.once('SIGINT', stop)
+  process.once('SIGTERM', stop)
   try {
-    let ready = false
-    // A Vite already on the port would serve another app; strictPort makes this one exit instead.
-    for (let attempt = 0; attempt < 60 && !ready && vite.exitCode === null; attempt++) {
-      ready = await fetch('http://127.0.0.1:5173/@vite/client').then(
-        (response) => response.ok,
-        () => false
-      )
-      if (!ready) await new Promise((resolve) => setTimeout(resolve, 500))
-    }
-    if (!ready || vite.exitCode !== null) throw new Error('Vite did not start on 127.0.0.1:5173')
-    run('test', ['test'])
+    await vite.listen()
+    console.log(`[${name}] Vite ready at ${vite.resolvedUrls?.local[0]}`)
+    await runDemoCommand('pnpm', ['test'], example, env, interruption.signal)
   } finally {
-    if (vite.pid) process.kill(-vite.pid)
+    process.off('SIGINT', stop)
+    process.off('SIGTERM', stop)
+    await vite.close()
   }
 }

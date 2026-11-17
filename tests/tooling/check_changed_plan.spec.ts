@@ -60,15 +60,16 @@ test('lockfile and workspace changes run lint and typecheck', ({ assert }) => {
   }
 })
 
-test('the examples workflow paths, configure and the manifest run the SQLite recipe', ({
-  assert,
-}) => {
+test('the recipe runner inputs run the SQLite recipe', ({ assert }) => {
   for (const path of [
-    'stubs/configure/masquerade_config.stub',
-    'src/configure_wiring.ts',
-    'http/controllers.ts',
-    'examples/native-session/start/routes.ts',
+    'examples/recipe-host/recipe-assets/journey.spec.ts.txt',
+    'docs/guide/setup.md',
+    'docs/guide/usage.md',
     'docs/guide/clients/edge.md',
+    'stubs/configure/masquerade_config.stub',
+    'configure.ts',
+    'src/configure_wiring.ts',
+    'bin/test_recipe.ts',
     'package.json',
   ]) {
     assert.deepEqual(
@@ -77,7 +78,14 @@ test('the examples workflow paths, configure and the manifest run the SQLite rec
       path
     )
   }
-  assert.notProperty(ran(planChangedChecks(changed('src/service.ts'))), 'recipe')
+  for (const path of [
+    'auth/actor.ts',
+    'http/controllers.ts',
+    'native/session_authority.ts',
+    'examples/native-session/start/routes.ts',
+    'docs/guide/security.md',
+  ])
+    assert.notProperty(ran(planChangedChecks(changed(path))), 'recipe', path)
 })
 
 test('the docs workflow inputs build the docs and require a clean tree', ({ assert }) => {

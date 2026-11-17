@@ -30,6 +30,8 @@ export type StopModesSelection =
 
 export interface StopModesResult {
   stopped: number
+  /** Whether an `all` scan reached an empty batch. Omitted for a single-actor stop. */
+  drained?: boolean
 }
 
 function now(dependencies: StopModesDependencies): string {
@@ -170,6 +172,7 @@ export async function stopActiveModes<User, Request>(
     } catch {
       throw unavailable()
     }
+    if (candidates.length === 0) return { stopped, drained: true }
     let progressed = false
     for (const candidate of candidates) {
       const row = activeCandidate(candidate)
@@ -180,6 +183,6 @@ export async function stopActiveModes<User, Request>(
       if (outcome !== 'conflict') progressed = true
     }
     // An empty batch is done; a batch that only conflicted is left for the next run.
-    if (!progressed) return { stopped }
+    if (!progressed) return { stopped, drained: false }
   }
 }

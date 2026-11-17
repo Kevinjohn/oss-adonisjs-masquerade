@@ -8,6 +8,7 @@ import { invalidInput, unavailable } from './error_helpers.js'
 import { openControlStore } from './control_store.js'
 import { parseStartSelection, validateStartInputShape } from './start_input.js'
 import { stampHash } from './security_stamp.js'
+import { boundedString } from './bounded_string.js'
 import { validateRow } from './row_validation.js'
 import { validateSubject } from './subject_validation.js'
 import {
@@ -183,7 +184,14 @@ class CoreService<User, Request extends object> implements MasqueradeService<Req
     attempted?: Pick<AuditEvent, 'targetId' | 'access'>
   ): Promise<void> {
     try {
-      await this.store.recordControlOutcome({ ...this.event(owner, row, kind, code), ...attempted })
+      const event = this.event(owner, row, kind, code)
+      if (kind === 'start_denied') {
+        delete event.targetId
+        delete event.targetIncarnation
+        delete event.access
+        Object.assign(event, attempted)
+      }
+      await this.store.recordControlOutcome(event)
     } catch {
       reportDiagnostic(
         this.dependencies,
@@ -337,6 +345,19 @@ class CoreService<User, Request extends object> implements MasqueradeService<Req
       row = await this.read(owner)
       // §7.1 step 1: input shape, then the expected context (§6.4 Any: mismatch is 409).
       validateStartInputShape(input)
+      if (row?.state === 'active') {
+        // Project only bounded request fields before checks that may reject an active mode.
+        const projectedTargetId =
+          typeof input.targetId === 'number' && Number.isSafeInteger(input.targetId)
+            ? String(input.targetId)
+            : input.targetId
+        attempted = {
+          ...(boundedString(projectedTargetId, 255) ? { targetId: projectedTargetId } : {}),
+          ...(input.access === undefined || input.access === 'view' || input.access === 'edit'
+            ? { access: input.access ?? 'view' }
+            : {}),
+        }
+      }
       requireContext(input.expectedContext, contextToken(owner, row))
       // §6.4 Any: a revision at Number.MAX_SAFE_INTEGER fails closed.
       nextRevision(row)

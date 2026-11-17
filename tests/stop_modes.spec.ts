@@ -54,6 +54,7 @@ test.group('operator mode stop', () => {
     })
     assert.deepEqual(await stopActiveModes(f.config, f.dependencies, { all: true }), {
       stopped: 0,
+      drained: true,
     })
     const ended = f.store.events.slice(-2)
     for (const event of ended) assert.include(event, { kind: 'expired', outcomeCode: 'expired' })
@@ -69,6 +70,7 @@ test.group('operator mode stop', () => {
     f.store.activeBatch = async () => [{ ...row, revision: row.revision + 1 }]
     assert.deepEqual(await stopActiveModes(f.config, f.dependencies, { all: true }), {
       stopped: 0,
+      drained: false,
     })
     assert.equal((await f.store.read(f.owner))!.state, 'active')
   })
@@ -194,10 +196,12 @@ test.group('operator mode stop', () => {
     await f.start(service, { actorId: 'c' })
     assert.deepEqual(await stopActiveModes(f.config, f.dependencies, { all: true, batchSize: 1 }), {
       stopped: 2,
+      drained: true,
     })
     assert.deepEqual(await f.store.activeBatch({ limit: 10 }), [])
     assert.deepEqual(await stopActiveModes(f.config, f.dependencies, { all: true }), {
       stopped: 0,
+      drained: true,
     })
     for (const batchSize of [0, 1001])
       assert.equal(
@@ -213,6 +217,7 @@ test.group('operator mode stop', () => {
     f.store.compareAndSet = async () => ({ status: 'conflict' })
     assert.deepEqual(await stopActiveModes(f.config, f.dependencies, { all: true }), {
       stopped: 0,
+      drained: false,
     })
   })
 

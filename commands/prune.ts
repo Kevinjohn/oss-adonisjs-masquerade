@@ -32,7 +32,7 @@ export default class PruneCommand extends BaseCommand {
     const result = await pruneMasquerade(
       config,
       {
-        environment: this.app.getEnvironment(),
+        environment: this.app.nodeEnvironment,
         emitter: { emit: (name, event) => emitter.emit(name, event) },
         logger: {
           info: (event) => logger.info(event, 'Masquerade transition'),

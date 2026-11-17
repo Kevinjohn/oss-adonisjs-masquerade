@@ -4,6 +4,7 @@ const inertiaConfig = defineConfig({
   /**
    * Server-side rendering options.
    */
+  encryptHistory: true,
   ssr: {
     /**
      * Toggle SSR mode for Inertia pages.

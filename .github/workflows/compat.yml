@@ -16,8 +16,13 @@ on:
       - 'stubs/**'
       - 'commands/**'
       - 'auth/**'
+      - 'http/**'
       - 'native/**'
       - 'account_kit/**'
+      - 'plugins/**'
+      - 'src/**'
+      - 'stores/**'
+      - 'testing/**'
       - bin/test_consumer.ts
       - bin/test_account_kit.ts
       - 'bin/helpers/consumer_*.ts'

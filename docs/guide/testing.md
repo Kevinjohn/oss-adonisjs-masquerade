@@ -43,18 +43,23 @@ Before the request is sent, the plugin:
 3. adds the active context token as `X-Masquerade-Context` when the request method is not `GET`,
    `HEAD` or `OPTIONS`.
 
-After the response, it reads the status again and stops the mode if it is still active. The next
-request in the test is idle again.
+After the response, it reads the status again and stops the mode only if its context token still
+matches the mode this helper started. A replacement mode is left active. If the mode changes after
+that status read, the stop uses the original token and the host's normal stale-context handling
+applies. The next request in the test is idle again when this helper's mode is still active and
+unchanged.
 
 `masquerading(target, options)` takes a target with an `id`, or the ID itself. The options are
 `access` (`view` or `edit`), `reason`, `durationSeconds` and `prefix`. The control routes default to
 `/masquerade`, as mounted by `masqueradeRoutes`; pass `masqueradeApiClient({ prefix })` or a
 per-request `prefix` for another mount, such as `/api/masquerade` for access tokens.
 
-If status, start or stop does not return a mode, the request fails with an error naming the control
-and its status, for example `masquerading() start control returned 403`. The test never runs the
-request unmasked by mistake. The start counts against the host's start limiter for that operator,
-so a suite with a tight test limit should use a fresh operator per test.
+Status may report either mode. Start must report an active mode before the business request runs,
+and stop must report an idle mode before cleanup succeeds. If a control returns the wrong mode or
+does not return a mode, the helper fails with an error naming the control and its status, for
+example `masquerading() start control returned 403`. The test never runs the request unmasked by
+mistake. The start counts against the host's start limiter for that operator, so a suite with a
+tight test limit should use a fresh operator per test.
 
 The native-session example's `tests/functional/masquerading_helper.spec.ts` covers a view-only
 denial, a `sensitive()` route, an allowed edit-mode mutation and a policy denial.

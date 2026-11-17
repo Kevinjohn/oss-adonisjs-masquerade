@@ -120,11 +120,22 @@ pnpm format:check
 pnpm lint
 pnpm typecheck
 pnpm build
+NODE_ENV=test node ace migration:run --force
 HOST=127.0.0.1 LIMITER_STORE=memory pnpm test
 ```
 
-Run code generation and migrations first, as in the setup above. The copied Account Kit suite
+Run code generation first, as in the setup above. The test-mode migration above targets the
+separate test database. The copied Account Kit suite
 expects loopback and the in-memory limiter. The functional Masquerade spec exercises bearer login,
 start, effective identity, sensitive refusal, stop, non-operator and operator-target refusals,
 admission protection, token capability enforcement and native account blocking with both password
 hashes unchanged. No browser is needed.
+
+Tests use `tmp/test-db.sqlite3`; the development app and its migrations use `tmp/db.sqlite3`.
+For PostgreSQL tests, set `DB_CONNECTION=postgres`, export the ordinary app's nonblank
+`DB_DATABASE` in the launch environment
+and set `DB_TEST_DATABASE` to a separately provisioned disposable database before migration or
+tests. The ordinary name must match what the separately launched demo uses; a name present only
+in `.env` is insufficient to establish that identity. Supply the intended `DB_HOST`, `DB_PORT`,
+`DB_USER` and `DB_PASSWORD` for both launches. The repository
+`pnpm test:with-account-kit --example=api` runner selects test mode before its migration step.

@@ -93,6 +93,128 @@ test.group('Lucid control store', () => {
       await f.cleanup()
     }
   })
+  test('a stale expiry batch cannot clear a newer mode on another connection', async ({
+    assert,
+  }) => {
+    const f = await sqlFixture()
+    try {
+      const initial = transition()
+      initial.next = {
+        ...initial.next,
+        state: 'active',
+        access: 'view',
+        targetId: 'old-target',
+        targetIncarnation: 'old-v1',
+        actorStampHash: 'a'.repeat(64),
+        targetStampHash: 'b'.repeat(64),
+        reason: 'case',
+        startedAt: initial.event.at,
+        expiresAt: '2026-01-01T00:15:00.000Z',
+      }
+      initial.event = {
+        ...initial.event,
+        kind: 'started',
+        outcomeCode: 'started',
+        targetId: 'old-target',
+        targetIncarnation: 'old-v1',
+        access: 'view',
+        reason: 'case',
+      }
+      await f.store.compareAndSet(initial)
+      let releaseBatch!: () => void
+      let batchReady!: () => void
+      const paused = new Promise<void>((resolve) => {
+        releaseBatch = resolve
+      })
+      const ready = new Promise<void>((resolve) => {
+        batchReady = resolve
+      })
+      const expiry = (async () => {
+        const candidates = await f.store.expiredBatch({ now: '2026-01-01T00:20:00.000Z', limit: 1 })
+        assert.lengthOf(candidates, 1)
+        batchReady()
+        await paused
+        let expired = 0
+        for (const candidate of candidates) {
+          const current = await f.store.read(candidate)
+          if (current?.state !== 'active' || current.revision !== candidate.revision) continue
+          const end = transition(current.revision + 1)
+          end.owner = initial.owner
+          end.expected = current.revision
+          end.next = { ...end.next, ...initial.owner, modeId: current.modeId }
+          end.event = {
+            ...end.event,
+            ...initial.owner,
+            modeId: current.modeId,
+            kind: 'expired',
+            outcomeCode: 'expired',
+            targetId: current.targetId,
+            targetIncarnation: current.targetIncarnation,
+            access: current.access,
+          }
+          const result = await f.store.compareAndSet(end)
+          if (result.status === 'applied') expired++
+        }
+        return expired
+      })()
+      await ready
+      const previous = (await f.other.read(initial.owner))!
+      assert.equal(previous.state, 'active')
+      const stop = transition(2)
+      stop.owner = initial.owner
+      stop.expected = 1
+      stop.next = { ...stop.next, ...initial.owner, modeId: previous.modeId }
+      stop.event = {
+        ...stop.event,
+        ...initial.owner,
+        modeId: previous.modeId,
+        targetId: 'old-target',
+        targetIncarnation: 'old-v1',
+        access: 'view',
+      }
+      const stopped = await f.other.compareAndSet(stop)
+      assert.equal(stopped.status, 'applied')
+      const restart = transition(3)
+      restart.owner = initial.owner
+      restart.expected = 2
+      restart.next = {
+        ...initial.next,
+        revision: 3,
+        revisionNonce: 'c'.repeat(32),
+        modeId: randomUUID(),
+        lastTransitionId: restart.event.id,
+        updatedAt: '2026-01-01T00:20:00.000Z',
+        startedAt: '2026-01-01T00:20:00.000Z',
+        expiresAt: '2026-01-01T00:35:00.000Z',
+        targetId: 'new-target',
+        targetIncarnation: 'new-v1',
+      }
+      restart.event = {
+        ...restart.event,
+        ...initial.owner,
+        modeId: restart.next.modeId,
+        at: restart.next.updatedAt,
+        kind: 'started',
+        outcomeCode: 'started',
+        targetId: 'new-target',
+        targetIncarnation: 'new-v1',
+        access: 'view',
+        reason: 'case',
+      }
+      const restarted = await f.other.compareAndSet(restart)
+      assert.equal(restarted.status, 'applied')
+      releaseBatch()
+      assert.equal(await expiry, 0)
+      assert.deepEqual(await f.store.read(initial.owner), restart.next)
+      const events = await f.client.from('masquerade_events').orderBy('revision')
+      assert.deepEqual(
+        events.map((event) => event.id),
+        [initial.event.id, stop.event.id, restart.event.id]
+      )
+    } finally {
+      await f.cleanup()
+    }
+  })
   test('audit payload survives storage and duplicate event failures roll back insert and update', async ({
     assert,
   }) => {
@@ -154,6 +276,63 @@ test.group('Lucid control store', () => {
       assert.lengthOf(await f.client.from('masquerade_events'), 1)
       await assert.rejects(() => f.store.recordControlOutcome({ ...a.event, kind: 'control_noop' }))
       assert.deepEqual(await f.store.read(a.owner), a.next)
+    } finally {
+      await f.cleanup()
+    }
+  })
+  test('rejects malformed end events without changing the active row or ledger', async ({
+    assert,
+  }) => {
+    const f = await sqlFixture()
+    try {
+      const start = transition()
+      start.next = {
+        ...start.next,
+        state: 'active',
+        access: 'view',
+        targetId: 'target',
+        targetIncarnation: 'target-v1',
+        actorStampHash: 'a'.repeat(64),
+        targetStampHash: 'b'.repeat(64),
+        reason: 'case',
+        startedAt: start.event.at,
+        expiresAt: '2026-01-01T00:15:00.000Z',
+      }
+      start.event = {
+        ...start.event,
+        kind: 'started',
+        outcomeCode: 'started',
+        targetId: 'target',
+        targetIncarnation: 'target-v1',
+        access: 'view',
+        reason: 'case',
+      }
+      await f.store.compareAndSet(start)
+      const end = transition(2)
+      end.owner = start.owner
+      end.expected = 1
+      end.next = { ...end.next, ...start.owner, modeId: start.next.modeId }
+      end.event = {
+        ...end.event,
+        ...start.owner,
+        modeId: start.next.modeId,
+        targetId: 'target',
+        targetIncarnation: 'target-v1',
+        access: 'view',
+      }
+      for (const malformed of [
+        {
+          next: { ...end.next, modeId: randomUUID() },
+          event: { ...end.event, modeId: randomUUID() },
+        },
+        { next: end.next, event: { ...end.event, reason: 'start-only' } },
+      ]) {
+        const command = { ...end, ...malformed }
+        if (command.next.modeId !== end.next.modeId) command.event.modeId = command.next.modeId
+        await assert.rejects(() => f.other.compareAndSet(command))
+        assert.deepEqual(await f.store.read(start.owner), start.next)
+        assert.lengthOf(await f.client.from('masquerade_events'), 1)
+      }
     } finally {
       await f.cleanup()
     }

@@ -57,6 +57,9 @@ export async function assertControlStoreConformance(
   ])
   assert.equal(commands.filter((result) => result.status === 'applied').length, 1)
   assert.equal(commands.filter((result) => result.status === 'conflict').length, 1)
+  for (const [index, result] of commands.entries())
+    if (result.status === 'applied')
+      assert.equal(result.transitionId, index === 0 ? event.id : competitorId)
   const winner = (await store.read(owner))!
   assert.equal(winner.revision, 1)
   winner.revision = 99
@@ -103,7 +106,7 @@ export async function assertControlStoreConformance(
     next: update,
     event: { ...event, id: transitionId, revision: 2 },
   })
-  assert.equal(updated.status, 'applied')
+  assert.deepEqual(updated, { status: 'applied', transitionId })
   await store.recordControlOutcome({
     ...event,
     id: randomUUID(),
@@ -182,7 +185,7 @@ export async function assertControlStoreConformance(
         reason: active.reason,
       },
     })
-    assert.equal(activeResult.status, 'applied')
+    assert.deepEqual(activeResult, { status: 'applied', transitionId: id })
     activeRows[index] = active
   }
   for (const active of activeRows) assert.deepEqual(await store.read(active), active)
@@ -382,6 +385,6 @@ export async function assertControlStoreConformance(
       access: unreasoned.access,
     },
   })
-  assert.equal(unreasonedResult.status, 'applied')
+  assert.deepEqual(unreasonedResult, { status: 'applied', transitionId: unreasonedId })
   assert.deepEqual(await store.read(unreasonedOwner), unreasoned)
 }

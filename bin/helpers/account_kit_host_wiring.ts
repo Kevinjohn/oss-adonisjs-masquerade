@@ -52,6 +52,11 @@ export async function wireRoutes(
     routesPatch.anchor,
     [routesPatch.anchor, ...routesPatch.imports.map((path) => `import '${path}'`)].join('\n')
   )
+  await replace(
+    join(app, 'start/routes.ts'),
+    "import './token_control_routes.js'",
+    "if (process.env.ACCOUNT_KIT_AUTH_STRATEGY === 'access_tokens') {\n  await import('./token_control_routes.js')\n}"
+  )
 }
 
 export async function wireAuth(app: string): Promise<void> {

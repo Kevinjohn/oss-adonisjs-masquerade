@@ -9,7 +9,7 @@ export type CheckProfile = 'quick' | 'full' | 'browser'
 
 const browserEnv = { DB_CLIENT: 'sqlite', HOST: '127.0.0.1', SESSION_DRIVER: 'memory' }
 
-/** Steps per profile. `full` and `browser` run after `quick`; together they cover the CI scripts. */
+/** Steps per local profile. `full` and `browser` add selected checks after `quick`. */
 export const checkProfiles: Record<CheckProfile, CheckStep[]> = {
   quick: [
     { script: 'format:check' },

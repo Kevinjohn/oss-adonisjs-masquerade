@@ -16,3 +16,25 @@ Alpine.data('themeToggle', function () {
 })
 
 Alpine.start()
+
+for (const workspace of document.querySelectorAll('[data-masquerade-deadline]')) {
+  const deadline = Date.parse(workspace.dataset.masqueradeDeadline)
+  const update = () => {
+    const expired = Date.now() >= deadline
+    for (const element of workspace.querySelectorAll('[data-masquerade-active]'))
+      element.hidden = expired
+    for (const element of workspace.querySelectorAll('[data-masquerade-expired]'))
+      element.hidden = !expired
+  }
+  update()
+  const timer = window.setTimeout(update, Math.max(0, deadline - Date.now()))
+  document.addEventListener('visibilitychange', update)
+  window.addEventListener(
+    'pagehide',
+    () => {
+      window.clearTimeout(timer)
+      document.removeEventListener('visibilitychange', update)
+    },
+    { once: true }
+  )
+}

@@ -80,7 +80,8 @@ export function masqueradeApiClient(pluginOptions: MasqueradeApiClientOptions = 
             ...(reason === undefined ? {} : { reason }),
             ...(durationSeconds === undefined ? {} : { durationSeconds }),
           }),
-        'start'
+        'start',
+        true
       )
       // A token the test set itself is what it means to send, such as a stale one.
       const explicit = (request.request as { get(field: string): unknown }).get(CONTEXT_HEADER)
@@ -93,10 +94,11 @@ export function masqueradeApiClient(pluginOptions: MasqueradeApiClientOptions = 
         // HTTP; Masquerade invalidates it at that account's next admission.
         if (status.status() === 401) return
         const current = await expectMode(status, 'status')
-        if (!current.isMasquerading) return
+        if (!current.isMasquerading || current.contextToken !== started.contextToken) return
         await expectMode(
-          await control('POST', '/stop').header(CONTEXT_HEADER, current.contextToken).json({}),
-          'stop'
+          await control('POST', '/stop').header(CONTEXT_HEADER, started.contextToken).json({}),
+          'stop',
+          false
         )
       }
     })
@@ -105,6 +107,8 @@ export function masqueradeApiClient(pluginOptions: MasqueradeApiClientOptions = 
 
 function targetId(target: MasqueradeTarget): string {
   const id = typeof target === 'object' && target !== null ? target.id : target
+  if (typeof id === 'number' && !Number.isSafeInteger(id))
+    throw new InvalidArgumentsException('masquerading() requires a target with an id')
   if (!['string', 'number', 'bigint'].includes(typeof id) || String(id) === '')
     throw new InvalidArgumentsException('masquerading() requires a target with an id')
   return String(id)
@@ -112,13 +116,15 @@ function targetId(target: MasqueradeTarget): string {
 
 async function expectMode(
   response: ApiResponse,
-  control: string
+  control: string,
+  expectedState?: boolean
 ): Promise<{ isMasquerading: boolean; contextToken: string }> {
   const body = response.body() as { isMasquerading?: unknown; contextToken?: unknown } | undefined
   if (
     response.status() !== 200 ||
     typeof body?.isMasquerading !== 'boolean' ||
-    typeof body.contextToken !== 'string'
+    typeof body.contextToken !== 'string' ||
+    (expectedState !== undefined && body.isMasquerading !== expectedState)
   )
     throw new RuntimeException(
       `masquerading() ${control} control returned ${response.status()}: ${JSON.stringify(body)}`

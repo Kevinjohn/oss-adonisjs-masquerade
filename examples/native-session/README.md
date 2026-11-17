@@ -329,8 +329,16 @@ rejected, and verifies starting a mode neither rotates the actor session nor cre
 remember token. The short age is enabled only by `NATIVE_CREDENTIALS_SESSION=true` through
 `test:credentials`.
 
-For PostgreSQL direct runs, set `DB_CLIENT=pg` plus the connection variables above. `DB_SCHEMA`
-optionally isolates fixture tables. SQLite remains the normal local default.
+Tests use `tmp/test-db.sqlite3`; the running demo uses `tmp/db.sqlite3`. Test migrations,
+resets and truncation affect only the test file. For direct PostgreSQL tests, set `DB_CLIENT=pg`,
+export the ordinary app's `DB_DATABASE` in the launch environment and set `DB_TEST_DATABASE` to a separately
+provisioned disposable database. The names must differ. A name present only in `.env` does not
+establish which database the separately launched demo uses, so destructive tests refuse it.
+Use the same exported ordinary name when launching the demo and tests, along with the intended
+`DB_HOST`, `DB_PORT`, `DB_USER` and `DB_PASSWORD`. `DB_TEST_SCHEMA` may select any schema in the
+distinct test database, including `public`. The packed consumer and Account Kit matrix runners
+instead own a generated schema in their copied app's database and pass a private lease after
+creating it. SQLite remains the local default.
 
 The raw bearer status/start/stop controls, token logout, and effective customer read are ordinary
 demo routes. Other raw-business, alternate-guard, and mixed-guard routes remain test-only

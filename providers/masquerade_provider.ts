@@ -27,11 +27,15 @@ export default class MasqueradeProvider {
     const guards = controlRouteGuards(await this.app.container.make('router'))
     if (guards.length === 0) return
     const runtime = await this.app.container.make('masquerade.runtime')
+    const native = await this.app.container.make('masquerade.native')
+    const rawAdapters = native.adapters ?? { [native.guard ?? native.authority.guard]: native }
     for (const guard of guards)
       if (runtime.effectiveGuardNames.includes(guard))
         throw new InvalidArgumentsException(
           `masqueradeRoutes guard ${guard} is an effective guard; use the raw guard it wraps`
         )
+      else if (!Object.hasOwn(rawAdapters, guard))
+        throw new InvalidArgumentsException(`masqueradeRoutes guard ${guard} has no native adapter`)
   }
 }
 export type { MasqueradeRuntime } from '../src/integration/runtime.js'

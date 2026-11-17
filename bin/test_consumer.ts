@@ -8,6 +8,12 @@ import { fileURLToPath } from 'node:url'
 import { consumerArtifact } from './helpers/consumer_artifact.js'
 import { ConsumerCommandError, ConsumerProcessRunner } from './helpers/consumer_process.js'
 import { selectRegistryVersion } from './helpers/registry_version.js'
+import {
+  issueNativePgLease,
+  nativePgTarget,
+  revokeNativePgLease,
+  withoutNativePgTestTargets,
+} from './helpers/native_pg_lease.js'
 
 const root = fileURLToPath(new URL('../', import.meta.url))
 const args = new Map(
@@ -56,7 +62,7 @@ for (const [name, version] of Object.entries(floor)) {
 }
 const results: unknown[] = []
 let ownsPostgres = false
-const baseEnv = {
+const baseEnv = withoutNativePgTestTargets({
   ...process.env,
   NODE_ENV: 'test',
   TZ: 'UTC',
@@ -66,9 +72,11 @@ const baseEnv = {
   APP_KEY: 'consumer_fixture_key_01234567890123456789',
   LOG_LEVEL: 'error',
   SESSION_DRIVER: 'memory',
+  LIMITER_STORE: 'memory',
+  DB_CLIENT: 'sqlite',
   FORCE_COLOR: '0',
   NO_COLOR: '1',
-}
+})
 
 async function verifyConfigure(app: string, profileName: string): Promise<void> {
   const check = join(app, 'configure-check')
@@ -162,7 +170,12 @@ const run = (
   cleanup = false
 ) => processRunner.run(cwd, command, name, env, cleanup)
 
-async function schema(cwd: string, name: string, action: 'create' | 'drop') {
+async function schema(
+  cwd: string,
+  name: string,
+  action: 'create' | 'drop',
+  env: NodeJS.ProcessEnv
+) {
   const sql =
     action === 'create' ? `create schema ${name}` : `drop schema if exists ${name} cascade`
   await run(
@@ -175,7 +188,7 @@ async function schema(cwd: string, name: string, action: 'create' | 'drop') {
       `import pg from 'pg'; const client=new pg.Client({host:process.env.DB_HOST,port:Number(process.env.DB_PORT),user:process.env.DB_USER,password:process.env.DB_PASSWORD,database:process.env.DB_DATABASE}); await client.connect(); try {await client.query(${JSON.stringify(sql)})} finally {await client.end()}`,
     ],
     `${name}_${action}`,
-    pgEnv,
+    env,
     action === 'drop'
   )
 }
@@ -316,11 +329,32 @@ try {
           throw error
         }
       }
-      const env =
-        engine === 'pg' ? { ...pgEnv, DB_SCHEMA: schemaName } : { ...baseEnv, DB_CLIENT: 'sqlite' }
+      const env: NodeJS.ProcessEnv =
+        engine === 'pg'
+          ? {
+              ...pgEnv,
+              DB_SCHEMA: schemaName,
+              DB_TEST_DATABASE: pgEnv.DB_DATABASE,
+              DB_TEST_SCHEMA: schemaName,
+            }
+          : { ...baseEnv, DB_CLIENT: 'sqlite' }
+      const target = engine === 'pg' ? nativePgTarget(env, schemaName) : undefined
       let engineFailure: unknown
+      let ownsSchema = false
+      let hasLease = false
       try {
-        if (engine === 'pg') await schema(app, schemaName, 'create')
+        if (engine === 'pg' && target) {
+          try {
+            await schema(app, schemaName, 'create', env)
+          } catch (error) {
+            console.error(`[consumer] CREATE SCHEMA not confirmed; left ${schemaName} untouched`)
+            throw error
+          }
+          ownsSchema = true
+          env.NATIVE_PG_TEST_LEASE = await issueNativePgLease(app, target)
+          env.NATIVE_PG_TEST_LEASE_OWNER = String(process.pid)
+          hasLease = true
+        }
         await run(app, ['typecheck'], `${selected}_${engine}_typecheck`, env)
         const functional = await run(
           app,
@@ -381,9 +415,16 @@ try {
       } catch (error) {
         engineFailure = error
       } finally {
-        if (engine === 'pg') {
+        if (hasLease) {
           try {
-            await schema(app, schemaName, 'drop')
+            await revokeNativePgLease(app)
+          } catch (error) {
+            engineFailure = combineFailures(engineFailure, error)
+          }
+        }
+        if (ownsSchema) {
+          try {
+            await schema(app, schemaName, 'drop', env)
           } catch (error) {
             engineFailure = combineFailures(engineFailure, error)
           }
