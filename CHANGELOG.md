@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+## 0.4.0 - 2026-11-17
+
 - Request-serving stores can supply just the methods used by the request service. Operator commands
   validate the additional capabilities they use, and prune reports confirmed progress on failure.
 - SQLite returns its pool checkout before waiting to retry a busy write.
@@ -9,6 +11,8 @@
   enforces retained audit event ID uniqueness, as the SQL store does.
 - Combined example choosers explain their 50-account limit. The hypermedia workspace updates
   its expiry controls when a document is restored from browser history.
+- The Account Kit guide documents the single transport supported per configured instance.
+- Maintainer check and consumer runners share process cleanup while retaining their timeout policies.
 
 ## 0.3.0 - 2026-11-17
 
