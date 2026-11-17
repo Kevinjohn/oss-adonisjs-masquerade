@@ -1,5 +1,6 @@
 import { test } from '@japa/runner'
 import { randomUUID } from 'node:crypto'
+import { createRequire, syncBuiltinESMExports } from 'node:module'
 import { assertControlStoreConformance } from '../testing/main.js'
 import { LucidControlStore } from '../stores/lucid.js'
 import { parseRevision } from '../stores/lucid_row.js'
@@ -416,6 +417,25 @@ test.group('Lucid control store', () => {
   if (process.env.DB_CLIENT !== 'pg')
     test('SQLite returns its only checkout before busy retry delay', async ({ assert }) => {
       const f = await sqlFixture({ poolMax: 1 })
+      const timers = createRequire(import.meta.url)('node:timers/promises') as {
+        setTimeout: typeof import('node:timers/promises').setTimeout
+      }
+      const originalDelay = timers.setTimeout
+      let releaseDelay!: () => void
+      const controlledDelay = new Promise<void>((resolve) => {
+        releaseDelay = resolve
+      })
+      let signalDelay!: () => void
+      const delayEntered = new Promise<void>((resolve) => {
+        signalDelay = resolve
+      })
+      timers.setTimeout = ((milliseconds: number) => {
+        assert.equal(milliseconds, 200)
+        signalDelay()
+        return controlledDelay
+      }) as typeof timers.setTimeout
+      syncBuiltinESMExports()
+      let pending: ReturnType<LucidControlStore['compareAndSet']> | undefined
       try {
         const command = transition()
         const knex = f.client.getWriteClient()
@@ -458,18 +478,26 @@ test.group('Lucid control store', () => {
           sqliteBusyRetries: 1,
           sqliteBusyDelayMs: 200,
         })
-        const pending = store.compareAndSet(command)
+        pending = store.compareAndSet(command)
         await checkoutReleased
-        const independentRead = await Promise.race([
-          f.store.read(command.owner).then((row) => ({ status: 'read' as const, row })),
-          pending.then(() => ({ status: 'retry-finished' as const })),
-        ])
-        assert.deepEqual(independentRead, { status: 'read', row: null })
+        await delayEntered
+        const read = f.store.read(command.owner)
+        const deadline = globalThis.setTimeout(() => releaseDelay(), 1000)
+        try {
+          assert.isNull(await read)
+        } finally {
+          globalThis.clearTimeout(deadline)
+        }
         assert.equal(attempts, 1)
+        releaseDelay()
         assert.deepEqual(await pending, { status: 'applied', transitionId: command.event.id })
         assert.equal(attempts, 2)
         assert.deepEqual(await f.store.read(command.owner), command.next)
       } finally {
+        releaseDelay()
+        await pending?.catch(() => {})
+        timers.setTimeout = originalDelay
+        syncBuiltinESMExports()
         await f.cleanup()
       }
     })

@@ -226,92 +226,6 @@ export async function assertControlStoreConformance(
   }
   for (const active of activeRows) assert.deepEqual(await store.read(active), active)
   const activeRow = activeRows[0]!
-  const invalidId = randomUUID()
-  const invalidNext = {
-    ...activeRow,
-    revision: activeRow.revision + 1,
-    revisionNonce: 'e'.repeat(32),
-    lastTransitionId: invalidId,
-  }
-  await assert.rejects(() =>
-    store.compareAndSet({
-      owner: activeRow,
-      expected: activeRow.revision,
-      next: invalidNext,
-      event: {
-        ...event,
-        ...activeRow,
-        id: invalidId,
-        at: activeRow.updatedAt,
-        kind: 'started',
-        outcomeCode: 'started',
-        revision: invalidNext.revision,
-        targetId: 'different-target',
-        targetIncarnation: activeRow.targetIncarnation,
-      },
-    })
-  )
-  assert.deepEqual(await store.read(activeRow), activeRow)
-  await assert.rejects(() =>
-    store.compareAndSet({
-      owner: activeRow,
-      expected: activeRow.revision,
-      next: invalidNext,
-      event: {
-        ...event,
-        ...activeRow,
-        id: invalidId,
-        at: activeRow.updatedAt,
-        kind: 'started',
-        outcomeCode: 'started',
-        revision: invalidNext.revision,
-        targetId: activeRow.targetId,
-        targetIncarnation: activeRow.targetIncarnation,
-        access: activeRow.access === 'view' ? 'edit' : 'view',
-      },
-    })
-  )
-  assert.deepEqual(await store.read(activeRow), activeRow)
-  await assert.rejects(() =>
-    store.compareAndSet({
-      owner: activeRow,
-      expected: activeRow.revision,
-      next: { ...invalidNext, lastTransitionId: randomUUID() },
-      event: {
-        ...event,
-        ...activeRow,
-        id: invalidId,
-        at: activeRow.updatedAt,
-        kind: 'started',
-        outcomeCode: 'started',
-        revision: invalidNext.revision,
-        targetId: activeRow.targetId,
-        targetIncarnation: activeRow.targetIncarnation,
-      },
-    })
-  )
-  assert.deepEqual(await store.read(activeRow), activeRow)
-  const mismatchedOwner = randomUUID()
-  await assert.rejects(() =>
-    store.compareAndSet({
-      owner: activeRow,
-      expected: activeRow.revision,
-      next: invalidNext,
-      event: {
-        ...event,
-        ...activeRow,
-        actorId: mismatchedOwner,
-        id: invalidId,
-        at: activeRow.updatedAt,
-        kind: 'started',
-        outcomeCode: 'started',
-        revision: invalidNext.revision,
-        targetId: activeRow.targetId,
-        targetIncarnation: activeRow.targetIncarnation,
-      },
-    })
-  )
-  assert.deepEqual(await store.read(activeRow), activeRow)
   const endingId = randomUUID()
   const ending: IdleModeRow = {
     ...activeRow,
@@ -328,47 +242,43 @@ export async function assertControlStoreConformance(
     startedAt: null,
     expiresAt: null,
   }
-  await assert.rejects(() =>
-    store.compareAndSet({
-      owner: activeRow,
-      expected: activeRow.revision,
+  const stopped: TransitionEvent = {
+    ...owner,
+    id: endingId,
+    modeId: activeRow.modeId,
+    at: activeRow.updatedAt,
+    kind: 'stopped',
+    outcomeCode: 'stopped',
+    revision: ending.revision,
+    targetId: activeRow.targetId,
+    targetIncarnation: activeRow.targetIncarnation,
+    access: activeRow.access,
+  }
+  // Each rejected write differs from an otherwise valid stop in one field.
+  const invalidStops = [
+    { next: ending, event: { ...stopped, targetId: 'different-target' } },
+    { next: ending, event: { ...stopped, targetIncarnation: 'different-incarnation' } },
+    {
       next: ending,
       event: {
-        ...event,
-        ...activeRow,
-        id: endingId,
-        at: activeRow.updatedAt,
-        kind: 'stopped',
-        outcomeCode: 'stopped',
-        revision: ending.revision,
-        targetId: 'different-target',
+        ...stopped,
+        access: activeRow.access === 'view' ? ('edit' as const) : ('view' as const),
       },
-    })
-  )
-  assert.deepEqual(await store.read(activeRow), activeRow)
-  for (const mismatch of [
-    { namespace: 'different-namespace' },
-    { actorIncarnation: 'different-incarnation' },
-    { revision: invalidNext.revision + 1 },
-    { modeId: randomUUID() },
-  ]) {
+    },
+    { next: { ...ending, lastTransitionId: randomUUID() }, event: stopped },
+    { next: ending, event: { ...stopped, actorId: randomUUID() } },
+    { next: ending, event: { ...stopped, namespace: 'different-namespace' } },
+    { next: ending, event: { ...stopped, actorIncarnation: 'different-incarnation' } },
+    { next: ending, event: { ...stopped, revision: ending.revision + 1 } },
+    { next: ending, event: { ...stopped, modeId: randomUUID() } },
+  ]
+  for (const invalid of invalidStops) {
     await assert.rejects(() =>
       store.compareAndSet({
         owner: activeRow,
         expected: activeRow.revision,
-        next: invalidNext,
-        event: {
-          ...event,
-          ...activeRow,
-          id: invalidId,
-          at: activeRow.updatedAt,
-          kind: 'started',
-          outcomeCode: 'started',
-          revision: invalidNext.revision,
-          targetId: activeRow.targetId,
-          targetIncarnation: activeRow.targetIncarnation,
-          ...mismatch,
-        },
+        next: invalid.next,
+        event: invalid.event,
       })
     )
     assert.deepEqual(await store.read(activeRow), activeRow)
