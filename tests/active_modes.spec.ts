@@ -89,3 +89,25 @@ test('a batch row with an unsafe namespace fails closed in listing and prune', a
     'E_MASQUERADE_UNAVAILABLE'
   )
 })
+
+test('a non-active batch candidate fails closed in listing and prune', async ({ assert }) => {
+  const { pruneMasquerade } = await import('../src/prune.js')
+  const f = fixture()
+  const service = await f.create()
+  await f.start(service)
+  const active = (await f.store.read(f.owner))!
+  const status = await service.status({ actorId: 'a' })
+  await service.stop({ actorId: 'a' }, { expectedContext: status.contextToken })
+  const idle = (await f.store.read(f.owner))!
+  f.store.activeBatch = async () => [idle]
+  f.store.expiredBatch = async () => [idle]
+  f.store.read = async () => active
+  assert.equal(
+    await errorCode(() => listActiveModes(f.config, f.dependencies)),
+    'E_MASQUERADE_UNAVAILABLE'
+  )
+  assert.equal(
+    await errorCode(() => pruneMasquerade(f.config, f.dependencies)),
+    'E_MASQUERADE_UNAVAILABLE'
+  )
+})

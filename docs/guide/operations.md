@@ -28,6 +28,8 @@ lacks a required method. A throwing store factory remains operational
 check the service or database when the factory is unavailable. This distinction applies to
 pruning; it does not change the existing list or stop response contracts.
 
+If a pass fails after some work completes, the command exits unsuccessfully and reports the failed phase and confirmed counts of expired modes and deleted events. A failed expiry commit may have succeeded despite an uncertain acknowledgement; the command flags that possibility separately and excludes it from the confirmed count. Inspect the store before deciding whether to rerun the pass. A later pass can continue from the persisted state.
+
 Expired modes are checked during every pass, regardless of event-retention mode. The command
 re-reads each candidate and uses a conditional transition, so it will not clear a newer mode. A
 business request still enforces expiry when it admits a request; pruning is housekeeping, not the

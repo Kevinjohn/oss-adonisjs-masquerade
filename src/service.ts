@@ -26,7 +26,7 @@ import type {
   ActiveModeRow,
   AuditEvent,
   ControlOutcomeKind,
-  ControlStore,
+  RequestControlStore,
   EventKind,
   IdleModeRow,
   MasqueradeConfig,
@@ -58,7 +58,7 @@ import type {
  * @throws {InvalidArgumentsException} When `authenticateActor` or an observer or diagnostic port is missing.
  */
 export async function createMasqueradeService<User, Request extends object>(
-  config: MasqueradeConfig<User, Request>,
+  config: MasqueradeConfig<User, Request, RequestControlStore>,
   dependencies: ServiceDependencies<User, Request>
 ): Promise<MasqueradeService<Request>> {
   let validated
@@ -68,14 +68,12 @@ export async function createMasqueradeService<User, Request extends object>(
     reportDiagnostic(dependencies, 'configuration', 'validate', 'E_MASQUERADE_UNAVAILABLE')
     throw error
   }
-  let store: ControlStore
+  let store: RequestControlStore
   try {
     store = await openControlStore(validated.store, dependencies.environment, [
       'read',
       'compareAndSet',
       'recordControlOutcome',
-      'expiredBatch',
-      'pruneEvents',
     ])
   } catch (error) {
     reportDiagnostic(dependencies, 'store', 'open', 'E_MASQUERADE_UNAVAILABLE')
@@ -102,9 +100,9 @@ export async function createMasqueradeService<User, Request extends object>(
 class CoreService<User, Request extends object> implements MasqueradeService<Request> {
   #admitted = new WeakMap<Request, Promise<RequestAdmission<User>>>()
   constructor(
-    private config: MasqueradeConfig<User, Request>,
+    private config: MasqueradeConfig<User, Request, RequestControlStore>,
     private dependencies: ServiceDependencies<User, Request>,
-    private store: ControlStore
+    private store: RequestControlStore
   ) {}
   private now(): string {
     try {

@@ -1,5 +1,5 @@
 import { test } from '@japa/runner'
-import { pruneMasquerade } from '../src/prune.js'
+import { pruneMasquerade, PruneProgressError } from '../src/prune.js'
 import { createMasqueradeService } from '../src/service.js'
 import { MasqueradeSetupError } from '../src/errors.js'
 import { fixture, errorCode } from './helpers/core.js'
@@ -24,6 +24,61 @@ test("prune expiry event carries the row's access", async ({ assert }) => {
 })
 
 test.group('pruneMasquerade', () => {
+  test('a request-only store serves requests and prune names its missing capability', async ({
+    assert,
+  }) => {
+    const f = fixture()
+    const { read, compareAndSet, recordControlOutcome } = f.store
+    const requestStore = {
+      read: read.bind(f.store),
+      compareAndSet: compareAndSet.bind(f.store),
+      recordControlOutcome: recordControlOutcome.bind(f.store),
+    }
+    const config = { ...f.config, store: async () => requestStore }
+    const service = await createMasqueradeService(config, f.dependencies)
+    await f.start(service)
+    const status = await service.status({ actorId: 'a' })
+    assert.isTrue(status.isMasquerading)
+    const error = await pruneMasquerade(config, f.dependencies).catch((caught: unknown) => caught)
+    assert.instanceOf(error, MasqueradeSetupError)
+    assert.equal((error as MasqueradeSetupError).field, 'store.expiredBatch')
+    const testOnly = { ...requestStore, testOnly: true }
+    const production = await createMasqueradeService(
+      { ...config, store: async () => testOnly },
+      { ...f.dependencies, environment: 'production' }
+    ).catch((caught: unknown) => caught)
+    assert.instanceOf(production, MasqueradeSetupError)
+    assert.equal((production as MasqueradeSetupError).field, 'store.testOnly')
+  })
+
+  test('reports completed deletion and expiry before a definite later failure', async ({
+    assert,
+  }) => {
+    const f = fixture()
+    f.config.retention = { days: 1 }
+    await f.start(await f.create())
+    f.state.now += 2 * 86_400_000
+    const candidate = (await f.store.read(f.owner))!
+    f.store.expiredBatch = async () => [candidate, candidate]
+    const read = f.store.read.bind(f.store)
+    let reads = 0
+    f.store.read = async (owner) => {
+      if (++reads === 2) throw new Error('second read failed')
+      return read(owner)
+    }
+    const error = await pruneMasquerade(f.config, f.dependencies).catch((caught: unknown) => caught)
+    assert.instanceOf(error, PruneProgressError)
+    assert.equal((error as PruneProgressError).phase, 'read')
+    assert.deepEqual((error as PruneProgressError).completed, { expired: 1, eventsDeleted: 1 })
+    assert.isFalse((error as PruneProgressError).indeterminate)
+    const persisted = await read(f.owner)
+    assert.equal(persisted?.state, 'idle')
+    f.store.read = read
+    assert.deepEqual(await pruneMasquerade(f.config, f.dependencies), {
+      expired: 0,
+      eventsDeleted: 0,
+    })
+  })
   test('preserves a missing resolved store as a setup error', async ({ assert }) => {
     const f = fixture()
     const error = await pruneMasquerade(
@@ -280,10 +335,12 @@ test.group('pruneMasquerade', () => {
       await compareAndSet(input)
       return { status: 'indeterminate', transitionId: input.event.id }
     }
-    assert.equal(
-      await errorCode(() => pruneMasquerade(f.config, f.dependencies)),
-      'E_MASQUERADE_UNAVAILABLE'
-    )
+    const error = await pruneMasquerade(f.config, f.dependencies).catch((caught: unknown) => caught)
+    assert.instanceOf(error, PruneProgressError)
+    assert.equal((error as PruneProgressError).code, 'E_MASQUERADE_UNAVAILABLE')
+    assert.equal((error as PruneProgressError).phase, 'expiry_commit')
+    assert.deepEqual((error as PruneProgressError).completed, { expired: 0, eventsDeleted: 0 })
+    assert.isTrue((error as PruneProgressError).indeterminate)
     const row = await f.store.read(f.owner)
     assert.equal(row?.state, 'idle')
     assert.deepEqual(
