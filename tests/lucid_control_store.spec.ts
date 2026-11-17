@@ -414,6 +414,66 @@ test.group('Lucid control store', () => {
       assert.throws(() => parseRevision(value))
   })
   if (process.env.DB_CLIENT !== 'pg')
+    test('SQLite returns its only checkout before busy retry delay', async ({ assert }) => {
+      const f = await sqlFixture({ poolMax: 1 })
+      try {
+        const command = transition()
+        const knex = f.client.getWriteClient()
+        let attempts = 0
+        let released!: () => void
+        const checkoutReleased = new Promise<void>((resolve) => {
+          released = resolve
+        })
+        const originalRelease = knex.client.releaseConnection.bind(knex.client)
+        knex.client.releaseConnection = async (
+          connection: Parameters<typeof originalRelease>[0]
+        ) => {
+          await originalRelease(connection)
+          released()
+        }
+        const client = {
+          dialect: f.client.dialect,
+          isTransaction: false,
+          mode: f.client.mode,
+          knexQuery: f.client.knexQuery.bind(f.client),
+          getWriteClient: () =>
+            new Proxy(knex, {
+              get(target, property, receiver) {
+                if (property !== 'transaction') return Reflect.get(target, property, receiver)
+                return async (config: { connection: unknown }) => {
+                  attempts++
+                  const tx = await target.transaction(config)
+                  const commit = tx.commit.bind(tx)
+                  tx.commit = (async () => {
+                    if (attempts === 1)
+                      throw Object.assign(new Error('busy commit'), { code: 'SQLITE_BUSY' })
+                    await commit()
+                  }) as unknown as typeof tx.commit
+                  return tx
+                }
+              },
+            }),
+        }
+        const store = new LucidControlStore(client as typeof f.client, {
+          sqliteBusyRetries: 1,
+          sqliteBusyDelayMs: 200,
+        })
+        const pending = store.compareAndSet(command)
+        await checkoutReleased
+        const independentRead = await Promise.race([
+          f.store.read(command.owner).then((row) => ({ status: 'read' as const, row })),
+          pending.then(() => ({ status: 'retry-finished' as const })),
+        ])
+        assert.deepEqual(independentRead, { status: 'read', row: null })
+        assert.equal(attempts, 1)
+        assert.deepEqual(await pending, { status: 'applied', transitionId: command.event.id })
+        assert.equal(attempts, 2)
+        assert.deepEqual(await f.store.read(command.owner), command.next)
+      } finally {
+        await f.cleanup()
+      }
+    })
+  if (process.env.DB_CLIENT !== 'pg')
     test('SQLite bounded busy handling throws without effects and retries safely before commit', async ({
       assert,
     }) => {

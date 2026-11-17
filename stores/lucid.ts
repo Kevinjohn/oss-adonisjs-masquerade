@@ -187,14 +187,12 @@ export class LucidControlStore implements ControlStore {
         // after a clean rollback; it is the same outcome as a revision mismatch.
         if (this.#client.dialect.name === 'postgres' && serializationFailure(error))
           return { status: 'conflict' }
-        if (this.#client.dialect.name !== 'postgres' && busy(error) && attempt < this.#retries) {
-          await setTimeout(this.#delay)
-          continue
-        }
-        throw error
+        if (!(this.#client.dialect.name !== 'postgres' && busy(error) && attempt < this.#retries))
+          throw error
       } finally {
         await knex.client.releaseConnection(connection)
       }
+      await setTimeout(this.#delay)
     }
   }
   async recordControlOutcome(event: ControlOutcomeEvent): Promise<void> {
