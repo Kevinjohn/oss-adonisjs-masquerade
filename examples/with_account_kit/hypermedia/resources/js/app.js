@@ -19,22 +19,18 @@ Alpine.start()
 
 for (const workspace of document.querySelectorAll('[data-masquerade-deadline]')) {
   const deadline = Date.parse(workspace.dataset.masqueradeDeadline)
+  let timer
   const update = () => {
     const expired = Date.now() >= deadline
     for (const element of workspace.querySelectorAll('[data-masquerade-active]'))
-      element.hidden = expired
+      if (element.hidden !== expired) element.hidden = expired
     for (const element of workspace.querySelectorAll('[data-masquerade-expired]'))
-      element.hidden = !expired
+      if (element.hidden !== !expired) element.hidden = !expired
+    window.clearTimeout(timer)
+    if (!expired) timer = window.setTimeout(update, deadline - Date.now())
   }
   update()
-  const timer = window.setTimeout(update, Math.max(0, deadline - Date.now()))
   document.addEventListener('visibilitychange', update)
-  window.addEventListener(
-    'pagehide',
-    () => {
-      window.clearTimeout(timer)
-      document.removeEventListener('visibilitychange', update)
-    },
-    { once: true }
-  )
+  window.addEventListener('pageshow', update)
+  window.addEventListener('pagehide', () => window.clearTimeout(timer))
 }

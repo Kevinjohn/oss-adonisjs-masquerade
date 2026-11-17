@@ -80,24 +80,29 @@ onUnmounted(() => {
     </template>
     <p v-else-if="!canMasquerade">Your account is not a masquerade operator.</p>
     <p v-else-if="accounts.length === 0">There are no other accounts yet.</p>
-    <ul v-else>
-      <li v-for="account in accounts" :key="account.id">
-        <Form route="masquerade.start">
-          <input type="hidden" name="_masqueradeContext" :value="mode.contextToken" />
-          <input type="hidden" name="targetId" :value="account.id" />
-          <span>{{ account.email }}</span>
-          {{ ' ' }}
-          <label>
-            Access
-            <select name="access">
-              <option value="view" selected>View only</option>
-              <option value="edit">Can edit</option>
-            </select>
-          </label>
-          {{ ' ' }}
-          <button type="submit" class="btn btn--primary btn--sm">Act as {{ account.email }}</button>
-        </Form>
-      </li>
-    </ul>
+    <template v-else>
+      <p>Showing up to 50 accounts, ordered by email.</p>
+      <ul>
+        <li v-for="account in accounts" :key="account.id">
+          <Form route="masquerade.start">
+            <input type="hidden" name="_masqueradeContext" :value="mode.contextToken" />
+            <input type="hidden" name="targetId" :value="account.id" />
+            <span>{{ account.email }}</span>
+            {{ ' ' }}
+            <label>
+              Access
+              <select name="access">
+                <option value="view" selected>View only</option>
+                <option value="edit">Can edit</option>
+              </select>
+            </label>
+            {{ ' ' }}
+            <button type="submit" class="btn btn--primary btn--sm">
+              Act as {{ account.email }}
+            </button>
+          </Form>
+        </li>
+      </ul>
+    </template>
   </section>
 </template>

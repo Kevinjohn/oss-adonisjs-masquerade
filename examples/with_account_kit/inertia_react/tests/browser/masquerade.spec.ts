@@ -73,6 +73,19 @@ test.group('masquerade in the browser', (group) => {
     await page.goto('/masquerade/accounts')
     await page.getByRole('button', { name: 'Act as customer@example.test' }).waitFor()
     assert.equal(await page.getByRole('button', { name: /^Act as / }).count(), 50)
+    await page.getByText('Showing up to 50 accounts, ordered by email.').waitFor()
+    const displayed = await page.getByRole('button', { name: /^Act as / }).allTextContents()
+    const expected = [
+      'customer@example.test',
+      ...Array.from({ length: 55 }, (_, index) => `zz${index}@example.test`),
+    ]
+      .sort()
+      .slice(0, 50)
+      .map((email) => `Act as ${email}`)
+    assert.deepEqual(
+      displayed.map((text) => text.trim()),
+      expected
+    )
     await page.getByRole('button', { name: 'Act as customer@example.test' }).click()
     await page.getByRole('heading', { name: 'Your dashboard is ready' }).waitFor()
     assert.equal(
