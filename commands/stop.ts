@@ -1,7 +1,7 @@
 import { InvalidArgumentsException } from '@adonisjs/core/exceptions'
 import { BaseCommand, flags } from '@adonisjs/core/ace'
 import { MasqueradeError } from '../src/errors.js'
-import { isUnknownAccount, stopActiveModes } from '../src/stop_modes.js'
+import { isUnknownAccount, stopActiveModes, StopProgressError } from '../src/stop_modes.js'
 import type { MasqueradeConfig } from '../src/types.js'
 
 /** End one operator's active mode, or every active mode, from the server. */
@@ -85,5 +85,14 @@ export default class StopCommand extends BaseCommand {
         ? `Stopped ${result.stopped} mode(s); the scan made no progress. Run masquerade:stop --all again to retry remaining modes.`
         : `Stopped ${result.stopped} mode(s).`
     )
+  }
+
+  completed(): boolean {
+    if (!(this.error instanceof StopProgressError)) return false
+    const { phase, stopped, indeterminate } = this.error
+    this.logger.error(
+      `Bulk stop failed during ${phase}: confirmed stopped ${stopped} mode(s).${indeterminate ? ' The failed transition may also have committed.' : ''}`
+    )
+    return true
   }
 }

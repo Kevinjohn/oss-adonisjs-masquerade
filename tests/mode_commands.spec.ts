@@ -1,7 +1,7 @@
 import { test } from '@japa/runner'
 import { IgnitorFactory } from '@adonisjs/core/factories'
 import { getCommand, getMetaData } from '../commands/main.js'
-import { OPERATOR_STOP_OUTCOME } from '../src/stop_modes.js'
+import { OPERATOR_STOP_OUTCOME, StopProgressError } from '../src/stop_modes.js'
 import { fixture } from './helpers/core.js'
 
 async function ace(
@@ -10,7 +10,8 @@ async function ace(
   logger?: { info(...args: unknown[]): void; error(...args: unknown[]): void },
   answer?: boolean,
   output?: string[],
-  nodeEnvironment = 'test'
+  nodeEnvironment = 'test',
+  onError?: (error: unknown) => void
 ) {
   const previousNodeEnvironment = process.env.NODE_ENV
   const previousExitCode = process.exitCode
@@ -40,6 +41,10 @@ async function ace(
       .configure(async (app) => {
         await app.boot()
         if (logger) app.container.bindValue('logger', logger as never)
+        if (onError) {
+          const commands = await app.container.make('ace')
+          commands.executed((command) => onError(command.error))
+        }
         if (answer !== undefined) {
           const commands = await app.container.make('ace')
           commands.executing((command) => {
@@ -204,6 +209,85 @@ test.group('masquerade:status and masquerade:stop Ace commands', () => {
     assert.include(
       output.join('\n'),
       'Stopped 0 mode(s); the scan made no progress. Run masquerade:stop --all again to retry remaining modes.'
+    )
+  })
+
+  test('stop --all reports a confirmed stop when the next batch read fails', async ({ assert }) => {
+    const f = fixture()
+    f.state.now = Date.now()
+    const service = await f.create()
+    await f.start(service)
+    await f.start(service, { actorId: 'c' })
+    const activeBatch = f.store.activeBatch.bind(f.store)
+    let reads = 0
+    const failure = new Error('later batch read failed')
+    f.store.activeBatch = async () => {
+      if (++reads === 2) throw failure
+      return activeBatch({ limit: 1 })
+    }
+    const output: string[] = []
+
+    let commandError: unknown
+    assert.equal(
+      await ace(
+        f.config,
+        ['masquerade:stop', '--all', '--force'],
+        undefined,
+        undefined,
+        output,
+        'test',
+        (error) => {
+          commandError = error
+        }
+      ),
+      1
+    )
+    assert.instanceOf(commandError, StopProgressError)
+    assert.equal((commandError as StopProgressError).cause, failure)
+    assert.include(
+      output.join('\n'),
+      'Bulk stop failed during active_batch: confirmed stopped 1 mode(s).'
+    )
+    assert.notInclude(output.join('\n'), 'may also have committed')
+    assert.notInclude(output.join('\n'), failure.message)
+    assert.equal(reads, 2)
+    assert.lengthOf(await activeBatch({ limit: 2 }), 1)
+    assert.lengthOf(
+      f.store.events.filter((event) => event.outcomeCode === OPERATOR_STOP_OUTCOME),
+      1
+    )
+  })
+
+  test('stop --all reports an uncertain commit separately from confirmed stops', async ({
+    assert,
+  }) => {
+    const f = fixture()
+    f.state.now = Date.now()
+    const service = await f.create()
+    await f.start(service)
+    await f.start(service, { actorId: 'c' })
+    const compareAndSet = f.store.compareAndSet.bind(f.store)
+    f.store.compareAndSet = async (input) => {
+      const result = await compareAndSet(input)
+      if (input.owner.actorId === 'c' && result.status === 'applied') {
+        return { status: 'indeterminate', transitionId: result.transitionId }
+      }
+      return result
+    }
+    const output: string[] = []
+
+    assert.equal(
+      await ace(f.config, ['masquerade:stop', '--all', '--force'], undefined, undefined, output),
+      1
+    )
+    assert.include(
+      output.join('\n'),
+      'Bulk stop failed during stop_commit: confirmed stopped 1 mode(s). The failed transition may also have committed.'
+    )
+    assert.deepEqual(await f.store.activeBatch({ limit: 2 }), [])
+    assert.lengthOf(
+      f.store.events.filter((event) => event.outcomeCode === OPERATOR_STOP_OUTCOME),
+      2
     )
   })
 
