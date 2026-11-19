@@ -12,7 +12,7 @@
 
 ### Changed
 
-- Require the published Account Kit 0.4.1 archive for the optional integration and its compatibility matrix.
+- Require Account Kit `0.4.1` exactly. Both SQLite compatibility profiles use the published archive.
 
 ## 0.4.0 - 2026-11-17
 
