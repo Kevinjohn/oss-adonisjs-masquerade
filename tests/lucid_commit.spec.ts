@@ -7,7 +7,8 @@ import { sqlFixture, transition } from './helpers/sql_store.js'
 test('a post-commit pool hook fault preserves the start and retires the store', async ({
   assert,
 }) => {
-  const f = await sqlFixture()
+  // A second checkout lets a regressed service finish its denial write before cleanup.
+  const f = await sqlFixture({ poolMax: 2 })
   const core = fixture()
   const knex = f.second.getWriteClient()
   const { client } = knex
@@ -18,6 +19,7 @@ test('a post-commit pool hook fault preserves the start and retires the store', 
   const request = { actorId: 'a' }
   let checkout: unknown
   const failRelease = (connection: unknown) => {
+    pool.removeListener('release', failRelease)
     checkout = connection
     // Tarn 3.1.2 reads `.stack` while logging listener failures.
     throw null
