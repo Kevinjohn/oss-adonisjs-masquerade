@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+- Configure preserves starter-shaped auth configurations that use custom factories.
+
 - `masquerade:stop --all` reports confirmed stops and any uncertain transition when a later store operation fails.
 
 ## 0.4.0 - 2026-11-17
