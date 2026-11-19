@@ -119,6 +119,34 @@ test.group('configure wiring', (group) => {
     }
   })
 
+  test('leaves starter-shaped auth with unfamiliar factory bindings unchanged', async ({
+    assert,
+  }) => {
+    const sources = [
+      starterAuthConfig.replace(
+        "import { defineConfig } from '@adonisjs/auth'",
+        'const defineConfig = (config: unknown) => config'
+      ),
+      starterAuthConfig.replace(
+        "import { sessionGuard, sessionUserProvider } from '@adonisjs/auth/session'",
+        "import { sessionUserProvider } from '@adonisjs/auth/session'\nimport { sessionGuard } from '#services/custom_session'"
+      ),
+      starterAuthConfig.replace(
+        'sessionGuard, sessionUserProvider',
+        'sessionGuard, type sessionUserProvider'
+      ),
+    ]
+    for (const source of sources) {
+      const h = await host({ auth: source })
+      try {
+        assert.equal(await wireAuthGuards(h.project(), h.auth, 'web'), 'skipped')
+        assert.equal(await readFile(h.auth, 'utf8'), source)
+      } finally {
+        await rm(h.root, { recursive: true, force: true })
+      }
+    }
+  })
+
   test('skips auth wiring when generated import names collide with local bindings', async ({
     assert,
   }) => {
