@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+- Lucid preserves acknowledged transitions when a host pool hook fails during connection release.
+
 - `masquerade:stop --all` reports confirmed stops and any uncertain transition when a later store operation fails.
 
 ## 0.4.0 - 2026-11-17

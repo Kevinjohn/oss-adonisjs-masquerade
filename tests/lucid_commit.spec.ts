@@ -1,6 +1,62 @@
 import { test } from '@japa/runner'
+import { createMasqueradeService } from '../index.js'
+import { fixture } from './helpers/core.js'
 import { LucidControlStore } from '../stores/lucid.js'
 import { sqlFixture, transition } from './helpers/sql_store.js'
+
+test('a post-commit pool hook fault preserves the start and retires the store', async ({
+  assert,
+}) => {
+  const f = await sqlFixture()
+  const core = fixture()
+  const knex = f.second.getWriteClient()
+  const { client } = knex
+  const pool = client.pool
+  if (!pool || !('on' in pool)) throw new Error('Expected a Knex-owned pool')
+  const originalLogError = client.logger.error
+  const messages: string[] = []
+  const request = { actorId: 'a' }
+  let checkout: unknown
+  const failRelease = (connection: unknown) => {
+    checkout = connection
+    // Tarn 3.1.2 reads `.stack` while logging listener failures.
+    throw null
+  }
+  const installReleaseFault = (query: { sql: string }) => {
+    if (/^COMMIT\b/i.test(query.sql)) pool.on('release', failRelease)
+  }
+  try {
+    const service = await createMasqueradeService(
+      { ...core.config, store: async () => f.other },
+      core.dependencies
+    )
+    const idle = await service.status(request)
+    client.logger.error = (message: string) => {
+      messages.push(message)
+    }
+    knex.on('query', installReleaseFault)
+
+    const started = await service.start(request, {
+      targetId: 'b',
+      expectedContext: idle.contextToken,
+    })
+    assert.isTrue(started.isMasquerading)
+    assert.isDefined(checkout)
+    const committed = await f.store.read({ namespace: 'test', actorId: 'a', actorIncarnation: 'a' })
+    assert.equal(committed?.state, 'active')
+    const events = await f.client.from('masquerade_events').select('kind')
+    assert.deepEqual(events, [{ kind: 'started' }])
+    assert.deepEqual(core.diagnostics, [])
+    assert.deepEqual(messages, ['Masquerade could not release the control store connection'])
+    await assert.rejects(() => service.status(request), 'Masquerade is unavailable')
+  } finally {
+    pool.removeListener('release', failRelease)
+    knex.removeListener('query', installReleaseFault)
+    client.logger.error = originalLogError
+    if (checkout !== undefined) pool.release(checkout)
+    await f.cleanup()
+  }
+})
 
 if (process.env.DB_CLIENT === 'pg') {
   test('a real PostgreSQL deferred constraint rejects COMMIT and never reports applied', async ({
