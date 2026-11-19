@@ -2,11 +2,17 @@
 
 ## Unreleased
 
+## 0.4.1 - 2026-11-19
+
 - Configure preserves starter-shaped auth configurations that use custom factories.
 - Service creation validates required authentication and observer ports before opening the control store.
 - Lucid preserves acknowledged transitions when a host pool hook fails during connection release.
 
 - `masquerade:stop --all` reports confirmed stops and any uncertain transition when a later store operation fails.
+
+### Changed
+
+- Require the published Account Kit 0.4.1 archive for the optional integration and its compatibility matrix.
 
 ## 0.4.0 - 2026-11-17
 
