@@ -16,7 +16,6 @@ import {
   kitReleaseUrl,
   kitReleaseVersion,
   kitSourceRevision,
-  kitSqliteCandidateRevision,
   overlay,
   rewriteManifest,
   wireAuth,
@@ -218,10 +217,7 @@ try {
     const head = execFileSync('git', ['-C', checkout, 'rev-parse', selectedRevision], {
       encoding: 'utf8',
     }).trim()
-    const approvedSqliteCandidate =
-      head === kitSqliteCandidateRevision && profile === 'latest' && database === 'sqlite'
-    if (head !== baseline && !approvedSqliteCandidate)
-      throw new Error(`Unapproved Account Kit revision ${head}`)
+    if (head !== baseline) throw new Error(`Unapproved Account Kit revision ${head}`)
     const dirty = execFileSync('git', ['-C', checkout, 'status', '--porcelain'], {
       encoding: 'utf8',
     }).trim()
