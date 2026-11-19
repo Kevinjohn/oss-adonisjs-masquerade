@@ -45,7 +45,7 @@ import type {
 
 /**
  * Create the core service shared by the provider, guards, controllers and commands. The config is
- * validated and the control store opened before any request is served.
+ * and required dependencies are validated before opening the control store.
  *
  * Injection points on `dependencies`: `authenticateActor` resolves the native actor from the raw
  * guard (SPEC I01); `emitter`, `logger` and `observerErrorHandler` receive committed events and
@@ -68,6 +68,15 @@ export async function createMasqueradeService<User, Request extends object>(
     reportDiagnostic(dependencies, 'configuration', 'validate', 'E_MASQUERADE_UNAVAILABLE')
     throw error
   }
+  if (typeof dependencies.authenticateActor !== 'function')
+    throw new InvalidArgumentsException('Actor authentication resolver required')
+  if (
+    typeof dependencies.emitter?.emit !== 'function' ||
+    typeof dependencies.logger?.info !== 'function' ||
+    typeof dependencies.logger?.error !== 'function' ||
+    typeof dependencies.observerErrorHandler !== 'function'
+  )
+    throw new InvalidArgumentsException('Observer and diagnostic ports required')
   let store: RequestControlStore
   try {
     store = await openControlStore(validated.store, dependencies.environment, [
@@ -79,15 +88,6 @@ export async function createMasqueradeService<User, Request extends object>(
     reportDiagnostic(dependencies, 'store', 'open', 'E_MASQUERADE_UNAVAILABLE')
     throw error
   }
-  if (typeof dependencies.authenticateActor !== 'function')
-    throw new InvalidArgumentsException('Actor authentication resolver required')
-  if (
-    typeof dependencies.emitter?.emit !== 'function' ||
-    typeof dependencies.logger?.info !== 'function' ||
-    typeof dependencies.logger?.error !== 'function' ||
-    typeof dependencies.observerErrorHandler !== 'function'
-  )
-    throw new InvalidArgumentsException('Observer and diagnostic ports required')
   return new CoreService(validated, dependencies, store)
 }
 
