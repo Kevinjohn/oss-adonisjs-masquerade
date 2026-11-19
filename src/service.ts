@@ -44,7 +44,7 @@ import type {
 } from './types.js'
 
 /**
- * Create the core service shared by the provider, guards, controllers and commands. The config is
+ * Create the core service shared by the provider, guards, controllers and commands. The config
  * and required dependencies are validated before opening the control store.
  *
  * Injection points on `dependencies`: `authenticateActor` resolves the native actor from the raw
