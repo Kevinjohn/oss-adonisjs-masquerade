@@ -1,5 +1,5 @@
 import { test } from '@japa/runner'
-import { validateSubject } from '../src/subject_validation.js'
+import { requireValidSubject } from '../src/subject_validation.js'
 import { fixture } from './helpers/core.js'
 
 test('validates bounded canonical IDs and immutable incarnations against authority mapping', ({
@@ -8,7 +8,7 @@ test('validates bounded canonical IDs and immutable incarnations against authori
   const f = fixture()
   const user = f.users.get('a')!
   const subject = { id: 'a', incarnation: 'a', user }
-  assert.strictEqual(validateSubject(subject, f.config.authority), subject)
+  assert.strictEqual(requireValidSubject(subject, f.config.authority), subject)
   for (const patch of [
     { id: '' },
     { id: 'x'.repeat(256) },
@@ -21,15 +21,15 @@ test('validates bounded canonical IDs and immutable incarnations against authori
     { incarnation: ['a'] },
   ])
     assert.throws(
-      () => validateSubject({ ...subject, ...patch } as never, f.config.authority),
+      () => requireValidSubject({ ...subject, ...patch } as never, f.config.authority),
       'Masquerade is unavailable'
     )
   assert.strictEqual(
-    validateSubject(subject, { ...f.config.authority, incarnation: 'id' }),
+    requireValidSubject(subject, { ...f.config.authority, incarnation: 'id' }),
     subject
   )
   assert.strictEqual(
-    validateSubject(
+    requireValidSubject(
       { ...subject, id: 'astral-😀', incarnation: 'astral-😀' },
       {
         ...f.config.authority,

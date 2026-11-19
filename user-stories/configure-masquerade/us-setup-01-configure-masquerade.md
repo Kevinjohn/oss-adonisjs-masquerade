@@ -60,7 +60,7 @@ flowchart TD
     F --> Z{"Any stub skipped?"}
     Z -->|Yes| Y2["Log skipped-paths error, exitCode 1, stop before registration"]
     Z -->|No| G["codemods.updateRcFile registers providers and commands"]
-    G --> H{"noWire(command)?"}
+    G --> H{"shouldSkipAutoWiring(command)?"}
     H -->|Yes| I["Print required host wiring steps"]
     H -->|No| J["wireHost(command, codemods, guard, banner, formController)"]
     J --> K["Print migration, policy and enforcement steps"]

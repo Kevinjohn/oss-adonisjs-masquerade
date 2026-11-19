@@ -1,6 +1,6 @@
 import { randomBytes } from 'node:crypto'
 import { MasqueradeError } from './errors.js'
-import { unavailable } from './error_helpers.js'
+import { createUnavailableError } from './error_helpers.js'
 import { observe, reportUnknown } from './observers.js'
 import type { ObserverDependencies } from './observers.js'
 import type {
@@ -20,7 +20,7 @@ export class UnknownCommit extends MasqueradeError {
 }
 
 export function nextRevision(row: ModeRow | null): number {
-  if (row?.revision === Number.MAX_SAFE_INTEGER) throw unavailable()
+  if (row?.revision === Number.MAX_SAFE_INTEGER) throw createUnavailableError()
   return (row?.revision ?? 0) + 1
 }
 
@@ -56,7 +56,7 @@ export async function commitTransition(
   try {
     outcome = await store.compareAndSet(input)
   } catch {
-    throw unavailable()
+    throw createUnavailableError()
   }
   if (outcome?.status === 'conflict') return 'conflict'
   if (outcome?.status !== 'applied' || outcome.transitionId !== input.event.id) {

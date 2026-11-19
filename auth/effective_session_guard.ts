@@ -44,7 +44,7 @@ export class EffectiveSessionGuard<User> implements GuardContract<User> {
     const selected = runtime.selectGuard(this.ctx)
     if (selected.kind === 'effective') {
       const admitted = await runtime.admit(this.ctx)
-      assertContextEnforced(this.ctx, admitted.context.isMasquerading)
+      assertContextEnforced(this.ctx, { isMasquerading: admitted.context.isMasquerading })
       // Admission is memoized per request; a raw logout later in the request ends it, as natively.
       const raw = this.ctx.auth.use(selected.raw as never) as GuardContract<User>
       if (!raw.isAuthenticated)

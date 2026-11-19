@@ -13,10 +13,10 @@ export const errorDetails = {
   E_MASQUERADE_UNAVAILABLE: [503, 'Masquerade is unavailable'],
 } as const satisfies Record<MasqueradeErrorCode, readonly [number, string]>
 
-export function unavailable(): MasqueradeError {
+export function createUnavailableError(): MasqueradeError {
   return new MasqueradeError('E_MASQUERADE_UNAVAILABLE')
 }
 
-export function invalidInput(): MasqueradeError {
+export function createInvalidInputError(): MasqueradeError {
   return new MasqueradeError('E_MASQUERADE_INVALID_INPUT')
 }

@@ -8,9 +8,9 @@ import type {
   OwnerKey,
   CasOutcome,
 } from '../src/types.js'
-import { validateTransition } from '../src/transition_validation.js'
+import { assertValidTransition } from '../src/transition_validation.js'
 import { validateControlOutcome } from '../src/control_outcome_validation.js'
-import { validateRow } from '../src/row_validation.js'
+import { requireValidModeRow } from '../src/row_validation.js'
 
 function key(owner: OwnerKey): string {
   return JSON.stringify([owner.namespace, owner.actorId, owner.actorIncarnation])
@@ -28,10 +28,10 @@ export class MemoryControlStore implements ControlStore {
   }
   async compareAndSet(input: CompareAndSetInput): Promise<CasOutcome> {
     // The same row checks as the Lucid store, so tests cannot pass with rows a database rejects.
-    validateRow(input.next, input.owner)
+    requireValidModeRow(input.next, input.owner)
     const current = this.#rows.get(key(input.owner))
     if ((current?.revision ?? null) !== input.expected) return { status: 'conflict' }
-    validateTransition(input, current ?? null)
+    assertValidTransition(input, current ?? null)
     if (this.#events.some((event) => event.id === input.event.id))
       throw new Error('Duplicate audit event ID')
     const next = structuredClone(input.next)

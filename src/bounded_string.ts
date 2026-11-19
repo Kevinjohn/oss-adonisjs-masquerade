@@ -1,4 +1,4 @@
-export function boundedString(value: unknown, bytes: number): value is string {
+export function isBoundedString(value: unknown, bytes: number): value is string {
   return (
     typeof value === 'string' &&
     value.isWellFormed() &&

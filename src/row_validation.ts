@@ -1,11 +1,11 @@
-import { unavailable } from './error_helpers.js'
-import { boundedString } from './bounded_string.js'
+import { createUnavailableError } from './error_helpers.js'
+import { isBoundedString } from './bounded_string.js'
 import { normalizeReason } from './reason.js'
 import type { ModeRow, OwnerKey } from './types.js'
 
 const uuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/
 const hash = /^[0-9a-f]{64}$/
-export function validInstant(value: unknown): value is string {
+export function isValidInstant(value: unknown): value is string {
   return (
     typeof value === 'string' &&
     /^\d{4}-\d\d-\d\dT\d\d:\d\d:\d\d\.\d{3}Z$/.test(value) &&
@@ -13,7 +13,7 @@ export function validInstant(value: unknown): value is string {
     new Date(value).toISOString() === value
   )
 }
-export function validateRow(row: ModeRow | null, owner: OwnerKey): ModeRow | null {
+export function requireValidModeRow(row: ModeRow | null, owner: OwnerKey): ModeRow | null {
   if (row === null) return null
   if (
     !row ||
@@ -28,11 +28,11 @@ export function validateRow(row: ModeRow | null, owner: OwnerKey): ModeRow | nul
     !uuid.test(row.modeId) ||
     typeof row.lastTransitionId !== 'string' ||
     !uuid.test(row.lastTransitionId) ||
-    !validInstant(row.updatedAt)
+    !isValidInstant(row.updatedAt)
   )
-    throw unavailable()
+    throw createUnavailableError()
   if (row.state === 'idle') {
-    if (row.access !== null) throw unavailable()
+    if (row.access !== null) throw createUnavailableError()
     for (const value of [
       row.targetId,
       row.targetIncarnation,
@@ -42,27 +42,28 @@ export function validateRow(row: ModeRow | null, owner: OwnerKey): ModeRow | nul
       row.startedAt,
       row.expiresAt,
     ])
-      if (value !== null) throw unavailable()
+      if (value !== null) throw createUnavailableError()
   } else if (row.state === 'active') {
     if (
       (row.access !== 'view' && row.access !== 'edit') ||
-      !boundedString(row.targetId, 255) ||
-      !boundedString(row.targetIncarnation, 128) ||
+      !isBoundedString(row.targetId, 255) ||
+      !isBoundedString(row.targetIncarnation, 128) ||
       typeof row.actorStampHash !== 'string' ||
       !hash.test(row.actorStampHash) ||
       typeof row.targetStampHash !== 'string' ||
       !hash.test(row.targetStampHash) ||
-      !validInstant(row.startedAt) ||
-      !validInstant(row.expiresAt) ||
+      !isValidInstant(row.startedAt) ||
+      !isValidInstant(row.expiresAt) ||
       row.expiresAt <= row.startedAt ||
       Date.parse(row.expiresAt) - Date.parse(row.startedAt) > 3600000
     )
-      throw unavailable()
+      throw createUnavailableError()
     try {
-      if (row.reason !== null && normalizeReason(row.reason) !== row.reason) throw unavailable()
+      if (row.reason !== null && normalizeReason(row.reason) !== row.reason)
+        throw createUnavailableError()
     } catch {
-      throw unavailable()
+      throw createUnavailableError()
     }
-  } else throw unavailable()
+  } else throw createUnavailableError()
   return row
 }

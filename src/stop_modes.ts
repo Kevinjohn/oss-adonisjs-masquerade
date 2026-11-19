@@ -1,10 +1,10 @@
 import { randomUUID } from 'node:crypto'
 import { MasqueradeError } from './errors.js'
-import { unavailable } from './error_helpers.js'
-import { boundedString } from './bounded_string.js'
+import { createUnavailableError } from './error_helpers.js'
+import { isBoundedString } from './bounded_string.js'
 import { commitTransition, idleAfterTransition, UnknownCommit } from './mode_transition.js'
-import { validateRow } from './row_validation.js'
-import { activeCandidate, openOperatorStore } from './active_modes.js'
+import { requireValidModeRow } from './row_validation.js'
+import { requireActiveCandidate, openOperatorStore } from './active_modes.js'
 import type { ObserverDependencies } from './observers.js'
 import type {
   ActiveModeRow,
@@ -55,13 +55,14 @@ export class StopProgressError extends MasqueradeError {
 function now(dependencies: StopModesDependencies): string {
   try {
     const value = (dependencies.clock ?? (() => new Date()))()
-    if (!(value instanceof Date) || !Number.isFinite(value.getTime())) throw unavailable()
+    if (!(value instanceof Date) || !Number.isFinite(value.getTime()))
+      throw createUnavailableError()
     const instant = value.toISOString()
     // Instants compare as text, which holds only for four-digit years.
-    if (!/^\d{4}-/.test(instant)) throw unavailable()
+    if (!/^\d{4}-/.test(instant)) throw createUnavailableError()
     return instant
   } catch {
-    throw unavailable()
+    throw createUnavailableError()
   }
 }
 
@@ -104,9 +105,9 @@ async function invalidate(
 
 async function read(store: RequestControlStore, owner: OwnerKey): Promise<ModeRow | null> {
   try {
-    return validateRow(await store.read(owner), owner)
+    return requireValidModeRow(await store.read(owner), owner)
   } catch {
-    throw unavailable()
+    throw createUnavailableError()
   }
 }
 
@@ -129,7 +130,7 @@ async function resolveIncarnation<User, Request>(
   try {
     snapshot = await config.authority.inspectAccount(actorId)
   } catch {
-    throw unavailable()
+    throw createUnavailableError()
   }
   // A deleted or reused account has no current incarnation; the operator names the row's.
   if (!snapshot || snapshot.subject.id !== actorId) {
@@ -156,14 +157,14 @@ export async function stopActiveModes<User, Request>(
   ])
   if ('actorId' in selection) {
     // Bound the operator's input before it reaches the host authority.
-    if (!boundedString(selection.actorId, 255))
+    if (!isBoundedString(selection.actorId, 255))
       throw new MasqueradeError('E_MASQUERADE_INVALID_INPUT')
     const actorIncarnation = await resolveIncarnation(
       config,
       selection.actorId,
       selection.actorIncarnation
     )
-    if (!boundedString(actorIncarnation, 128))
+    if (!isBoundedString(actorIncarnation, 128))
       throw new MasqueradeError('E_MASQUERADE_INVALID_INPUT')
     const owner = {
       namespace: config.authority.namespace,
@@ -176,46 +177,48 @@ export async function stopActiveModes<User, Request>(
       const outcome = await invalidate(store, dependencies, current, now(dependencies))
       if (outcome !== 'conflict') return { stopped: outcome === 'applied' ? 1 : 0 }
     }
-    throw unavailable()
+    throw createUnavailableError()
   }
 
   const batchSize = selection.batchSize ?? DEFAULT_STOP_BATCH_SIZE
-  if (!Number.isSafeInteger(batchSize) || batchSize < 1 || batchSize > 1000) throw unavailable()
-  let stopped = 0
+  if (!Number.isSafeInteger(batchSize) || batchSize < 1 || batchSize > 1000)
+    throw createUnavailableError()
+  let stoppedCount = 0
   for (;;) {
     let candidates: ModeRow[]
     try {
       candidates = await store.activeBatch({ limit: batchSize })
-      if (!Array.isArray(candidates) || candidates.length > batchSize) throw unavailable()
+      if (!Array.isArray(candidates) || candidates.length > batchSize)
+        throw createUnavailableError()
     } catch (error) {
-      throw new StopProgressError('active_batch', stopped, error)
+      throw new StopProgressError('active_batch', stoppedCount, error)
     }
-    if (candidates.length === 0) return { stopped, drained: true }
+    if (candidates.length === 0) return { stopped: stoppedCount, drained: true }
     let progressed = false
     for (const candidate of candidates) {
       let row: ActiveModeRow
       try {
-        row = activeCandidate(candidate)
+        row = requireActiveCandidate(candidate)
       } catch (error) {
-        throw new StopProgressError('candidate', stopped, error)
+        throw new StopProgressError('candidate', stoppedCount, error)
       }
       let current: ModeRow | null
       try {
-        current = validateRow(await store.read(row), row)
+        current = requireValidModeRow(await store.read(row), row)
       } catch (error) {
-        throw new StopProgressError('read', stopped, error)
+        throw new StopProgressError('read', stoppedCount, error)
       }
       if (current?.state !== 'active' || current.revision !== row.revision) continue
       let outcome
       try {
         outcome = await invalidate(store, dependencies, current, now(dependencies))
       } catch (error) {
-        throw new StopProgressError('stop_commit', stopped, error)
+        throw new StopProgressError('stop_commit', stoppedCount, error)
       }
-      if (outcome === 'applied') stopped++
+      if (outcome === 'applied') stoppedCount++
       if (outcome !== 'conflict') progressed = true
     }
     // An empty batch is done; a batch that only conflicted is left for the next run.
-    if (!progressed) return { stopped, drained: false }
+    if (!progressed) return { stopped: stoppedCount, drained: false }
   }
 }

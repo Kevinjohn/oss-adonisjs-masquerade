@@ -91,7 +91,7 @@ export async function configure(command: Configure): Promise<void> {
     ...fileDestinations,
     ...(banner ? bannerDestinations : []),
     ...(formController ? [formControllerDestination] : []),
-    ...(noWire(command) ? [] : routeDestinations),
+    ...(shouldSkipAutoWiring(command) ? [] : routeDestinations),
     migrationDestination,
   ]
   if (!command.force) {
@@ -170,9 +170,9 @@ export async function configure(command: Configure): Promise<void> {
     return
   }
 
-  const wiring = noWire(command)
+  const wiring = shouldSkipAutoWiring(command)
     ? { auth: 'skipped', kernel: 'skipped', routes: 'skipped', status: 'skipped' }
-    : await wireHost(command, codemods, guard, banner, formController)
+    : await wireHost(command, codemods, guard, { banner, formController })
   if (codemodError) {
     command.logger.error(
       'Host wiring failed in an AdonisJS codemod. Resolve the reported error and check config/auth.ts, start/kernel.ts and adonisrc.ts before booting the package.'
@@ -254,7 +254,7 @@ export async function configure(command: Configure): Promise<void> {
   steps.forEach((step, index) => command.logger.info(`${index + 1}. ${step}`))
 }
 
-function noWire(command: Configure): boolean {
+function shouldSkipAutoWiring(command: Configure): boolean {
   return command.parsedFlags.wire === false || command.parsedFlags['no-wire'] === true
 }
 

@@ -4,9 +4,9 @@ import type { HttpContext } from '@adonisjs/core/http'
 import type { GuardContract } from '@adonisjs/auth/types'
 import type { NativeRuntimeAdapter } from '../src/integration/native_binding.js'
 import type { NativeAuthority, Subject } from '../src/types.js'
-import { boundedString } from '../src/bounded_string.js'
+import { isBoundedString } from '../src/bounded_string.js'
 import { MasqueradeError } from '../src/errors.js'
-import { unavailable } from '../src/error_helpers.js'
+import { createUnavailableError } from '../src/error_helpers.js'
 import { accountOwner, canonicalId } from './account_owner.js'
 
 type Identifier = string | number | bigint
@@ -78,7 +78,7 @@ async function isKitDenial(error: unknown, name: string, code: string): Promise<
 
 function stamp(revision: string | null): string {
   if (revision === null) return 'account-kit:null'
-  if (typeof revision !== 'string' || !revision) throw unavailable()
+  if (typeof revision !== 'string' || !revision) throw createUnavailableError()
   return `account-kit:revision:${revision}`
 }
 
@@ -88,9 +88,9 @@ export function accountKitAuthority<User>(
 ): AccountKitAdapter<User> {
   if (
     !options ||
-    !boundedString(options.namespace, 128) ||
+    !isBoundedString(options.namespace, 128) ||
     !options.managedGuard ||
-    !boundedString(options.managedGuard.name, 128) ||
+    !isBoundedString(options.managedGuard.name, 128) ||
     !['session', 'access_tokens'].includes(options.managedGuard.strategy) ||
     typeof options.managedGuard.current !== 'function' ||
     typeof options.kit !== 'function' ||
@@ -98,7 +98,7 @@ export function accountKitAuthority<User>(
     typeof options.provider.createUserForGuard !== 'function' ||
     !(options.incarnation === 'id' || typeof options.incarnation === 'function') ||
     (options.managedGuard.strategy === 'access_tokens' &&
-      (!boundedString(options.ability, 128) || !options.ability?.trim())) ||
+      (!isBoundedString(options.ability, 128) || !options.ability?.trim())) ||
     (options.managedGuard.strategy === 'session' && options.ability !== undefined)
   )
     throw new InvalidArgumentsException('Invalid Account Kit authority')
@@ -115,7 +115,7 @@ export function accountKitAuthority<User>(
     })
   ) as AccountKitManagedGuard
   const incarnation = options.incarnation === 'id' ? 'id' : options.incarnation.bind(options)
-  const stamps = new WeakMap<object, string>()
+  const securityStampsByUser = new WeakMap<object, string>()
   const subject = (user: User, idValue: unknown): Subject<User> => ({
     ...accountOwner(incarnation, user, idValue),
     user,
@@ -125,8 +125,9 @@ export function accountKitAuthority<User>(
     guard,
     incarnation,
     securityStamp(user: User) {
-      if (!user || typeof user !== 'object' || !stamps.has(user)) throw unavailable()
-      return stamps.get(user)!
+      if (!user || typeof user !== 'object' || !securityStampsByUser.has(user))
+        throw createUnavailableError()
+      return securityStampsByUser.get(user)!
     },
     async inspectAccount(id: string) {
       let snapshot: AccountKitSnapshot
@@ -153,13 +154,13 @@ export function accountKitAuthority<User>(
       if (canonical !== id) return null
       const account = await provider.findById(canonical)
       if (!account) return null
-      if (canonicalId(account.getId()) !== canonical) throw unavailable()
+      if (canonicalId(account.getId()) !== canonical) throw createUnavailableError()
       const user = account.getOriginal()
-      if (!user || typeof user !== 'object') throw unavailable()
+      if (!user || typeof user !== 'object') throw createUnavailableError()
       const captured = stamp(snapshot.revision)
-      const prior = stamps.get(user)
-      if (prior !== undefined && prior !== captured) throw unavailable()
-      stamps.set(user, captured)
+      const prior = securityStampsByUser.get(user)
+      if (prior !== undefined && prior !== captured) throw createUnavailableError()
+      securityStampsByUser.set(user, captured)
       return {
         subject: subject(user, canonical),
         active: snapshot.account.active,
@@ -178,22 +179,22 @@ export function accountKitAuthority<User>(
       try {
         raw = ctx.auth.use(guard as never) as typeof raw
       } catch {
-        throw unavailable()
+        throw createUnavailableError()
       }
-      if (raw.driverName !== strategy) throw unavailable()
+      if (raw.driverName !== strategy) throw createUnavailableError()
       let user: User & { currentAccessToken?: { allows(ability: string): unknown } }
       try {
         user = await raw.authenticate()
       } catch (error) {
         if (error instanceof errors.E_UNAUTHORIZED_ACCESS) throw error
-        throw unavailable()
+        throw createUnavailableError()
       }
       if (ability) {
         let allowed = false
         try {
           allowed = user.currentAccessToken?.allows(ability) === true
         } catch {
-          throw unavailable()
+          throw createUnavailableError()
         }
         if (!allowed) throw new MasqueradeError('E_MASQUERADE_NOT_ALLOWED')
       }
@@ -203,7 +204,8 @@ export function accountKitAuthority<User>(
         const account = await service.authentication.current(input)
         const providerAccount = await provider.createUserForGuard(user)
         const id = canonicalId(providerAccount.getId())
-        if (canonicalId(account.id) !== id || canonicalId(input.userId) !== id) throw unavailable()
+        if (canonicalId(account.id) !== id || canonicalId(input.userId) !== id)
+          throw createUnavailableError()
         return subject(user, id)
       } catch (error) {
         if (error instanceof errors.E_UNAUTHORIZED_ACCESS) throw error
@@ -211,7 +213,7 @@ export function accountKitAuthority<User>(
           throw new errors.E_UNAUTHORIZED_ACCESS('Invalid session', {
             guardDriverName: strategy,
           })
-        throw unavailable()
+        throw createUnavailableError()
       }
     },
   })

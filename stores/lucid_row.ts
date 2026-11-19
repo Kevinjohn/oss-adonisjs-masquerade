@@ -1,19 +1,19 @@
-import { unavailable } from '../src/error_helpers.js'
-import { boundedString } from '../src/bounded_string.js'
-import { validateRow } from '../src/row_validation.js'
+import { createUnavailableError } from '../src/error_helpers.js'
+import { isBoundedString } from '../src/bounded_string.js'
+import { requireValidModeRow } from '../src/row_validation.js'
 import type { AuditEvent, ModeRow, OwnerKey } from '../src/types.js'
 
 export const ownerColumns = ['authority_namespace', 'actor_id', 'actor_incarnation']
-export function ownerRecord(owner: OwnerKey) {
+export function buildOwnerRecord(owner: OwnerKey) {
   return {
     authority_namespace: owner.namespace,
     actor_id: owner.actorId,
     actor_incarnation: owner.actorIncarnation,
   }
 }
-export function rowRecord(row: ModeRow) {
+export function buildModeRecord(row: ModeRow) {
   return {
-    ...ownerRecord(row),
+    ...buildOwnerRecord(row),
     revision: row.revision,
     revision_nonce: row.revisionNonce,
     state: row.state,
@@ -30,9 +30,9 @@ export function rowRecord(row: ModeRow) {
     updated_at: row.updatedAt,
   }
 }
-export function eventRecord(event: AuditEvent) {
+export function buildAuditRecord(event: AuditEvent) {
   return {
-    ...ownerRecord(event),
+    ...buildOwnerRecord(event),
     id: event.id,
     mode_id: event.modeId ?? null,
     target_id: event.targetId ?? null,
@@ -45,9 +45,10 @@ export function eventRecord(event: AuditEvent) {
     reason: event.reason ?? null,
   }
 }
-export function parseRevision(value: unknown): number {
+export function requireRevision(value: unknown): number {
   if (typeof value === 'string' && /^[1-9][0-9]*$/.test(value)) value = Number(value)
-  if (typeof value !== 'number' || !Number.isSafeInteger(value) || value < 1) throw unavailable()
+  if (typeof value !== 'number' || !Number.isSafeInteger(value) || value < 1)
+    throw createUnavailableError()
   return value
 }
 export function decodeRow(raw: Record<string, unknown>, owner?: OwnerKey): ModeRow {
@@ -57,14 +58,14 @@ export function decodeRow(raw: Record<string, unknown>, owner?: OwnerKey): ModeR
     actorIncarnation: raw.actor_incarnation,
   }
   if (
-    !boundedString(key.namespace, 128) ||
-    !boundedString(key.actorId, 255) ||
-    !boundedString(key.actorIncarnation, 128)
+    !isBoundedString(key.namespace, 128) ||
+    !isBoundedString(key.actorId, 255) ||
+    !isBoundedString(key.actorIncarnation, 128)
   )
-    throw unavailable()
+    throw createUnavailableError()
   const row = {
     ...key,
-    revision: parseRevision(raw.revision),
+    revision: requireRevision(raw.revision),
     revisionNonce: raw.revision_nonce,
     state: raw.state,
     access: raw.access,
@@ -79,5 +80,5 @@ export function decodeRow(raw: Record<string, unknown>, owner?: OwnerKey): ModeR
     expiresAt: raw.expires_at,
     updatedAt: raw.updated_at,
   } as ModeRow
-  return validateRow(row, owner ?? row)!
+  return requireValidModeRow(row, owner ?? row)!
 }

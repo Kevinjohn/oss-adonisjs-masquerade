@@ -1,7 +1,7 @@
 import type { HttpContext } from '@adonisjs/core/http'
 import { runtimeFor } from '../src/integration/runtime.js'
 import { MasqueradeError } from '../src/errors.js'
-import { parseStartControl, parseStopControl } from './control_input.js'
+import { requireStartControl, requireStopControl } from './control_input.js'
 
 /** Opt-in controller for GET /masquerade, POST /start, and POST /stop. */
 export class MasqueradeController {
@@ -12,12 +12,12 @@ export class MasqueradeController {
 
   /** `POST /start`: parse the request into `StartInput` and start a mode. */
   async start(ctx: HttpContext): Promise<void> {
-    await this.control(ctx, async (runtime) => runtime.service.start(ctx, parseStartControl(ctx)))
+    await this.control(ctx, async (runtime) => runtime.service.start(ctx, requireStartControl(ctx)))
   }
 
   /** `POST /stop`: parse the request into `StopInput` and end the mode. */
   async stop(ctx: HttpContext): Promise<void> {
-    await this.control(ctx, async (runtime) => runtime.service.stop(ctx, parseStopControl(ctx)))
+    await this.control(ctx, async (runtime) => runtime.service.stop(ctx, requireStopControl(ctx)))
   }
 
   private async control(

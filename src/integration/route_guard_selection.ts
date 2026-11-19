@@ -8,14 +8,22 @@ export type RouteGuardSelection =
   // single adapter is selected, so any Masquerade operation on the route fails closed.
   | { kind: 'ambiguous' }
 
+type RouteGuardInput = {
+  route: RouteMetadata | undefined
+  defaultGuard: string
+  effectiveRawGuards: Readonly<Record<string, string>>
+  registeredRawGuards: readonly string[]
+  primaryRawGuard?: string
+}
+
 /** Resolve a route to one credential transport before authenticating or reading mode state. */
-export function selectRouteGuard(
-  route: RouteMetadata | undefined,
-  defaultGuard: string,
-  effectiveRawGuards: Readonly<Record<string, string>>,
-  registeredRawGuards: readonly string[],
-  primaryRawGuard = effectiveRawGuards[defaultGuard]
-): RouteGuardSelection {
+export function selectRouteGuard({
+  route,
+  defaultGuard,
+  effectiveRawGuards,
+  registeredRawGuards,
+  primaryRawGuard = effectiveRawGuards[defaultGuard],
+}: RouteGuardInput): RouteGuardSelection {
   const guards = routeGuards(route, defaultGuard)
   if (guards.length === 0) {
     if (hasAuthMiddleware(route)) throw new MasqueradeError('E_MASQUERADE_UNAVAILABLE')

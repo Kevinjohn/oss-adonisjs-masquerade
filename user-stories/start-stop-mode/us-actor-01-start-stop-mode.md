@@ -50,7 +50,7 @@ flowchart TD
     A["masqueradeRoutes mounts POST /start"] --> B["MasqueradeController.start"]
     B --> C["MasqueradeController.control"]
     C --> D["runtimeFor and raw-guard check"]
-    D --> E["parseStartControl(ctx)"]
+    D --> E["requireStartControl(ctx)"]
     E --> F["runtime.service.start(ctx, input)"]
     F --> G["MasqueradeService.start validates input shape and context; mismatch throws E_MASQUERADE_CONTEXT_CHANGED"]
     G --> L{"Existing row active?"}

@@ -1,5 +1,5 @@
 import type { ControlStore, MasqueradeConfig, RequestControlStore } from './types.js'
-import { boundedString } from './bounded_string.js'
+import { isBoundedString } from './bounded_string.js'
 import { MasqueradeSetupError } from './errors.js'
 import type { MasqueradeSetupErrorField } from './errors.js'
 
@@ -40,11 +40,11 @@ export function defineConfig<User, Request, Store extends RequestControlStore = 
   )
     fail('authority')
   if (
-    !boundedString(authority.namespace, 128) ||
+    !isBoundedString(authority.namespace, 128) ||
     !/^[A-Za-z0-9][A-Za-z0-9_.:-]*$/.test(authority.namespace)
   )
     fail('authority.namespace')
-  if (!boundedString(authority.guard, 128)) fail('authority.guard')
+  if (!isBoundedString(authority.guard, 128)) fail('authority.guard')
   if (!(authority.incarnation === 'id' || typeof authority.incarnation === 'function'))
     fail('authority.incarnation')
   if (typeof authority.securityStamp !== 'function') fail('authority.securityStamp')

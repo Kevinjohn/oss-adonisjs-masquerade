@@ -5,9 +5,9 @@ import type { GuardContract } from '@adonisjs/auth/types'
 import type { HttpContext } from '@adonisjs/core/http'
 import type { NativeRuntimeAdapter } from '../src/integration/native_binding.js'
 import type { NativeAuthority, Subject } from '../src/types.js'
-import { boundedString } from '../src/bounded_string.js'
+import { isBoundedString } from '../src/bounded_string.js'
 import { MasqueradeError } from '../src/errors.js'
-import { unavailable } from '../src/error_helpers.js'
+import { createUnavailableError } from '../src/error_helpers.js'
 
 interface AccessTokensAuthorityBase<User> {
   guard: string
@@ -56,8 +56,8 @@ export function accessTokensAuthority<User>(
     !options ||
     typeof options.provider?.createUserForGuard !== 'function' ||
     typeof options.provider.findById !== 'function' ||
-    !boundedString(options.guard, 128) ||
-    !boundedString(options.ability, 128) ||
+    !isBoundedString(options.guard, 128) ||
+    !isBoundedString(options.ability, 128) ||
     !options.ability.trim()
   )
     throw new InvalidArgumentsException('Invalid native access tokens authority')
@@ -74,8 +74,8 @@ export function accessTokensAuthority<User>(
       throw new InvalidArgumentsException('Invalid native access tokens authority')
     authority = options.authority
     if (
-      !boundedString(authority.namespace, 128) ||
-      !boundedString(authority.guard, 128) ||
+      !isBoundedString(authority.namespace, 128) ||
+      !isBoundedString(authority.guard, 128) ||
       (authority.incarnation !== 'id' && typeof authority.incarnation !== 'function') ||
       typeof authority.securityStamp !== 'function' ||
       typeof authority.inspectAccount !== 'function'
@@ -86,7 +86,7 @@ export function accessTokensAuthority<User>(
       throw new InvalidArgumentsException('Invalid native access tokens authority')
     const standalone = options as StandaloneAuthorityOptions<User>
     if (
-      !boundedString(standalone.namespace, 128) ||
+      !isBoundedString(standalone.namespace, 128) ||
       typeof standalone.securityStamp !== 'function' ||
       typeof standalone.isActive !== 'function' ||
       !(standalone.incarnation === 'id' || typeof standalone.incarnation === 'function')
@@ -108,7 +108,7 @@ export function accessTokensAuthority<User>(
         if (!account) return null
         const user = account.getOriginal()
         const active = await isActive(user)
-        if (typeof active !== 'boolean') throw unavailable()
+        if (typeof active !== 'boolean') throw createUnavailableError()
         return {
           subject: subject(user, account.getId(), incarnation),
           active,
@@ -131,10 +131,11 @@ export function accessTokensAuthority<User>(
       typeof identifier !== 'bigint' &&
       !(typeof identifier === 'number' && Number.isSafeInteger(identifier))
     )
-      throw unavailable()
+      throw createUnavailableError()
     const id = String(identifier)
     const accountIncarnation = configuredIncarnation === 'id' ? id : configuredIncarnation(user)
-    if (!boundedString(id, 255) || !boundedString(accountIncarnation, 128)) throw unavailable()
+    if (!isBoundedString(id, 255) || !isBoundedString(accountIncarnation, 128))
+      throw createUnavailableError()
     return { id, incarnation: accountIncarnation, user }
   }
 
@@ -148,22 +149,22 @@ export function accessTokensAuthority<User>(
           User & { currentAccessToken?: { allows(ability: string): unknown } }
         >
       } catch {
-        throw unavailable()
+        throw createUnavailableError()
       }
-      if (raw.driverName !== 'access_tokens') throw unavailable()
+      if (raw.driverName !== 'access_tokens') throw createUnavailableError()
       let user: User & { currentAccessToken?: { allows(ability: string): unknown } }
       try {
         user = await raw.authenticate()
       } catch (error) {
         if (error instanceof errors.E_UNAUTHORIZED_ACCESS) throw error
-        throw unavailable()
+        throw createUnavailableError()
       }
 
       let allowed = false
       try {
         allowed = user.currentAccessToken?.allows(ability) === true
       } catch {
-        throw unavailable()
+        throw createUnavailableError()
       }
       if (!allowed) throw new MasqueradeError('E_MASQUERADE_NOT_ALLOWED')
 
@@ -171,7 +172,7 @@ export function accessTokensAuthority<User>(
         const account = await provider.createUserForGuard(user)
         return subject(user, account.getId())
       } catch {
-        throw unavailable()
+        throw createUnavailableError()
       }
     },
   })

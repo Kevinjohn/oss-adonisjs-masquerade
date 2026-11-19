@@ -18,7 +18,7 @@ export function modeView(owner: OwnerKey, row: ModeRow | null): ModeView {
   )
 }
 
-export function admittedProjection<User>(
+export function buildAdmittedProjection<User>(
   owner: OwnerKey,
   row: ModeRow | null,
   actor: Subject<User>,

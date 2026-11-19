@@ -1,5 +1,5 @@
 import { test } from '@japa/runner'
-import { normalizeReason, parseStartReason } from '../src/reason.js'
+import { normalizeReason, requireStartReason } from '../src/reason.js'
 
 test('normalizes reason in trim, CRLF then controls order', ({ assert }) => {
   assert.equal(normalizeReason(' \r\ncase\r\nnotes\t42\r\n '), 'case\nnotes\t42')
@@ -35,19 +35,19 @@ test('bounds the normalized reason after trimming arbitrary whitespace padding',
 
 test('optional reason stores absent, null and blank input as null', ({ assert }) => {
   for (const value of [undefined, null, '', ' \t\r\n '])
-    assert.isNull(parseStartReason(value, 'optional'))
-  assert.equal(parseStartReason(' case\r\n42 ', 'optional'), 'case\n42')
+    assert.isNull(requireStartReason(value, 'optional'))
+  assert.equal(requireStartReason(' case\r\n42 ', 'optional'), 'case\n42')
 })
 
 test('optional reason still rejects invalid supplied reasons', ({ assert }) => {
   for (const value of [42, 'a\u0000b', 'a'.repeat(501)])
-    assert.throws(() => parseStartReason(value, 'optional'), 'Invalid masquerade input')
+    assert.throws(() => requireStartReason(value, 'optional'), 'Invalid masquerade input')
 })
 
 test('required reason rejects absent, null and blank input', ({ assert }) => {
   for (const value of [undefined, null, '', ' \t '])
-    assert.throws(() => parseStartReason(value, 'required'), 'Invalid masquerade input')
-  assert.equal(parseStartReason(' case ', 'required'), 'case')
+    assert.throws(() => requireStartReason(value, 'required'), 'Invalid masquerade input')
+  assert.equal(requireStartReason(' case ', 'required'), 'case')
 })
 
 test('keeps joiners that scripts and emoji need', ({ assert }) => {
