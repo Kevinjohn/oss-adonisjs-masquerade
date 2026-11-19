@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+- `masquerade:stop --all` reports confirmed stops and any uncertain transition when a later store operation fails.
+
 ## 0.4.0 - 2026-11-17
 
 - Request-serving stores can supply just the methods used by the request service. Operator commands

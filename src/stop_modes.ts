@@ -2,7 +2,7 @@ import { randomUUID } from 'node:crypto'
 import { MasqueradeError } from './errors.js'
 import { unavailable } from './error_helpers.js'
 import { boundedString } from './bounded_string.js'
-import { commitTransition, idleAfterTransition } from './mode_transition.js'
+import { commitTransition, idleAfterTransition, UnknownCommit } from './mode_transition.js'
 import { validateRow } from './row_validation.js'
 import { activeCandidate, openOperatorStore } from './active_modes.js'
 import type { ObserverDependencies } from './observers.js'
@@ -32,6 +32,24 @@ export interface StopModesResult {
   stopped: number
   /** Whether an `all` scan reached an empty batch. Omitted for a single-actor stop. */
   drained?: boolean
+}
+
+type StopPhase = 'active_batch' | 'candidate' | 'read' | 'stop_commit'
+
+/** Progress confirmed before a bulk stop failed. */
+export class StopProgressError extends MasqueradeError {
+  constructor(
+    readonly phase: StopPhase,
+    readonly stopped: number,
+    override readonly cause: unknown
+  ) {
+    super('E_MASQUERADE_UNAVAILABLE')
+    this.name = 'StopProgressError'
+  }
+
+  get indeterminate(): boolean {
+    return this.phase === 'stop_commit' && this.cause instanceof UnknownCommit
+  }
 }
 
 function now(dependencies: StopModesDependencies): string {
@@ -169,16 +187,31 @@ export async function stopActiveModes<User, Request>(
     try {
       candidates = await store.activeBatch({ limit: batchSize })
       if (!Array.isArray(candidates) || candidates.length > batchSize) throw unavailable()
-    } catch {
-      throw unavailable()
+    } catch (error) {
+      throw new StopProgressError('active_batch', stopped, error)
     }
     if (candidates.length === 0) return { stopped, drained: true }
     let progressed = false
     for (const candidate of candidates) {
-      const row = activeCandidate(candidate)
-      const current = await read(store, row)
+      let row: ActiveModeRow
+      try {
+        row = activeCandidate(candidate)
+      } catch (error) {
+        throw new StopProgressError('candidate', stopped, error)
+      }
+      let current: ModeRow | null
+      try {
+        current = validateRow(await store.read(row), row)
+      } catch (error) {
+        throw new StopProgressError('read', stopped, error)
+      }
       if (current?.state !== 'active' || current.revision !== row.revision) continue
-      const outcome = await invalidate(store, dependencies, current, now(dependencies))
+      let outcome
+      try {
+        outcome = await invalidate(store, dependencies, current, now(dependencies))
+      } catch (error) {
+        throw new StopProgressError('stop_commit', stopped, error)
+      }
       if (outcome === 'applied') stopped++
       if (outcome !== 'conflict') progressed = true
     }
