@@ -1,5 +1,5 @@
 import { test } from '@japa/runner'
-import { RuntimeException } from '@adonisjs/core/exceptions'
+import { InvalidArgumentsException, RuntimeException } from '@adonisjs/core/exceptions'
 import { createMasqueradeService, defineConfig, MasqueradeSetupError } from '../index.js'
 import { fixture } from './helpers/core.js'
 
@@ -98,14 +98,36 @@ test('rejects test store outside explicit test environment even when store facto
   assert.equal(narrowed.maxDurationSeconds, 120)
 })
 
-test('requires observer and diagnostic ports at service creation', async ({ assert }) => {
+test('validates required service ports before opening the store', async ({ assert }) => {
   const f = fixture()
-  for (const key of ['logger', 'emitter', 'observerErrorHandler']) {
-    await assert.rejects(
-      () => createMasqueradeService(f.config, { ...f.dependencies, [key]: undefined } as never),
-      'Observer and diagnostic ports required'
-    )
+  let openCount = 0
+  const config = {
+    ...f.config,
+    store: async () => {
+      openCount++
+      return f.store
+    },
   }
+  const observerError = 'Observer and diagnostic ports required'
+  const cases = [
+    [{ authenticateActor: undefined }, 'Actor authentication resolver required'],
+    [{ emitter: { emit: undefined } }, observerError],
+    [{ logger: { ...f.dependencies.logger, info: undefined } }, observerError],
+    [{ logger: { ...f.dependencies.logger, error: undefined } }, observerError],
+    [{ observerErrorHandler: undefined }, observerError],
+  ] as const
+  for (const [patch, message] of cases) {
+    const error = await createMasqueradeService(config, {
+      ...f.dependencies,
+      ...patch,
+    } as never).catch((caught: unknown) => caught)
+    assert.instanceOf(error, InvalidArgumentsException)
+    assert.equal((error as Error).message, message)
+    assert.equal(openCount, 0)
+  }
+  await createMasqueradeService(config, f.dependencies)
+  assert.equal(openCount, 1)
+  assert.deepEqual(f.diagnostics, [])
 })
 
 test('explicit null configuration durations are rejected instead of defaulted', ({ assert }) => {

@@ -71,8 +71,8 @@ manual step for anything it leaves alone:
   value, and that guard is the starter's `sessionGuard` with a `sessionUserProvider` for
   `#models/user`, configure moves the factory to a constant that uses the generated `userProvider`
   (`webGuard` for `--guard=web`), adds `web_effective: effectiveSessionGuard(webGuard)` and makes
-  `web_effective` the default. Any other shape, including a guard you already customized, is not
-  changed.
+  `web_effective` the default. Configure requires the starter imports from `@adonisjs/auth`
+  and `@adonisjs/auth/session`. Configurations with custom factory bindings use the manual path.
 - **`start/kernel.ts`**: configure inserts the context middleware directly after
   `initialize_auth_middleware` in `router.use`. It skips the edit when `initialize_auth` is missing
   or `silent_auth` runs before it.
