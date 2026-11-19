@@ -273,3 +273,9 @@ queries using that pool. After the host reconnects or restarts, create a new sto
 reuse the retired connection. The adapter rejects externally managed pools because it cannot
 safely retire them. Treat this rare path as an application database outage and use the host's
 normal recovery and alerting procedures.
+
+If releasing a connection throws after a Lucid transition, the store keeps the transaction result,
+reports the release fault through the Knex error logger when available, and starts shutting down the
+shared write pool. Correct the host pool hook and reconnect or restart the application, then create
+a fresh adapter. A hook that keeps the checkout from returning to the pool can prevent a graceful
+drain.

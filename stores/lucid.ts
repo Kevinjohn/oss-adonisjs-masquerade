@@ -64,6 +64,13 @@ export class LucidControlStore implements ControlStore {
   #assertAvailable(): void {
     if (this.#failed) throw unavailable()
   }
+  #retireWritePool(knex: ReturnType<LucidControlClient['getWriteClient']>): void {
+    if (this.#failed) return
+    this.#failed = true
+    // Block new checkouts synchronously and let existing owners drain. Awaiting shutdown while
+    // this operation still owns a checkout can deadlock.
+    void knex.destroy().catch(() => {})
+  }
   constructor(client: LucidControlClient, options: LucidControlStoreOptions = {}) {
     this.#client = client
     this.#retries = options.sqliteBusyRetries ?? 3
@@ -174,11 +181,7 @@ export class LucidControlStore implements ControlStore {
             if (unknownCommit) return { status: 'indeterminate', transitionId: command.event.id }
             throw error
           }
-          this.#failed = true
-          // Public destroy blocks new checkouts synchronously. Existing work
-          // drains asynchronously: awaiting it here could deadlock a checkout
-          // whose owner is waiting for this CAS. Observe rejection immediately.
-          void knex.destroy().catch(() => {})
+          this.#retireWritePool(knex)
           if (unknownCommit) return { status: 'indeterminate', transitionId: command.event.id }
           throw cleanupError
         }
@@ -190,8 +193,19 @@ export class LucidControlStore implements ControlStore {
         if (!(this.#client.dialect.name !== 'postgres' && busy(error) && attempt < this.#retries))
           throw error
       } finally {
-        await knex.client.releaseConnection(connection)
+        try {
+          await knex.client.releaseConnection(connection)
+        } catch {
+          this.#retireWritePool(knex)
+          // Report cleanup independently so it cannot change the transaction result.
+          void Promise.resolve()
+            .then(() =>
+              knex.client.logger.error('Masquerade could not release the control store connection')
+            )
+            .catch(() => {})
+        }
       }
+      this.#assertAvailable()
       await setTimeout(this.#delay)
     }
   }
