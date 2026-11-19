@@ -1,6 +1,6 @@
 import { test } from '@japa/runner'
 import { IgnitorFactory } from '@adonisjs/core/factories'
-import { routeCoverageReport } from '../commands/routes.js'
+import { inspectRouteCoverage } from '../commands/routes.js'
 import { sensitive } from '../src/integration/route_metadata.js'
 
 test.group('masquerade:routes Ace command', () => {
@@ -102,7 +102,7 @@ test.group('masquerade:routes Ace command', () => {
         .get('/mixed-effective-transports', async () => {})
         .middleware(auth.auth({ guards: ['web_effective', 'api_effective'] }))
         .toJSON()
-      const sections = await routeCoverageReport(
+      const sections = await inspectRouteCoverage(
         {
           root: [
             route,

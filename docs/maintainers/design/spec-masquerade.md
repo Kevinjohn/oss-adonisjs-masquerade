@@ -551,7 +551,7 @@ This additive contract changes D09/I12 and the related route, admission and star
 ### 14.2 Persistence and audit projection
 
 - `masquerade_modes.access` is nullable `string(8)`: `view` or `edit` for active rows and `NULL` for idle rows. Validation rejects every other persisted value. The existing create migration is edited in place; no upgrade migration is added.
-- `masquerade_events.access` is nullable `string(8)`. Every event written from an active row, including the `started` event, carries that row's access; events without an active row omit the field and persist `NULL`. `AuditEvent` and `ObserverEvent` expose optional `access`. `validateTransition` requires `event.access === projected?.access`.
+- `masquerade_events.access` is nullable `string(8)`. Every event written from an active row, including the `started` event, carries that row's access; events without an active row omit the field and persist `NULL`. `AuditEvent` and `ObserverEvent` expose optional `access`. `assertValidTransition` requires `event.access === projected?.access`.
 - The mode transition and audit write remain atomic. No package event or diagnostic is added for blocked business requests; `blockedBy` is available to host diagnostics.
 
 ### 14.3 Active request action rules

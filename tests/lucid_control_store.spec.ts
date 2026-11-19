@@ -3,7 +3,7 @@ import { randomUUID } from 'node:crypto'
 import { createRequire, syncBuiltinESMExports } from 'node:module'
 import { assertControlStoreConformance } from '../testing/main.js'
 import { LucidControlStore } from '../stores/lucid.js'
-import { parseRevision } from '../stores/lucid_row.js'
+import { requireRevision } from '../stores/lucid_row.js'
 import { sqlFixture, transition } from './helpers/sql_store.js'
 
 test.group('Lucid control store', () => {
@@ -398,7 +398,7 @@ test.group('Lucid control store', () => {
   test('strict BIGINT decoder rejects malformed numeric strings instead of coercing', ({
     assert,
   }) => {
-    assert.equal(parseRevision('9007199254740991'), Number.MAX_SAFE_INTEGER)
+    assert.equal(requireRevision('9007199254740991'), Number.MAX_SAFE_INTEGER)
     for (const value of [
       '1.0',
       '1e2',
@@ -412,7 +412,7 @@ test.group('Lucid control store', () => {
       null,
       1.5,
     ])
-      assert.throws(() => parseRevision(value))
+      assert.throws(() => requireRevision(value))
   })
   if (process.env.DB_CLIENT !== 'pg')
     test('SQLite returns its only checkout before busy retry delay', async ({ assert }) => {

@@ -13,7 +13,10 @@ export function markContextEnforced(ctx: HttpContext): void {
  * `sensitive()`, `allowMutation()` and context freshness are enforced only there, so a missing
  * middleware, or one registered as server middleware, must not admit the target.
  */
-export function assertContextEnforced(ctx: HttpContext, isMasquerading: boolean): void {
+export function assertContextEnforced(
+  ctx: HttpContext,
+  { isMasquerading }: { isMasquerading: boolean }
+): void {
   if (!isMasquerading || enforced.has(ctx)) return
   ctx.logger?.error(
     { code: 'E_MASQUERADE_UNAVAILABLE', component: 'context_middleware' },

@@ -7,7 +7,13 @@ import { EffectiveSessionGuard } from '../auth/effective_session_guard.js'
 import { selectRouteGuard } from '../src/integration/route_guard_selection.js'
 
 const selectGuard = (ctx: HttpContext) =>
-  selectRouteGuard(ctx.route, 'web_effective', { web_effective: 'web' }, ['web'], 'web')
+  selectRouteGuard({
+    route: ctx.route,
+    defaultGuard: 'web_effective',
+    effectiveRawGuards: { web_effective: 'web' },
+    registeredRawGuards: ['web'],
+    primaryRawGuard: 'web',
+  })
 
 test('raw/public requests authenticate natively without reading mode state', async ({ assert }) => {
   let runtimeResolutions = 0

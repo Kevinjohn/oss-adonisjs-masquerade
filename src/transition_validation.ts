@@ -1,8 +1,8 @@
-import { unavailable } from './error_helpers.js'
+import { createUnavailableError } from './error_helpers.js'
 import type { CompareAndSetInput, ModeRow } from './types.js'
 
 /** Checks that the audit record describes the state change carried by the CAS. */
-export function validateTransition(input: CompareAndSetInput, current: ModeRow | null): void {
+export function assertValidTransition(input: CompareAndSetInput, current: ModeRow | null): void {
   const { owner, next, event } = input
   if (
     next.namespace !== owner.namespace ||
@@ -24,14 +24,14 @@ export function validateTransition(input: CompareAndSetInput, current: ModeRow |
     (event.kind !== 'started' && event.reason !== undefined) ||
     (current?.state === 'active' && next.state === 'idle' && next.modeId !== current.modeId)
   )
-    throw unavailable()
+    throw createUnavailableError()
 
   const projected = next.state === 'active' ? next : current?.state === 'active' ? current : null
-  if (event.access !== projected?.access) throw unavailable()
+  if (event.access !== projected?.access) throw createUnavailableError()
   if (
     projected &&
     (event.targetId !== projected.targetId ||
       event.targetIncarnation !== projected.targetIncarnation)
   )
-    throw unavailable()
+    throw createUnavailableError()
 }

@@ -31,7 +31,7 @@ export default class RoutesCommand extends BaseCommand {
     }
     router.commit()
     const domains = router.toJSON()
-    for (const section of await routeCoverageReport(
+    for (const section of await inspectRouteCoverage(
       domains,
       config.authority.guard,
       String(auth.defaultGuard),
@@ -43,7 +43,7 @@ export default class RoutesCommand extends BaseCommand {
   }
 }
 
-export function routeCoverageReport(
+export function inspectRouteCoverage(
   domains: Record<
     string,
     Array<{
@@ -61,7 +61,7 @@ export function routeCoverageReport(
   verifiedAccountKitBlocker = false
 ): Promise<string[]> {
   const grouped = new Map<string, string[]>()
-  const controllerCache = new Map<Function, Promise<ControllerResult>>()
+  const controllerResultsByFunction = new Map<Function, Promise<ControllerResult>>()
   return (async () => {
     for (const [domain, routes] of Object.entries(domains)) {
       for (const route of routes) {
@@ -102,8 +102,8 @@ export function routeCoverageReport(
           ).size > 1
         const markers = routeMarkers({ route })
         const methods = route.methods.join(',')
-        const packageControl = await isPackageControl(route.handler, controllerCache)
-        const nameInferredControl = !packageControl.control && isHostControl(route.name)
+        const packageControl = await isPackageControl(route.handler, controllerResultsByFunction)
+        const isControlInferredFromName = !packageControl.control && isHostControl(route.name)
         const effectiveGuardedControl = packageControl.control && hasEffectiveGuard
         for (const declaredGuard of labels) {
           const guard = declaredGuard
@@ -112,7 +112,7 @@ export function routeCoverageReport(
               ? 'UNCLASSIFIED'
               : packageControl.control
                 ? 'CONTROL'
-                : nameInferredControl
+                : isControlInferredFromName
                   ? 'POSSIBLE CONTROL'
                   : guard === rawGuard || !effectiveGuardNames.includes(guard)
                     ? 'RAW-GUARD BUSINESS'
@@ -125,7 +125,7 @@ export function routeCoverageReport(
           const flags = [
             markers.sensitive ? 'sensitive' : '',
             markers.allowMutation ? 'allowMutation' : '',
-            nameInferredControl ? 'name-inferred; review handler' : '',
+            isControlInferredFromName ? 'name-inferred; review handler' : '',
             packageControl.unresolved ? 'unresolved handler' : '',
             effectiveGuardedControl ? 'effective guard; controls must use raw guard' : '',
             mixedEffectiveGuards ? 'unsupported mixed effective/non-effective guards' : '',

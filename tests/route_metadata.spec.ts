@@ -8,7 +8,13 @@ const ctx = (routeMiddleware: unknown[] | undefined) => ({
   route: routeMiddleware ? { middleware: { all: () => new Set(routeMiddleware) } } : undefined,
 })
 const select = (route: ReturnType<typeof ctx>['route'], defaultGuard = 'web_effective') =>
-  selectRouteGuard(route, defaultGuard, { web_effective: 'web' }, ['web', 'default'], 'web')
+  selectRouteGuard({
+    route,
+    defaultGuard,
+    effectiveRawGuards: { web_effective: 'web' },
+    registeredRawGuards: ['web', 'default'],
+    primaryRawGuard: 'web',
+  })
 
 test.group('masquerade route metadata', () => {
   test('classifies business routes from their matched auth guard metadata', ({ assert }) => {

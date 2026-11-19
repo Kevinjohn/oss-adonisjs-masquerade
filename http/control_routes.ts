@@ -3,7 +3,7 @@ import type { Router } from '@adonisjs/core/http'
 import type { MiddlewareFn, ParsedNamedMiddleware } from '@adonisjs/core/types/http'
 import { MasqueradeController } from './controllers.js'
 import { routeGuards } from '../src/integration/route_guards.js'
-import { boundedString } from '../src/bounded_string.js'
+import { isBoundedString } from '../src/bounded_string.js'
 import { recordControlRouteGuard } from '../src/integration/control_route_guards.js'
 
 /** Options for `masqueradeRoutes`. */
@@ -38,7 +38,7 @@ export function masqueradeRoutes<Guard extends string>(
     prefix = '/masquerade',
     as = 'masquerade',
   } = options ?? ({} as MasqueradeRoutesOptions<Guard>)
-  if (!boundedString(guard, 128))
+  if (!isBoundedString(guard, 128))
     throw new InvalidArgumentsException('masqueradeRoutes requires the raw guard name')
   if (typeof auth !== 'function')
     throw new InvalidArgumentsException('masqueradeRoutes requires the host auth middleware')
@@ -52,7 +52,7 @@ export function masqueradeRoutes<Guard extends string>(
     )
   if (typeof prefix !== 'string' || !prefix.startsWith('/'))
     throw new InvalidArgumentsException('masqueradeRoutes prefix must start with /')
-  if (!boundedString(as, 128))
+  if (!isBoundedString(as, 128))
     throw new InvalidArgumentsException('masqueradeRoutes route name prefix is invalid')
 
   const authMiddleware = auth({ guards: [guard] })

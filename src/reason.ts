@@ -1,9 +1,9 @@
-import { invalidInput } from './error_helpers.js'
+import { createInvalidInputError } from './error_helpers.js'
 
 export type ReasonPolicy = 'optional' | 'required'
 
 export function normalizeReason(value: unknown): string {
-  if (typeof value !== 'string') throw invalidInput()
+  if (typeof value !== 'string') throw createInvalidInputError()
   const reason = value.trim().replace(/\r\n/g, '\n')
   if (
     !reason ||
@@ -18,12 +18,12 @@ export function normalizeReason(value: unknown): string {
     [...reason].length > 500 ||
     Buffer.byteLength(reason) > 2000
   )
-    throw invalidInput()
+    throw createInvalidInputError()
   return reason
 }
 
 /** An optional reason that is absent, null or blank is stored as null; any other value is normalized. */
-export function parseStartReason(value: unknown, policy: ReasonPolicy): string | null {
+export function requireStartReason(value: unknown, policy: ReasonPolicy): string | null {
   if (
     policy === 'optional' &&
     (value === undefined || value === null || (typeof value === 'string' && !value.trim()))

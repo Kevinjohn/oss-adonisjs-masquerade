@@ -1,6 +1,6 @@
 import type { HttpContext } from '@adonisjs/core/http'
 import { MasqueradeError } from '../src/errors.js'
-import { unavailable } from '../src/error_helpers.js'
+import { createUnavailableError } from '../src/error_helpers.js'
 import { accountOwner } from './account_owner.js'
 import { runtimeFor } from '../src/integration/runtime.js'
 import type { AccountKitAdapter } from './main.js'
@@ -21,12 +21,12 @@ export class AccountKitAccountBlocker {
       raw = ctx.auth.use(adapter.managedGuard.name as never) as GuardContract<unknown>
       authenticated = await raw.check()
     } catch {
-      throw unavailable()
+      throw createUnavailableError()
     }
     if (!authenticated) return next()
     try {
       const user = raw.user
-      if (!user) throw unavailable()
+      if (!user) throw createUnavailableError()
       const account = await adapter.provider.createUserForGuard(user)
       const { id: actorId, incarnation } = accountOwner(
         adapter.authority.incarnation,
@@ -44,7 +44,7 @@ export class AccountKitAccountBlocker {
         throw new MasqueradeError('E_MASQUERADE_ACTION_BLOCKED', { blockedBy: 'sensitive' })
     } catch (error) {
       if (error instanceof MasqueradeError) throw error
-      throw unavailable()
+      throw createUnavailableError()
     }
     return next()
   }

@@ -1,11 +1,11 @@
 import { randomUUID } from 'node:crypto'
 import { MasqueradeError } from './errors.js'
 import { defineConfig } from './define_config.js'
-import { unavailable } from './error_helpers.js'
+import { createUnavailableError } from './error_helpers.js'
 import { openControlStore } from './control_store.js'
-import { activeCandidate } from './active_modes.js'
+import { requireActiveCandidate } from './active_modes.js'
 import { commitTransition, idleAfterTransition, UnknownCommit } from './mode_transition.js'
-import { validateRow } from './row_validation.js'
+import { requireValidModeRow } from './row_validation.js'
 import type { ObserverDependencies } from './observers.js'
 import type { MasqueradeConfig, ModeRow, RequestControlStore, TransitionEvent } from './types.js'
 
@@ -45,12 +45,13 @@ export class PruneProgressError extends MasqueradeError {
 function resolveNow(options: PruneOptions, dependencies: PruneDependencies): Date {
   try {
     const value = options.now ?? (dependencies.clock ?? (() => new Date()))()
-    if (!(value instanceof Date) || !Number.isFinite(value.getTime())) throw unavailable()
+    if (!(value instanceof Date) || !Number.isFinite(value.getTime()))
+      throw createUnavailableError()
     // Instants compare as text, which holds only for four-digit years.
-    if (!/^\d{4}-/.test(value.toISOString())) throw unavailable()
+    if (!/^\d{4}-/.test(value.toISOString())) throw createUnavailableError()
     return new Date(value.getTime())
   } catch {
-    throw unavailable()
+    throw createUnavailableError()
   }
 }
 
@@ -67,7 +68,7 @@ export async function pruneMasquerade<User, Request>(
 ): Promise<PruneResult> {
   const batchSize = options.batchSize ?? DEFAULT_PRUNE_BATCH_SIZE
   if (!Number.isSafeInteger(batchSize) || batchSize < 1 || batchSize > MAX_PRUNE_BATCH_SIZE)
-    throw unavailable()
+    throw createUnavailableError()
 
   const now = resolveNow(options, dependencies).toISOString()
   const validated = defineConfig(config)
@@ -86,10 +87,11 @@ export async function pruneMasquerade<User, Request>(
   }
   if (validated.retention !== 'host-managed') {
     const before = new Date(Date.parse(now) - validated.retention.days * 86_400_000)
-    if (!Number.isFinite(before.getTime())) throw unavailable()
+    if (!Number.isFinite(before.getTime())) throw createUnavailableError()
     try {
       const deleted = await store.pruneEvents({ before: before.toISOString(), limit: batchSize })
-      if (!Number.isSafeInteger(deleted) || deleted < 0 || deleted > batchSize) throw unavailable()
+      if (!Number.isSafeInteger(deleted) || deleted < 0 || deleted > batchSize)
+        throw createUnavailableError()
       eventsDeleted = deleted
     } catch {
       return failed('event_retention', true)
@@ -98,7 +100,7 @@ export async function pruneMasquerade<User, Request>(
   let candidates: ModeRow[]
   try {
     candidates = await store.expiredBatch({ now, limit: batchSize })
-    if (!Array.isArray(candidates) || candidates.length > batchSize) throw unavailable()
+    if (!Array.isArray(candidates) || candidates.length > batchSize) throw createUnavailableError()
   } catch {
     return failed('expired_batch')
   }
@@ -106,7 +108,7 @@ export async function pruneMasquerade<User, Request>(
   for (const candidate of candidates) {
     let candidateRow
     try {
-      candidateRow = activeCandidate(candidate)
+      candidateRow = requireActiveCandidate(candidate)
     } catch {
       return failed('candidate')
     }
@@ -117,7 +119,7 @@ export async function pruneMasquerade<User, Request>(
     }
     let current: ModeRow | null
     try {
-      current = validateRow(await store.read(owner), owner)
+      current = requireValidModeRow(await store.read(owner), owner)
     } catch {
       return failed('read')
     }

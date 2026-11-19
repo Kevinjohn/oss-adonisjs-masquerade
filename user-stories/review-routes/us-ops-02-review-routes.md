@@ -6,7 +6,7 @@ As an application maintainer, I want a route coverage report so that I can find 
 **Access:** Application maintainer with command access.
 **Entry:** `node ace masquerade:routes`.
 **Documentation:** [Route report](../../docs/guide/route-report.md).
-**Source:** [RoutesCommand and routeCoverageReport](../../commands/routes.ts).
+**Source:** [RoutesCommand and inspectRouteCoverage](../../commands/routes.ts).
 **Coverage:** [Routes command tests](../../tests/routes_command.spec.ts), [route metadata tests](../../tests/route_metadata.spec.ts).
 
 ## Acceptance criteria
@@ -34,7 +34,7 @@ Scope: committed route metadata analysis; report output does not enforce route b
 flowchart TD
     A["RoutesCommand.run"] --> B["Load masquerade config, router and auth manager"]
     B --> C["router.commit and router.toJSON"]
-    C --> D["routeCoverageReport"]
+    C --> D["inspectRouteCoverage"]
     D --> E["routeGuards and routeMarkers"]
     D --> F["isPackageControl and host-control checks"]
     E --> G["Group and label route lines"]

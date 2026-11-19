@@ -1,5 +1,5 @@
 import { createHash } from 'node:crypto'
-import { unavailable } from './error_helpers.js'
+import { createUnavailableError } from './error_helpers.js'
 
 export function stampHash(value: unknown): string {
   if (
@@ -8,6 +8,6 @@ export function stampHash(value: unknown): string {
     value.length === 0 ||
     Buffer.byteLength(value) > 512
   )
-    throw unavailable()
+    throw createUnavailableError()
   return createHash('sha256').update(value).digest('hex')
 }

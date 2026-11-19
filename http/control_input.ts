@@ -4,7 +4,7 @@ import type { StartInput } from '../src/types.js'
 const BODY_LIMIT = 8 * 1024
 
 /** Parse start control input while leaving invalid-shape handling to the service audit boundary. */
-export function parseStartControl(ctx: HttpContext): StartInput {
+export function requireStartControl(ctx: HttpContext): StartInput {
   const body = readControlBody(ctx)
   if (!body || !isWithinBodyLimit(ctx)) return invalidStartInput()
   if (
@@ -36,7 +36,7 @@ export function parseStartControl(ctx: HttpContext): StartInput {
 }
 
 /** Parse stop control input while leaving invalid-shape handling to the service audit boundary. */
-export function parseStopControl(ctx: HttpContext): { expectedContext: string } {
+export function requireStopControl(ctx: HttpContext): { expectedContext: string } {
   const body = readControlBody(ctx)
   if (!body || !isWithinBodyLimit(ctx)) return invalidStopInput()
   if (Object.keys(body).some((key) => !['_masqueradeContext', '_csrf'].includes(key)))

@@ -1,8 +1,8 @@
 import { defineConfig } from './define_config.js'
-import { unavailable } from './error_helpers.js'
-import { boundedString } from './bounded_string.js'
+import { createUnavailableError } from './error_helpers.js'
+import { isBoundedString } from './bounded_string.js'
 import { openControlStore } from './control_store.js'
-import { validateRow } from './row_validation.js'
+import { requireValidModeRow } from './row_validation.js'
 import type {
   ActiveModeRow,
   ControlStore,
@@ -31,7 +31,7 @@ export type ActiveModeSummary = Readonly<
 >
 
 /** Validate one store batch candidate as an active row for its own owner key. */
-export function activeCandidate(candidate: ModeRow): ActiveModeRow {
+export function requireActiveCandidate(candidate: ModeRow): ActiveModeRow {
   try {
     const owner: OwnerKey = {
       namespace: candidate.namespace,
@@ -39,17 +39,17 @@ export function activeCandidate(candidate: ModeRow): ActiveModeRow {
       actorIncarnation: candidate.actorIncarnation,
     }
     if (
-      !boundedString(owner.namespace, 128) ||
+      !isBoundedString(owner.namespace, 128) ||
       !/^[A-Za-z0-9][A-Za-z0-9_.:-]*$/.test(owner.namespace) ||
-      !boundedString(owner.actorId, 255) ||
-      !boundedString(owner.actorIncarnation, 128)
+      !isBoundedString(owner.actorId, 255) ||
+      !isBoundedString(owner.actorIncarnation, 128)
     )
-      throw unavailable()
-    const row = validateRow(candidate, owner)
-    if (row?.state !== 'active') throw unavailable()
+      throw createUnavailableError()
+    const row = requireValidModeRow(candidate, owner)
+    if (row?.state !== 'active') throw createUnavailableError()
     return row
   } catch {
-    throw unavailable()
+    throw createUnavailableError()
   }
 }
 
@@ -62,7 +62,7 @@ export async function openOperatorStore<User, Request, K extends keyof ControlSt
   try {
     return await openControlStore(validated.store, environment, required)
   } catch {
-    throw unavailable()
+    throw createUnavailableError()
   }
 }
 
@@ -74,17 +74,17 @@ export async function listActiveModes<User, Request>(
 ): Promise<ActiveModeSummary[]> {
   const limit = options.limit ?? DEFAULT_ACTIVE_MODE_LIMIT
   if (!Number.isSafeInteger(limit) || limit < 1 || limit > MAX_ACTIVE_MODE_LIMIT)
-    throw unavailable()
+    throw createUnavailableError()
   const store = await openOperatorStore(config, dependencies.environment, ['activeBatch'])
   let candidates: ModeRow[]
   try {
     candidates = await store.activeBatch({ limit })
-    if (!Array.isArray(candidates) || candidates.length > limit) throw unavailable()
+    if (!Array.isArray(candidates) || candidates.length > limit) throw createUnavailableError()
   } catch {
-    throw unavailable()
+    throw createUnavailableError()
   }
   return candidates.map((candidate) => {
-    const row = activeCandidate(candidate)
+    const row = requireActiveCandidate(candidate)
     return {
       namespace: row.namespace,
       actorId: row.actorId,

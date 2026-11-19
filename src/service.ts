@@ -2,15 +2,15 @@ import { randomBytes, randomUUID } from 'node:crypto'
 import { InvalidArgumentsException } from '@adonisjs/core/exceptions'
 import { defineConfig } from './define_config.js'
 import { contextToken, requireContext } from './context_token.js'
-import { admittedProjection, modeView } from './mode_projection.js'
+import { buildAdmittedProjection, modeView } from './mode_projection.js'
 import { MasqueradeError } from './errors.js'
-import { invalidInput, unavailable } from './error_helpers.js'
+import { createInvalidInputError, createUnavailableError } from './error_helpers.js'
 import { openControlStore } from './control_store.js'
-import { parseStartSelection, validateStartInputShape } from './start_input.js'
+import { requireStartSelection, assertStartInputShape } from './start_input.js'
 import { stampHash } from './security_stamp.js'
-import { boundedString } from './bounded_string.js'
-import { validateRow } from './row_validation.js'
-import { validateSubject } from './subject_validation.js'
+import { isBoundedString } from './bounded_string.js'
+import { requireValidModeRow } from './row_validation.js'
+import { requireValidSubject } from './subject_validation.js'
 import {
   commitTransition,
   idleAfterTransition,
@@ -91,6 +91,22 @@ export async function createMasqueradeService<User, Request extends object>(
   return new CoreService(validated, dependencies, store)
 }
 
+type AuditEventInput<Kind extends EventKind> = {
+  owner: OwnerKey
+  row: ModeRow | null
+  kind: Kind
+  outcomeCode: string
+  reason?: string
+}
+
+type ControlOutcomeInput = {
+  owner: OwnerKey
+  row: ModeRow | null
+  kind: ControlOutcomeKind
+  outcomeCode: string
+  attempted?: Pick<AuditEvent, 'targetId' | 'access'>
+}
+
 /**
  * Ordered orchestration of the SPEC §6.4 transition table. Admission, transitions, audit emission
  * and account inspection live together because the order of their checks is the contract
@@ -98,32 +114,32 @@ export async function createMasqueradeService<User, Request extends object>(
  * the edit checks. Each comment below names the invariant or transition row its check enforces.
  */
 class CoreService<User, Request extends object> implements MasqueradeService<Request> {
-  #admitted = new WeakMap<Request, Promise<RequestAdmission<User>>>()
+  #admissionsByRequest = new WeakMap<Request, Promise<RequestAdmission<User>>>()
   constructor(
     private config: MasqueradeConfig<User, Request, RequestControlStore>,
     private dependencies: ServiceDependencies<User, Request>,
     private store: RequestControlStore
   ) {}
-  private now(): string {
+  private readCurrentTimestamp(): string {
     try {
       const date = (this.dependencies.clock ?? (() => new Date()))()
       const value = date.toISOString()
-      if (!/^\d{4}-/.test(value)) throw unavailable()
+      if (!/^\d{4}-/.test(value)) throw createUnavailableError()
       return value
     } catch {
-      throw unavailable()
+      throw createUnavailableError()
     }
   }
-  private async actor(request: Request): Promise<Subject<User>> {
+  private async authenticateActor(request: Request): Promise<Subject<User>> {
     // Native authentication errors retain their native rendering and never enter the audit boundary.
     const subject = await this.dependencies.authenticateActor(request)
     try {
-      return validateSubject(subject, this.config.authority)
+      return requireValidSubject(subject, this.config.authority)
     } catch {
-      throw unavailable()
+      throw createUnavailableError()
     }
   }
-  private owner(actor: Subject<User>): OwnerKey {
+  private buildOwnerKey(actor: Subject<User>): OwnerKey {
     return {
       namespace: this.config.authority.namespace,
       actorId: actor.id,
@@ -132,10 +148,10 @@ class CoreService<User, Request extends object> implements MasqueradeService<Req
   }
   private async read(owner: OwnerKey): Promise<ModeRow | null> {
     try {
-      return validateRow(await this.store.read(owner), owner)
+      return requireValidModeRow(await this.store.read(owner), owner)
     } catch {
       reportDiagnostic(this.dependencies, 'store', 'read', 'E_MASQUERADE_UNAVAILABLE')
-      throw unavailable()
+      throw createUnavailableError()
     }
   }
   async [activeMode](owner: OwnerKey): Promise<boolean> {
@@ -144,22 +160,22 @@ class CoreService<User, Request extends object> implements MasqueradeService<Req
       typeof owner.actorId !== 'string' ||
       typeof owner.actorIncarnation !== 'string'
     )
-      throw unavailable()
+      throw createUnavailableError()
     const row = await this.read(owner)
-    return row?.state === 'active' && this.now() < row.expiresAt
+    return row?.state === 'active' && this.readCurrentTimestamp() < row.expiresAt
   }
   /** The authenticated actor alone: no row read, policy call or invalidation. */
   async [actorIdentity](request: Request): Promise<{ id: string; incarnation: string }> {
-    const actor = await this.actor(request)
+    const actor = await this.authenticateActor(request)
     return { id: actor.id, incarnation: actor.incarnation }
   }
-  private event<Kind extends EventKind>(
-    owner: OwnerKey,
-    row: ModeRow | null,
-    kind: Kind,
-    outcomeCode: string,
-    reason?: string
-  ): AuditEvent & { kind: Kind } {
+  private createAuditEvent<Kind extends EventKind>({
+    owner,
+    row,
+    kind,
+    outcomeCode,
+    reason,
+  }: AuditEventInput<Kind>): AuditEvent & { kind: Kind } {
     return {
       ...owner,
       id: randomUUID(),
@@ -167,22 +183,22 @@ class CoreService<User, Request extends object> implements MasqueradeService<Req
       ...(row?.state === 'active'
         ? { targetId: row.targetId, targetIncarnation: row.targetIncarnation, access: row.access }
         : {}),
-      at: this.now(),
+      at: this.readCurrentTimestamp(),
       kind,
       outcomeCode,
       revision: row?.revision ?? 0,
       ...(reason === undefined ? {} : { reason }),
     }
   }
-  private async outcome(
-    owner: OwnerKey,
-    row: ModeRow | null,
-    kind: ControlOutcomeKind,
-    code: string,
-    attempted?: Pick<AuditEvent, 'targetId' | 'access'>
-  ): Promise<void> {
+  private async recordControlOutcome({
+    owner,
+    row,
+    kind,
+    outcomeCode,
+    attempted,
+  }: ControlOutcomeInput): Promise<void> {
     try {
-      const event = this.event(owner, row, kind, code)
+      const event = this.createAuditEvent({ owner, row, kind, outcomeCode })
       if (kind === 'start_denied') {
         delete event.targetId
         delete event.targetIncarnation
@@ -197,7 +213,7 @@ class CoreService<User, Request extends object> implements MasqueradeService<Req
         'record_control_outcome',
         'E_MASQUERADE_UNAVAILABLE'
       )
-      throw unavailable()
+      throw createUnavailableError()
     }
   }
   private async commit(
@@ -230,7 +246,7 @@ class CoreService<User, Request extends object> implements MasqueradeService<Req
     kind: 'stopped' | 'expired' | 'invalidated',
     code: string
   ): Promise<IdleModeRow> {
-    const event = this.event(owner, row, kind, code)
+    const event = this.createAuditEvent({ owner, row, kind, outcomeCode: code })
     const next = idleAfterTransition(row, event)
     event.revision = next.revision
     await this.commit(owner, row, next, event)
@@ -240,8 +256,8 @@ class CoreService<User, Request extends object> implements MasqueradeService<Req
     try {
       const snapshot = await this.config.authority.inspectAccount(id)
       if (!snapshot) return null
-      validateSubject(snapshot.subject, this.config.authority)
-      if (typeof snapshot.active !== 'boolean') throw unavailable()
+      requireValidSubject(snapshot.subject, this.config.authority)
+      if (typeof snapshot.active !== 'boolean') throw createUnavailableError()
       return snapshot
     } catch {
       reportDiagnostic(
@@ -250,7 +266,7 @@ class CoreService<User, Request extends object> implements MasqueradeService<Req
         'inspect_account',
         'E_MASQUERADE_UNAVAILABLE'
       )
-      throw unavailable()
+      throw createUnavailableError()
     }
   }
   private eligibleActor(
@@ -263,7 +279,7 @@ class CoreService<User, Request extends object> implements MasqueradeService<Req
       current.subject.incarnation === actor.incarnation
     )
   }
-  private async allowed(
+  private async checkMasqueradePermission(
     actor: Subject<User>,
     target: Subject<User>,
     request?: Request,
@@ -282,10 +298,10 @@ class CoreService<User, Request extends object> implements MasqueradeService<Req
       return allowed
     } catch {
       reportDiagnostic(this.dependencies, 'policy', 'can_masquerade', 'E_MASQUERADE_UNAVAILABLE')
-      throw unavailable()
+      throw createUnavailableError()
     }
   }
-  private async local(
+  private async assertRequestPermission(
     actor: Subject<User>,
     target: Subject<User>,
     request: Request
@@ -296,14 +312,14 @@ class CoreService<User, Request extends object> implements MasqueradeService<Req
       allowed = await this.config.policy.canUseRequest({ actor, target, request })
     } catch {
       reportDiagnostic(this.dependencies, 'policy', 'can_use_request', 'E_MASQUERADE_UNAVAILABLE')
-      throw unavailable()
+      throw createUnavailableError()
     }
     if (allowed !== true) {
       reportDiagnostic(this.dependencies, 'policy', 'can_use_request', 'E_MASQUERADE_NOT_ALLOWED')
       throw new MasqueradeError('E_MASQUERADE_NOT_ALLOWED')
     }
   }
-  private async editable(
+  private async checkEditPermission(
     actor: Subject<User>,
     target: Subject<User>,
     request?: Request,
@@ -322,19 +338,19 @@ class CoreService<User, Request extends object> implements MasqueradeService<Req
       return allowed
     } catch {
       reportDiagnostic(this.dependencies, 'policy', 'can_edit', 'E_MASQUERADE_UNAVAILABLE')
-      throw unavailable()
+      throw createUnavailableError()
     }
   }
   async status(request: Request): Promise<ModeView> {
-    const actor = await this.actor(request)
-    const owner = this.owner(actor)
+    const actor = await this.authenticateActor(request)
+    const owner = this.buildOwnerKey(actor)
     const row = await this.read(owner)
     nextRevision(row)
     return modeView(owner, row)
   }
   async start(request: Request, input: StartInput): Promise<ModeView> {
-    const actor = await this.actor(request)
-    const owner = this.owner(actor)
+    const actor = await this.authenticateActor(request)
+    const owner = this.buildOwnerKey(actor)
     let row: ModeRow | null = null
     // FR-27: a denial after input parsing records the requested target and access.
     let attempted: Pick<AuditEvent, 'targetId' | 'access'> | undefined
@@ -342,7 +358,7 @@ class CoreService<User, Request extends object> implements MasqueradeService<Req
       // §6.4 Any: an unavailable store or malformed row is 503.
       row = await this.read(owner)
       // §7.1 step 1: input shape, then the expected context (§6.4 Any: mismatch is 409).
-      validateStartInputShape(input)
+      assertStartInputShape(input)
       if (row?.state === 'active') {
         // Project only bounded request fields before checks that may reject an active mode.
         const projectedTargetId =
@@ -350,7 +366,7 @@ class CoreService<User, Request extends object> implements MasqueradeService<Req
             ? String(input.targetId)
             : input.targetId
         attempted = {
-          ...(boundedString(projectedTargetId, 255) ? { targetId: projectedTargetId } : {}),
+          ...(isBoundedString(projectedTargetId, 255) ? { targetId: projectedTargetId } : {}),
           ...(input.access === undefined || input.access === 'view' || input.access === 'edit'
             ? { access: input.access ?? 'view' }
             : {}),
@@ -360,7 +376,7 @@ class CoreService<User, Request extends object> implements MasqueradeService<Req
       // §6.4 Any: a revision at Number.MAX_SAFE_INTEGER fails closed.
       nextRevision(row)
       // §7.1 step 1, I06: an expired row resolves to idle first, then 409; never start from it.
-      if (row?.state === 'active' && this.now() >= row.expiresAt) {
+      if (row?.state === 'active' && this.readCurrentTimestamp() >= row.expiresAt) {
         // The denial is recorded against the idle row this request committed.
         row = await this.clear(owner, row, 'expired', 'expired')
         throw new MasqueradeError('E_MASQUERADE_CONTEXT_CHANGED')
@@ -368,34 +384,45 @@ class CoreService<User, Request extends object> implements MasqueradeService<Req
       // §6.4 Active: any second start is 409 with no replacement or extension (I02).
       if (row?.state === 'active') throw new MasqueradeError('E_MASQUERADE_ALREADY_ACTIVE')
       // §7.1 step 3 reason policy, §14.1 access and the duration bounds.
-      const { targetId, reason, duration, access } = parseStartSelection(
-        input,
-        actor.id,
-        this.config.durationSeconds!,
-        this.config.maxDurationSeconds!,
-        this.config.reason!
-      )
+      const { targetId, reason, duration, access } = requireStartSelection(input, {
+        actorId: actor.id,
+        defaultDuration: this.config.durationSeconds!,
+        maxDuration: this.config.maxDurationSeconds!,
+        reasonPolicy: this.config.reason!,
+      })
       // Only the requested values: an inspected incarnation would reveal that the account exists.
       attempted = { targetId, access }
       // §7.1 step 2: both accounts come from inspectAccount; a throw is 503.
       const currentActor = await this.inspect(actor.id)
       const target = await this.inspect(targetId)
       // §7.3: self-targeting is invalid input.
-      if (target?.subject.id === actor.id) throw invalidInput()
+      if (target?.subject.id === actor.id) throw createInvalidInputError()
       // §7.1 step 2: a missing or ineligible actor or target gets the generic denial.
       if (!this.eligibleActor(currentActor, actor) || !target?.active)
         throw new MasqueradeError('E_MASQUERADE_NOT_ALLOWED')
       // §6.4 Absent/idle: start requires canMasquerade to return true (§7.1 step 3).
-      if (!(await this.allowed(currentActor.subject, target.subject, request, reason ?? undefined)))
+      if (
+        !(await this.checkMasqueradePermission(
+          currentActor.subject,
+          target.subject,
+          request,
+          reason ?? undefined
+        ))
+      )
         throw new MasqueradeError('E_MASQUERADE_NOT_ALLOWED')
       // §14.1: an edit start needs canEdit true, after canMasquerade and before canUseRequest.
       if (
         access === 'edit' &&
-        !(await this.editable(currentActor.subject, target.subject, request, reason ?? undefined))
+        !(await this.checkEditPermission(
+          currentActor.subject,
+          target.subject,
+          request,
+          reason ?? undefined
+        ))
       )
         throw new MasqueradeError('E_MASQUERADE_NOT_ALLOWED')
       // §7.1 step 3: canUseRequest when configured.
-      await this.local(currentActor.subject, target.subject, request)
+      await this.assertRequestPermission(currentActor.subject, target.subject, request)
       // §7.1 step 3, I11: only the stamp hashes are kept.
       let actorHash: string
       let targetHash: string
@@ -409,9 +436,15 @@ class CoreService<User, Request extends object> implements MasqueradeService<Req
           'security_stamp',
           'E_MASQUERADE_UNAVAILABLE'
         )
-        throw unavailable()
+        throw createUnavailableError()
       }
-      const event = this.event(owner, row, 'started', 'started', reason ?? undefined)
+      const event = this.createAuditEvent({
+        owner,
+        row,
+        kind: 'started',
+        outcomeCode: 'started',
+        reason: reason ?? undefined,
+      })
       const next: ActiveModeRow = {
         ...owner,
         state: 'active',
@@ -449,19 +482,19 @@ class CoreService<User, Request extends object> implements MasqueradeService<Req
         'start',
         error instanceof MasqueradeError ? error.code : 'E_MASQUERADE_UNAVAILABLE'
       )
-      await this.outcome(
+      await this.recordControlOutcome({
         owner,
         row,
-        'start_denied',
-        error instanceof MasqueradeError ? error.code : 'E_MASQUERADE_UNAVAILABLE',
-        attempted
-      )
-      throw error instanceof MasqueradeError ? error : unavailable()
+        kind: 'start_denied',
+        outcomeCode: error instanceof MasqueradeError ? error.code : 'E_MASQUERADE_UNAVAILABLE',
+        attempted,
+      })
+      throw error instanceof MasqueradeError ? error : createUnavailableError()
     }
   }
   async stop(request: Request, input: StopInput): Promise<ModeView> {
-    const actor = await this.actor(request)
-    const owner = this.owner(actor)
+    const actor = await this.authenticateActor(request)
+    const owner = this.buildOwnerKey(actor)
     let row: ModeRow | null = null
     let idleOutcomeAttempted = false
     try {
@@ -469,7 +502,7 @@ class CoreService<User, Request extends object> implements MasqueradeService<Req
       row = await this.read(owner)
       // §7.3: stop accepts only the expected context.
       if (!input || Object.keys(input).some((key) => key !== 'expectedContext'))
-        throw invalidInput()
+        throw createInvalidInputError()
       // §7.3: a stale stop never clears a newer mode (§6.4 Any: mismatch is 409).
       requireContext(input.expectedContext, contextToken(owner, row))
       // §6.4 Any: a revision at Number.MAX_SAFE_INTEGER fails closed.
@@ -477,11 +510,11 @@ class CoreService<User, Request extends object> implements MasqueradeService<Req
       // §6.4 Idle/absent: 200 idle, no revision change, one control_noop record.
       if (!row || row.state === 'idle') {
         idleOutcomeAttempted = true
-        await this.outcome(owner, row, 'control_noop', 'idle')
+        await this.recordControlOutcome({ owner, row, kind: 'control_noop', outcomeCode: 'idle' })
         return modeView(owner, row)
       }
       // I06: a lapsed mode is recorded as expired, as admission, prune and the CLI record it.
-      if (this.now() >= row.expiresAt)
+      if (this.readCurrentTimestamp() >= row.expiresAt)
         return modeView(owner, await this.clear(owner, row, 'expired', 'expired'))
       // §6.4 Active: idle with one stopped event; I08: no target load or policy call.
       return modeView(owner, await this.clear(owner, row, 'stopped', 'stopped'))
@@ -497,13 +530,13 @@ class CoreService<User, Request extends object> implements MasqueradeService<Req
         'stop',
         error instanceof MasqueradeError ? error.code : 'E_MASQUERADE_UNAVAILABLE'
       )
-      await this.outcome(
+      await this.recordControlOutcome({
         owner,
         row,
-        'stop_denied',
-        error instanceof MasqueradeError ? error.code : 'E_MASQUERADE_UNAVAILABLE'
-      )
-      throw error instanceof MasqueradeError ? error : unavailable()
+        kind: 'stop_denied',
+        outcomeCode: error instanceof MasqueradeError ? error.code : 'E_MASQUERADE_UNAVAILABLE',
+      })
+      throw error instanceof MasqueradeError ? error : createUnavailableError()
     }
   }
   /** §7.2 business admission through admit(), once per request (I10). */
@@ -512,26 +545,26 @@ class CoreService<User, Request extends object> implements MasqueradeService<Req
     return admitted.context
   }
   async [admission](request: Request): Promise<RequestAdmission<User>> {
-    const memo = this.#admitted.get(request)
+    const memo = this.#admissionsByRequest.get(request)
     if (memo) return memo
     const pending = this.admit(request)
-    this.#admitted.set(request, pending)
+    this.#admissionsByRequest.set(request, pending)
     // A rejected request must never retry under the identity created by its own invalidation.
     return pending
   }
   private async admit(request: Request): Promise<RequestAdmission<User>> {
-    const actor = await this.actor(request)
-    const owner = this.owner(actor)
+    const actor = await this.authenticateActor(request)
+    const owner = this.buildOwnerKey(actor)
     // §7.2 step 1: read the owner row on every request; no cross-request allow cache.
     const row = await this.read(owner)
     // §6.4 Any: a revision at Number.MAX_SAFE_INTEGER fails closed.
-    if (row?.revision === Number.MAX_SAFE_INTEGER) throw unavailable()
+    if (row?.revision === Number.MAX_SAFE_INTEGER) throw createUnavailableError()
     // §7.2 step 2: an idle request runs as the actor.
     let effective = actor
     if (row?.state === 'active') {
       let invalid: string | undefined
       // §7.2 step 3, I06: expiry is checked before any account read; the request gets 409.
-      if (this.now() >= row.expiresAt) {
+      if (this.readCurrentTimestamp() >= row.expiresAt) {
         await this.clear(owner, row, 'expired', 'expired')
         throw new MasqueradeError('E_MASQUERADE_CONTEXT_CHANGED')
       }
@@ -556,15 +589,18 @@ class CoreService<User, Request extends object> implements MasqueradeService<Req
             'security_stamp',
             'E_MASQUERADE_UNAVAILABLE'
           )
-          throw unavailable()
+          throw createUnavailableError()
         }
-        if (!invalid && !(await this.allowed(currentActor.subject, target.subject)))
+        if (
+          !invalid &&
+          !(await this.checkMasqueradePermission(currentActor.subject, target.subject))
+        )
           invalid = 'policy_denied'
         // §14.1: an edit mode also needs canEdit true; it is never downgraded to view.
         if (
           !invalid &&
           row.access === 'edit' &&
-          !(await this.editable(currentActor.subject, target.subject))
+          !(await this.checkEditPermission(currentActor.subject, target.subject))
         )
           invalid = 'edit_denied'
       }
@@ -575,8 +611,8 @@ class CoreService<User, Request extends object> implements MasqueradeService<Req
       }
       effective = target!.subject
       // §6.4 Active: canUseRequest false rejects this request only; the mode is unchanged.
-      await this.local(currentActor!.subject, effective, request)
+      await this.assertRequestPermission(currentActor!.subject, effective, request)
     }
-    return admittedProjection(owner, row, actor, effective)
+    return buildAdmittedProjection(owner, row, actor, effective)
   }
 }

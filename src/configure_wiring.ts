@@ -9,6 +9,7 @@ type SourceFile = NonNullable<ReturnType<Project['addSourceFileAtPathIfExists']>
 export type WiringOutcome = 'wired' | 'already' | 'skipped'
 
 type Codemods = Awaited<ReturnType<Configure['createCodemods']>>
+type WireHostOptions = { banner: boolean; formController: boolean }
 
 /**
  * Perform the mechanical host wiring after the scaffold is registered. Each step edits only a
@@ -18,8 +19,7 @@ export async function wireHost(
   command: Configure,
   codemods: Codemods,
   guard: string,
-  banner = false,
-  formController = false
+  { banner, formController }: WireHostOptions
 ): Promise<Record<'auth' | 'kernel' | 'routes' | 'status', WiringOutcome>> {
   const project =
     typeof codemods.getTsMorphProject === 'function'

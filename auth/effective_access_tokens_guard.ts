@@ -47,7 +47,7 @@ export class EffectiveAccessTokensGuard<RawUser> implements GuardContract<
     const selected = runtime.selectGuard(this.ctx)
     if (selected.kind === 'effective') {
       const admitted = await runtime.admit(this.ctx)
-      assertContextEnforced(this.ctx, admitted.context.isMasquerading)
+      assertContextEnforced(this.ctx, { isMasquerading: admitted.context.isMasquerading })
       this.user = admitted.effective.user as EffectiveAccessTokensUser<RawUser>
     } else {
       // A public or multi-guard route selects no single credential; this facade still answers

@@ -1,5 +1,5 @@
 import { test } from '@japa/runner'
-import { validateTransition } from '../src/transition_validation.js'
+import { assertValidTransition } from '../src/transition_validation.js'
 import { validateControlOutcome } from '../src/control_outcome_validation.js'
 import type { ActiveModeRow, CompareAndSetInput, ControlOutcomeEvent } from '../src/types.js'
 
@@ -44,7 +44,7 @@ function start(): CompareAndSetInput {
 }
 
 test('accepts a start whose event describes the committed row', ({ assert }) => {
-  assert.doesNotThrow(() => validateTransition(start(), null))
+  assert.doesNotThrow(() => assertValidTransition(start(), null))
 })
 
 for (const [name, change] of [
@@ -78,7 +78,7 @@ for (const [name, change] of [
   test(`rejects a transition that ${name}`, ({ assert }) => {
     const input = start()
     change(input)
-    assert.throws(() => validateTransition(input, null), 'Masquerade is unavailable')
+    assert.throws(() => assertValidTransition(input, null), 'Masquerade is unavailable')
   })
 
 test('control outcomes accept only outcome kinds', ({ assert }) => {

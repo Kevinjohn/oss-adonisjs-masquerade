@@ -5,8 +5,8 @@ import type {} from '@adonisjs/auth/initialize_auth_middleware'
 import type { GuardContract } from '@adonisjs/auth/types'
 import type { SessionUserProviderContract } from '@adonisjs/auth/types/session'
 import type { NativeAuthority, Subject } from '../src/types.js'
-import { boundedString } from '../src/bounded_string.js'
-import { unavailable } from '../src/error_helpers.js'
+import { isBoundedString } from '../src/bounded_string.js'
+import { createUnavailableError } from '../src/error_helpers.js'
 
 /** Options for `sessionAuthority`. */
 export interface SessionAuthorityOptions<User> {
@@ -51,10 +51,11 @@ export function sessionAuthority<User>(
       typeof identifier === 'bigint' ||
       (typeof identifier === 'number' && Number.isSafeInteger(identifier))
     ))
-      throw unavailable()
+      throw createUnavailableError()
     const id = String(identifier)
     const accountIncarnation = incarnation === 'id' ? id : incarnation(user)
-    if (!boundedString(id, 255) || !boundedString(accountIncarnation, 128)) throw unavailable()
+    if (!isBoundedString(id, 255) || !isBoundedString(accountIncarnation, 128))
+      throw createUnavailableError()
     return { id, incarnation: accountIncarnation, user }
   }
   const authority: NativeAuthority<User> = {
@@ -67,7 +68,7 @@ export function sessionAuthority<User>(
       if (!account) return null
       const user = account.getOriginal()
       const active = await isActive(user)
-      if (typeof active !== 'boolean') throw unavailable()
+      if (typeof active !== 'boolean') throw createUnavailableError()
       return {
         subject: subject(user, account.getId()),
         active,
@@ -83,21 +84,21 @@ export function sessionAuthority<User>(
         raw = ctx.auth.use(guard as never) as GuardContract<User>
       } catch (error) {
         if (error instanceof errors.E_UNAUTHORIZED_ACCESS) throw error
-        throw unavailable()
+        throw createUnavailableError()
       }
-      if (raw.driverName !== 'session') throw unavailable()
+      if (raw.driverName !== 'session') throw createUnavailableError()
       let user: User
       try {
         user = await raw.authenticate()
       } catch (error) {
         if (error instanceof errors.E_UNAUTHORIZED_ACCESS) throw error
-        throw unavailable()
+        throw createUnavailableError()
       }
       try {
         const account = await provider.createUserForGuard(user)
         return subject(user, account.getId())
       } catch {
-        throw unavailable()
+        throw createUnavailableError()
       }
     },
   })

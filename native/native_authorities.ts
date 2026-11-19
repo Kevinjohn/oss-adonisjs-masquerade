@@ -1,7 +1,7 @@
 import type { HttpContext } from '@adonisjs/core/http'
 import { InvalidArgumentsException } from '@adonisjs/core/exceptions'
 import type { NativeRuntimeAdapter } from '../src/integration/native_binding.js'
-import { boundedString } from '../src/bounded_string.js'
+import { isBoundedString } from '../src/bounded_string.js'
 
 /** The result of `nativeAuthorities`: the primary authority and one adapter per raw guard. */
 export interface NativeAuthorityComposition<Primary extends NativeRuntimeAdapter> {
@@ -15,7 +15,7 @@ function adapterGuard(adapter: NativeRuntimeAdapter): string {
   if (!adapter || !adapter.authority || typeof adapter.authenticateActor !== 'function')
     throw new InvalidArgumentsException('Invalid native adapter guard')
   const guard = adapter.guard ?? adapter.authority.guard
-  if (!boundedString(guard, 128))
+  if (!isBoundedString(guard, 128))
     throw new InvalidArgumentsException('Invalid native adapter guard')
   return guard
 }
@@ -30,8 +30,8 @@ export function nativeAuthorities<Primary extends NativeRuntimeAdapter>(
   if (
     !Array.isArray(additional) ||
     !authority ||
-    !boundedString(authority.namespace, 128) ||
-    !boundedString(authority.guard, 128)
+    !isBoundedString(authority.namespace, 128) ||
+    !isBoundedString(authority.guard, 128)
   )
     throw new InvalidArgumentsException('Invalid native adapter guard')
   if (primary.adapters || additional.some((adapter) => adapter?.adapters))

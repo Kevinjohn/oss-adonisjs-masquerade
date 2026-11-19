@@ -1,8 +1,8 @@
 import { setTimeout } from 'node:timers/promises'
 import type { QueryClientContract, TransactionClientContract } from '@adonisjs/lucid/types/database'
-import { unavailable } from '../src/error_helpers.js'
-import { validInstant, validateRow } from '../src/row_validation.js'
-import { validateTransition } from '../src/transition_validation.js'
+import { createUnavailableError } from '../src/error_helpers.js'
+import { isValidInstant, requireValidModeRow } from '../src/row_validation.js'
+import { assertValidTransition } from '../src/transition_validation.js'
 import { validateControlOutcome } from '../src/control_outcome_validation.js'
 import type {
   CasOutcome,
@@ -13,7 +13,13 @@ import type {
   ModeRow,
   OwnerKey,
 } from '../src/types.js'
-import { decodeRow, eventRecord, ownerColumns, ownerRecord, rowRecord } from './lucid_row.js'
+import {
+  decodeRow,
+  buildAuditRecord,
+  ownerColumns,
+  buildOwnerRecord,
+  buildModeRecord,
+} from './lucid_row.js'
 export { createMasqueradeSchema, dropMasqueradeSchema } from './lucid_schema.js'
 
 /** The Lucid query client surface the store uses: a connection or a transaction. */
@@ -52,8 +58,8 @@ function serializationFailure(error: unknown): boolean {
   return code === '40001' || code === '40P01'
 }
 function batch(input: { limit: number }, instant: Instant): void {
-  if (!Number.isSafeInteger(input.limit) || input.limit < 1 || !validInstant(instant))
-    throw unavailable()
+  if (!Number.isSafeInteger(input.limit) || input.limit < 1 || !isValidInstant(instant))
+    throw createUnavailableError()
 }
 /** Inject db.connection() in write mode; transaction clients and read replicas are unsupported. */
 export class LucidControlStore implements ControlStore {
@@ -62,7 +68,7 @@ export class LucidControlStore implements ControlStore {
   readonly #delay: number
   #failed = false
   #assertAvailable(): void {
-    if (this.#failed) throw unavailable()
+    if (this.#failed) throw createUnavailableError()
   }
   #retireWritePool(knex: ReturnType<LucidControlClient['getWriteClient']>): void {
     if (this.#failed) return
@@ -87,20 +93,20 @@ export class LucidControlStore implements ControlStore {
       this.#delay > 1000 ||
       client.getWriteClient().client.config.connectionPool !== undefined
     )
-      throw unavailable()
+      throw createUnavailableError()
   }
   async read(owner: OwnerKey): Promise<ModeRow | null> {
     this.#assertAvailable()
     const raw = await this.#client
       .knexQuery()
       .from('masquerade_modes')
-      .where(ownerRecord(owner))
+      .where(buildOwnerRecord(owner))
       .first()
     return raw ? decodeRow(raw, owner) : null
   }
   async compareAndSet(input: CompareAndSetInput): Promise<CasOutcome> {
     this.#assertAvailable()
-    validateRow(input.next, input.owner)
+    requireValidModeRow(input.next, input.owner)
     const command = structuredClone(input)
     for (let attempt = 0; ; attempt++) {
       const knex = this.#client.getWriteClient()
@@ -118,22 +124,23 @@ export class LucidControlStore implements ControlStore {
         const query = transaction.table('masquerade_modes')
         const currentRaw = await transaction
           .from('masquerade_modes')
-          .where(ownerRecord(command.owner))
+          .where(buildOwnerRecord(command.owner))
           .forUpdate()
           .first()
         const current = currentRaw ? decodeRow(currentRaw, command.owner) : null
-        if ((current?.revision ?? null) === command.expected) validateTransition(command, current)
+        if ((current?.revision ?? null) === command.expected)
+          assertValidTransition(command, current)
         const changed =
           command.expected === null
             ? await query
-                .insert(rowRecord(command.next))
+                .insert(buildModeRecord(command.next))
                 .onConflict(ownerColumns)
                 .ignore()
                 .returning('revision')
             : await query
-                .where(ownerRecord(command.owner))
+                .where(buildOwnerRecord(command.owner))
                 .where('revision', command.expected)
-                .update(rowRecord(command.next))
+                .update(buildModeRecord(command.next))
                 .returning('revision')
         if (changed.length === 0) {
           rollingBack = true
@@ -142,7 +149,7 @@ export class LucidControlStore implements ControlStore {
           if (!outcome.ok) throw outcome.error
           return { status: 'conflict' }
         }
-        await transaction.table('masquerade_events').insert(eventRecord(command.event))
+        await transaction.table('masquerade_events').insert(buildAuditRecord(command.event))
         committing = true
         await transaction.commit()
         const outcome = await completion
@@ -212,7 +219,7 @@ export class LucidControlStore implements ControlStore {
   async recordControlOutcome(event: ControlOutcomeEvent): Promise<void> {
     this.#assertAvailable()
     validateControlOutcome(event)
-    await this.#client.knexQuery().table('masquerade_events').insert(eventRecord(event))
+    await this.#client.knexQuery().table('masquerade_events').insert(buildAuditRecord(event))
   }
   async expiredBatch(input: { now: Instant; limit: number }): Promise<ModeRow[]> {
     this.#assertAvailable()
@@ -229,7 +236,7 @@ export class LucidControlStore implements ControlStore {
   }
   async activeBatch(input: { limit: number }): Promise<ModeRow[]> {
     this.#assertAvailable()
-    if (!Number.isSafeInteger(input.limit) || input.limit < 1) throw unavailable()
+    if (!Number.isSafeInteger(input.limit) || input.limit < 1) throw createUnavailableError()
     const rows = await this.#client
       .knexQuery()
       .from('masquerade_modes')

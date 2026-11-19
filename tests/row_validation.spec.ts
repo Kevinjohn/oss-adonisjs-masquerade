@@ -1,6 +1,6 @@
 import { test } from '@japa/runner'
 import { fixture, errorCode } from './helpers/core.js'
-import { validateRow } from '../src/row_validation.js'
+import { requireValidModeRow } from '../src/row_validation.js'
 
 test('access fails closed', async ({ assert }) => {
   const f = fixture()
@@ -9,13 +9,13 @@ test('access fails closed', async ({ assert }) => {
   const row = (await f.store.read(f.owner))!
   for (const access of [undefined, null, 'unknown'])
     assert.throws(
-      () => validateRow({ ...row, access } as never, f.owner),
+      () => requireValidModeRow({ ...row, access } as never, f.owner),
       'Masquerade is unavailable'
     )
   await service.stop({}, { expectedContext: active.contextToken })
   const idle = (await f.store.read(f.owner))!
   assert.throws(
-    () => validateRow({ ...idle, access: 'view' } as never, f.owner),
+    () => requireValidModeRow({ ...idle, access: 'view' } as never, f.owner),
     'Masquerade is unavailable'
   )
 })
@@ -71,7 +71,7 @@ test('malformed store rows fail closed across status, controls and admission', a
   const idle = await service.stop({}, { expectedContext: `${row.revision}.${row.revisionNonce}` })
   const idleRow = (await original(f.owner))!
   assert.throws(
-    () => validateRow({ ...idleRow, reason: 'retained' } as never, f.owner),
+    () => requireValidModeRow({ ...idleRow, reason: 'retained' } as never, f.owner),
     'Masquerade is unavailable'
   )
   assert.isFalse(idle.isMasquerading)
@@ -84,12 +84,12 @@ test('an active row longer than the one-hour maximum fails closed', async ({ ass
   if (row.state !== 'active') throw new Error('Expected active')
   const startedAt = Date.parse(row.startedAt)
   const at = (offset: number) => new Date(startedAt + offset).toISOString()
-  assert.deepEqual(validateRow({ ...row, expiresAt: at(3_600_000) }, f.owner), {
+  assert.deepEqual(requireValidModeRow({ ...row, expiresAt: at(3_600_000) }, f.owner), {
     ...row,
     expiresAt: at(3_600_000),
   })
   assert.throws(
-    () => validateRow({ ...row, expiresAt: at(3_600_001) }, f.owner),
+    () => requireValidModeRow({ ...row, expiresAt: at(3_600_001) }, f.owner),
     'Masquerade is unavailable'
   )
 })

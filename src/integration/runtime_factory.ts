@@ -148,13 +148,13 @@ export async function createRuntime(
   const emitter = await app.container.make('emitter')
   const logger = await app.container.make('logger')
   const selectGuard = (ctx: HttpContext) =>
-    selectRouteGuard(
-      ctx.route,
-      wiring.effectiveGuardName,
-      wiring.effectiveRawGuards,
-      wiring.registeredRawGuardNames,
-      wiring.native.guard ?? wiring.native.authority.guard
-    )
+    selectRouteGuard({
+      route: ctx.route,
+      defaultGuard: wiring.effectiveGuardName,
+      effectiveRawGuards: wiring.effectiveRawGuards,
+      registeredRawGuards: wiring.registeredRawGuardNames,
+      primaryRawGuard: wiring.native.guard ?? wiring.native.authority.guard,
+    })
   const service = await createMasqueradeService(wiring.config, {
     environment: app.nodeEnvironment,
     authenticateActor: (ctx) => {

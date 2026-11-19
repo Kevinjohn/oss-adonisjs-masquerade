@@ -1,6 +1,6 @@
 import { test } from '@japa/runner'
 import { assertManagedRouteRegistration } from '../account_kit/route_validation.js'
-import { routeCoverageReport } from '../commands/routes.js'
+import { inspectRouteCoverage } from '../commands/routes.js'
 import { activeMode } from '../src/active_mode.js'
 import { fixture } from './helpers/core.js'
 
@@ -54,10 +54,10 @@ test.group('Account Kit managed route coverage', () => {
   test('reports verified managed routes separately and unverified ones as uncovered', async ({
     assert,
   }) => {
-    const uncoveredSections = await routeCoverageReport(managed, 'web')
+    const uncoveredSections = await inspectRouteCoverage(managed, 'web')
     const uncovered = uncoveredSections.join('\n')
     assert.include(uncovered, '[UNCLASSIFIED MUTATION] (blocker missing or unverified)')
-    const coveredSections = await routeCoverageReport(managed, 'web', 'web', ['web'], {}, true)
+    const coveredSections = await inspectRouteCoverage(managed, 'web', 'web', ['web'], {}, true)
     const covered = coveredSections.join('\n')
     assert.include(covered, 'Account Kit managed\n')
     assert.include(covered, '[Account Kit managed (blocked while active) MUTATION]')
@@ -70,7 +70,7 @@ test.group('Account Kit managed route coverage', () => {
         { ...managed.root[0], name: 'accountKit.auth.csrf', methods: ['GET'] },
       ],
     }
-    const sections = await routeCoverageReport(exempt, 'web', 'web', ['web'], {}, true)
+    const sections = await inspectRouteCoverage(exempt, 'web', 'web', ['web'], {}, true)
     assert.equal(sections.join('\n').match(/Account Kit managed \(exempt\)/g)?.length, 2)
   })
 

@@ -123,13 +123,13 @@ export function requestContext(f: ReturnType<typeof fixture>, options: RequestCo
           selectGuard:
             options.selectGuard ??
             ((request: SelectableContext) =>
-              selectRouteGuard(
-                request.route,
-                options.defaultGuard ?? 'web_effective',
-                { web_effective: 'web', web_alias: 'web' },
-                ['web', 'api', 'default'],
-                'web'
-              )),
+              selectRouteGuard({
+                route: request.route,
+                defaultGuard: options.defaultGuard ?? 'web_effective',
+                effectiveRawGuards: { web_effective: 'web', web_alias: 'web' },
+                registeredRawGuards: ['web', 'api', 'default'],
+                primaryRawGuard: 'web',
+              })),
           admit: async (request: object) => {
             const fallback = () => internal[admission](request)
             return options.admit ? options.admit(request, fallback) : fallback()

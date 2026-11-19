@@ -1,6 +1,6 @@
 import type { NativeAuthority } from '../src/types.js'
-import { boundedString } from '../src/bounded_string.js'
-import { unavailable } from '../src/error_helpers.js'
+import { isBoundedString } from '../src/bounded_string.js'
+import { createUnavailableError } from '../src/error_helpers.js'
 
 /** The string form of an Account Kit identifier; anything else fails closed. */
 export function canonicalId(value: unknown): string {
@@ -9,9 +9,9 @@ export function canonicalId(value: unknown): string {
     typeof value !== 'bigint' &&
     !(typeof value === 'number' && Number.isSafeInteger(value))
   )
-    throw unavailable()
+    throw createUnavailableError()
   const id = String(value)
-  if (!boundedString(id, 255)) throw unavailable()
+  if (!isBoundedString(id, 255)) throw createUnavailableError()
   return id
 }
 
@@ -26,6 +26,6 @@ export function accountOwner<User>(
 ): { id: string; incarnation: string } {
   const id = canonicalId(identifier)
   const accountIncarnation = incarnation === 'id' ? id : incarnation(user)
-  if (!boundedString(accountIncarnation, 128)) throw unavailable()
+  if (!isBoundedString(accountIncarnation, 128)) throw createUnavailableError()
   return { id, incarnation: accountIncarnation }
 }

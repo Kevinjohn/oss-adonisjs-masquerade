@@ -1,7 +1,7 @@
 import { test } from '@japa/runner'
 import { IgnitorFactory } from '@adonisjs/core/factories'
 import type { Router } from '@adonisjs/core/http'
-import { routeCoverageReport } from '../commands/routes.js'
+import { inspectRouteCoverage } from '../commands/routes.js'
 import { masqueradeRoutes } from '../http/control_routes.js'
 import { MasqueradeController } from '../http/controllers.js'
 import { selectRouteGuard } from '../src/integration/route_guard_selection.js'
@@ -64,7 +64,7 @@ test.group('masqueradeRoutes', () => {
           MasqueradeController,
           (route.handler as { method: string }).method,
         ])
-      assert.deepEqual(await routeCoverageReport(router.toJSON(), 'web', 'web_effective'), [
+      assert.deepEqual(await inspectRouteCoverage(router.toJSON(), 'web', 'web_effective'), [
         [
           'web',
           '  GET,HEAD           /masquerade [CONTROL READ]',
@@ -95,7 +95,7 @@ test.group('masqueradeRoutes', () => {
           ['/api/masquerade/stop', 'token.masquerade.stop'],
         ]
       )
-      const [report] = await routeCoverageReport(router.toJSON(), 'web', 'web_effective')
+      const [report] = await inspectRouteCoverage(router.toJSON(), 'web', 'web_effective')
       assert.include(report, 'api\n  GET,HEAD           /api/masquerade [CONTROL READ]')
     })
   })
@@ -118,7 +118,7 @@ test.group('masqueradeRoutes', () => {
       const routes = router.toJSON().root
       const effectiveStatus = routes.find((route) => route.name === 'effective.masquerade.status')!
       const rawStop = routes.find((route) => route.name === 'masquerade.stop')!
-      const sections = await routeCoverageReport(
+      const sections = await inspectRouteCoverage(
         router.toJSON(),
         'web',
         'web_effective',
@@ -136,7 +136,13 @@ test.group('masqueradeRoutes', () => {
       const active = await f.start(service)
       const authenticationCount = f.state.authenticateCount
       const authSelection = (route: typeof effectiveStatus) =>
-        selectRouteGuard(route, 'web_effective', { web_effective: 'web' }, ['web'], 'web')
+        selectRouteGuard({
+          route,
+          defaultGuard: 'web_effective',
+          effectiveRawGuards: { web_effective: 'web' },
+          registeredRawGuards: ['web'],
+          primaryRawGuard: 'web',
+        })
 
       const effectiveRequest = requestContext(f, {
         method: 'GET',
