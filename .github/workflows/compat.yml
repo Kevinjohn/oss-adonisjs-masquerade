@@ -164,6 +164,7 @@ jobs:
       matrix:
         database: [pg, better-sqlite3]
     env:
+      ACCOUNT_KIT_SQLITE_CANDIDATE: '72952c4be4fa3c2f6c53da94815c7308e9d0c091'
       DB_CLIENT: ${{ matrix.database }}
       DB_HOST: 127.0.0.1
       DB_PORT: 5432
@@ -192,10 +193,25 @@ jobs:
           node-version: 24
           cache: pnpm
       - run: pnpm install --frozen-lockfile
-      - name: Exercise packed Account Kit consumer
+      - name: Exercise released Account Kit consumer
         env:
           ACCOUNT_KIT_EVIDENCE_DIR: ${{ github.workspace }}/tmp/account-kit-evidence-${{ matrix.database }}
-        run: pnpm test:account-kit --profile=all --database=${{ matrix.database == 'pg' && 'pg' || 'sqlite' }} --strategy=all --session-management=all
+        run: pnpm test:account-kit --profile=${{ github.event_name == 'pull_request' && matrix.database == 'better-sqlite3' && 'floor' || 'all' }} --database=${{ matrix.database == 'pg' && 'pg' || 'sqlite' }} --strategy=all --session-management=all
+      # Account Kit 0.4.0 needs the SQLite checkout fix for Lucid 22.5. Keep release checks on the published artifact.
+      - uses: actions/checkout@v7
+        if: github.event_name == 'pull_request' && matrix.database == 'better-sqlite3'
+        with:
+          repository: Kevinjohn/oss-adonisjs-account-kit
+          ref: ${{ env.ACCOUNT_KIT_SQLITE_CANDIDATE }}
+          path: tmp/account-kit-sqlite-candidate
+          persist-credentials: false
+      - name: Exercise Account Kit candidate with latest SQLite peers
+        if: github.event_name == 'pull_request' && matrix.database == 'better-sqlite3'
+        env:
+          ACCOUNT_KIT_EVIDENCE_DIR: ${{ github.workspace }}/tmp/account-kit-sqlite-candidate-evidence
+          ACCOUNT_KIT_SOURCE: ${{ github.workspace }}/tmp/account-kit-sqlite-candidate
+          ACCOUNT_KIT_SOURCE_REVISION: ${{ env.ACCOUNT_KIT_SQLITE_CANDIDATE }}
+        run: pnpm test:account-kit --profile=latest --database=sqlite --strategy=all --session-management=all
       - name: Upload Account Kit consumer evidence
         if: always()
         uses: actions/upload-artifact@v7
@@ -204,4 +220,6 @@ jobs:
           path: |
             tmp/account-kit-evidence-${{ matrix.database }}/evidence.json
             tmp/account-kit-evidence-${{ matrix.database }}/logs/**
+            tmp/account-kit-sqlite-candidate-evidence/evidence.json
+            tmp/account-kit-sqlite-candidate-evidence/logs/**
           if-no-files-found: warn
