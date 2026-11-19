@@ -6,6 +6,7 @@ export const kitReleaseUrl =
 export const kitReleaseSha256 = '163bbe95bb2da83e11de667996a835d676d4566a04b6bc3a5bfd300ffa78c178'
 export const kitReleaseVersion = '0.4.0'
 export const kitSourceRevision = '8bb517066c1bf36bb8ec52542e04326f20f86b4b'
+export const kitSqliteCandidateRevision = '72952c4be4fa3c2f6c53da94815c7308e9d0c091'
 
 export async function overlay(sourceDir: string, destinationDir: string): Promise<void> {
   for (const entry of await readdir(sourceDir, { withFileTypes: true })) {
