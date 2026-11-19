@@ -215,7 +215,7 @@ function isConfiguredEffectiveGuard(
 function hasNamedImportBinding(file: SourceFile, moduleSpecifier: string, name: string): boolean {
   const bindings = file.getImportDeclarations().flatMap((declaration) => {
     const module = declaration.getModuleSpecifierValue()
-    const imports: Array<{ local: string; imported: string }> = []
+    const imports: Array<{ local: string; imported: string; typeOnly?: boolean }> = []
     if (declaration.getDefaultImport())
       imports.push({ local: declaration.getDefaultImport()!.getText(), imported: 'default' })
     if (declaration.getNamespaceImport())
@@ -224,14 +224,20 @@ function hasNamedImportBinding(file: SourceFile, moduleSpecifier: string, name: 
       imports.push({
         local: named.getAliasNode()?.getText() ?? named.getName(),
         imported: named.getName(),
+        typeOnly: named.isTypeOnly(),
       })
-    return imports.map((item) => ({ ...item, module }))
+    return imports.map((item) => ({
+      ...item,
+      module,
+      typeOnly: declaration.isTypeOnly() || item.typeOnly,
+    }))
   })
   const matching = bindings.filter((binding) => binding.local === name)
   return (
     matching.length === 1 &&
     matching[0].module === moduleSpecifier &&
     matching[0].imported === name &&
+    !matching[0].typeOnly &&
     !file.getVariableDeclaration(name)
   )
 }
@@ -327,7 +333,8 @@ export async function wireAuthGuards(
   const config = soleObjectArgument(
     call(declaration?.getInitializer() as AstNode | undefined, 'defineConfig')
   )
-  if (!declaration || !config) return 'skipped'
+  if (!declaration || !config || !hasNamedImportBinding(file, '@adonisjs/auth', 'defineConfig'))
+    return 'skipped'
   const effective = `${guard}_effective`
   const defaultGuard = property(config, 'default')
   const guards = property(config, 'guards')?.getInitializer()
@@ -335,7 +342,13 @@ export async function wireAuthGuards(
   const defaultName = defaultGuard.getInitializer()?.getText()
   if (defaultName === `'${effective}'`)
     return isConfiguredEffectiveGuard(file, guards, guard, effective) ? 'already' : 'skipped'
-  if (defaultName !== `'${guard}'` || guards.getProperty(effective)) return 'skipped'
+  if (
+    defaultName !== `'${guard}'` ||
+    guards.getProperty(effective) ||
+    !hasNamedImportBinding(file, '@adonisjs/auth/session', 'sessionGuard') ||
+    !hasNamedImportBinding(file, '@adonisjs/auth/session', 'sessionUserProvider')
+  )
+    return 'skipped'
 
   const raw = property(guards, guard)
   const rawOptions = soleObjectArgument(call(raw?.getInitializer(), 'sessionGuard'))
