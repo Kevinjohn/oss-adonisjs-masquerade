@@ -121,7 +121,7 @@ test('edit admission without canEdit invalidates; throwing canEdit preserves mod
   }
 })
 
-test('a legacy stamp callback is unused and a changed inspected stamp still expires the mode', async ({
+test('a legacy stamp callback is unused and a changed inspected stamp still invalidates the mode', async ({
   assert,
 }) => {
   const f = fixture()
