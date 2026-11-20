@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+- Add `resolveView(request)` for custom status screens that need an admission-aware mode and token.
+
 - Use inspected account stamps for mode start and continuation. The legacy custom authority method is accepted but unused. Native adapter stamp options continue to build snapshots.
 
 - Narrow `ResolvedContext` on `isMasquerading`. Active fixtures now require a mode ID and access level. Consumers extending the former interface can use a type intersection.

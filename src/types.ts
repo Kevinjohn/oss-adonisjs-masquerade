@@ -276,6 +276,12 @@ export interface MasqueradeService<Request> {
    *   `E_MASQUERADE_UNAVAILABLE`.
    */
   resolve(request: Request): Promise<ResolvedContext>
+  /**
+   * Get the view from this request's admitted snapshot. If this request clears its own expired or
+   * invalid mode, return the committed idle view. Business admission still refuses that request.
+   * A concurrent transition conflict is reported as a context change.
+   */
+  resolveView(request: Request): Promise<ModeView>
 }
 /** Runtime dependencies are ports, never serializable application configuration. */
 export interface ServiceDependencies<User, Request> {

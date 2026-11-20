@@ -114,6 +114,7 @@ type ControlOutcomeInput = {
  * the edit checks. Each comment below names the invariant or transition row its check enforces.
  */
 class CoreService<User, Request extends object> implements MasqueradeService<Request> {
+  #viewsAfterInvalidation = new WeakMap<MasqueradeError, ModeView>()
   #admissionsByRequest = new WeakMap<Request, Promise<RequestAdmission<User>>>()
   constructor(
     private config: MasqueradeConfig<User, Request, RequestControlStore>,
@@ -544,6 +545,28 @@ class CoreService<User, Request extends object> implements MasqueradeService<Req
     const admitted = await this[admission](request)
     return admitted.context
   }
+  async resolveView(request: Request): Promise<ModeView> {
+    try {
+      return (await this[admission](request)).view
+    } catch (error) {
+      if (error instanceof MasqueradeError) {
+        const view = this.#viewsAfterInvalidation.get(error)
+        if (view) return view
+      }
+      throw error
+    }
+  }
+  private async invalidateAdmission(
+    owner: OwnerKey,
+    row: ActiveModeRow,
+    kind: 'expired' | 'invalidated',
+    code: string
+  ): Promise<never> {
+    const idle = await this.clear(owner, row, kind, code)
+    const error = new MasqueradeError('E_MASQUERADE_CONTEXT_CHANGED')
+    this.#viewsAfterInvalidation.set(error, modeView(owner, idle))
+    throw error
+  }
   async [admission](request: Request): Promise<RequestAdmission<User>> {
     const memo = this.#admissionsByRequest.get(request)
     if (memo) return memo
@@ -565,8 +588,7 @@ class CoreService<User, Request extends object> implements MasqueradeService<Req
       let invalid: string | undefined
       // §7.2 step 3, I06: expiry is checked before any account read; the request gets 409.
       if (this.readCurrentTimestamp() >= row.expiresAt) {
-        await this.clear(owner, row, 'expired', 'expired')
-        throw new MasqueradeError('E_MASQUERADE_CONTEXT_CHANGED')
+        return this.invalidateAdmission(owner, row, 'expired', 'expired')
       }
       // §6.4 Active: an ineligible account, changed stamp or canMasquerade false invalidates.
       const currentActor = await this.inspect(actor.id)
@@ -606,8 +628,7 @@ class CoreService<User, Request extends object> implements MasqueradeService<Req
       }
       // §6.4 Active: CAS to idle with one invalidated event; the triggering request gets 409.
       if (invalid) {
-        await this.clear(owner, row, 'invalidated', invalid)
-        throw new MasqueradeError('E_MASQUERADE_CONTEXT_CHANGED')
+        return this.invalidateAdmission(owner, row, 'invalidated', invalid)
       }
       effective = target!.subject
       // §6.4 Active: canUseRequest false rejects this request only; the mode is unchanged.

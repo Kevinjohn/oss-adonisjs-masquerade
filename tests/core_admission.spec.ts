@@ -248,3 +248,61 @@ test('admission refuses a clock past year 9999 rather than comparing it as text'
   assert.equal(await errorCode(() => service.resolve({})), 'E_MASQUERADE_UNAVAILABLE')
   assert.equal((await f.store.read(f.owner))!.state, 'active')
 })
+
+test('resolveView shares the admitted snapshot with resolve', async ({ assert }) => {
+  const f = fixture()
+  const service = await f.create()
+  assert.deepEqual(await service.resolveView({}), await service.status({}))
+  const active = await f.start(service)
+  const request = {}
+  const admitted = await service.resolve(request)
+  await service.stop({}, { expectedContext: active.contextToken })
+  assert.deepEqual(await service.resolveView(request), active)
+  assert.equal(admitted.contextToken, active.contextToken)
+  assert.isFalse((await service.resolveView({})).isMasquerading)
+})
+
+for (const cause of ['expiry', 'policy'] as const) {
+  test(`resolveView presents committed idle after ${cause} without admitting business work`, async ({
+    assert,
+  }) => {
+    const f = fixture()
+    const service = await f.create()
+    const active = await f.start(service)
+    if (!active.isMasquerading) throw new Error('Expected an active mode')
+    if (cause === 'expiry') f.state.now = Date.parse(active.expiresAt)
+    else f.state.policy = false
+    const request = {}
+    assert.isTrue((await service.status({})).isMasquerading)
+    const idle = await service.resolveView(request)
+    assert.isFalse(idle.isMasquerading)
+    assert.notEqual(idle.contextToken, active.contextToken)
+    assert.deepEqual(idle, await service.status({}))
+    assert.equal(await errorCode(() => service.resolve(request)), 'E_MASQUERADE_CONTEXT_CHANGED')
+    f.state.policy = true
+    const restarted = await f.start(service)
+    assert.isTrue(restarted.isMasquerading)
+    assert.deepEqual(await service.resolveView(request), idle)
+    assert.deepEqual(await service.resolveView({}), restarted)
+  })
+}
+
+test('resolveView does not turn local policy, credentials or store failures into a display view', async ({
+  assert,
+}) => {
+  const f = fixture()
+  const service = await f.create()
+  await f.start(service)
+  assert.equal(
+    await errorCode(() => service.resolveView({ denied: true })),
+    'E_MASQUERADE_NOT_ALLOWED'
+  )
+  await assert.rejects(
+    () => service.resolveView({ credentialInvalid: true }),
+    /native authentication failed/
+  )
+  f.store.read = async () => {
+    throw new Error('store down')
+  }
+  assert.equal(await errorCode(() => service.resolveView({})), 'E_MASQUERADE_UNAVAILABLE')
+})
