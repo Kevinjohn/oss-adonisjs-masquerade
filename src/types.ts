@@ -234,18 +234,19 @@ export type ModeView = Readonly<
     }
 >
 /** The frozen actor and effective identity admitted for one request. */
-export interface ResolvedContext {
-  readonly namespace: string
-  readonly actorId: SubjectId
-  readonly actorIncarnation: string
-  readonly effectiveId: SubjectId
-  readonly effectiveIncarnation: string
-  readonly isMasquerading: boolean
-  readonly contextToken: ContextToken
-  readonly modeId?: string
-  /** Present exactly while masquerading. */
-  readonly access?: ModeAccess
-}
+export type ResolvedContext = Readonly<
+  {
+    namespace: string
+    actorId: SubjectId
+    actorIncarnation: string
+    effectiveId: SubjectId
+    effectiveIncarnation: string
+    contextToken: ContextToken
+  } & (
+    | { isMasquerading: false; modeId?: never; access?: never }
+    | { isMasquerading: true; modeId: string; access: ModeAccess }
+  )
+>
 /** The core service returned by `createMasqueradeService`. */
 export interface MasqueradeService<Request> {
   /**

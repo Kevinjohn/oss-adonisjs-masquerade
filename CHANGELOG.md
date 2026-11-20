@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+- Narrow `ResolvedContext` on `isMasquerading`. Active fixtures now require a mode ID and access level. Consumers extending the former interface can use a type intersection.
+
 ## 0.4.1 - 2026-11-19
 
 - Configure preserves starter-shaped auth configurations that use custom factories.
