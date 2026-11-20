@@ -427,8 +427,8 @@ class CoreService<User, Request extends object> implements MasqueradeService<Req
       let actorHash: string
       let targetHash: string
       try {
-        actorHash = stampHash(await this.config.authority.securityStamp(currentActor.subject.user))
-        targetHash = stampHash(await this.config.authority.securityStamp(target.subject.user))
+        actorHash = stampHash(currentActor.securityStamp)
+        targetHash = stampHash(target.securityStamp)
       } catch {
         reportDiagnostic(
           this.dependencies,

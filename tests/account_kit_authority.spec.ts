@@ -49,17 +49,10 @@ test('Account Kit authority captures one inspected revision with the canonical p
   assert.equal(inspections, 1)
   revision = '2026-10-22T00:00:00.000Z'
   inspectedUser = { ...user }
-  assert.equal(await adapter.authority.securityStamp(user), 'account-kit:null')
   const revised = await adapter.authority.inspectAccount('42')
   assert.equal(revised?.securityStamp, `account-kit:revision:${revision}`)
-  assert.equal(
-    await adapter.authority.securityStamp(inspectedUser),
-    `account-kit:revision:${revision}`
-  )
-  assert.equal(
-    await errorCode(async () => adapter.authority.securityStamp({ ...user })),
-    'E_MASQUERADE_UNAVAILABLE'
-  )
+  assert.equal(snapshot?.securityStamp, 'account-kit:null')
+  assert.strictEqual(revised?.subject.user, inspectedUser)
 })
 
 test('Account Kit authority authenticates through raw guard then current; rejection is native 401', async ({
@@ -275,7 +268,9 @@ test('Account Kit denial matching ignores an operational error with the same nam
   assert.equal(await errorCode(() => adapter.authenticateActor(ctx)), 'E_MASQUERADE_UNAVAILABLE')
 })
 
-test('Account Kit rejects a reused framework user with a changed stamp', async ({ assert }) => {
+test('Account Kit captures separate revisions when the provider reuses a framework user', async ({
+  assert,
+}) => {
   const user = { id: 1 }
   let revision: string | null = null
   const adapter = accountKitAuthority({
@@ -299,12 +294,11 @@ test('Account Kit rejects a reused framework user with a changed stamp', async (
   })
   const first = await adapter.authority.inspectAccount('1')
   revision = '2026-10-22T00:00:00.000Z'
-  assert.equal(
-    await errorCode(() => adapter.authority.inspectAccount('1')),
-    'E_MASQUERADE_UNAVAILABLE'
-  )
+  const second = await adapter.authority.inspectAccount('1')
+  assert.strictEqual(first?.subject.user, user)
+  assert.strictEqual(second?.subject.user, user)
   assert.equal(first?.securityStamp, 'account-kit:null')
-  assert.equal(await adapter.authority.securityStamp(user), 'account-kit:null')
+  assert.equal(second?.securityStamp, `account-kit:revision:${revision}`)
 })
 
 test('Account Kit inspection distinguishes denied, missing, mismatched and operational accounts', async ({

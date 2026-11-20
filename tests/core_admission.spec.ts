@@ -34,7 +34,7 @@ test('exact expiry clears durably without stamp access and rejects the triggerin
     assert.lengthOf(f.store.events, eventCount)
   }
 
-  f.state.stampThrows = true
+  f.state.malformedStamp = true
   f.state.inspectThrows = true
   assert.equal(await errorCode(() => service.resolve({})), 'E_MASQUERADE_CONTEXT_CHANGED')
   const expired = await f.store.read(f.owner)
@@ -121,11 +121,16 @@ test('edit admission without canEdit invalidates; throwing canEdit preserves mod
   }
 })
 
-test('inspection stamp must match the callback stamp captured at start', async ({ assert }) => {
+test('a legacy stamp callback is unused and a changed inspected stamp still expires the mode', async ({
+  assert,
+}) => {
   const f = fixture()
   const service = await f.create()
   await f.start(service)
   const inspect = f.config.authority.inspectAccount
+  f.config.authority.securityStamp = () => {
+    throw new Error('Legacy callback must not run')
+  }
   f.config.authority.inspectAccount = async (id) => {
     const snapshot = await inspect(id)
     if (snapshot && id === 'b') snapshot.securityStamp = 'different-epoch'
@@ -133,10 +138,14 @@ test('inspection stamp must match the callback stamp captured at start', async (
   }
 
   const next = await f.create()
+  await next.stop({}, { expectedContext: (await next.status({})).contextToken })
+  await f.start(next)
+  assert.equal((await next.resolve({})).effectiveId, 'b')
+  f.users.get('a')!.stamp = 'changed'
   assert.equal(await errorCode(() => next.resolve({})), 'E_MASQUERADE_CONTEXT_CHANGED')
   assert.equal((await f.store.read(f.owner))!.state, 'idle')
   assert.equal(f.store.events.at(-1)!.kind, 'invalidated')
-  assert.equal(f.store.events.at(-1)!.outcomeCode, 'target_stamp')
+  assert.equal(f.store.events.at(-1)!.outcomeCode, 'actor_stamp')
 })
 
 test('credential and local denial preserve mode; native rejection writes no package event', async ({

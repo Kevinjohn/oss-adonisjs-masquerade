@@ -19,15 +19,14 @@ export interface Subject<User> {
 /** `NativeAuthority.inspectAccount` result: the subject, current stamp and eligibility. */
 export interface AccountSnapshot<User> {
   subject: Subject<User>
-  /** Current account epoch; must match `securityStamp(subject.user)` for the same account state. */
+  /** Current account epoch, captured at start and checked on every active admission. */
   securityStamp: string
   active: boolean
 }
 /**
  * Host-owned account inspection, separate from native credential authentication.
  * IDs are canonical provider IDs; incarnation identifies an immutable account lifetime.
- * securityStamp is captured at start; inspectAccount's snapshot stamp is checked on each active
- * admission. Both values must represent the same current account epoch. A missing account is null,
+ * The inspected snapshot supplies the stamp at start and at admission. A missing account is null,
  * while operational failures reject. It never authenticates a target.
  */
 export interface NativeAuthority<User> {
@@ -35,8 +34,8 @@ export interface NativeAuthority<User> {
   guard: string
   /** `'id'` reuses the ID; a function returns a value that changes when an ID is reused. */
   incarnation: 'id' | ((user: User) => string)
-  /** Current account epoch for `user`; captured as a hash when a mode starts. */
-  securityStamp(user: User): string | Promise<string>
+  /** @deprecated Core uses the stamp returned by inspectAccount. */
+  securityStamp?(user: User): string | Promise<string>
   /** Load an account by canonical ID: `null` when missing; reject on operational failure. */
   inspectAccount(id: SubjectId): Promise<AccountSnapshot<User> | null>
 }

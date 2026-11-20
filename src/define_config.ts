@@ -47,7 +47,8 @@ export function defineConfig<User, Request, Store extends RequestControlStore = 
   if (!isBoundedString(authority.guard, 128)) fail('authority.guard')
   if (!(authority.incarnation === 'id' || typeof authority.incarnation === 'function'))
     fail('authority.incarnation')
-  if (typeof authority.securityStamp !== 'function') fail('authority.securityStamp')
+  if (authority.securityStamp !== undefined && typeof authority.securityStamp !== 'function')
+    fail('authority.securityStamp')
   if (typeof authority.inspectAccount !== 'function') fail('authority.inspectAccount')
 
   if (!config.policy) fail('policy')
@@ -94,7 +95,9 @@ export function defineConfig<User, Request, Store extends RequestControlStore = 
         typeof authority.incarnation === 'function'
           ? authority.incarnation.bind(authority)
           : authority.incarnation,
-      securityStamp: authority.securityStamp.bind(authority),
+      ...(authority.securityStamp
+        ? { securityStamp: authority.securityStamp.bind(authority) }
+        : {}),
       inspectAccount: authority.inspectAccount.bind(authority),
     }),
     policy: Object.freeze({

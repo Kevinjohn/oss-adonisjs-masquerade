@@ -302,8 +302,9 @@ that can remain stale in a cache.
 
 The helper detects changes only to the values the host selects. It cannot see credential or session
 revocation, related-table permission changes, or external account status unless a selected field
-changes too. Include a persisted epoch for such events. `inspectAccount` and `securityStamp` must
-derive from the same current account state; stale or inconsistent reads can conceal revocation.
+changes too. Include a persisted epoch for such events. The native adapter uses `securityStamp`
+when producing its `inspectAccount` snapshot. Custom authorities must derive the snapshot stamp
+from current account state. Stale reads can conceal revocation.
 
 Ordinary logout of one session remains the host session credential flow; advance the epoch as part
 of logout-all when that action should also revoke every active mode. The host owns which events
