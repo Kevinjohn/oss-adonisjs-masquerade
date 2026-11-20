@@ -34,7 +34,7 @@ test('exact expiry clears durably without stamp access and rejects the triggerin
     assert.lengthOf(f.store.events, eventCount)
   }
 
-  f.state.stampThrows = true
+  f.state.malformedStamp = true
   f.state.inspectThrows = true
   assert.equal(await errorCode(() => service.resolve({})), 'E_MASQUERADE_CONTEXT_CHANGED')
   const expired = await f.store.read(f.owner)
@@ -121,11 +121,16 @@ test('edit admission without canEdit invalidates; throwing canEdit preserves mod
   }
 })
 
-test('inspection stamp must match the callback stamp captured at start', async ({ assert }) => {
+test('a legacy stamp callback is unused and a changed inspected stamp still invalidates the mode', async ({
+  assert,
+}) => {
   const f = fixture()
   const service = await f.create()
   await f.start(service)
   const inspect = f.config.authority.inspectAccount
+  f.config.authority.securityStamp = () => {
+    throw new Error('Legacy callback must not run')
+  }
   f.config.authority.inspectAccount = async (id) => {
     const snapshot = await inspect(id)
     if (snapshot && id === 'b') snapshot.securityStamp = 'different-epoch'
@@ -133,10 +138,16 @@ test('inspection stamp must match the callback stamp captured at start', async (
   }
 
   const next = await f.create()
+  const stored = await next.status({})
+  await next.stop({}, { expectedContext: stored.contextToken })
+  await f.start(next)
+  const admitted = await next.resolve({})
+  assert.equal(admitted.effectiveId, 'b')
+  f.users.get('a')!.stamp = 'changed'
   assert.equal(await errorCode(() => next.resolve({})), 'E_MASQUERADE_CONTEXT_CHANGED')
   assert.equal((await f.store.read(f.owner))!.state, 'idle')
   assert.equal(f.store.events.at(-1)!.kind, 'invalidated')
-  assert.equal(f.store.events.at(-1)!.outcomeCode, 'target_stamp')
+  assert.equal(f.store.events.at(-1)!.outcomeCode, 'actor_stamp')
 })
 
 test('credential and local denial preserve mode; native rejection writes no package event', async ({
@@ -238,4 +249,64 @@ test('admission refuses a clock past year 9999 rather than comparing it as text'
   f.state.now = Date.parse('+010000-01-01T00:00:00Z')
   assert.equal(await errorCode(() => service.resolve({})), 'E_MASQUERADE_UNAVAILABLE')
   assert.equal((await f.store.read(f.owner))!.state, 'active')
+})
+
+test('resolveView shares the admitted snapshot with resolve', async ({ assert }) => {
+  const f = fixture()
+  const service = await f.create()
+  assert.deepEqual(await service.resolveView({}), await service.status({}))
+  const active = await f.start(service)
+  const request = {}
+  const admitted = await service.resolve(request)
+  await service.stop({}, { expectedContext: active.contextToken })
+  assert.deepEqual(await service.resolveView(request), active)
+  assert.equal(admitted.contextToken, active.contextToken)
+  const idle = await service.resolveView({})
+  assert.isFalse(idle.isMasquerading)
+})
+
+for (const cause of ['expiry', 'policy'] as const) {
+  test(`resolveView presents committed idle after ${cause} without admitting business work`, async ({
+    assert,
+  }) => {
+    const f = fixture()
+    const service = await f.create()
+    const active = await f.start(service)
+    if (!active.isMasquerading) throw new Error('Expected an active mode')
+    if (cause === 'expiry') f.state.now = Date.parse(active.expiresAt)
+    else f.state.policy = false
+    const request = {}
+    const raw = await service.status({})
+    assert.isTrue(raw.isMasquerading)
+    const idle = await service.resolveView(request)
+    assert.isFalse(idle.isMasquerading)
+    assert.notEqual(idle.contextToken, active.contextToken)
+    assert.deepEqual(idle, await service.status({}))
+    assert.equal(await errorCode(() => service.resolve(request)), 'E_MASQUERADE_CONTEXT_CHANGED')
+    f.state.policy = true
+    const restarted = await f.start(service)
+    assert.isTrue(restarted.isMasquerading)
+    assert.deepEqual(await service.resolveView(request), idle)
+    assert.deepEqual(await service.resolveView({}), restarted)
+  })
+}
+
+test('resolveView does not turn local policy, credentials or store failures into a display view', async ({
+  assert,
+}) => {
+  const f = fixture()
+  const service = await f.create()
+  await f.start(service)
+  assert.equal(
+    await errorCode(() => service.resolveView({ denied: true })),
+    'E_MASQUERADE_NOT_ALLOWED'
+  )
+  await assert.rejects(
+    () => service.resolveView({ credentialInvalid: true }),
+    /native authentication failed/
+  )
+  f.store.read = async () => {
+    throw new Error('store down')
+  }
+  assert.equal(await errorCode(() => service.resolveView({})), 'E_MASQUERADE_UNAVAILABLE')
 })

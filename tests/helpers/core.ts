@@ -24,7 +24,7 @@ export function fixture() {
     localThrows: false,
     policyThrows: false,
     inspectThrows: false,
-    stampThrows: false,
+    malformedStamp: false,
     authenticateCount: 0,
     inspectCount: 0,
     policyCount: 0,
@@ -32,7 +32,6 @@ export function fixture() {
     edit: true as unknown,
     editThrows: false,
     editInputs: [] as unknown[],
-    stampCount: 0,
   }
   const subject = (user: User): Subject<User> => ({
     id: user.id,
@@ -44,16 +43,17 @@ export function fixture() {
       namespace: 'test',
       guard: 'web',
       incarnation: (user) => user.incarnation,
-      securityStamp: (user) => {
-        state.stampCount++
-        if (state.stampThrows) throw new Error('stamp failure')
-        return user.stamp
-      },
       inspectAccount: async (id): Promise<AccountSnapshot<User> | null> => {
         state.inspectCount++
         if (state.inspectThrows) throw new Error('inspection failure')
         const user = users.get(id)
-        return user ? { subject: subject(user), active: true, securityStamp: user.stamp } : null
+        return user
+          ? {
+              subject: subject(user),
+              active: true,
+              securityStamp: state.malformedStamp ? '' : user.stamp,
+            }
+          : null
       },
     },
     policy: {

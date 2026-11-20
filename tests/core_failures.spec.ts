@@ -270,7 +270,7 @@ test('authority and policy failures log safe categories while preserving unavail
   const stamp = fixture()
   const stampService = await stamp.create()
   const stampIdle = await stampService.status({})
-  stamp.state.stampThrows = true
+  stamp.state.malformedStamp = true
   assert.equal(
     await errorCode(() =>
       stampService.start(

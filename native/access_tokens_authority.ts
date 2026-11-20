@@ -77,7 +77,6 @@ export function accessTokensAuthority<User>(
       !isBoundedString(authority.namespace, 128) ||
       !isBoundedString(authority.guard, 128) ||
       (authority.incarnation !== 'id' && typeof authority.incarnation !== 'function') ||
-      typeof authority.securityStamp !== 'function' ||
       typeof authority.inspectAccount !== 'function'
     )
       throw new InvalidArgumentsException('Invalid native access tokens authority')

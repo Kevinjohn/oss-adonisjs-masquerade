@@ -115,7 +115,6 @@ export function accountKitAuthority<User>(
     })
   ) as AccountKitManagedGuard
   const incarnation = options.incarnation === 'id' ? 'id' : options.incarnation.bind(options)
-  const securityStampsByUser = new WeakMap<object, string>()
   const subject = (user: User, idValue: unknown): Subject<User> => ({
     ...accountOwner(incarnation, user, idValue),
     user,
@@ -124,11 +123,6 @@ export function accountKitAuthority<User>(
     namespace: options.namespace,
     guard,
     incarnation,
-    securityStamp(user: User) {
-      if (!user || typeof user !== 'object' || !securityStampsByUser.has(user))
-        throw createUnavailableError()
-      return securityStampsByUser.get(user)!
-    },
     async inspectAccount(id: string) {
       let snapshot: AccountKitSnapshot
       try {
@@ -157,14 +151,10 @@ export function accountKitAuthority<User>(
       if (canonicalId(account.getId()) !== canonical) throw createUnavailableError()
       const user = account.getOriginal()
       if (!user || typeof user !== 'object') throw createUnavailableError()
-      const captured = stamp(snapshot.revision)
-      const prior = securityStampsByUser.get(user)
-      if (prior !== undefined && prior !== captured) throw createUnavailableError()
-      securityStampsByUser.set(user, captured)
       return {
         subject: subject(user, canonical),
         active: snapshot.account.active,
-        securityStamp: captured,
+        securityStamp: stamp(snapshot.revision),
       }
     },
   })

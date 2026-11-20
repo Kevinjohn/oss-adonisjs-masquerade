@@ -8,6 +8,7 @@ import {
   isEffectiveFactory,
 } from '../src/integration/guard_registration.js'
 import { hasVerifiedAccountKitBlocker } from '../src/integration/account_kit_status.js'
+import { hasRegisteredAccountKitBlocker } from '../src/integration/account_kit_blocker_registration.js'
 
 /** Print a route coverage report from the router's committed route definitions. */
 export default class RoutesCommand extends BaseCommand {
@@ -61,6 +62,7 @@ export function inspectRouteCoverage(
   verifiedAccountKitBlocker = false
 ): Promise<string[]> {
   const grouped = new Map<string, string[]>()
+  const blockerImports = new Map<Function, Promise<boolean>>()
   const controllerResultsByFunction = new Map<Function, Promise<ControllerResult>>()
   return (async () => {
     for (const [domain, routes] of Object.entries(domains)) {
@@ -86,6 +88,10 @@ export function inspectRouteCoverage(
           else grouped.set(group, [line])
           continue
         }
+        const blockerRegistered = await hasRegisteredAccountKitBlocker(
+          route.middleware.all(),
+          blockerImports
+        )
         const guards = routeGuards(route, effectiveGuardName)
         const labels = guards.length ? guards : ['unprotected']
         const hasEffectiveGuard = guards.some((guard) => effectiveGuardNames.includes(guard))
@@ -124,6 +130,7 @@ export function inspectRouteCoverage(
             : 'READ'
           const flags = [
             markers.sensitive ? 'sensitive' : '',
+            blockerRegistered ? 'Account Kit blocker registered' : '',
             markers.allowMutation ? 'allowMutation' : '',
             isControlInferredFromName ? 'name-inferred; review handler' : '',
             packageControl.unresolved ? 'unresolved handler' : '',

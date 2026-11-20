@@ -2,6 +2,7 @@ import { test } from '@japa/runner'
 import { IgnitorFactory } from '@adonisjs/core/factories'
 import type { Router } from '@adonisjs/core/http'
 import { inspectRouteCoverage } from '../commands/routes.js'
+import { AccountKitAccountBlocker as PackageAccountKitAccountBlocker } from '../account_kit/middleware.js'
 import { masqueradeRoutes } from '../http/control_routes.js'
 import { MasqueradeController } from '../http/controllers.js'
 import { selectRouteGuard } from '../src/integration/route_guard_selection.js'
@@ -200,5 +201,49 @@ test.group('masqueradeRoutes', () => {
       router.commit()
       assert.deepEqual(router.toJSON().root ?? [], [])
     })
+  })
+})
+
+test('reports only the actual Account Kit blocker on committed host routes', async ({ assert }) => {
+  await withRouter(async (router) => {
+    let blockerLoads = 0
+    const similarMiddleware = class AccountKitAccountBlocker {
+      handle() {
+        throw new Error('The report must never run middleware')
+      }
+    }
+    const middleware = router.named({
+      protectPersonalAccount: async () => {
+        blockerLoads++
+        return { default: PackageAccountKitAccountBlocker }
+      },
+      accountKitAccountBlocker: async () => ({ default: similarMiddleware }),
+      unknown: async () => {
+        throw new Error('Unable to resolve middleware')
+      },
+    })
+    router.post('/profile', () => {}).use(middleware.protectPersonalAccount())
+    router.post('/email', () => {}).use(middleware.protectPersonalAccount())
+    router.post('/absent', () => {})
+    router.post('/similar', () => {}).use(middleware.accountKitAccountBlocker())
+    router.post('/unknown', () => {}).use(middleware.unknown())
+    router.commit()
+    const sections = await inspectRouteCoverage(router.toJSON(), 'web')
+    const marked = sections
+      .join('\n')
+      .split('\n')
+      .filter((line) => line.includes('Account Kit blocker registered'))
+    assert.lengthOf(marked, 2)
+    assert.include(marked[0], '/profile')
+    assert.include(marked[1], '/email')
+    assert.equal(blockerLoads, 1)
+    for (const path of ['/absent', '/similar', '/unknown']) {
+      assert.isTrue(
+        sections
+          .join('\n')
+          .split('\n')
+          .some((line) => line.includes(path) && !line.includes('Account Kit blocker registered'))
+      )
+    }
   })
 })

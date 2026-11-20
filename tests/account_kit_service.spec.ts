@@ -8,6 +8,10 @@ import { errorCode } from './helpers/core.js'
 function fixture(strategy: 'session' | 'access_tokens' = 'session') {
   type User = { id: number }
   const actor: User = { id: 1 }
+  const users = new Map<string, User>([
+    ['1', actor],
+    ['2', { id: 2 }],
+  ])
   const store = new MemoryControlStore()
   const revision = new Map([
     ['1', null as string | null],
@@ -32,8 +36,8 @@ function fixture(strategy: 'session' | 'access_tokens' = 'session') {
   const provider = {
     createUserForGuard: async (user: User) => ({ getId: () => user.id, getOriginal: () => user }),
     findById: async (id: string) => {
-      if (!revision.has(id)) return null
-      const user = { id: Number(id) }
+      const user = users.get(id)
+      if (!user) return null
       return { getId: () => user.id, getOriginal: () => user }
     },
   }
@@ -217,7 +221,7 @@ test('Account Kit start inspects target without passing target credentials to cu
   assert.deepEqual(f.state.inspected.slice(-2), ['1', '2'])
 })
 
-test('Account Kit revision and eligibility changes invalidate active modes with the right cause', async ({
+test('Account Kit changes invalidate active modes even when provider users are reused', async ({
   assert,
 }) => {
   for (const change of [
@@ -234,6 +238,8 @@ test('Account Kit revision and eligibility changes invalidate active modes with 
       reason: 'support',
       expectedContext: idle.contextToken,
     })
+    const admitted = await service.resolve(f.context())
+    assert.equal(admitted.effectiveId, '2')
     if (change === 'target_stamp') f.revision.set('2', '2026-10-22T00:01:00.000Z')
     if (change === 'actor_stamp') f.revision.set('1', '2026-10-22T00:01:00.000Z')
     if (change === 'target_ineligible') f.state.denied.add('2')

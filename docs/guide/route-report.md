@@ -24,6 +24,17 @@ Kit's `except` option removes omitted endpoints from its registration, so they a
 Account Kit; the remaining registered routes stay covered by the blocker. A host-added
 `accountKit.*` route absent from registration fails provider validation.
 
+On a host-owned route, `(Account Kit blocker registered)` means the report resolved a named
+middleware entry to the package's exact `AccountKitAccountBlocker` class. Custom aliases are
+supported. For example:
+
+```text
+  PATCH              /account/profile [RAW-GUARD BUSINESS MUTATION] (Account Kit blocker registered)
+```
+
+Treat an unmarked host route as unverified for this blocker. Inspect wrappers and unresolved
+middleware manually. The label confirms registration; review execution order and behavior in the host.
+
 ## Coverage labels
 
 - `CONTROL` means the report positively recognized a Masquerade controller handler. Check that the

@@ -19,15 +19,14 @@ export interface Subject<User> {
 /** `NativeAuthority.inspectAccount` result: the subject, current stamp and eligibility. */
 export interface AccountSnapshot<User> {
   subject: Subject<User>
-  /** Current account epoch; must match `securityStamp(subject.user)` for the same account state. */
+  /** Current account epoch, captured at start and checked on every active admission. */
   securityStamp: string
   active: boolean
 }
 /**
  * Host-owned account inspection, separate from native credential authentication.
  * IDs are canonical provider IDs; incarnation identifies an immutable account lifetime.
- * securityStamp is captured at start; inspectAccount's snapshot stamp is checked on each active
- * admission. Both values must represent the same current account epoch. A missing account is null,
+ * The inspected snapshot supplies the stamp at start and at admission. A missing account is null,
  * while operational failures reject. It never authenticates a target.
  */
 export interface NativeAuthority<User> {
@@ -35,8 +34,8 @@ export interface NativeAuthority<User> {
   guard: string
   /** `'id'` reuses the ID; a function returns a value that changes when an ID is reused. */
   incarnation: 'id' | ((user: User) => string)
-  /** Current account epoch for `user`; captured as a hash when a mode starts. */
-  securityStamp(user: User): string | Promise<string>
+  /** @deprecated Core uses the stamp returned by inspectAccount. */
+  securityStamp?(user: User): string | Promise<string>
   /** Load an account by canonical ID: `null` when missing; reject on operational failure. */
   inspectAccount(id: SubjectId): Promise<AccountSnapshot<User> | null>
 }
@@ -234,18 +233,19 @@ export type ModeView = Readonly<
     }
 >
 /** The frozen actor and effective identity admitted for one request. */
-export interface ResolvedContext {
-  readonly namespace: string
-  readonly actorId: SubjectId
-  readonly actorIncarnation: string
-  readonly effectiveId: SubjectId
-  readonly effectiveIncarnation: string
-  readonly isMasquerading: boolean
-  readonly contextToken: ContextToken
-  readonly modeId?: string
-  /** Present exactly while masquerading. */
-  readonly access?: ModeAccess
-}
+export type ResolvedContext = Readonly<
+  {
+    namespace: string
+    actorId: SubjectId
+    actorIncarnation: string
+    effectiveId: SubjectId
+    effectiveIncarnation: string
+    contextToken: ContextToken
+  } & (
+    | { isMasquerading: false; modeId?: never; access?: never }
+    | { isMasquerading: true; modeId: string; access: ModeAccess }
+  )
+>
 /** The core service returned by `createMasqueradeService`. */
 export interface MasqueradeService<Request> {
   /**
@@ -276,6 +276,12 @@ export interface MasqueradeService<Request> {
    *   `E_MASQUERADE_UNAVAILABLE`.
    */
   resolve(request: Request): Promise<ResolvedContext>
+  /**
+   * Get the view from this request's admitted snapshot. If this request clears its own expired or
+   * invalid mode, return the committed idle view. Business admission still refuses that request.
+   * A concurrent transition conflict is reported as a context change.
+   */
+  resolveView(request: Request): Promise<ModeView>
 }
 /** Runtime dependencies are ports, never serializable application configuration. */
 export interface ServiceDependencies<User, Request> {

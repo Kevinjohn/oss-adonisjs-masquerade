@@ -78,7 +78,7 @@ interface NativeAuthority<User> {
   namespace: string
   guard: string // raw session guard name, e.g. 'web'
   incarnation: 'id' | ((user: User) => string) // required; no silent default
-  securityStamp(user: User): string | Promise<string>
+  securityStamp?(user: User): string | Promise<string> // Legacy callback
   inspectAccount(id: SubjectId): Promise<AccountSnapshot<User> | null>
 }
 interface MasqueradePolicy<User, Request> {
@@ -110,7 +110,7 @@ interface MasqueradePolicy<User, Request> {
 
 ### 4.2 Native authority and security stamps
 
-- The host supplies `securityStamp(user)` per subject. A constant, a read-time timestamp or a hash of incomplete fields is not valid.
+- The host supplies `inspectAccount(id).securityStamp` per subject. A constant, a read-time timestamp or a hash of incomplete fields is not valid.
 - The package stores `sha256(stamp)` and compares equality. No sealing, encryption, key provider, rotation or decryption failure paths.
 - Both hashes are captured at start and rechecked for actor and target on every active admission. Stop and expiry never read a stamp.
 - Logout of one session rejects that credential natively and does not advance the stamp. Logout-all advances the stamp; a later login cannot inherit the prior mode. A server-only `invalidate(actorId)` helper is optional, not a hook system.

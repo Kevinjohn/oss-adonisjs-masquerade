@@ -179,20 +179,17 @@ test('stop ignores target deletion, denied policies and failing stamp access', a
   f.users.delete('b')
   f.state.policyThrows = true
   f.state.local = false
-  f.state.stampThrows = true
+  f.state.malformedStamp = true
   f.state.inspectThrows = true
   f.state.editThrows = true
-  const counts = [f.state.inspectCount, f.state.policyCount, f.state.stampCount, f.state.editCount]
+  const counts = [f.state.inspectCount, f.state.policyCount, f.state.editCount]
   assert.equal(
     await errorCode(() => service.stop({}, { expectedContext: active.contextToken })),
     'NO_ERROR'
   )
   const idle = await service.status({})
   assert.isFalse(idle.isMasquerading)
-  assert.deepEqual(
-    [f.state.inspectCount, f.state.policyCount, f.state.stampCount, f.state.editCount],
-    counts
-  )
+  assert.deepEqual([f.state.inspectCount, f.state.policyCount, f.state.editCount], counts)
   const row = await f.store.read(f.owner)
   for (const key of [
     'targetId',

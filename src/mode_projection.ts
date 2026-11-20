@@ -28,9 +28,10 @@ export function buildAdmittedProjection<User>(
     ...owner,
     effectiveId: effective.id,
     effectiveIncarnation: effective.incarnation,
-    isMasquerading: row?.state === 'active',
     contextToken: contextToken(owner, row),
-    ...(row?.state === 'active' ? { modeId: row.modeId, access: row.access } : {}),
+    ...(row?.state === 'active'
+      ? { isMasquerading: true as const, modeId: row.modeId, access: row.access }
+      : { isMasquerading: false as const }),
   })
   return Object.freeze({
     context,

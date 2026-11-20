@@ -154,6 +154,13 @@ while `expiresAt` is strictly later than the current time. Status is read-only; 
 still appear active until business admission or cleanup handles it. See
 [Security and operations](security.md#duration-transition-and-recovery-behavior) for that boundary.
 
+Custom server-side status screens can call `service.resolveView(request)` to use the same snapshot
+as business admission. If the request expires or invalidates a mode and commits that transition,
+the method returns the idle view and token from that commit. The request remains refused for
+business work. If another request wins the transition, handle `E_MASQUERADE_CONTEXT_CHANGED`
+by refreshing on a new request. Authentication, request-local policy and store failures still
+reject. Use raw `status(request)` when you only need to inspect stored state without changing it.
+
 ## Use the effective customer identity
 
 Attach the route markers from the public HTTP entry point and the effective guard to business
