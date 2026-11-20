@@ -3,15 +3,14 @@ import type { ModeAccess, ResolvedContext } from '../../index.js'
 declare const context: ResolvedContext
 
 if (context.isMasquerading) {
-  const modeId: string = context.modeId
-  const access: ModeAccess = context.access
-  const { modeId: _modeId, access: _access, ...identity } = context
+  const { modeId, access, ...identity } = context
+  const narrowed: [string, ModeAccess] = [modeId, access]
 
   // @ts-expect-error An active fixture needs its mode ID.
   const missingId: ResolvedContext = { ...identity, access }
   // @ts-expect-error An active fixture needs its access level.
   const missingAccess: ResolvedContext = { ...identity, modeId }
-  void [missingId, missingAccess]
+  void [narrowed, missingId, missingAccess]
 } else {
   const modeId: undefined = context.modeId
   const access: undefined = context.access

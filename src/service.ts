@@ -547,7 +547,8 @@ class CoreService<User, Request extends object> implements MasqueradeService<Req
   }
   async resolveView(request: Request): Promise<ModeView> {
     try {
-      return (await this[admission](request)).view
+      const admitted = await this[admission](request)
+      return admitted.view
     } catch (error) {
       if (error instanceof MasqueradeError) {
         const view = this.#viewsAfterInvalidation.get(error)

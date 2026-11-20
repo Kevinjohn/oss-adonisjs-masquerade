@@ -138,9 +138,11 @@ test('a legacy stamp callback is unused and a changed inspected stamp still inva
   }
 
   const next = await f.create()
-  await next.stop({}, { expectedContext: (await next.status({})).contextToken })
+  const stored = await next.status({})
+  await next.stop({}, { expectedContext: stored.contextToken })
   await f.start(next)
-  assert.equal((await next.resolve({})).effectiveId, 'b')
+  const admitted = await next.resolve({})
+  assert.equal(admitted.effectiveId, 'b')
   f.users.get('a')!.stamp = 'changed'
   assert.equal(await errorCode(() => next.resolve({})), 'E_MASQUERADE_CONTEXT_CHANGED')
   assert.equal((await f.store.read(f.owner))!.state, 'idle')
@@ -259,7 +261,8 @@ test('resolveView shares the admitted snapshot with resolve', async ({ assert })
   await service.stop({}, { expectedContext: active.contextToken })
   assert.deepEqual(await service.resolveView(request), active)
   assert.equal(admitted.contextToken, active.contextToken)
-  assert.isFalse((await service.resolveView({})).isMasquerading)
+  const idle = await service.resolveView({})
+  assert.isFalse(idle.isMasquerading)
 })
 
 for (const cause of ['expiry', 'policy'] as const) {
@@ -273,7 +276,8 @@ for (const cause of ['expiry', 'policy'] as const) {
     if (cause === 'expiry') f.state.now = Date.parse(active.expiresAt)
     else f.state.policy = false
     const request = {}
-    assert.isTrue((await service.status({})).isMasquerading)
+    const raw = await service.status({})
+    assert.isTrue(raw.isMasquerading)
     const idle = await service.resolveView(request)
     assert.isFalse(idle.isMasquerading)
     assert.notEqual(idle.contextToken, active.contextToken)

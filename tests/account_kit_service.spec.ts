@@ -238,7 +238,8 @@ test('Account Kit changes invalidate active modes even when provider users are r
       reason: 'support',
       expectedContext: idle.contextToken,
     })
-    assert.equal((await service.resolve(f.context())).effectiveId, '2')
+    const admitted = await service.resolve(f.context())
+    assert.equal(admitted.effectiveId, '2')
     if (change === 'target_stamp') f.revision.set('2', '2026-10-22T00:01:00.000Z')
     if (change === 'actor_stamp') f.revision.set('1', '2026-10-22T00:01:00.000Z')
     if (change === 'target_ineligible') f.state.denied.add('2')

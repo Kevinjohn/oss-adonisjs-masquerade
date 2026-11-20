@@ -2,7 +2,7 @@ import { test } from '@japa/runner'
 import { IgnitorFactory } from '@adonisjs/core/factories'
 import type { Router } from '@adonisjs/core/http'
 import { inspectRouteCoverage } from '../commands/routes.js'
-import { AccountKitAccountBlocker } from '../account_kit/middleware.js'
+import { AccountKitAccountBlocker as PackageAccountKitAccountBlocker } from '../account_kit/middleware.js'
 import { masqueradeRoutes } from '../http/control_routes.js'
 import { MasqueradeController } from '../http/controllers.js'
 import { selectRouteGuard } from '../src/integration/route_guard_selection.js'
@@ -215,7 +215,7 @@ test('reports only the actual Account Kit blocker on committed host routes', asy
     const middleware = router.named({
       protectPersonalAccount: async () => {
         blockerLoads++
-        return { default: AccountKitAccountBlocker }
+        return { default: PackageAccountKitAccountBlocker }
       },
       accountKitAccountBlocker: async () => ({ default: similarMiddleware }),
       unknown: async () => {
