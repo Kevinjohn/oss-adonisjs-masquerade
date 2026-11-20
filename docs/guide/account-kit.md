@@ -18,7 +18,7 @@ standard AdonisJS native-auth host already includes it.
 Masquerade remains optional and core does not import Account Kit. The Account Kit integration
 provides the native authority, checks the actor's configured credential, and installs middleware to
 block managed account actions while a mode is active. Configure exactly one transport: the session
-or access-token strategy selected by the Account Kit instance. In Masquerade 0.4.1, one Account Kit
+or access-token strategy selected by the Account Kit instance. In Masquerade 0.4.2, one Account Kit
 host supports either a session-only configuration or an access-token-only configuration. Combining
 both Masquerade transports in one host is unsupported.
 
@@ -241,7 +241,7 @@ in `canAccess`.
 
 ## Install the provider and blocker
 
-The provider example below targets the scoped Masquerade `0.4.1` release. Its configure hook
+The provider example below targets the scoped Masquerade `0.4.2` release. Its configure hook
 registers `@kevinjohn/adonisjs-masquerade/masquerade_provider` for the core provider.
 
 Register the Account Kit provider subpath and its global middleware in the host. The middleware

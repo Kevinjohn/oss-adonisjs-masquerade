@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+## 0.4.2 - 2026-11-20
+
 - Report observable Account Kit account blocker registrations on host-owned routes.
 
 - Add `resolveView(request)` for custom status screens that need an admission-aware mode and token.
