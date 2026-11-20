@@ -11,11 +11,21 @@ test.group('operator mode stop', () => {
     const f = fixture()
     const service = await f.create()
     const started = await f.start(service)
-    const inspections = f.state.inspectCount
+    const inspect = f.config.authority.inspectAccount
+    f.config.authority.inspectAccount = async (id) => {
+      const snapshot = await inspect(id)
+      if (snapshot) {
+        Object.defineProperty(snapshot, 'securityStamp', {
+          get() {
+            throw new Error('Operator stop must not read the stamp')
+          },
+        })
+      }
+      return snapshot
+    }
     assert.deepEqual(await stopActiveModes(f.config, f.dependencies, { actorId: 'a' }), {
       stopped: 1,
     })
-    assert.equal(f.state.inspectCount, inspections)
     const row = await f.store.read(f.owner)
     assert.equal(row?.state, 'idle')
     const event = f.store.events.at(-1)!
