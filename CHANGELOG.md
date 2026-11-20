@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+- Report observable Account Kit account blocker registrations on host-owned routes.
+
 - Add `resolveView(request)` for custom status screens that need an admission-aware mode and token.
 
 - Use inspected account stamps for mode start and continuation. The legacy custom authority method is accepted but unused. Native adapter stamp options continue to build snapshots.
