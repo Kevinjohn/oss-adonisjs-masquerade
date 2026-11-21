@@ -4,7 +4,7 @@
 
 ## 0.5.0 - 2026-11-21
 
-- Require Account Kit 0.5.0.
+- Require Account Kit `0.5.0` exactly.
 - Document and verify the package user stories and implementation flows.
 
 ## 0.4.3 - 2026-11-21
