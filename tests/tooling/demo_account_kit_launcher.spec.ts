@@ -261,9 +261,9 @@ async function fixture(options: FixtureOptions = {}): Promise<Demo> {
   assert.equal((pinnedSource.match(new RegExp(kitSha, 'g')) ?? []).length, 1)
   assert.match(
     pinnedSource,
-    /kitReleaseUrl\s*=\s*'https:\/\/github\.com\/Kevinjohn\/oss-adonisjs-account-kit\/releases\/download\/v0\.4\.2\/kevinjohn-adonisjs-account-kit-0\.4\.2\.tgz'/
+    /kitReleaseUrl\s*=\s*'https:\/\/github\.com\/Kevinjohn\/oss-adonisjs-account-kit\/releases\/download\/v0\.5\.0\/kevinjohn-adonisjs-account-kit-0\.5\.0\.tgz'/
   )
-  assert.match(pinnedSource, new RegExp(`kitReleaseVersion\\s*=\\s*'0\\.4\\.2'`))
+  assert.match(pinnedSource, new RegExp(`kitReleaseVersion\\s*=\\s*'0\\.5\\.0'`))
   assert.match(pinnedSource, new RegExp(`kitReleaseSha256\\s*=\\s*'${kitSha}'`))
   if (options.patchPin !== false) {
     const copiedText = await readFile(copiedWiring, 'utf8')
@@ -1221,9 +1221,9 @@ test.group('Account Kit demo launcher', (group) => {
     assert.equal((source.match(new RegExp(kitSha, 'g')) ?? []).length, 1)
     assert.match(
       source,
-      /kitReleaseUrl\s*=\s*\n\s*'https:\/\/github\.com\/Kevinjohn\/oss-adonisjs-account-kit\/releases\/download\/v0\.4\.2\/kevinjohn-adonisjs-account-kit-0\.4\.2\.tgz'/
+      /kitReleaseUrl\s*=\s*\n\s*'https:\/\/github\.com\/Kevinjohn\/oss-adonisjs-account-kit\/releases\/download\/v0\.5\.0\/kevinjohn-adonisjs-account-kit-0\.5\.0\.tgz'/
     )
-    assert.match(source, /kitReleaseVersion\s*=\s*'0\.4\.2'/)
+    assert.match(source, /kitReleaseVersion\s*=\s*'0\.5\.0'/)
     const demo = await fixture()
     cleanup(() => cleanupFixture(demo))
     demo.env.KIT_DEMO_TEST_RELEASE_URL = 'https://not-the-pinned-release.example.test/file.tgz'
