@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+- Require Account Kit `0.4.2` exactly.
+
 ## 0.4.2 - 2026-11-20
 
 - Report observable Account Kit account blocker registrations on host-owned routes.
