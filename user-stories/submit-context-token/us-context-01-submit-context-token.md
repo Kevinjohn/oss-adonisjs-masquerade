@@ -54,3 +54,11 @@ flowchart TD
 ```
 
 **Code references:** [middleware](../../http/context_middleware.ts), [requireContext](../../src/context_token.ts), [security contract](../../docs/guide/security.md#context-tokens-and-browser-clients), [middleware tests](../../tests/http_context_middleware.spec.ts).
+
+## Middleware and error handling
+
+Register the default or named `MasqueradeContextMiddleware` after Auth initialisation and before silent auth. Its `handle` delegates to the exported `masqueradeContext` function. Public routes without Auth pass through. In report mode a stale or missing context on a covered unsafe business request logs a warning; active-mode restrictions still apply. In enforce mode the same context error prevents the handler from running.
+
+A host exception handler can call `renderMasqueradeError(ctx, error)`. It returns false for framework and host exceptions. A Masquerade error produces a no-store JSON response with the stable code and a host translation at `errors.<code>` when available, falling back to English. Blocked actions additionally identify the cause in `blockedBy`.
+
+**Source:** [context middleware](../../http/context_middleware.ts), [error renderer](../../http/errors.ts), [error response](../../src/errors.ts). **Coverage:** [error contracts](../../tests/errors.spec.ts), [middleware](../../tests/http_context_middleware.spec.ts).

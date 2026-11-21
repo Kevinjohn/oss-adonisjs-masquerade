@@ -25,6 +25,14 @@ As a signed-in actor, I want to start a temporary support mode for an eligible t
 - Starting while a mode is already active is refused with `E_MASQUERADE_ALREADY_ACTIVE`; the active mode is not replaced or extended. Starting from an active row whose deadline has passed clears it to idle and then refuses with `E_MASQUERADE_CONTEXT_CHANGED`; no new mode starts from it.
 - A bearer token also needs the configured `masquerade` ability before status or start reads or changes mode state.
 
+## Raw controls and the optional HTML adapter
+
+The JSON controller requires a raw guard for both start and stop. It forwards invalid control shapes to the service so authenticated, admitted control attempts reach the same denial audit boundary. Authentication, Shield and limiter failures retain their host handling.
+
+The generated form controller uses the shared transition path for an explicit HTML preference. It accepts URL-encoded forms, flashes the action on success or the stable Masquerade code on failure, then redirects to the host-selected path. Other exceptions propagate. Requests preferring JSON delegate to the package controller. Both response paths prevent caching.
+
+**Source:** [control parser](../../http/control_input.ts), [controller](../../http/controllers.ts), [example form controller](../../examples/native-session/app/controllers/masquerade_form_controller.ts). **Coverage:** [controller tests](../../tests/http_controllers.spec.ts), [form adapter tests](../../tests/form_controller_stub.spec.ts).
+
 ## User flow
 
 ```mermaid

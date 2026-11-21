@@ -12,7 +12,8 @@ As an application developer, I want the safe actor and effective identity fields
 ## Acceptance criteria
 
 - The returned frozen object always has the keys `actorId`, `actorIncarnation`, `effectiveId`, `effectiveIncarnation`, `isMasquerading`, `modeId` and `access`.
-- On a route that does not select an effective guard, both identities are the actor, `isMasquerading` is `false`, `modeId` and `access` are `null`, and no mode is admitted, invalidated or reported.
+- On a raw route with a single mapped actor adapter, both identities are the actor, `isMasquerading` is `false`, `modeId` and `access` are `null`, and no mode is admitted, invalidated or reported.
+- An ambiguous or unmapped native selection cannot supply actor fields. The helper propagates the runtime failure before the host can record an identity.
 - On an effective route during an admitted active mode, the effective identity is the target and `modeId` and `access` come from the mode.
 - The package writes no business audit record; the host's writer and transaction own persistence. The package's own control ledger stays separate.
 

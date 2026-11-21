@@ -20,6 +20,8 @@ As a signed-in actor, I want to stop my active support mode with the current con
 - Stop always requires the expected token, whatever `contextEnforcement` is set to: a header and hidden field that disagree are rejected with `E_MASQUERADE_CONTEXT_CHANGED`; otherwise a missing or malformed token is rejected with `E_MASQUERADE_CONTEXT_REQUIRED` and a stale one with `E_MASQUERADE_CONTEXT_CHANGED`. A concurrent or lost response requires reading `GET /masquerade`; clients must not automatically replay the old stop.
 - Token transport also requires the configured `masquerade` ability; the ability does not grant edit access or bypass host policy.
 
+The [raw controls and optional HTML adapter](us-actor-01-start-stop-mode.md#raw-controls-and-the-optional-html-adapter) share the stop validation and audit boundary. A JSON stop may supply the context header with an explicitly empty body. Unknown stop fields or an unparsed, non-empty payload cannot stop a mode.
+
 ## User flow
 
 ```mermaid
