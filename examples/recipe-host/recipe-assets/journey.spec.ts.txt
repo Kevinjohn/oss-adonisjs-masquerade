@@ -63,7 +63,7 @@ test.group('fresh host public recipe', (group) => {
       })
       .loginAs(actor)
     assert.equal(started.status(), 302, 'recipe form start')
-    assert.equal(started.header('location'), '/support/customer')
+    assert.equal(started.header('location'), '/support/customer', 'recipe form start redirect')
     const activeStatus = await client.get('/masquerade').loginAs(actor)
     activeStatus.assertStatus(200)
     assert.isTrue(activeStatus.body().isMasquerading)
