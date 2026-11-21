@@ -25,6 +25,7 @@ export interface SessionAuthorityOptions<User> {
 /** The native session adapter: account authority plus raw-guard actor authentication. */
 export interface NativeSessionAdapter<User = unknown> {
   readonly authority: NativeAuthority<User>
+  readonly driverName?: 'session'
   /** Authenticate through the raw session guard; `E_UNAUTHORIZED_ACCESS` passes through unchanged. */
   authenticateActor(ctx: HttpContext): Promise<Subject<User>>
 }
@@ -78,6 +79,7 @@ export function sessionAuthority<User>(
   }
   return Object.freeze({
     authority: Object.freeze(authority),
+    driverName: 'session' as const,
     async authenticateActor(ctx: HttpContext) {
       let raw: GuardContract<User>
       try {

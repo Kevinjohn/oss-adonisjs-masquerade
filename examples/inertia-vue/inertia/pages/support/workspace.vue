@@ -36,7 +36,7 @@ const { ready, failed } = useWorkspaceFreshness(props.mode, props.beforeDeadline
         <p class="eyebrow">Account support</p>
         <h1>Support workspace</h1>
       </div>
-      <Form route="session.destroy"><button type="submit">Log out</button></Form>
+      <Form route="session.destroy"><button type="submit">Sign out</button></Form>
     </header>
     <p>
       Signed in as <strong>{{ actor.fullName }}</strong> ({{ actor.email }}).

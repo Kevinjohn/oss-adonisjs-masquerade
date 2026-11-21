@@ -17,12 +17,12 @@ export default function Layout({ children }: { children: ReactNode }) {
               <Link href="/support">Support workspace</Link>
               <span>{user.fullName ?? user.email}</span>
               <Form action="/logout" method="post">
-                <button type="submit">Log out</button>
+                <button type="submit">Sign out</button>
               </Form>
             </>
           ) : (
             <>
-              <Link href="/login">Log in</Link>
+              <Link href="/login">Sign in</Link>
               <Link href="/signup">Sign up</Link>
             </>
           )}

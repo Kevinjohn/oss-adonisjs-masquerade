@@ -1,5 +1,5 @@
 {{{
-  exports({ to: app.makePath('start/masquerade_routes.ts') })
+  exports({ to: app.startPath('masquerade_routes.ts') })
 }}}
 import router from '@adonisjs/core/services/router'
 import { middleware } from '#start/kernel'

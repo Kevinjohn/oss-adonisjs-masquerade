@@ -1,6 +1,6 @@
 # Add user impersonation to AdonisJS
 
-Masquerade lets an authorized support operator investigate a customer-visible issue through the
+Masquerade lets an authorised support operator investigate a customer-visible issue through the
 customer's ordinary application view. The operator stays signed in, while the customer's normal
 permissions decide what the support session can read or change. This gives support a way to reproduce
 an issue in context without asking for the customer's password or creating a customer login.
@@ -24,7 +24,7 @@ available only because the host's `canEdit` policy approves this operator and cu
 _The operator is the actor; Customer One is the effective identity for this business page. The
 banner shows the edit access selected at start, the account-wide scope and the fixed deadline._
 
-The current email-update setting is off. The demo permits this reversible preference change because the customer's ordinary authorization allows it. Save the change and confirm that the customer view now shows it on.
+The current email-update setting is off. The demo permits this reversible preference change because the customer's ordinary authorisation allows it. Save the change and confirm that the customer view now shows it on.
 
 ![Customer One's email-update preference after saving the reversible change.](../assets/walkthrough/support_preference_saved.png)
 
@@ -37,7 +37,7 @@ Next, try the sensitive action. The application rejects it before its handler ca
 
 _A denial screen alone cannot prove that data stayed unchanged. The demo's functional test reads the database after the request and verifies the saved preference is still on._
 
-Return to the support workspace and stop support mode. The idle page is again the operator's workspace, with the customer chooser ready for another authorized case.
+Return to the support workspace and stop support mode. The idle page is again the operator's workspace, with the customer chooser ready for another authorised case.
 
 ![The idle support workspace after stopping support mode, with the operator identity and customer chooser visible.](../assets/walkthrough/support_stopped.png)
 
@@ -45,7 +45,7 @@ _Stopping returns the browser to the raw operator workspace. It does not change 
 
 ## Identity, scope and boundaries
 
-The native session guard continues to authenticate the operator on every request. On covered business routes, the effective guard resolves the selected customer, so the application's usual customer authorization applies. The operator's permissions are not combined with the customer's, and the customer does not log in. This walkthrough uses session transport; token configuration is covered in the [access-token guide](access-tokens.md).
+The native session guard continues to authenticate the operator on every request. On covered business routes, the effective guard resolves the selected customer, so the application's usual customer authorisation applies. The operator's permissions are not combined with the customer's, and the customer does not log in. This walkthrough uses session transport; token configuration is covered in the [access-token guide](access-tokens.md).
 
 Mode is stored server-side for the actor account and shared by valid integrated sessions. Every
 start defaults to view-only; edit is selected at start and requires the host's `canEdit` policy.
@@ -56,5 +56,5 @@ is 15 minutes, with a one-hour maximum; an application may choose shorter limits
 
 To build this journey in a new app, follow [Add support mode to a new AdonisJS app](../recipes/starter-kit.md). For an existing application, start with [Install and configure](setup.md) and follow [Use a support mode](usage.md). Its [Edge form recipe](clients/edge.md) matches the journey above; the [native-session demo](https://github.com/Kevinjohn/oss-adonisjs-masquerade/tree/main/examples/native-session) is runnable and includes the fictional accounts.
 
-For a same-origin browser client, follow the [JSON client guide](clients/json.md) and try it in the same [native-session example](https://github.com/Kevinjohn/oss-adonisjs-masquerade/tree/main/examples/native-session) at `/support/json`. For React and Inertia, follow the [React client guide](clients/react.md) and run its [Inertia example](https://github.com/Kevinjohn/oss-adonisjs-masquerade/tree/main/examples/inertia-react). For Vue and Inertia, follow the [Vue client guide](clients/vue.md) and run its [Vue example](https://github.com/Kevinjohn/oss-adonisjs-masquerade/tree/main/examples/inertia-vue). The [Security and operations guide](security.md) explains authorization, expiry, account-wide
-behavior, recovery and side effects.
+For a same-origin browser client, follow the [JSON client guide](clients/json.md) and try it in the same [native-session example](https://github.com/Kevinjohn/oss-adonisjs-masquerade/tree/main/examples/native-session) at `/support/json`. For React and Inertia, follow the [React client guide](clients/react.md) and run its [Inertia example](https://github.com/Kevinjohn/oss-adonisjs-masquerade/tree/main/examples/inertia-react). For Vue and Inertia, follow the [Vue client guide](clients/vue.md) and run its [Vue example](https://github.com/Kevinjohn/oss-adonisjs-masquerade/tree/main/examples/inertia-vue). The [Security and operations guide](security.md) explains authorisation, expiry, account-wide
+behaviour, recovery and side effects.

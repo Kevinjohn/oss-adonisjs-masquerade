@@ -4,7 +4,7 @@ export default function Login() {
   const { errors } = usePage<{ errors: Record<string, string> }>().props
   return (
     <section className="support-page">
-      <h1>Log in</h1>
+      <h1>Sign in</h1>
       <Form action="/login" method="post">
         <label htmlFor="email">Email</label>
         <input
@@ -36,7 +36,7 @@ export default function Login() {
             {errors.password}
           </p>
         )}
-        <button type="submit">Log in</button>
+        <button type="submit">Sign in</button>
       </Form>
     </section>
   )

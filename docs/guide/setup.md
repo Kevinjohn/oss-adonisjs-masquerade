@@ -1,7 +1,7 @@
 # Install and configure
 
 This guide configures the native session guard. The signed-in account remains the actor; on covered
-business routes, the selected account becomes the effective principal. The package does not create
+business routes, the selected account becomes the effective user. The package does not create
 a target login or credential. For token-only or mixed session/token transport, see the
 [opaque access-token guide](access-tokens.md). Also see [security](security.md) for the identity
 boundary and [custom authorities](custom-authorities.md) for the native authority contract. The
@@ -60,9 +60,13 @@ Choose a stable namespace for this identity domain and the name of the raw sessi
 checks the namespace and guard syntax, that `config/auth.ts` and `#models/user` exist, and that
 the assembler code transformer and Lucid can be imported. It reads the shape of `config/auth.ts`
 only to decide whether to wire it, as below; it does not check the selected guard's driver or
-provider. Boot does: the effective guard refuses a raw guard of another driver. It adds
+provider. In the current source (for the next release), boot compares known native transport registration metadata; the actual selected guard
+and effective wrapper are checked on the live request before Masquerade reads mode state. The
+package no longer invokes a guard factory with a synthetic context as 0.4.3 did. Configure adds
 the package provider, native binding provider, and command loader to `adonisrc.ts`, and creates
 starter files and a migration in the default connection's first migrations folder.
+In the current source, custom directories declared in `adonisrc.ts` are respected throughout generation, conflict
+preflight and host wiring. Keep the corresponding host import aliases aligned in `package.json`.
 
 Configure then wires the host when its files have the AdonisJS starter-kit shape, and prints the
 manual step for anything it leaves alone:
@@ -82,7 +86,7 @@ manual step for anything it leaves alone:
   preloads the routes file. Without `@adonisjs/limiter`, the routes step is printed instead.
 - **Optional banner**: pass `--banner` on the initial configure command to generate the editable
   `resources/views/components/masquerade/banner.edge` and
-  `app/middleware/share_masquerade_status_middleware.ts` files. On a recognized kernel, configure
+  `app/middleware/share_masquerade_status_middleware.ts` files. On a recognised kernel, configure
   registers the middleware after silent authentication. Include the component in an authenticated
   Edge layout with `@include('components/masquerade/banner')`. It displays the target ID, access
   level, deadline, CSRF field, and current context token. The generated files are host-owned and
@@ -100,7 +104,7 @@ manual step for anything it leaves alone:
   a successful stop returns JSON, which the browser displays. A host that wants a redirect or
   confirmation page owns that response presentation and the route used by its form.
 
-The identity and policy callbacks stay manual and fail closed. Pass `--no-wire` to skip automatic
+The identity and eligibility callbacks stay manual and fail closed. Pass `--no-wire` to skip automatic
 host-file wiring. Configure still generates the user provider, config, native provider, context
 middleware and migration, plus any selected banner/status middleware or form controller, and
 registers the generated native provider, package provider and commands in `adonisrc.ts`. It prints the remaining wiring steps
@@ -110,7 +114,7 @@ an authenticated layout yourself. If `--form-controller` is also enabled, manual
 routes, including its status route.
 
 Generated files fail closed. Once configure has wired the auth default, authenticated routes return
-503 until the policy callbacks below are filled in. Review the output and replace every placeholder
+503 until the host callbacks below are filled in. Review the output and replace every placeholder
 before mounting routes. If a generated destination already exists, including
 `start/masquerade_routes.ts` or `start/masquerade_limiter.ts` when wiring, configure leaves files
 unchanged and reports the conflicts; use `--force` only when you intend to replace those
@@ -136,7 +140,7 @@ export const webGuard = sessionGuard({
 ```
 
 This is a wiring fragment: keep your existing session options, including your current
-`useRememberMeTokens` value, and any custom provider behavior. If your application already has a
+`useRememberMeTokens` value, and any custom provider behaviour. If your application already has a
 provider, export and reuse that exact instance instead of creating a second provider. The
 `userProvider` imported by `sessionAuthority` below must be the same object used by `webGuard`.
 
@@ -193,7 +197,9 @@ If your application already has a custom session provider, keep using that provi
 Remove or leave unused the generated `masquerade_user_provider.ts`; do not create a second
 `sessionUserProvider`. The generated config's default import is shown in the next section.
 
-## Configure persistent identity and policy
+<a id="configure-persistent-identity-and-policy"></a>
+
+## Configure persistent identity and host callbacks
 
 The generated `config/masquerade.ts` imports `userProvider` from
 `#services/masquerade_user_provider`, the same module used by `web_guard.ts` above. Keep that import
@@ -216,7 +222,7 @@ const nativeAdapter = sessionAuthority<User>({
   provider: userProvider,
   incarnation: (user) => user.accountIncarnation,
   securityStamp: stampFrom((user) => [user.securityEpoch]),
-  // Normalize database boolean representations to the strict boolean expected by the package.
+  // Normalise database boolean representations to the strict boolean expected by the package.
   isActive: (user) => Boolean(user.active),
 })
 
@@ -257,7 +263,7 @@ Set `contextEnforcement` to `enforce` when business forms carry a captured conte
 covered unsafe business request without the token with 428, including when no one is
 masquerading. An application with existing unsafe forms or clients on effective-guard routes keeps
 the generated `report` until each one sends the token, as described in
-[context tokens and browser clients](security.md#context-tokens-and-browser-clients). Replace the sample model fields and policy with your own. If you choose a store other than the generated Lucid store, see [custom stores](custom-stores.md).
+[context tokens and browser clients](security.md#context-tokens-and-browser-clients). Replace the sample model fields and host callbacks with your own. The callbacks stay under the `policy` key in the public config. If you choose a store other than the generated Lucid store, see [custom stores](custom-stores.md).
 `incarnation` must be stable for one account's lifetime and different if a deleted ID can be
 reused. Use `incarnation: 'id'` only if the host guarantees account IDs are never reused. The
 incarnation must not change during ordinary security updates.
@@ -331,13 +337,13 @@ runs during start and during active-mode admission, with the request in both cas
 start denies the start without creating a mode; a `false` during active-mode admission rejects only
 that request (403) and leaves the mode unchanged, so access may still work on another eligible
 route. It does not run for ordinary idle-route requests or every control route; keep ordinary host
-authorization and tenant checks in the host's route middleware and handlers. A throw returns
+authorisation and tenant checks in the host's route middleware and handlers. A throw returns
 unavailable (503) and leaves the mode unchanged. If no request-local rule is needed, remove the
 generated `canUseRequest` property entirely; its `false` placeholder denies every start.
 
 ## Wire auth middleware and routes
 
-Add the generated context middleware to `router.use` after Auth initialization and before
+Add the generated context middleware to `router.use` after Auth initialisation and before
 `silent_auth` or any later middleware that calls `auth.check()`. Preserve all other host middleware
 and their order:
 
@@ -352,6 +358,11 @@ router.use([
   () => import('#middleware/silent_auth_middleware'),
 ])
 ```
+
+With the next release containing the default `MasqueradeContextMiddleware` export, a host may
+register `() => import('@kevinjohn/adonisjs-masquerade/http')` in that same position instead of
+the generated wrapper. The existing `masqueradeContext(ctx, next)` function and wrappers keep
+working. Release 0.4.3 requires the wrapper.
 
 Keep the supported named `auth` middleware on route groups. Package control routes authenticate
 with the raw guard so an active effective identity cannot replace the actor used to stop a mode:

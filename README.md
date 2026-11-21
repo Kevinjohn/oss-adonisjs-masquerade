@@ -8,12 +8,12 @@
 
 ## What you get
 
-Masquerade lets an authorized operator use the application as another account for a fixed time
+Masquerade lets an authorised operator use the application as another account for a fixed time
 while staying signed in as themselves. It never logs in as the target or creates a target
 credential.
 
-- Your `canMasquerade` policy approves each operator and target.
-- Access is read-only by default; edit access requires an explicit policy approval.
+- Your host's `canMasquerade` callback approves each actor and target.
+- Access is read-only by default; edit access requires explicit approval via `canEdit`.
 - Sensitive routes stay blocked while a mode is active.
 - The mode expires automatically and can be stopped explicitly.
 - Native AdonisJS sessions and opaque access tokens are supported.
@@ -33,13 +33,15 @@ the [release notes](https://github.com/Kevinjohn/oss-adonisjs-masquerade/release
 
 ## Quick example
 
-Use the effective guard for customer-facing routes. Mark routes that allow edits or must remain
-blocked during masquerade:
+Use the effective Auth guard for customer-facing routes. Mark routes that allow edits or must remain
+blocked during masquerade. Replace the controller imports below with your host application's controllers:
 
 ```ts
 import router from '@adonisjs/core/services/router'
 import { middleware } from '#start/kernel'
 import { allowMutation, sensitive } from '@kevinjohn/adonisjs-masquerade/http'
+import OrdersController from '#controllers/orders_controller'
+import AccountController from '#controllers/account_controller'
 
 const asCustomer = middleware.auth({ guards: ['web_effective'] })
 
@@ -60,7 +62,7 @@ router.post('/account/password', [AccountController, 'update']).use(sensitive())
 
 ## Documentation
 
-The [four released starter apps](https://github.com/Kevinjohn/oss-adonisjs-starter-examples/tree/v0.13.0/apps) show Masquerade with Account Kit and Access Control. Follow the [shared integration recipes](https://github.com/Kevinjohn/oss-adonisjs-starter-examples/tree/v0.13.0/docs/cookbook) for the tested route and guard setup.
+The [four released starter apps](https://github.com/Kevinjohn/oss-adonisjs-starter-examples/tree/v0.15.5/apps) show Masquerade with Account Kit and Access Control. Follow the [shared integration recipes](https://github.com/Kevinjohn/oss-adonisjs-starter-examples/tree/v0.15.5/docs/cookbook) for the tested route and guard setup.
 
 - [Add support mode to a new AdonisJS app](docs/recipes/starter-kit.md): tested, step by step
 - [Recipes by task](docs/recipes/index.md) and [terms](docs/guide/glossary.md)

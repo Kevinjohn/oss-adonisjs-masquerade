@@ -33,14 +33,15 @@ This folder is an overlay: the launcher copies `examples/native-session` and the
 it, and `bin/helpers/account_kit_host_wiring.ts` adds the provider and active-mode blocker. Read
 them together with the [Account Kit integration guide](../../docs/guide/account-kit.md).
 
-| File                                                                                          | Shows                                                                |
-| --------------------------------------------------------------------------------------------- | -------------------------------------------------------------------- |
-| `config/masquerade.ts`                                                                        | `accountKitAuthority` and a policy that checks Account Kit admission |
-| `config/account_kit.ts`, `config/admission.ts`                                                | Account Kit and admission settings                                   |
-| `app/services/account_kit_guard.ts`                                                           | The Account Kit session guard and shared user provider               |
-| `app/middleware/account_kit_admission_middleware.ts`                                          | Admission gate that runs before the Masquerade context               |
-| `start/account_kit_routes.ts`                                                                 | Account Kit's managed routes mounted under `/kit`                    |
-| `app/controllers/support_account_controller.ts`, `resources/views/pages/support_account.edge` | The operator's own account page, on the raw guard                    |
+| File                                                                                          | Shows                                                                         |
+| --------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------- |
+| `config/masquerade.ts`                                                                        | `accountKitAuthority` and Masquerade callbacks checking Account Kit admission |
+| `config/account_kit.ts`, `config/admission.ts`                                                | Account Kit and admission settings                                            |
+| `app/services/account_kit_guard.ts`                                                           | The Account Kit session guard and shared user provider                        |
+| `app/services/account_kit_profile_input.ts`                                                   | Context-free profile input parser and synchronous field mapper                |
+| `app/middleware/account_kit_admission_middleware.ts`                                          | Admission gate that runs before the Masquerade context                        |
+| `start/account_kit_routes.ts`                                                                 | Account Kit's managed routes mounted under `/kit`                             |
+| `app/controllers/support_account_controller.ts`, `resources/views/pages/support_account.edge` | The operator's own account page, on the raw guard                             |
 
 ## Try the support workflow
 
@@ -53,10 +54,10 @@ them together with the [Account Kit integration guide](../../docs/guide/account-
    **Can edit**. Change the preference; it is saved for that customer and can be
    changed back.
 4. While support mode is active, open **Your account** and try to change the operator's display
-   name. Account Kit blocks the update while the operator is acting for a customer. Stop support
+   name. The Masquerade blocker enforces the profile write restriction while the operator is acting for a customer. Stop support
    mode and retry; the display-name change then succeeds. Enter the operator's current password
    each time you save a display-name change.
-5. Select **Log out** when finished.
+5. Select **Sign out** when finished.
 
 JavaScript must be enabled for Account Kit login, logout, and display-name forms. The support
 workspace itself uses native forms.

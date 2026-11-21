@@ -7,7 +7,8 @@ import { masqueradeContext } from '../http/context_middleware.js'
 import { EffectiveSessionGuard } from '../auth/effective_session_guard.js'
 
 const raw = () => ({})
-const effective = (guard: string) => markEffectiveFactory(() => ({}), guard)
+const effective = (guard: string, driver: 'session' | 'access_tokens' = 'session') =>
+  markEffectiveFactory(() => ({}), guard, driver)
 
 function configuration(
   adapters: Record<string, unknown>,
@@ -16,7 +17,11 @@ function configuration(
 ) {
   const f = fixture()
   const authority = f.config.authority
-  const primary = { authority, authenticateActor: async () => f.users.get('a')! }
+  const primary = {
+    authority,
+    driverName: 'session',
+    authenticateActor: async () => f.users.get('a')!,
+  }
   const native = { ...primary, adapters: { web: primary, ...adapters } as Record<string, unknown> }
   const auth = {
     defaultGuard,
@@ -28,7 +33,7 @@ function configuration(
       make: async (name: string) => (name === 'masquerade.native' ? native : auth),
     },
   }
-  return { app, authority, native, auth }
+  return { app, authority, native, auth, fixture: f }
 }
 
 test('runtime accepts one authority across raw guards and maps every effective factory', async ({
@@ -39,7 +44,7 @@ test('runtime accepts one authority across raw guards and maps every effective f
   f.native.adapters.api = token
   const guards = f.auth.config.guards
   guards.api = raw
-  guards.api_effective = effective('api')
+  guards.api_effective = effective('api', 'access_tokens')
   const wiring = await runtimeConfiguration(f.app as never)
   assert.equal(wiring.effectiveRawGuards.alias, 'web')
   assert.equal(wiring.effectiveRawGuards.api_effective, 'api')
@@ -71,32 +76,95 @@ test('runtime rejects an effective guard whose native driver differs from its ra
   const driver = (driverName: string) => () => ({ driverName })
   const f = configuration(
     {},
-    { web_effective: markEffectiveFactory(driver('access_tokens'), 'web') }
+    { web_effective: markEffectiveFactory(driver('access_tokens'), 'web', 'access_tokens') }
   )
   f.auth.config.guards.web = driver('session')
   await assert.rejects(
     () => runtimeConfiguration(f.app as never),
     'Effective masquerade guard web_effective wraps the access_tokens driver, but web uses the session driver'
   )
-  const g = configuration({}, { web_effective: markEffectiveFactory(driver('session'), 'web') })
+  const g = configuration(
+    {},
+    { web_effective: markEffectiveFactory(driver('session'), 'web', 'session') }
+  )
   g.auth.config.guards.web = driver('session')
   const wiring = await runtimeConfiguration(g.app as never)
   assert.equal(wiring.effectiveRawGuards.web_effective, 'web')
-  // The effective session wrapper rejects a token guard when it is built.
-  const h = configuration(
-    {},
+})
+
+test('guard factories only run on a live request; cross-wired guards fail before actor authentication and store reads', async ({
+  assert,
+}) => {
+  let constructions = 0
+  let authentication = 0
+  let reads = 0
+  const session = (ctx: { request: { method(): string } }) => {
+    constructions++
+    ctx.request.method()
+    return { driverName: 'session' }
+  }
+  const effectiveFactory = markEffectiveFactory(
+    (ctx: Parameters<typeof session>[0]) => session(ctx),
+    'web',
+    'session'
+  )
+  const f = configuration({}, { web_effective: effectiveFactory, web: session })
+  const originalRead = f.fixture.store.read.bind(f.fixture.store)
+  f.fixture.store.read = async (owner) => {
+    reads++
+    return originalRead(owner)
+  }
+  f.native.adapters.web = {
+    authority: f.authority,
+    driverName: 'session',
+    authenticateActor: async () => {
+      authentication++
+      return { id: 'a', incarnation: 'a', user: f.fixture.users.get('a')! }
+    },
+  }
+  const wiring = await runtimeConfiguration(f.app as never)
+  assert.equal(constructions, 0)
+  const runtime = await createRuntime(
     {
-      web_effective: markEffectiveFactory(
-        () =>
-          new EffectiveSessionGuard('web', {} as never, { driverName: 'access_tokens' } as never),
-        'web'
-      ),
-    }
+      nodeEnvironment: 'test',
+      container: {
+        make: async (name: string) =>
+          name === 'emitter' ? { emit: async () => {} } : { info: () => {}, error: () => {} },
+      },
+    } as never,
+    wiring
   )
-  await assert.rejects(
-    () => runtimeConfiguration(h.app as never),
-    'Masquerade requires a native session guard'
+  const route = {
+    middleware: { all: () => [{ name: 'auth', args: [{ guards: ['web_effective'] }] }] },
+  }
+  const ctx = {
+    route,
+    request: { method: () => 'GET' },
+    auth: {
+      use(name: string) {
+        return (f.auth.config.guards[name] as typeof session)(ctx)
+      },
+    },
+  }
+  await runtime.service.status(ctx as never)
+  assert.equal(constructions, 2)
+  assert.equal(authentication, 1)
+  assert.equal(reads, 1)
+  // The real raw guard may differ from the factory wrapped by the effective config.
+  f.auth.config.guards.web = () => ({ driverName: 'access_tokens' })
+  assert.equal(
+    await errorCode(() => runtime.service.status(ctx as never)),
+    'E_MASQUERADE_UNAVAILABLE'
   )
+  // The effective constructor may itself refuse the wrapped factory on a live request.
+  f.auth.config.guards.web_effective = () =>
+    new EffectiveSessionGuard('web', ctx as never, { driverName: 'access_tokens' } as never)
+  assert.equal(
+    await errorCode(() => runtime.service.status(ctx as never)),
+    'E_MASQUERADE_UNAVAILABLE'
+  )
+  assert.equal(authentication, 1)
+  assert.equal(reads, 1)
 })
 
 test('runtime service uses route-selected token actor despite a conflicting cookie actor', async ({
@@ -117,6 +185,7 @@ test('runtime service uses route-selected token actor despite a conflicting cook
     effectiveGuardName: 'web_effective',
     effectiveGuardNames: ['web_effective', 'api_effective'],
     effectiveRawGuards: Object.freeze({ web_effective: 'web', api_effective: 'api' }),
+    effectiveDrivers: Object.freeze({ web_effective: 'session', api_effective: 'access_tokens' }),
     registeredRawGuardNames: ['web', 'api'],
     rawAdapters: adapters,
   }
@@ -131,7 +200,10 @@ test('runtime service uses route-selected token actor despite a conflicting cook
   const tokenRoute = {
     middleware: { all: () => [{ name: 'auth', args: [{ guards: ['api_effective'] }] }] },
   }
-  const tokenStatus = await runtime.service.status({ route: tokenRoute } as never)
+  const tokenStatus = await runtime.service.status({
+    route: tokenRoute,
+    auth: { use: () => ({ driverName: 'access_tokens' }) },
+  } as never)
   const noRouteStatus = await runtime.service.status({} as never)
   assert.equal(
     tokenStatus.contextToken,

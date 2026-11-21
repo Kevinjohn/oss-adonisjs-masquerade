@@ -7,6 +7,33 @@ import app from '@adonisjs/core/services/app'
 import { AccountAdmission } from '@kevinjohn/adonisjs-account-kit/admission'
 import { AccountKitHttp } from '#tests/helpers/account_kit_http'
 import { cleanUsers, createUsers } from '#tests/helpers/users'
+import { parseProfileInput, mapProfileFields } from '#services/account_kit_profile_input'
+
+test('profile input parsing is context-free, strict and retains the public validation error', ({
+  assert,
+}) => {
+  assert.deepEqual(parseProfileInput({ registrationData: { fullName: ' Name ' } }), {
+    registrationData: { fullName: 'Name' },
+  })
+  assert.deepEqual(mapProfileFields({ fullName: ' Name ' }), { fullName: 'Name' })
+  for (const input of [
+    null,
+    [],
+    { registrationData: { fullName: 'Name', role: 'admin' } },
+    { registrationData: { fullName: 'Name' }, role: 'admin' },
+    { registrationData: { fullName: 'Name' }, currentPassword: 123 },
+    { registrationData: { fullName: '' } },
+  ]) {
+    let failure: unknown
+    try {
+      parseProfileInput(input)
+    } catch (error) {
+      failure = error
+    }
+    assert.equal((failure as { code: string }).code, 'E_DEMO_PROFILE_INVALID')
+    assert.equal((failure as { status: number }).status, 422)
+  }
+})
 
 test.group('Account Kit demo profile', (group) => {
   group.setup(() => testUtils.db().migrate())

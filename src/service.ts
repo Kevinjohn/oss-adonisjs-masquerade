@@ -6,7 +6,8 @@ import { buildAdmittedProjection, modeView } from './mode_projection.js'
 import { MasqueradeError } from './errors.js'
 import { createInvalidInputError, createUnavailableError } from './error_helpers.js'
 import { openControlStore } from './control_store.js'
-import { requireStartSelection, assertStartInputShape } from './start_input.js'
+import { requireStartSelection } from './start_input.js'
+import { requireControlFields } from './control_fields.js'
 import { stampHash } from './security_stamp.js'
 import { isBoundedString } from './bounded_string.js'
 import { requireValidModeRow } from './row_validation.js'
@@ -35,8 +36,6 @@ import type {
   ModeView,
   OwnerKey,
   ServiceDependencies,
-  StartInput,
-  StopInput,
   Subject,
   AccountSnapshot,
   ResolvedContext,
@@ -349,7 +348,7 @@ class CoreService<User, Request extends object> implements MasqueradeService<Req
     nextRevision(row)
     return modeView(owner, row)
   }
-  async start(request: Request, input: StartInput): Promise<ModeView> {
+  async start(request: Request, input: unknown): Promise<ModeView> {
     const actor = await this.authenticateActor(request)
     const owner = this.buildOwnerKey(actor)
     let row: ModeRow | null = null
@@ -359,21 +358,27 @@ class CoreService<User, Request extends object> implements MasqueradeService<Req
       // §6.4 Any: an unavailable store or malformed row is 503.
       row = await this.read(owner)
       // §7.1 step 1: input shape, then the expected context (§6.4 Any: mismatch is 409).
-      assertStartInputShape(input)
+      const fields = requireControlFields(input, [
+        'targetId',
+        'reason',
+        'durationSeconds',
+        'expectedContext',
+        'access',
+      ])
       if (row?.state === 'active') {
         // Project only bounded request fields before checks that may reject an active mode.
         const projectedTargetId =
-          typeof input.targetId === 'number' && Number.isSafeInteger(input.targetId)
-            ? String(input.targetId)
-            : input.targetId
+          typeof fields.targetId === 'number' && Number.isSafeInteger(fields.targetId)
+            ? String(fields.targetId)
+            : fields.targetId
         attempted = {
           ...(isBoundedString(projectedTargetId, 255) ? { targetId: projectedTargetId } : {}),
-          ...(input.access === undefined || input.access === 'view' || input.access === 'edit'
-            ? { access: input.access ?? 'view' }
+          ...(fields.access === undefined || fields.access === 'view' || fields.access === 'edit'
+            ? { access: fields.access ?? 'view' }
             : {}),
         }
       }
-      requireContext(input.expectedContext, contextToken(owner, row))
+      requireContext(fields.expectedContext, contextToken(owner, row))
       // §6.4 Any: a revision at Number.MAX_SAFE_INTEGER fails closed.
       nextRevision(row)
       // §7.1 step 1, I06: an expired row resolves to idle first, then 409; never start from it.
@@ -385,7 +390,7 @@ class CoreService<User, Request extends object> implements MasqueradeService<Req
       // §6.4 Active: any second start is 409 with no replacement or extension (I02).
       if (row?.state === 'active') throw new MasqueradeError('E_MASQUERADE_ALREADY_ACTIVE')
       // §7.1 step 3 reason policy, §14.1 access and the duration bounds.
-      const { targetId, reason, duration, access } = requireStartSelection(input, {
+      const { targetId, reason, duration, access } = requireStartSelection(fields, {
         actorId: actor.id,
         defaultDuration: this.config.durationSeconds!,
         maxDuration: this.config.maxDurationSeconds!,
@@ -493,7 +498,7 @@ class CoreService<User, Request extends object> implements MasqueradeService<Req
       throw error instanceof MasqueradeError ? error : createUnavailableError()
     }
   }
-  async stop(request: Request, input: StopInput): Promise<ModeView> {
+  async stop(request: Request, input: unknown): Promise<ModeView> {
     const actor = await this.authenticateActor(request)
     const owner = this.buildOwnerKey(actor)
     let row: ModeRow | null = null
@@ -502,10 +507,9 @@ class CoreService<User, Request extends object> implements MasqueradeService<Req
       // §6.4 Any: an unavailable store or malformed row is 503.
       row = await this.read(owner)
       // §7.3: stop accepts only the expected context.
-      if (!input || Object.keys(input).some((key) => key !== 'expectedContext'))
-        throw createInvalidInputError()
+      const fields = requireControlFields(input, ['expectedContext'])
       // §7.3: a stale stop never clears a newer mode (§6.4 Any: mismatch is 409).
-      requireContext(input.expectedContext, contextToken(owner, row))
+      requireContext(fields.expectedContext, contextToken(owner, row))
       // §6.4 Any: a revision at Number.MAX_SAFE_INTEGER fails closed.
       nextRevision(row)
       // §6.4 Idle/absent: 200 idle, no revision change, one control_noop record.

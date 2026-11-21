@@ -20,7 +20,7 @@ test.group('effective session guard through the packed package', (group) => {
     const dashboard = await client.get('/dashboard').loginAs(actor)
     dashboard.assertStatus(200)
     assert.match(dashboard.text(), /<form[^>]*action="\/logout"[^>]*>/)
-    assert.include(dashboard.text(), 'Log out')
+    assert.include(dashboard.text(), 'Sign out')
 
     const logout = await client.post('/logout').withCsrfToken().loginAs(actor).redirects(0)
     logout.assertStatus(302)

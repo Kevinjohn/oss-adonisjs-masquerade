@@ -12,7 +12,7 @@ AdonisJS stores a hash of an opaque token, checks it through the native guard, a
 per-token abilities. A token with `'*'` passes every `allows()` check, including Masquerade's
 configured ability. Issue deliberately restricted abilities for least privilege. See the official
 [AdonisJS access tokens guide](https://docs.adonisjs.com/guides/auth/access-tokens-guard) for token
-provider, guard, expiration, revocation, and ability behavior.
+provider, guard, expiration, revocation, and ability behaviour.
 
 For a runnable local lifecycle against a seeded SQLite app, follow the
 [bearer API walkthrough in the existing example](https://github.com/Kevinjohn/oss-adonisjs-masquerade/blob/main/examples/native-session/README.md#bearer-api-lifecycle).
@@ -131,11 +131,11 @@ do not invoke a Masquerade operation. If such a route calls the Masquerade servi
 unavailable before any store access; it never falls back to the primary adapter. Effective guards
 must map to a registered Masquerade adapter at application boot.
 
-A raw token route remains an ordinary actor route. Do not put application business behavior behind
+A raw token route remains an ordinary actor route. Do not put application business behaviour behind
 it: raw business routes are coverage defects because they bypass effective identity and context
 admission. A token without the `masquerade` ability can still use raw native routes, but receives a
 forbidden result before any mode read or mutation if it reaches an integrated operation. There is
-no fallback to actor business behavior when an integrated operation is denied.
+no fallback to actor business behaviour when an integrated operation is denied.
 
 The effective target `User` does not promise `currentAccessToken`. The raw guard retains the actor
 and native token. Do not attach the actor token to the target model or treat it as a target
@@ -153,4 +153,4 @@ validation remains required for both transports.
 
 Auth 10 continues to own token creation, expiration, `last_used_at`, and revocation. Masquerade
 does not issue, rotate, extend, or copy tokens. See [security boundaries](security.md) for shared
-mode behavior and [route coverage review](route-report.md) for raw-route checks.
+mode behaviour and [route coverage review](route-report.md) for raw-route checks.

@@ -107,7 +107,7 @@ export class LucidControlStore implements ControlStore {
   async compareAndSet(input: CompareAndSetInput): Promise<CasOutcome> {
     this.#assertAvailable()
     requireValidModeRow(input.next, input.owner)
-    const command = structuredClone(input)
+    const transitionInput = structuredClone(input)
     for (let attempt = 0; ; attempt++) {
       const knex = this.#client.getWriteClient()
       const connection = await knex.client.acquireConnection()
@@ -124,23 +124,23 @@ export class LucidControlStore implements ControlStore {
         const query = transaction.table('masquerade_modes')
         const currentRaw = await transaction
           .from('masquerade_modes')
-          .where(buildOwnerRecord(command.owner))
+          .where(buildOwnerRecord(transitionInput.owner))
           .forUpdate()
           .first()
-        const current = currentRaw ? decodeRow(currentRaw, command.owner) : null
-        if ((current?.revision ?? null) === command.expected)
-          assertValidTransition(command, current)
+        const current = currentRaw ? decodeRow(currentRaw, transitionInput.owner) : null
+        if ((current?.revision ?? null) === transitionInput.expected)
+          assertValidTransition(transitionInput, current)
         const changed =
-          command.expected === null
+          transitionInput.expected === null
             ? await query
-                .insert(buildModeRecord(command.next))
+                .insert(buildModeRecord(transitionInput.next))
                 .onConflict(ownerColumns)
                 .ignore()
                 .returning('revision')
             : await query
-                .where(buildOwnerRecord(command.owner))
-                .where('revision', command.expected)
-                .update(buildModeRecord(command.next))
+                .where(buildOwnerRecord(transitionInput.owner))
+                .where('revision', transitionInput.expected)
+                .update(buildModeRecord(transitionInput.next))
                 .returning('revision')
         if (changed.length === 0) {
           rollingBack = true
@@ -149,12 +149,12 @@ export class LucidControlStore implements ControlStore {
           if (!outcome.ok) throw outcome.error
           return { status: 'conflict' }
         }
-        await transaction.table('masquerade_events').insert(buildAuditRecord(command.event))
+        await transaction.table('masquerade_events').insert(buildAuditRecord(transitionInput.event))
         committing = true
         await transaction.commit()
         const outcome = await completion
         if (!outcome.ok) throw outcome.error
-        return { status: 'applied', transitionId: command.event.id }
+        return { status: 'applied', transitionId: transitionInput.event.id }
       } catch (error) {
         const unknownCommit = committing && !definiteCommitFailure(error)
         try {
@@ -185,14 +185,17 @@ export class LucidControlStore implements ControlStore {
             // retires only this connection (Knex destroys a disposed connection on release).
             // The shared pool and this store stay available.
             ;(connection as { __knex__disposed?: unknown }).__knex__disposed ??= cleanupError
-            if (unknownCommit) return { status: 'indeterminate', transitionId: command.event.id }
+            if (unknownCommit)
+              return { status: 'indeterminate', transitionId: transitionInput.event.id }
             throw error
           }
           this.#retireWritePool(knex)
-          if (unknownCommit) return { status: 'indeterminate', transitionId: command.event.id }
+          if (unknownCommit)
+            return { status: 'indeterminate', transitionId: transitionInput.event.id }
           throw cleanupError
         }
-        if (unknownCommit) return { status: 'indeterminate', transitionId: command.event.id }
+        if (unknownCommit)
+          return { status: 'indeterminate', transitionId: transitionInput.event.id }
         // Under REPEATABLE READ or SERIALIZABLE defaults, a lost race fails with 40001/40P01
         // after a clean rollback; it is the same outcome as a revision mismatch.
         if (this.#client.dialect.name === 'postgres' && serializationFailure(error))

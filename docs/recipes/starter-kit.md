@@ -162,7 +162,7 @@ for the alternative.
 
 - `incarnation: 'id'` is safe because SQLite `AUTOINCREMENT` and PostgreSQL sequences never hand
   out a deleted ID again. If your database can reuse IDs, see
-  [identity and policy](../guide/setup.md#configure-persistent-identity-and-policy).
+  [identity and host callbacks](../guide/setup.md#configure-persistent-identity-and-host-callbacks).
 - `contextEnforcement: 'enforce'` is safe here because the starter kit has no forms on customer
   pages yet. In an app that already has them, start with `'report'`; see
   [Mark routes and forms](routes-and-forms.md).

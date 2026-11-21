@@ -161,6 +161,7 @@ export function accountKitAuthority<User>(
   return Object.freeze({
     authority,
     guard,
+    driverName: strategy,
     managedGuard,
     kit,
     provider,

@@ -93,7 +93,7 @@ test.group('Account Kit browser authentication', (group) => {
       const logoutResponse = page.waitForResponse(
         (response) => new URL(response.url()).pathname === '/kit/account/logout'
       )
-      await page.getByRole('button', { name: 'Log out' }).click()
+      await page.getByRole('button', { name: 'Sign out' }).click()
       const logout = await logoutResponse
       assert.equal(logout.status(), 204)
       await page.waitForURL('**/login')
@@ -172,10 +172,10 @@ test.group('Account Kit browser authentication', (group) => {
 
       const support = await signedInDisabledContext.newPage()
       await support.goto(`${baseUrl()}/support`)
-      assert.equal(await support.getByRole('button', { name: 'Log out' }).isDisabled(), true)
+      assert.equal(await support.getByRole('button', { name: 'Sign out' }).isDisabled(), true)
       assert.equal(await support.locator('noscript').first().isVisible(), true)
       const logoutExplanation = await support.locator('noscript').first().innerText()
-      assert.include(logoutExplanation.trim(), 'Enable JavaScript to log out of this demo.')
+      assert.include(logoutExplanation.trim(), 'Enable JavaScript to sign out of this demo.')
       const account = await signedInDisabledContext.newPage()
       await account.goto(`${baseUrl()}/support/account`)
       assert.equal(

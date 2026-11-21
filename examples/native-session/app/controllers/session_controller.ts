@@ -27,7 +27,7 @@ export default class SessionController {
   }
 
   /**
-   * Log out the current user and destroy their session
+   * Sign out the current user and destroy their session
    */
   async destroy({ auth, response }: HttpContext) {
     await auth.use('web').logout()

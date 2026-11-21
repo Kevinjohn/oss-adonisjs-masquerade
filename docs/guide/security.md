@@ -8,7 +8,7 @@ For a practical status → start → customer work → stop journey, see [Use a 
 ## Actor, target and scope
 
 Masquerade is one server-side mode per `(namespace, actor ID, incarnation)`. It is visible to all
-valid integrated sessions and authorized opaque tokens for that actor account. On each request the
+valid integrated sessions and authorised opaque tokens for that actor account. On each request the
 route-selected native guard still authenticates the actor; the effective guard returns the target
 to ordinary Auth and Bouncer code. The actor remains available separately for explicit policy and
 audit. Actor permissions are never added to target permissions. See the
@@ -33,7 +33,9 @@ control-store transition is accepted only when its audit event agrees with the o
 row, including the active target projection or the target being ended when the current row is
 active.
 
-## Authorization and route coverage
+<a id="authorization-and-route-coverage"></a>
+
+## Authorisation and route coverage
 
 `canMasquerade` is mandatory and deny-by-default. It approves an actor and target at start, then is
 rechecked for active business admission. A false result during active admission is a global
@@ -66,13 +68,13 @@ After context-token validation, active requests follow this order: `sensitive()`
 with `blockedBy: 'sensitive'`; an unsafe method without edit access blocks with
 `blockedBy: 'view_only'`; then an unsafe method without route or group `allowMutation()` blocks
 with `blockedBy: 'mutation_not_allowed'`. Only an unsafe edit-mode request on an opted-in route proceeds
-to the customer's ordinary authorization. GET, HEAD and OPTIONS remain reads in either access
-level, subject to `sensitive()` and ordinary target authorization. The view-only response does not reveal whether a route
+to the customer's ordinary authorisation. GET, HEAD and OPTIONS remain reads in either access
+level, subject to `sensitive()` and ordinary target authorisation. The view-only response does not reveal whether a route
 has `allowMutation()`. The host controls the error page, redirect or JSON response and its wording.
 
 This rule does not prove that a GET handler has no side effects. Password, credential, identity,
 recovery, security and billing mutations must carry `sensitive()`; the marker always wins over
-access and `allowMutation()`. The package does not infer billing or security behavior from a URL.
+access and `allowMutation()`. The package does not infer billing or security behaviour from a URL.
 The host owns this classification.
 
 Login, signup, logout and status/start/stop control routes use the explicitly selected raw actor
@@ -80,7 +82,7 @@ guard. They never run target business handlers. Each covered business route sele
 session or token guard; raw business routes remain coverage defects. Never combine distinct raw
 guards or fall back between cookie and bearer credentials. Use `masquerade:routes` to find
 raw-guard routes requiring review. Keep public and authentication routes outside effective mode
-admission and ensure they cannot dispatch business behavior.
+admission and ensure they cannot dispatch business behaviour.
 
 Route selection reads the named `auth` router middleware. A route authenticated another way, such
 as through middleware with a different name or a handler calling `auth.authenticate()` with no
@@ -175,7 +177,9 @@ is not a stale-form protection boundary. Inventory all rendered forms and client
 submission, verify the warnings have stopped, then switch to `enforce` before relying on stale
 intent rejection.
 
-## Duration, transition and recovery behavior
+<a id="duration-transition-and-recovery-behavior"></a>
+
+## Duration, transition and recovery behaviour
 
 The default duration is 900 seconds; the maximum is 3600 seconds and a host may narrow both. Expiry
 is fixed and does not slide with activity. At the deadline, a business request that discovers
@@ -216,7 +220,7 @@ target-controlled content and set a Content Security Policy before giving operat
 A request admitted before stop or expiry may finish. Masquerade cannot undo work already admitted,
 queued, sent to another service, or committed in a separate system. Jobs and downstream messages do
 not inherit a trusted effective context automatically. If a job needs actor/effective attribution,
-carry the safe `ResolvedContext` projection and apply the host's own authorization when it runs.
+carry the safe `ResolvedContext` projection and apply the host's own authorisation when it runs.
 Irreversible actions need host transaction-time guards where appropriate.
 
 Committed starts, stops, expiry and global invalidation have durable audit events. After native
@@ -224,7 +228,7 @@ authentication, CSRF and the control limiter succeed, admitted start/stop denial
 context conflicts and idle-stop no-ops are also recorded when the store is available. A start
 denial records the requested target ID and access, never an incarnation the authority returned. Authentication
 failures, pre-boundary CSRF/limiter rejections, status/business denials and local tenant denials use
-host diagnostics instead. A successful start audit stores its normalized reason, or none when the reason policy is optional
+host diagnostics instead. A successful start audit stores its normalised reason, or none when the reason policy is optional
 and no reason was given. Set `reason: 'required'` when compliance needs a justification for every
 start. Denied or invalid
 control attempts omit the reason. Do not use reasons as case notes; avoid secrets and unnecessary

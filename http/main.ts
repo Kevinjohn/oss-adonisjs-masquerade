@@ -1,7 +1,7 @@
 export { MasqueradeController } from './controllers.js'
 export { masqueradeRoutes } from './control_routes.js'
 export type { MasqueradeRoutesOptions } from './control_routes.js'
-export { masqueradeContext } from './context_middleware.js'
+export { default, MasqueradeContextMiddleware, masqueradeContext } from './context_middleware.js'
 export { renderMasqueradeError } from './errors.js'
 export { contextField, shareMasquerade } from './edge.js'
 export { masqueradeAuditFields } from './audit_fields.js'

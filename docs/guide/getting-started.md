@@ -8,7 +8,7 @@ credential, or inherit the actor's permissions.
 
 The mode is stored once per actor account and authority namespace. Every valid integrated session
 and token with the configured ability sees the same mode, so logging out one browser does not stop
-another authorized credential from using it. A mode has a fixed deadline. Forms and other unsafe requests carry a context token that
+another authorised credential from using it. A mode has a fixed deadline. Forms and other unsafe requests carry a context token that
 records the mode revision when the user's intent was created. If that token is missing or stale,
 refresh the page and deliberately rebuild the action; never replace the token and replay the old
 intent automatically.
@@ -39,9 +39,9 @@ and the other words used below.
 
 1. **Preserve native authentication.** Keep the existing provider instance and raw session guard
    for login, logout, and Masquerade controls. Add the effective guard alongside it; do not replace
-   unrelated guards or provider behavior. The complete generated-file review is in
+   unrelated guards or provider behaviour. The complete generated-file review is in
    [Install and configure](setup.md#reuse-the-session-user-provider).
-2. **Configure identity and security policy.** Review the generated namespace, guard,
+2. **Configure identity and host callbacks.** Review the generated namespace, guard,
    `incarnation`, `securityStamp`, `isActive`, and store. The default `node ace configure`
    scaffolding requires `@adonisjs/assembler` and `@adonisjs/lucid` to be installed and importable,
    even when you later choose another store. On a starter-kit-shaped host, configure also adds
@@ -52,9 +52,9 @@ and the other words used below.
    actor-target pair at start and on every active admission. Decide what persisted security epoch
    changes invalidate all modes, and how target account-wide eligibility is checked. Add
    `canUseRequest` only for request-local rules such as tenant or route access. Do not use a
-   permissive placeholder. See [Configure persistent identity and policy](setup.md#configure-persistent-identity-and-policy).
+   permissive placeholder. See [Configure persistent identity and host callbacks](setup.md#configure-persistent-identity-and-host-callbacks).
 4. **Apply the migration and wire admission.** Run the migration using the host's normal process.
-   Put context middleware after Auth initialization and before middleware that calls `auth.check()`.
+   Put context middleware after Auth initialisation and before middleware that calls `auth.check()`.
    Keep controls on the raw actor guard and business routes on the effective guard. Preserve
    Shield CSRF and host rate limits on state-changing controls.
 5. **Add context to every covered unsafe client.** Edge forms include the rendered token; clients

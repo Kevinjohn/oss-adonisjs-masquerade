@@ -117,5 +117,5 @@ test('a new security stamp ends the mode', async ({ client }) => {
 The `masquerading()` helper starts and stops around one request, so this test drives the control
 routes directly to change the account between requests.
 
-More detail: [choosing stamp fields](../guide/setup.md#configure-persistent-identity-and-policy)
+More detail: [choosing stamp fields](../guide/setup.md#configure-persistent-identity-and-host-callbacks)
 and [custom authorities](../guide/custom-authorities.md).

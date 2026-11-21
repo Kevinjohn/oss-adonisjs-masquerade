@@ -67,7 +67,7 @@ test.group('Inertia Vue browser journey', (group) => {
     await page.getByRole('button', { name: 'Stop support mode' }).waitFor()
     await page.getByRole('button', { name: 'Stop support mode' }).press('Enter')
     await page.getByRole('button', { name: 'Start support mode' }).waitFor()
-    await page.getByRole('button', { name: 'Log out' }).click()
+    await page.getByRole('button', { name: 'Sign out' }).click()
     await page.waitForURL('**/login')
   })
 

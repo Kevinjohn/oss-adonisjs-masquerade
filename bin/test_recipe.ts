@@ -4,6 +4,7 @@ import { cp, mkdir, mkdtemp, readFile, rm, writeFile } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { join, relative, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
+import { formTokenMutation } from './helpers/recipe_mutations.js'
 
 const root = fileURLToPath(new URL('../', import.meta.url))
 const template = join(root, 'examples/recipe-host')
@@ -229,7 +230,7 @@ async function expectBrokenJourney(
 ): Promise<void> {
   const destination = join(app, path)
   const original = await readFile(destination, 'utf8')
-  requireRecipe(original.includes(originalText), `${label} mutation seam`)
+  requireRecipe(original.split(originalText).length === 2, `${label} mutation seam`)
   await writeFile(destination, original.replace(originalText, brokenText))
   try {
     let expectedFailure = false
@@ -472,10 +473,10 @@ try {
       await expectBrokenJourney(
         app,
         'app/controllers/masquerade_form_controller.ts',
-        'const hidden = body._masqueradeContext',
-        'const hidden = body.contextToken',
+        formTokenMutation.original,
+        formTokenMutation.replacement,
         'form token',
-        'recipe form start',
+        formTokenMutation.expectedAssertion,
         env
       )
       await expectBrokenJourney(

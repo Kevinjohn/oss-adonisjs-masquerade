@@ -59,4 +59,4 @@ devices.
 The snapshot stamp is an opaque, non-empty string of at most 512 UTF-8 bytes. Do not return a
 constant, a read-time timestamp, or a value derived from only some of the security-sensitive
 account state. See [security and operations](security.md#actor-target-and-scope) for the broader
-stamp and session behavior.
+stamp and session behaviour.

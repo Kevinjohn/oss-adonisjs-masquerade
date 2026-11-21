@@ -44,6 +44,7 @@ if (process.env.TEST_BUILT_EXPORTS === '1') {
     assert.isFunction(accountKitProvider.default)
     assert.isFunction(accountKitMiddleware.default)
     assert.isFunction(accountKitMiddleware.AccountKitAccountBlocker)
+    assert.equal(http.default, http.MasqueradeContextMiddleware)
     for (const name of [
       'MasqueradeController',
       'masqueradeRoutes',

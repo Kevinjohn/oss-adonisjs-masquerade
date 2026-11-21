@@ -15,7 +15,7 @@ The owner key is the complete tuple `(namespace, actorId, actorIncarnation)`. Tr
 
 Each mode row stores `access` as nullable `string(8)`: active rows use `'view'` or `'edit'`, while idle rows use `null`. Audit events also store a nullable `access` column. An event written from an active row must carry that row's access level; events without an active row omit the field and persist `NULL`. Validate this projection alongside the event's target and transition identity.
 
-| Operation                        | Required behavior                                                                                                                                                                     |
+| Operation                        | Required behaviour                                                                                                                                                                    |
 | -------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `read(owner)`                    | Return an independent snapshot for the complete owner key, or `null` as authoritative absence. Mutating a returned object must not mutate stored state.                               |
 | `compareAndSet(input)`           | Compare `expected` with the current revision (`null` means no row), and atomically commit `next` plus its matching event. A failed comparison returns `conflict` and changes neither. |
@@ -100,11 +100,11 @@ test('database store satisfies the ControlStore contract', async () => {
 
 Replace the fixture helpers and adapter import with your application's equivalents. The factory is called once per suite run and must return a clean, isolated store. The exported `MemoryControlStore` is useful for tests, but it is an in-process test utility (`testOnly: true`), not a production persistence choice. Its direct malformed-input validation is not a promise that every malformed input is handled identically by a production adapter; implement canonical validation at your adapter boundary.
 
-The conformance suite checks observable contract behavior, including owner isolation, detached reads, competing CAS calls, revision/event agreement, control outcomes, expiry snapshots, and bounded pruning. A pass does not establish database isolation or behavior under independent connections. Add adapter-level tests for the database guarantees your implementation relies on, at least:
+The conformance suite checks observable contract behaviour, including owner isolation, detached reads, competing CAS calls, revision/event agreement, control outcomes, expiry snapshots, and bounded pruning. A pass does not establish database isolation or behaviour under independent connections. Add adapter-level tests for the database guarantees your implementation relies on, at least:
 
 - simultaneous CAS through independent connections, including insert-if-absent and update races, with exactly one winner and its event;
 - transaction rollback when row or event writes fail, including duplicate-event and constraint failures;
-- driver-specific busy, deadlock, retry and commit-acknowledgement failure behavior, proving that safe retries retain the same transition ID and uncertain commits return `indeterminate`;
+- driver-specific busy, deadlock, retry and commit-acknowledgement failure behaviour, proving that safe retries retain the same transition ID and uncertain commits return `indeterminate`;
 - concurrent expiry cleanup and start/stop so an old batch cannot clear a newer mode;
 - any database-specific row decoding and revision limits, such as safe parsing of PostgreSQL `BIGINT` values.
 

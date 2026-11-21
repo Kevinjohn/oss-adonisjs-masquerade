@@ -172,7 +172,7 @@ export default class MasqueradeNativeProvider {
 }
 ```
 
-Replace the sample model fields and policy with the host's persisted identity and authorization
+Replace the sample model fields and policy with the host's persisted identity and authorisation
 rules. `AccountAdmission` is the service from the host's Account Kit admission provider; it reads
 the same admission configuration used by Account Kit's route middleware.
 
@@ -193,7 +193,7 @@ For **actor admission**, resolve `AccountAdmission` from
 `@kevinjohn/adonisjs-account-kit/admission` and gate the host's Masquerade control and business routes before
 the global `masqueradeContext` middleware. A route-level `admissionMiddleware` is too late when
 `masqueradeContext` runs globally first: active admission can read or invalidate the mode before the
-route middleware runs. Use a host global middleware after Auth initialization, scoped to the
+route middleware runs. Use a host global middleware after Auth initialisation, scoped to the
 explicitly named control and protected business routes. Keep Account Kit's own limited routes and
 public authentication flows outside that scope. The example below wraps Account Kit's
 `admissionMiddleware` and uses route-name prefixes; change the prefixes to match the routes your
@@ -235,8 +235,8 @@ resume after approval if no other condition changed. Use `changeRestriction` whe
 must also advance the account revision and invalidate the mode.
 
 For **target admission**, call `(await app.container.make(AccountAdmission)).isAdmitted(target.id)`
-from the host's `canMasquerade` policy. Masquerade checks that policy at start and during every
-active admission, so a target whose admission is revoked is denied. Do not put the admission lookup
+from the host's `canMasquerade` callback. Masquerade request checks call it at start and during every
+active mode admission, so a target whose Account Kit admission is revoked is denied. Do not put the admission lookup
 in `canAccess`.
 
 ## Install the provider and blocker
@@ -251,7 +251,7 @@ must run after session setup and `initialize_auth`, and before application middl
 registration does not match.
 
 Register the provider after Account Kit and Masquerade's core provider, and put the middleware after
-Auth initialization in the global router stack:
+Auth initialisation in the global router stack:
 
 ```ts
 // adonisrc.ts: providers excerpt
@@ -350,7 +350,7 @@ router.post('/logout', [controllers.Session, 'destroy']).use(middleware.auth({ g
 
 Keep session setup and `initialize_auth` before this middleware. Host account routes must select
 the adapter's raw guard, so `masqueradeContext` does not perform effective business admission first.
-Retain the host's ordinary authentication, account-access and authorization checks: the blocker
+Retain the host's ordinary authentication, account-access and authorisation checks: the blocker
 only prevents operations while a mode is active, and passes unauthenticated requests through.
 
 Include password, email, profile, social linking and unlinking, invitation management, session
@@ -382,7 +382,7 @@ The check neither clears nor extends mode and does not call Account Kit `current
 Apply this middleware only to the account routes you intend to block. Keep native logout, CSRF
 bootstrap, Masquerade status/start/stop controls and effective business routes outside its groups;
 it has no route-name exemptions of its own. The global blocker's managed logout and CSRF exemptions
-continue to apply. Hosts that do not install the named middleware keep their existing behavior.
+continue to apply. Hosts that do not install the named middleware keep their existing behaviour.
 
 ## Review the route report
 
@@ -390,7 +390,7 @@ Run `node ace masquerade:routes` after routes are registered. Account Kit routes
 managed and blocked only when the provider has verified the blocker. If the blocker is absent or
 unverified, the routes remain `UNCLASSIFIED` with an explanatory note. Review that report alongside
 the [route coverage guide](route-report.md); host-owned routes using the named blocker are not classified as managed Account Kit routes. The
-report does not replace review of host middleware or route behavior.
+report does not replace review of host middleware or route behaviour.
 
 ## Database and verification boundary
 

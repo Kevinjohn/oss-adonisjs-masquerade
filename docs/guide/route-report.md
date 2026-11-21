@@ -33,30 +33,30 @@ supported. For example:
 ```
 
 Treat an unmarked host route as unverified for this blocker. Inspect wrappers and unresolved
-middleware manually. The label confirms registration; review execution order and behavior in the host.
+middleware manually. The label confirms registration; review execution order and behaviour in the host.
 
 ## Coverage labels
 
-- `CONTROL` means the report positively recognized a Masquerade controller handler. Check that the
+- `CONTROL` means the report positively recognised a Masquerade controller handler. Check that the
   route is mounted on the intended raw session guard and has the host protections required for that
   endpoint. A package control route behind an effective guard is flagged with a reminder to use the
   raw guard. The controller also fails closed with `E_MASQUERADE_UNAVAILABLE` if the selected guard
   is not raw.
-- `POSSIBLE CONTROL (name-inferred; review handler)` means the host assigned an exact recognized
+- `POSSIBLE CONTROL (name-inferred; review handler)` means the host assigned an exact recognised
   route name such as `logout`, `auth.logout`, or `session.logout`. The report inferred intent from
-  the name; it did not recognize the handler. A business or export handler with one of these names
+  the name; it did not recognise the handler. A business or export handler with one of these names
   remains visible as a possible control until reviewed.
 - `RAW-GUARD BUSINESS` means the route uses the raw actor guard or another non-effective guard and
-  was not recognized as a control. Confirm that it is an intentional control or move business work
+  was not recognised as a control. Confirm that it is an intentional control or move business work
   behind the effective guard.
 - `BUSINESS` means the route uses an effective guard. Review its `sensitive` and `allowMutation`
   markers against the operations it performs. `allowMutation()` identifies routes that may accept
-  ordinary writes in edit mode; it does not grant edit access or target authorization. View mode
+  ordinary writes in edit mode; it does not grant edit access or target authorisation. View mode
   blocks unsafe actions before route configuration is disclosed.
-- `UNCLASSIFIED` means the route has no recognized auth guard metadata. Decide whether it should be
+- `UNCLASSIFIED` means the route has no recognised auth guard metadata. Decide whether it should be
   public, authenticated with the effective guard, or an intentional raw-guard control. On such a
   route the effective guard returns the actor and no mode checks run; see
-  [security](security.md#authorization-and-route-coverage).
+  [security](security.md#authorisation-and-route-coverage).
 
 The `unresolved handler` flag means a possible controller reference could not be loaded or resolved
 by the report. The `unsupported mixed effective/non-effective guards` flag means one route lists
@@ -70,10 +70,10 @@ For each `POSSIBLE CONTROL`, inspect the registered handler and confirm whether 
 login, logout, signup, or other host control action. Do not rely on its route name or URL. Resolve
 every effective-guard flag on a package control route by mounting it with its raw actor guard. For
 each `RAW-GUARD BUSINESS` and `UNCLASSIFIED` entry, trace the handler and choose the intended guard
-based on the work it performs. For every `CONTROL` entry, confirm the recognized package handler,
+based on the work it performs. For every `CONTROL` entry, confirm the recognised package handler,
 raw guard, and the host's route protections. Resolve unresolved and mixed-guard flags before
 treating coverage review as complete.
 
-The report does not change authentication behavior, validate arbitrary middleware semantics, or
+The report does not change authentication behaviour, validate arbitrary middleware semantics, or
 prove that a route name describes its handler. Review the application route definitions and
 middleware alongside the report as a release check.
