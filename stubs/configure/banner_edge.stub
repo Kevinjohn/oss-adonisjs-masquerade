@@ -1,5 +1,5 @@
 {{{
-  exports({ to: app.makePath('resources/views/components/masquerade/banner.edge') })
+  exports({ to: app.viewsPath('components/masquerade/banner.edge') })
 }}}
 @if(masquerade && masquerade.isMasquerading)
   <aside class="masquerade-banner" role="status" aria-live="polite">

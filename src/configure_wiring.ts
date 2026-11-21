@@ -5,8 +5,8 @@ import { access, readFile } from 'node:fs/promises'
 type Project = CodeTransformer['project']
 type SourceFile = NonNullable<ReturnType<Project['addSourceFileAtPathIfExists']>>
 
-/** Outcome of one mechanical wiring step; `skipped` leaves the file unchanged. */
-export type WiringOutcome = 'wired' | 'already' | 'skipped'
+/** Result of one mechanical wiring step; `skipped` leaves the file unchanged. */
+export type WiringResult = 'wired' | 'already' | 'skipped'
 
 type Codemods = Awaited<ReturnType<Configure['createCodemods']>>
 type WireHostOptions = { banner: boolean; formController: boolean }
@@ -20,13 +20,13 @@ export async function wireHost(
   codemods: Codemods,
   guard: string,
   { banner, formController }: WireHostOptions
-): Promise<Record<'auth' | 'kernel' | 'routes' | 'status', WiringOutcome>> {
+): Promise<Record<'auth' | 'kernel' | 'routes' | 'status', WiringResult>> {
   const project =
     typeof codemods.getTsMorphProject === 'function'
       ? await codemods.getTsMorphProject()
       : undefined
   if (!project) return { auth: 'skipped', kernel: 'skipped', routes: 'skipped', status: 'skipped' }
-  const attempt = async (path: string, edit: () => Promise<WiringOutcome>) => {
+  const attempt = async (path: string, edit: () => Promise<WiringResult>) => {
     try {
       return await edit()
     } catch (error) {
@@ -34,23 +34,23 @@ export async function wireHost(
       return 'skipped' as const
     }
   }
-  const authPath = command.app.makePath('config/auth.ts')
-  const kernelPath = command.app.makePath('start/kernel.ts')
+  const authPath = command.app.configPath('auth.ts')
+  const kernelPath = command.app.startPath('kernel.ts')
   // The kernel goes first: switching the default guard without the context middleware would leave
   // view-only and sensitive() unenforced, so auth is wired only once the middleware is in place.
-  const kernel = await attempt('start/kernel.ts', () => wireContextMiddleware(project, kernelPath))
+  const kernel = await attempt(kernelPath, () => wireContextMiddleware(project, kernelPath))
   const auth =
     kernel === 'skipped'
       ? 'skipped'
-      : await attempt('config/auth.ts', () => wireAuthGuards(project, authPath, guard))
+      : await attempt(authPath, () => wireAuthGuards(project, authPath, guard))
   const status =
     banner && kernel !== 'skipped'
-      ? await attempt('start/kernel.ts', () => wireStatusMiddleware(project, kernelPath))
+      ? await attempt(kernelPath, () => wireStatusMiddleware(project, kernelPath))
       : 'skipped'
   const routes =
     auth === 'skipped' || kernel === 'skipped'
       ? 'skipped'
-      : await attempt('start/masquerade_routes.ts', () =>
+      : await attempt(command.app.startPath('masquerade_routes.ts'), () =>
           wireControlRoutes(command, codemods, guard, kernelPath, formController)
         )
   return { auth, kernel, routes, status }
@@ -63,8 +63,8 @@ async function wireControlRoutes(
   guard: string,
   kernelPath: string,
   formController: boolean
-): Promise<WiringOutcome> {
-  if (!(await exists(command.app.makePath('config/limiter.ts')))) return 'skipped'
+): Promise<WiringResult> {
+  if (!(await exists(command.app.configPath('limiter.ts')))) return 'skipped'
   if (!/\bauth:\s*\(\)\s*=>\s*import\(/.test(await readFile(kernelPath, 'utf8'))) return 'skipped'
   const state = { guardQuoted: `'${guard}'` }
   const results = [
@@ -104,6 +104,12 @@ const editorSettings = {
 
 const contextMiddleware = "() => import('#middleware/masquerade_context_middleware')"
 const statusMiddleware = "() => import('#middleware/share_masquerade_status_middleware')"
+
+function isContextMiddleware(entry: string): boolean {
+  return /^\s*(?:async\s+)?\(\s*\)\s*=>\s*import\s*\(\s*(['"])(?:#middleware\/masquerade_context_middleware|@kevinjohn\/adonisjs-masquerade\/http)\1\s*\)\s*$/.test(
+    entry
+  )
+}
 
 // Minimal views of the ts-morph nodes these edits touch; the package does not depend on ts-morph.
 interface AstNode {
@@ -246,7 +252,7 @@ function hasNamedImportBinding(file: SourceFile, moduleSpecifier: string, name: 
 export async function wireContextMiddleware(
   project: Project,
   kernelPath: string
-): Promise<WiringOutcome> {
+): Promise<WiringResult> {
   const file = project.addSourceFileAtPathIfExists(kernelPath)
   if (!file) return 'skipped'
   const stacks = file
@@ -259,7 +265,7 @@ export async function wireContextMiddleware(
   const entries = list.getElements().map((entry) => entry.getText())
   const contexts = entries
     .map((entry, index) => ({ entry, index }))
-    .filter(({ entry }) => entry.includes('#middleware/masquerade_context_middleware'))
+    .filter(({ entry }) => isContextMiddleware(entry))
   const initializers = entries
     .map((entry, index) => ({ entry, index }))
     .filter(({ entry }) => entry.includes("'@adonisjs/auth/initialize_auth_middleware'"))
@@ -280,7 +286,7 @@ export async function wireContextMiddleware(
 export async function wireStatusMiddleware(
   project: Project,
   kernelPath: string
-): Promise<WiringOutcome> {
+): Promise<WiringResult> {
   const file = project.addSourceFileAtPathIfExists(kernelPath)
   if (!file) return 'skipped'
   const stacks = file
@@ -293,9 +299,7 @@ export async function wireStatusMiddleware(
   const entries = list.getElements().map((entry) => entry.getText())
   if (entries.some((entry) => entry.includes('#middleware/share_masquerade_status_middleware')))
     return 'already'
-  const context = entries.findIndex((entry) =>
-    entry.includes('#middleware/masquerade_context_middleware')
-  )
+  const context = entries.findIndex(isContextMiddleware)
   const silent = entries.findIndex((entry) => entry.includes('silent_auth_middleware'))
   if (context === -1 || (silent !== -1 && silent < context)) return 'skipped'
   list.insertElement((silent === -1 ? context : silent) + 1, statusMiddleware)
@@ -326,7 +330,7 @@ export async function wireAuthGuards(
   project: Project,
   authPath: string,
   guard: string
-): Promise<WiringOutcome> {
+): Promise<WiringResult> {
   const file = project.addSourceFileAtPathIfExists(authPath)
   if (!file) return 'skipped'
   const declaration = file.getVariableDeclaration('authConfig')

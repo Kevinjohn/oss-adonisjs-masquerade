@@ -57,7 +57,7 @@ export async function assertControlStoreConformance(
     revisionNonce: 'b'.repeat(32),
     lastTransitionId: competitorId,
   }
-  const commands = await Promise.all([
+  const results = await Promise.all([
     store.compareAndSet({ owner, expected: null, next: started, event }),
     store.compareAndSet({
       owner,
@@ -66,13 +66,13 @@ export async function assertControlStoreConformance(
       event: { ...event, id: competitorId, modeId: competitorModeId },
     }),
   ])
-  assert.equal(commands.filter((result) => result.status === 'applied').length, 1)
-  assert.equal(commands.filter((result) => result.status === 'conflict').length, 1)
-  for (const [index, result] of commands.entries())
+  assert.equal(results.filter((result) => result.status === 'applied').length, 1)
+  assert.equal(results.filter((result) => result.status === 'conflict').length, 1)
+  for (const [index, result] of results.entries())
     if (result.status === 'applied')
       assert.equal(result.transitionId, index === 0 ? event.id : competitorId)
   const winner = (await store.read(owner))!
-  const winningIndex = commands.findIndex((result) => result.status === 'applied')
+  const winningIndex = results.findIndex((result) => result.status === 'applied')
   assert.deepEqual(winner, winningIndex === 0 ? started : competitor)
   assert.equal(winner.revision, 1)
   winner.revision = 99

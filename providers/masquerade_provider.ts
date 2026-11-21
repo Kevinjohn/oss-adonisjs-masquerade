@@ -3,6 +3,8 @@ import type { ApplicationService } from '@adonisjs/core/types'
 import { controlRouteGuards } from '../src/integration/control_route_guards.js'
 import { createRuntime, runtimeConfiguration } from '../src/integration/runtime_factory.js'
 import type { RuntimeConfiguration } from '../src/integration/runtime_factory.js'
+// A side-effect import is retained in the emitted declaration, unlike a type-only empty import.
+import '../src/integration/events.js'
 
 /** Validate the complete configured runtime at boot; request auth never reads state on raw routes. */
 export default class MasqueradeProvider {

@@ -18,7 +18,7 @@ const screenshots = resolve('tmp/browser')
 const operator = demoAccounts[0]
 const customer = demoAccounts[1]
 
-test.group('Account Kit profile policy browser journey', (group) => {
+test.group('Account Kit profile write restrictions browser journey', (group) => {
   let before: DemoBrowserState | undefined
   group.setup(() => testUtils.db().migrate())
   group.each.setup(async () => {

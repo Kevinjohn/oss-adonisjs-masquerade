@@ -5,7 +5,7 @@ page and back. It uses the native-session integration: the operator remains auth
 `web` guard while the `web_effective` guard resolves the customer as the effective account. The
 customer never signs in, and the operator's permissions are never added to the customer's.
 
-Install and configure the provider, raw and effective guards, policy, session, and Shield first as
+Install and configure the provider, raw and effective guards, host callbacks, session, and Shield first as
 described in [Install and configure](setup.md). Keep login, logout, and support controls on the raw
 actor guard. Keep customer business routes on the effective guard. See the
 [API entry-point map](https://kevinjohn.github.io/oss-adonisjs-masquerade/reference/index#supported-package-imports) for the HTTP entry point,
@@ -77,7 +77,7 @@ export const stopMasqueradeLimiter = limiter.define('masquerade_stop', (ctx) => 
 ```
 
 The actor-owned target chooser is a host query over accounts eligible for support. Do not expose
-all account IDs and rely on the submitted ID alone: start policy checks eligibility again. For
+all account IDs and rely on the submitted ID alone: the start callback checks eligibility again. For
 example, the checked-in native-session demo filters active seeded customers for operator accounts.
 Display a host-owned label (such as a name and email), not an internal identifier as the choice
 label.
@@ -115,7 +115,7 @@ like this:
 ```
 
 Omitting `access` selects view. Choose **Can edit** deliberately in the start form and send
-`access: 'edit'` when the host's `canEdit` policy permits it. The level stays fixed until stop;
+`access: 'edit'` when the host's `canEdit` callback permits it. The level stays fixed until stop;
 restart to choose another level. See the [access contract](https://github.com/Kevinjohn/oss-adonisjs-masquerade/blob/main/docs/maintainers/design/spec-masquerade.md#14-view-only-default-and-per-start-edit-access-accepted-22-october-2026).
 
 The default duration is 900 seconds and the default maximum is 3600 seconds. A host can configure
@@ -128,8 +128,8 @@ deadline on later requests.
 A reason is optional by default: an absent or blank reason starts the mode and the audit stores
 none, so a start form can be a single button. Set `reason: 'required'` in `config/masquerade.ts`
 when every start must be justified; a start without a reason is then rejected. A supplied reason
-is trimmed and CRLF line endings are normalized to LF. LF and TAB are the only control characters
-permitted inside the normalized reason. It must contain 1–500 Unicode code points and no more than
+is trimmed and CRLF line endings are normalised to LF. LF and TAB are the only control characters
+permitted inside the normalised reason. It must contain 1–500 Unicode code points and no more than
 2,000 UTF-8 bytes. Invalid input is rejected, never truncated. Keep secrets and unnecessary
 personal information out of the reason.
 
@@ -152,7 +152,7 @@ view does not contain the reason, actor or target model, stamps, or raw revision
 as a hidden concurrency value, not something to display. A persisted active row is usable only
 while `expiresAt` is strictly later than the current time. Status is read-only; an expired row can
 still appear active until business admission or cleanup handles it. See
-[Security and operations](security.md#duration-transition-and-recovery-behavior) for that boundary.
+[Security and operations](security.md#duration-transition-and-recovery-behaviour) for that boundary.
 
 Custom server-side status screens can call `service.resolveView(request)` to use the same snapshot
 as business admission. If the request expires or invalidates a mode and commits that transition,

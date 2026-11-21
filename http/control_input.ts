@@ -1,12 +1,11 @@
 import type { HttpContext } from '@adonisjs/core/http'
-import type { StartInput } from '../src/types.js'
 
 const BODY_LIMIT = 8 * 1024
 
 /** Parse start control input while leaving invalid-shape handling to the service audit boundary. */
-export function requireStartControl(ctx: HttpContext): StartInput {
+export function requireStartControl(ctx: HttpContext, formOnly = false): Record<string, unknown> {
   const body = readControlBody(ctx)
-  if (!body || !isWithinBodyLimit(ctx)) return invalidStartInput()
+  if (!body || (formOnly && !isForm(ctx)) || !isWithinBodyLimit(ctx)) return invalidInput()
   if (
     Object.keys(body).some(
       (key) =>
@@ -20,27 +19,27 @@ export function requireStartControl(ctx: HttpContext): StartInput {
         ].includes(key)
     )
   )
-    return invalidStartInput()
+    return invalidInput()
   const expectedContext = controlToken(ctx, body)
   const durationSeconds = formDuration(ctx, body.durationSeconds)
   // The body parser turns blank form fields into null; a blank optional field takes its default.
   // JSON null stays explicit input, which core validation rejects.
   const absent = (value: unknown) => value === undefined || (value === null && isForm(ctx))
   return {
-    targetId: body.targetId as unknown as StartInput['targetId'],
-    reason: body.reason as unknown as StartInput['reason'],
-    ...(absent(body.access) ? {} : { access: body.access as unknown as StartInput['access'] }),
+    targetId: body.targetId,
+    reason: body.reason,
+    ...(absent(body.access) ? {} : { access: body.access }),
     ...(absent(body.durationSeconds) ? {} : { durationSeconds }),
     expectedContext: expectedContext ?? '',
   }
 }
 
 /** Parse stop control input while leaving invalid-shape handling to the service audit boundary. */
-export function requireStopControl(ctx: HttpContext): { expectedContext: string } {
+export function requireStopControl(ctx: HttpContext, formOnly = false): Record<string, unknown> {
   const body = readControlBody(ctx)
-  if (!body || !isWithinBodyLimit(ctx)) return invalidStopInput()
+  if (!body || (formOnly && !isForm(ctx)) || !isWithinBodyLimit(ctx)) return invalidInput()
   if (Object.keys(body).some((key) => !['_masqueradeContext', '_csrf'].includes(key)))
-    return invalidStopInput()
+    return invalidInput()
   return { expectedContext: controlToken(ctx, body) ?? '' }
 }
 
@@ -67,12 +66,12 @@ function isForm(ctx: HttpContext): boolean {
 }
 
 /** Form parsers expose numbers as strings; accept only canonical safe integer strings. */
-function formDuration(ctx: HttpContext, value: unknown): StartInput['durationSeconds'] {
+function formDuration(ctx: HttpContext, value: unknown): unknown {
   if (!isForm(ctx) || typeof value !== 'string' || !/^(0|[1-9][0-9]*)$/.test(value))
     // Preserve noncanonical and JSON values so core runtime validation rejects them unchanged.
-    return value as unknown as StartInput['durationSeconds']
+    return value
   const number = Number(value)
-  return Number.isSafeInteger(number) ? number : (value as unknown as StartInput['durationSeconds'])
+  return Number.isSafeInteger(number) ? number : value
 }
 
 function readControlBody(ctx: HttpContext): Record<string, unknown> | null {
@@ -95,11 +94,6 @@ function rejectedContextToken(): string {
 }
 
 /** Deliberately malformed core input makes the service write its normal denied-outcome audit. */
-function invalidStartInput(): StartInput {
-  return { __invalidHttpInput: true } as unknown as StartInput
-}
-
-/** Deliberately malformed core input makes the service write its normal denied-outcome audit. */
-function invalidStopInput(): { expectedContext: string } {
-  return { __invalidHttpInput: true } as unknown as { expectedContext: string }
+function invalidInput(): Record<string, unknown> {
+  return { __invalidHttpInput: true }
 }

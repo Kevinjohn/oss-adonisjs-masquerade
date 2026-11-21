@@ -6,7 +6,7 @@ import {
   createLogNotifications,
   defineConfig,
 } from '@kevinjohn/adonisjs-account-kit'
-import { mapProfileFields } from '#validators/account_kit_profile'
+import { mapProfileFields } from '#services/account_kit_profile_input'
 
 const baseUrl = env.get('APP_URL')
 const loadUser = async () => {

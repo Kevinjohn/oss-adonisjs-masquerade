@@ -1,10 +1,20 @@
 import type { HttpContext } from '@adonisjs/core/http'
+import type { NextFn } from '@adonisjs/core/types/http'
 import { errors } from '@adonisjs/auth'
 import { MasqueradeError } from '../src/errors.js'
 import { requireContext } from '../src/context_token.js'
 import { runtimeFor } from '../src/integration/runtime.js'
 import { markContextEnforced } from '../src/integration/context_enforcement.js'
 import { hasAuthMiddleware, routeGuards, routeMarkers } from '../src/integration/route_metadata.js'
+
+/** Register after initialize_auth and before silent_auth on the host router. */
+export class MasqueradeContextMiddleware {
+  /** Enforce the same context marker and route requirements as `masqueradeContext`. */
+  handle(ctx: HttpContext, next: NextFn) {
+    return masqueradeContext(ctx, next)
+  }
+}
+export default MasqueradeContextMiddleware
 
 /** Enforce context freshness and active-mode route policy on effective-guard routes. */
 export async function masqueradeContext(

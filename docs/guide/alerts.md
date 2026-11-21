@@ -34,23 +34,17 @@ MASQUERADE_ALERT_WEBHOOK_URL: Env.schema.string.optional({ format: 'url', tld: f
 
 Save the module as `start/masquerade_alerts.ts` and add `() => import('#start/masquerade_alerts')`
 to `preloads` in `adonisrc.ts`. The same file type-checks in the native-session example.
+The current source supplies the event augmentation from the package provider. If using release
+0.4.3, retain the explicit event augmentation described in [audit](audit.md).
 
 <!-- host-recipe:masquerade-alerts -->
 
 ```ts
 import type { ObserverEvent } from '@kevinjohn/adonisjs-masquerade/types'
+import type {} from '@kevinjohn/adonisjs-masquerade/masquerade_provider'
 import emitter from '@adonisjs/core/services/emitter'
 import logger from '@adonisjs/core/services/logger'
 import env from '#start/env'
-
-declare module '@adonisjs/core/types' {
-  interface EventsList {
-    'masquerade:started': ObserverEvent
-    'masquerade:stopped': ObserverEvent
-    'masquerade:expired': ObserverEvent
-    'masquerade:invalidated': ObserverEvent
-  }
-}
 
 const webhookUrl = env.get('MASQUERADE_ALERT_WEBHOOK_URL')
 

@@ -39,6 +39,7 @@ export type AccessTokensAuthorityOptions<User> =
 export interface NativeAccessTokensAdapter<User = unknown> extends NativeRuntimeAdapter {
   readonly authority: NativeAuthority<User>
   readonly guard: string
+  readonly driverName?: 'access_tokens'
   /**
    * Authenticate through the raw access-tokens guard; `E_UNAUTHORIZED_ACCESS` passes through.
    *
@@ -141,6 +142,7 @@ export function accessTokensAuthority<User>(
   return Object.freeze({
     authority,
     guard,
+    driverName: 'access_tokens' as const,
     async authenticateActor(ctx: HttpContext) {
       let raw: GuardContract<User & { currentAccessToken?: { allows(ability: string): unknown } }>
       try {

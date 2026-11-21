@@ -1,5 +1,6 @@
 import { InvalidArgumentsException } from '@adonisjs/core/exceptions'
 import type {} from '@adonisjs/auth/auth_provider'
+import type { GuardContract } from '@adonisjs/auth/types'
 import type { HttpContext } from '@adonisjs/core/http'
 import type { ApplicationService } from '@adonisjs/core/types'
 import { defineConfig } from '../define_config.js'
@@ -8,29 +9,28 @@ import { admission } from '../request_admission.js'
 import { activeMode } from '../active_mode.js'
 import { actorIdentity } from '../actor_identity.js'
 import type { RequestAdmission } from '../request_admission.js'
-import type { MasqueradeConfig, ObserverEvent, OwnerKey } from '../types.js'
+import type { MasqueradeConfig, OwnerKey } from '../types.js'
 import type { NativeRuntimeAdapter } from './native_binding.js'
 import type { MasqueradeRuntime } from './runtime.js'
-import { effectiveFactoryRawGuard, isEffectiveFactory } from './guard_registration.js'
+import {
+  effectiveFactoryDriver,
+  effectiveFactoryRawGuard,
+  isEffectiveFactory,
+} from './guard_registration.js'
+import type { NativeGuardDriver } from './guard_registration.js'
+import { routeGuards } from './route_guards.js'
 import { selectRouteGuard } from './route_guard_selection.js'
 import { MasqueradeError } from '../errors.js'
 
 type TransitionName =
   'masquerade:started' | 'masquerade:stopped' | 'masquerade:expired' | 'masquerade:invalidated'
-declare module '@adonisjs/core/types' {
-  interface EventsList {
-    'masquerade:started': ObserverEvent
-    'masquerade:stopped': ObserverEvent
-    'masquerade:expired': ObserverEvent
-    'masquerade:invalidated': ObserverEvent
-  }
-}
 export interface RuntimeConfiguration {
   config: MasqueradeConfig<unknown, HttpContext>
   native: NativeRuntimeAdapter
   effectiveGuardName: string
   effectiveGuardNames: readonly string[]
   effectiveRawGuards: Readonly<Record<string, string>>
+  effectiveDrivers: Readonly<Record<string, NativeGuardDriver>>
   registeredRawGuardNames: readonly string[]
   rawAdapters: Readonly<Record<string, NativeRuntimeAdapter>>
 }
@@ -90,6 +90,7 @@ export async function runtimeConfiguration(app: ApplicationService): Promise<Run
       'The default auth guard must be an effective masquerade guard'
     )
   const effectiveRawGuards: Record<string, string> = Object.create(null)
+  const effectiveDrivers: Record<string, NativeGuardDriver> = Object.create(null)
   for (const [name, factory] of Object.entries(auth.config.guards)) {
     if (!isEffectiveFactory(factory)) continue
     const raw = effectiveFactoryRawGuard(factory)
@@ -98,14 +99,18 @@ export async function runtimeConfiguration(app: ApplicationService): Promise<Run
         `Effective masquerade guard ${name} has no registered raw adapter`
       )
     effectiveRawGuards[name] = raw
-    // An effective guard built from one guard's config but naming another boots, then authenticates
-    // a different transport than its routes expect. Native guards only store the context they get.
-    const effectiveDriver = guardDriver(factory)
-    const rawDriver = guardDriver((auth.config.guards as Record<string, unknown>)[raw])
+    // Compare only registration metadata during boot. Factories require a live HttpContext.
+    const effectiveDriver = effectiveFactoryDriver(factory)
+    const rawDriver = rawAdapters[raw].driverName
     if (effectiveDriver && rawDriver && effectiveDriver !== rawDriver)
       throw new InvalidArgumentsException(
         `Effective masquerade guard ${name} wraps the ${effectiveDriver} driver, but ${raw} uses the ${rawDriver} driver`
       )
+    if (!effectiveDriver)
+      throw new InvalidArgumentsException(
+        `Effective masquerade guard ${name} has no native transport metadata`
+      )
+    effectiveDrivers[name] = effectiveDriver
   }
   const effectiveGuardNames = Object.freeze(
     Object.entries(auth.config.guards)
@@ -123,23 +128,10 @@ export async function runtimeConfiguration(app: ApplicationService): Promise<Run
     effectiveGuardName,
     effectiveGuardNames,
     effectiveRawGuards: Object.freeze(effectiveRawGuards),
+    effectiveDrivers: Object.freeze(effectiveDrivers),
     registeredRawGuardNames,
     rawAdapters,
   }
-}
-/** A guard's driver name, from a guard built for a stand-in context; undefined when unknown. */
-function guardDriver(factory: unknown): string | undefined {
-  if (typeof factory !== 'function') return undefined
-  let guard: unknown
-  try {
-    guard = factory(Object.freeze({}))
-  } catch (error) {
-    // The effective guards reject the wrong native driver this way.
-    if (error instanceof InvalidArgumentsException) throw error
-    return undefined
-  }
-  const driver = (guard as { driverName?: unknown } | null)?.driverName
-  return typeof driver === 'string' ? driver : undefined
 }
 export async function createRuntime(
   app: ApplicationService,
@@ -164,6 +156,24 @@ export async function createRuntime(
           ? wiring.rawAdapters[selected.raw]
           : undefined
       if (!adapter) throw new MasqueradeError('E_MASQUERADE_UNAVAILABLE')
+      if (selected.kind === 'effective') {
+        // The middleware can admit a request before named Auth runs. Construct the selected
+        // facades with the real request now, and verify the actual raw guard before any store read.
+        for (const name of routeGuards(ctx.route, wiring.effectiveGuardName)) {
+          const driver = wiring.effectiveDrivers[name]
+          if (!driver) throw new MasqueradeError('E_MASQUERADE_UNAVAILABLE')
+          try {
+            if (
+              (ctx.auth.use(name as never) as GuardContract<unknown>).driverName !== driver ||
+              (ctx.auth.use(wiring.effectiveRawGuards[name] as never) as GuardContract<unknown>)
+                .driverName !== driver
+            )
+              throw new MasqueradeError('E_MASQUERADE_UNAVAILABLE')
+          } catch {
+            throw new MasqueradeError('E_MASQUERADE_UNAVAILABLE')
+          }
+        }
+      }
       return adapter.authenticateActor(ctx)
     },
     emitter: { emit: (name, event) => emitter.emit(name as TransitionName, event) },

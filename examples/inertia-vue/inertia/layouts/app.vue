@@ -21,7 +21,7 @@ const nav: NavItem[] = [{ label: 'Dashboard', route: 'dashboard', icon: House }]
         <ThemeToggle />
         <Form route="session.destroy">
           <button type="submit" class="btn btn--secondary btn--sm">
-            <LogOut :size="15" /> Log out
+            <LogOut :size="15" /> Sign out
           </button>
         </Form>
       </div>

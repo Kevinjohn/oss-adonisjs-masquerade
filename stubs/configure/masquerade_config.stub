@@ -1,5 +1,5 @@
 {{{
-  exports({ to: app.makePath('config/masquerade.ts') })
+  exports({ to: app.configPath('masquerade.ts') })
 }}}
 import app from '@adonisjs/core/services/app'
 import type { HttpContext } from '@adonisjs/core/http'

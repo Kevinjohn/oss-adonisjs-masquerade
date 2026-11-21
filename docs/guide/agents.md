@@ -1,7 +1,7 @@
 # Integration notes for agents
 
 These notes help code agents integrate Masquerade into an existing AdonisJS application. The host
-application owns authorization, language, route policy, tenant context, rate limits, session
+application owns authorisation, language, route policy, tenant context, rate limits, session
 provider configuration and user-facing controls.
 
 ## Before editing the host application
@@ -25,7 +25,7 @@ provider configuration and user-facing controls.
   logout and status/start/stop controls use the explicitly selected raw guard.
 - A route selects its auth guard explicitly. Never choose session or bearer auth by inspecting
   request headers or falling back between credentials. Integrated token routes use the effective
-  token guard; raw token routes keep native actor behavior.
+  token guard; raw token routes keep native actor behaviour.
 - Configure the token adapter with the `masquerade` ability. It gates integrated idle and active
   routes, including status, start and stop. Auth 10 wildcard tokens satisfy every ability check, so
   issue restricted token abilities deliberately. The effective target user does not carry the
@@ -37,7 +37,7 @@ provider configuration and user-facing controls.
   business route it flags; the report is a release gate, not an automatic registry.
 - Masquerade starts in view-only mode. If the host offers edit access, require `canEdit` to return
   exactly `true` at start and active edit admission. `allowMutation()` only opts an ordinary route
-  into writes in edit mode; it does not grant edit access or target authorization. Mark billing
+  into writes in edit mode; it does not grant edit access or target authorisation. Mark billing
   mutations and other security-sensitive actions with `sensitive()`, which always blocks. URL names
   do not make a route sensitive automatically.
 
@@ -54,6 +54,6 @@ systems cannot be recalled; propagate the safe actor/effective projection and re
 host worker where needed.
 
 Keep audit reasons bounded and free of secrets or unnecessary personal data. Successful start
-records the normalized reason; denied and invalid control attempts omit it. Never log credentials,
+records the normalised reason; denied and invalid control attempts omit it. Never log credentials,
 stamps, request bodies or raw user objects. Review [retention and erasure guidance](./security.md#jobs-external-effects-and-audit)
 before changing audit retention.

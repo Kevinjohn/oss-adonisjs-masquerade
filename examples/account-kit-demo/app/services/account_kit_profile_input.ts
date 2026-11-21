@@ -1,5 +1,4 @@
 import { Exception } from '@adonisjs/core/exceptions'
-import type { HttpContext } from '@adonisjs/core/http'
 
 function invalid(): never {
   throw new Exception('Only a display name and current password are allowed.', {
@@ -26,11 +25,11 @@ export function mapProfileFields(input: unknown): { fullName: string } {
   return { fullName }
 }
 
-export async function validateProfile(ctx: HttpContext): Promise<{
+export function parseProfileInput(input: unknown): {
   currentPassword?: string
   registrationData: { fullName: string }
-}> {
-  const body = record(ctx.request.body())
+} {
+  const body = record(input)
   keysOnly(body, ['currentPassword', 'registrationData'])
   if (
     'currentPassword' in body &&

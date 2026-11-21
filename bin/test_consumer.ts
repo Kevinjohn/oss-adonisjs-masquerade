@@ -8,6 +8,7 @@ import { fileURLToPath } from 'node:url'
 import { consumerArtifact } from './helpers/consumer_artifact.js'
 import { ConsumerCommandError, ConsumerProcessRunner } from './helpers/consumer_process.js'
 import { selectRegistryVersion } from './helpers/registry_version.js'
+import { verifyConsumerEventTypes } from './helpers/consumer_event_types.js'
 import {
   issueNativePgLease,
   nativePgTarget,
@@ -289,6 +290,7 @@ try {
       ['exec', 'node', '--input-type=module', '--eval', providerProbe],
       `${selected}_provider_exports`
     )
+    await verifyConsumerEventTypes(app, (command) => run(app, command, `${selected}_event_types`))
     await verifyConfigure(app, selected)
     if (args.has('scaffold-only')) {
       await writeFile(

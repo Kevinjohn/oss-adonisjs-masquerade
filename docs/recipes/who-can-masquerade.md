@@ -148,4 +148,4 @@ const response = await client
 response.assertStatus(403)
 ```
 
-Full callback rules: [Configure persistent identity and policy](../guide/setup.md#configure-persistent-identity-and-policy).
+Full callback rules: [Configure persistent identity and host callbacks](../guide/setup.md#configure-persistent-identity-and-host-callbacks).

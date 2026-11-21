@@ -34,7 +34,7 @@ test.group('React support browser journey', (group) => {
     await page.goto(`${base()}/login`)
     await page.getByLabel('Email').fill('operator@example.test')
     await page.getByLabel('Password').fill('demo-operator-2026')
-    await page.getByRole('button', { name: 'Log in' }).press('Enter')
+    await page.getByRole('button', { name: 'Sign in' }).press('Enter')
     await page.waitForURL('**/support')
     const idleHistoryKey = await page.evaluate("sessionStorage.getItem('historyKey')")
     assert.isTrue(await page.getByLabel('View only').isChecked())
@@ -63,8 +63,8 @@ test.group('React support browser journey', (group) => {
     await page.getByRole('button', { name: 'Start support mode' }).waitFor()
     const stoppedHistoryKey = await page.evaluate("sessionStorage.getItem('historyKey')")
     assert.notEqual(stoppedHistoryKey, activeHistoryKey)
-    await page.getByRole('button', { name: 'Log out' }).click()
-    await page.getByRole('heading', { name: 'Log in' }).waitFor()
+    await page.getByRole('button', { name: 'Sign out' }).click()
+    await page.getByRole('heading', { name: 'Sign in' }).waitFor()
     assert.notEqual(await page.evaluate("sessionStorage.getItem('historyKey')"), stoppedHistoryKey)
   })
 
@@ -122,7 +122,7 @@ test.group('React support browser journey', (group) => {
     await page.goto(`${base()}/login`)
     await page.getByLabel('Email').fill('operator@example.test')
     await page.getByLabel('Password').fill('incorrect-password')
-    await page.getByRole('button', { name: 'Log in' }).click()
+    await page.getByRole('button', { name: 'Sign in' }).click()
     const loginAlert = page.getByRole('alert')
     await loginAlert.waitFor()
     assert.include(await loginAlert.innerText(), 'Email or password did not match')
@@ -150,13 +150,13 @@ test.group('React support browser journey', (group) => {
     await page.goto(`${base()}/login`)
     await page.getByLabel('Email').fill('operator@example.test')
     await page.getByLabel('Password').fill('incorrect-password')
-    await page.getByRole('button', { name: 'Log in' }).click()
+    await page.getByRole('button', { name: 'Sign in' }).click()
     await page.getByRole('alert').waitFor()
 
     await page.getByRole('link', { name: 'Sign up' }).click()
     await page.getByRole('heading', { name: 'Create account' }).waitFor()
     await page.goBack()
-    await page.getByRole('heading', { name: 'Log in' }).waitFor()
+    await page.getByRole('heading', { name: 'Sign in' }).waitFor()
     assert.notInclude(await page.locator('main').innerText(), 'Email or password did not match.')
   })
 
@@ -171,7 +171,7 @@ test.group('React support browser journey', (group) => {
       .evaluate((form) => form.setAttribute('novalidate', ''))
     await page.getByLabel('Email').fill('not-an-email')
     await page.getByLabel('Password').fill('wrong-password')
-    await page.getByRole('button', { name: 'Log in' }).click()
+    await page.getByRole('button', { name: 'Sign in' }).click()
     await page.locator('#email-error').waitFor()
 
     assert.equal(await page.getByLabel('Email').getAttribute('aria-invalid'), 'true')
@@ -410,7 +410,7 @@ async function signIn(
   await page.goto(`${base()}/login`)
   await page.getByLabel('Email').fill('operator@example.test')
   await page.getByLabel('Password').fill('demo-operator-2026')
-  await page.getByRole('button', { name: 'Log in' }).click()
+  await page.getByRole('button', { name: 'Sign in' }).click()
   await page.waitForURL('**/support')
 }
 

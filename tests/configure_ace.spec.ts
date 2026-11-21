@@ -1,7 +1,7 @@
 import { test } from '@japa/runner'
 import { IgnitorFactory } from '@adonisjs/core/factories'
 import { existsSync } from 'node:fs'
-import { mkdtemp, mkdir, readFile, readdir, rm, symlink, writeFile } from 'node:fs/promises'
+import { mkdtemp, mkdir, readFile, readdir, rename, rm, symlink, writeFile } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { pathToFileURL } from 'node:url'
@@ -193,6 +193,7 @@ export default defineConfig({
       assert.isFalse(existsSync(join(manual, 'start/masquerade_routes.ts')))
       assert.isFalse(existsSync(join(manual, 'start/masquerade_limiter.ts')))
       assert.notInclude(await readFile(join(manual, 'adonisrc.ts'), 'utf8'), 'masquerade_routes')
+      assert.deepEqual(await bootGeneratedRuntime(wired), { booted: true, guard: 'web_effective' })
     } finally {
       process.exitCode = previousProcessExitCode
       await rm(wired, { recursive: true, force: true })
@@ -226,6 +227,75 @@ export default defineConfig({
   })
     .timeout(20_000)
     .skip(process.env.TEST_BUILT_EXPORTS !== '1', 'requires the built package')
+  test('uses custom host directories for preflight, generation and kernel wiring', async ({
+    assert,
+  }) => {
+    const previousProcessExitCode = process.exitCode
+    const host = await starterHost()
+    const directories = {
+      config: 'settings',
+      start: 'bootstrap',
+      models: 'domain/models',
+      services: 'domain/services',
+      providers: 'bootstrap/providers',
+      middleware: 'domain/middleware',
+      httpControllers: 'domain/controllers',
+      views: 'templates',
+      migrations: 'schema',
+    }
+    try {
+      await rename(join(host, 'config'), join(host, directories.config))
+      await rename(join(host, 'start'), join(host, directories.start))
+      await mkdir(join(host, 'domain'))
+      await rename(join(host, 'app/models'), join(host, directories.models))
+      const options = ['--banner', '--form-controller']
+      assert.equal(await runConfigure(host, options, directories), 0)
+      const files = [
+        'settings/masquerade.ts',
+        'bootstrap/providers/masquerade_native_provider.ts',
+        'domain/services/masquerade_user_provider.ts',
+        'domain/middleware/masquerade_context_middleware.ts',
+        'domain/middleware/share_masquerade_status_middleware.ts',
+        'domain/controllers/masquerade_form_controller.ts',
+        'templates/components/masquerade/banner.edge',
+        'bootstrap/masquerade_routes.ts',
+        'bootstrap/masquerade_limiter.ts',
+      ]
+      for (const file of files) assert.isTrue(existsSync(join(host, file)), file)
+      const kernelPath = join(host, 'bootstrap/kernel.ts')
+      const kernelBefore = await readFile(kernelPath, 'utf8')
+      const kernel = kernelBefore.replace(
+        "  () => import('#middleware/masquerade_context_middleware'),",
+        "  () => import('@kevinjohn/adonisjs-masquerade/http'),"
+      )
+      await writeFile(kernelPath, kernel)
+      const saved = await Promise.all(files.map((file) => readFile(join(host, file), 'utf8')))
+      const migrations = await readdir(join(host, 'schema'))
+      assert.lengthOf(migrations, 1)
+      assert.equal(await runConfigure(host, options, directories), 1)
+      assert.deepEqual(
+        await Promise.all(files.map((file) => readFile(join(host, file), 'utf8'))),
+        saved
+      )
+      assert.equal(await runConfigure(host, [...options, '--force'], directories), 0)
+      assert.equal(await readFile(kernelPath, 'utf8'), kernel)
+      assert.deepEqual(await readdir(join(host, 'schema')), migrations)
+      assert.isFalse(existsSync(join(host, 'config/masquerade.ts')))
+      assert.include(
+        await readFile(join(host, 'settings/auth.ts'), 'utf8'),
+        "default: 'web_effective'"
+      )
+      assert.deepEqual(await bootGeneratedRuntime(host, directories), {
+        booted: true,
+        guard: 'web_effective',
+      })
+    } finally {
+      process.exitCode = previousProcessExitCode
+      await rm(host, { recursive: true, force: true })
+    }
+  })
+    .timeout(30_000)
+    .skip(process.env.TEST_BUILT_EXPORTS !== '1', 'requires the built package')
 })
 
 async function starterHost(): Promise<string> {
@@ -239,7 +309,7 @@ async function starterHost(): Promise<string> {
   await writeFile(join(root, 'tsconfig.json'), '{"compilerOptions":{"strict":true}}\n')
   await writeFile(
     join(root, 'adonisrc.ts'),
-    `import { defineConfig } from '@adonisjs/core'
+    `import { defineConfig } from '@adonisjs/core/app'
 export default defineConfig({
   providers: [() => import('#providers/host_provider')],
   preloads: [() => import('#start/routes'), () => import('#start/kernel')],
@@ -254,12 +324,85 @@ export default defineConfig({
   return root
 }
 
-async function runConfigure(root: string, flags: string[] = []): Promise<number | undefined> {
+/** Boot the actual generated config and native provider against real Auth and Lucid.
+ * The starter syntax fixture does not install the unrelated Shield/limiter/Vite providers.
+ */
+async function bootGeneratedRuntime(root: string, custom: Record<string, string> = {}) {
+  const directories = {
+    config: 'config',
+    services: 'app/services',
+    models: 'app/models',
+    middleware: 'app/middleware',
+    providers: 'providers',
+    ...custom,
+  }
+  await writeFile(
+    join(root, 'package.json'),
+    JSON.stringify({
+      type: 'module',
+      imports: Object.fromEntries(
+        Object.entries(directories).map(([key, directory]) => [`#${key}/*`, `./${directory}/*.js`])
+      ),
+    })
+  )
+  await writeFile(
+    join(root, directories.providers, 'host_provider.ts'),
+    'export default class HostProvider {}\n'
+  )
+  const auth = await import(pathToFileURL(join(root, directories.config, 'auth.ts')).href)
+  const masquerade = await import(
+    pathToFileURL(join(root, directories.config, 'masquerade.ts')).href
+  )
+  const rc = await import(pathToFileURL(join(root, 'adonisrc.ts')).href)
+  const app = new IgnitorFactory()
+    .withCoreConfig()
+    .withCoreProviders()
+    .merge({
+      config: {
+        auth: auth.default,
+        masquerade: masquerade.default,
+        database: {
+          connection: 'sqlite',
+          connections: {
+            sqlite: {
+              client: 'better-sqlite3',
+              connection: { filename: ':memory:' },
+              useNullAsDefault: true,
+            },
+          },
+        },
+      },
+      rcFileContents: {
+        directories,
+        providers: [
+          () => import('@adonisjs/auth/auth_provider'),
+          () => import('@adonisjs/lucid/database_provider'),
+          ...rc.default.providers,
+        ],
+      },
+    })
+    .create(pathToFileURL(root + '/'))
+    .createApp('web')
+  try {
+    await app.init()
+    await app.boot()
+    const runtime = await app.container.make('masquerade.runtime')
+    return { booted: app.isBooted, guard: runtime.effectiveGuardName }
+  } finally {
+    await app.terminate()
+  }
+}
+
+async function runConfigure(
+  root: string,
+  flags: string[] = [],
+  directories: Record<string, string> = {}
+): Promise<number | undefined> {
   process.exitCode = 0
   const ignitor = new IgnitorFactory()
     .withCoreProviders()
     .withCoreConfig()
-    .merge({ rcFileContents: { commands: [configureCommandLoader] } })
+    .merge({ rcFileContents: { commands: [configureCommandLoader], directories } })
     .create(pathToFileURL(root + '/'))
   await ignitor
     .ace()

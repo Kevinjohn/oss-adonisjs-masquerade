@@ -2,7 +2,7 @@
 
 The package's durable control audit records committed starts, stops, expiry/invalidations, and
 admitted control denials/no-ops. Keep that ledger distinct from the host's business audit, which
-should describe the actual customer operation and outcome. After the customer's authorization
+should describe the actual customer operation and outcome. After the customer's authorisation
 check and successful business write, resolve the safe identity projection and attach it to the host
 audit record. Include it in the host transaction when that audit must commit atomically with the
 business change:
@@ -124,7 +124,7 @@ export default class MasqueradeHistoryController {
 Each row is one control event: `kind` is `started`, `stopped`, `expired`, `invalidated`,
 `start_denied`, `stop_denied` or `control_noop`, and `outcome_code` says why (for example
 `edit_denied` for an invalidation). `reason` is set only on `started` rows, and is null when the
-host's reason policy is optional and none was given. Render the verified `actorName` and
+host's audit reason requirement is optional and none was given. Render the verified `actorName` and
 `targetName` values from the controller. Never join by ID alone: names are shown only after the
 current account has the exact stored ID and incarnation; otherwise display the stored ID. The ledger
 keeps events for the configured
@@ -137,18 +137,9 @@ AdonisJS's emitter:
 <!-- host-recipe:transition-observer -->
 
 ```ts
-import type { ObserverEvent } from '@kevinjohn/adonisjs-masquerade/types'
+import type {} from '@kevinjohn/adonisjs-masquerade/masquerade_provider'
 import emitter from '@adonisjs/core/services/emitter'
 import logger from '@adonisjs/core/services/logger'
-
-declare module '@adonisjs/core/types' {
-  interface EventsList {
-    'masquerade:started': ObserverEvent
-    'masquerade:stopped': ObserverEvent
-    'masquerade:expired': ObserverEvent
-    'masquerade:invalidated': ObserverEvent
-  }
-}
 
 emitter.on('masquerade:started', (event) => {
   logger.info({ action: 'support_mode_started', eventId: event.id })
@@ -157,6 +148,8 @@ emitter.on('masquerade:started', (event) => {
 
 Observers run after commit and are best effort. Their event kind is one of the four transitions and
 omits the reason; observers do not report denied starts/stops or no-op controls. Do not use observer delivery as the durable control ledger or the
-host's business audit. The public payload type is added to the host's Adonis event list in the
-listener module so TypeScript can type these event names. [Alert on masquerade
+host's business audit. In the current source, the package provider supplies the Adonis event list
+augmentation, so hosts no longer redeclare the event names. When using release 0.4.3 or earlier,
+declare the four transition event names as `ObserverEvent` in `EventsList` instead.
+[Alert on masquerade
 activity](alerts.md) has listener recipes for chat alerts and a log sink.

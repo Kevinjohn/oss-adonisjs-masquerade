@@ -46,7 +46,7 @@ A start request may include `access: 'view' | 'edit'`; omitting it starts in vie
 `ModeView` exposes the selected `access`, and the level stays fixed until the operator stops the
 mode. Edit starts require the host's `canEdit` callback to return exactly `true`; active edit
 admission checks it again. A route's `allowMutation()` marker alone does not grant edit, and a bearer
-ability does not grant edit or target authorization.
+ability does not grant edit or target authorisation.
 
 `E_MASQUERADE_ACTION_BLOCKED` includes `blockedBy` in its error item:
 

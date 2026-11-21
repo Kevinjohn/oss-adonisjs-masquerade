@@ -18,7 +18,8 @@ export function effectiveSessionGuard<User>(
       return markEffectiveFactory(
         (ctx: HttpContext) =>
           new EffectiveSessionGuard(config.authority.guard, ctx, rawFactory(ctx)),
-        config.authority.guard
+        config.authority.guard,
+        'session'
       )
     },
   }

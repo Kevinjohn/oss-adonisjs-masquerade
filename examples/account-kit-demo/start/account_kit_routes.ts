@@ -3,7 +3,7 @@ import router from '@adonisjs/core/services/router'
 import { AccountKit } from '@kevinjohn/adonisjs-account-kit'
 import { registerManagedRoutes } from '@kevinjohn/adonisjs-account-kit/http'
 import { sessionGuard } from '#services/account_kit_guard'
-import { validateProfile } from '#validators/account_kit_profile'
+import { parseProfileInput } from '#services/account_kit_profile_input'
 
 registerManagedRoutes(router, {
   prefix: '/kit',
@@ -14,7 +14,7 @@ registerManagedRoutes(router, {
     'auth.emailChange.inspect',
     'auth.emailChange.complete',
   ],
-  extensions: { profile: { validate: validateProfile } },
+  extensions: { profile: { validate: async (ctx) => parseProfileInput(ctx.request.body()) } },
   kit: () => app.container.make(AccountKit),
   guard: sessionGuard,
 })

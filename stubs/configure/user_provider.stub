@@ -1,5 +1,5 @@
 {{{
-  exports({ to: app.makePath('app/services/masquerade_user_provider.ts') })
+  exports({ to: app.makePath(app.rcFile.directories.services, 'masquerade_user_provider.ts') })
 }}}
 import { sessionUserProvider } from '@adonisjs/auth/session'
 

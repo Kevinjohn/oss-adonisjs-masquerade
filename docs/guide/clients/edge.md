@@ -13,7 +13,7 @@ JSON status. Only requests that explicitly accept HTML and negotiate it use the 
 requests, requests without an `Accept` header, and wildcard-only requests delegate to the package
 controller. HTML requests call the same service, redirect, and flash a typed result
 under the `masquerade` key. Success values identify `started` or `stopped`; errors carry the stable
-`MasqueradeErrorCode`, which the host can map to localized text in its Edge layout. Edit the success
+`MasqueradeErrorCode`, which the host can map to localised text in its Edge layout. Edit the success
 redirect methods `redirectAfterStart` and `redirectAfterStop` for the destination pages and
 `errorPath` for the form recovery page. HTML forms require the host's session middleware for flash
 storage. The controller renders no UI.
@@ -55,7 +55,7 @@ router
 Keep the raw actor guard, separate limiter, Shield CSRF, and captured context token on the Edge
 POSTs too. Configure's generated form controller enforces the 8 KiB body limit, accepts only
 URL-encoded control fields, and leaves malformed input on the service's normal audit path. It
-flashes typed errors by stable code and leaves localization to the host. For an Inertia adapter,
+flashes typed errors by stable code and leaves localisation to the host. For an Inertia adapter,
 retain the same input and service boundaries, and clear Inertia history after transitions as
 described in the official [AdonisJS Inertia guide](https://docs.adonisjs.com/guides/frontend/inertia).
 

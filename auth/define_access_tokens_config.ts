@@ -31,7 +31,8 @@ export function effectiveAccessTokensGuard<User>(
       const rawFactory = await raw.resolver(options.guard, app)
       return markEffectiveFactory(
         (ctx: HttpContext) => new EffectiveAccessTokensGuard(ctx, rawFactory(ctx), options.guard),
-        options.guard
+        options.guard,
+        'access_tokens'
       )
     },
   }

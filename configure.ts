@@ -1,19 +1,8 @@
 import type Configure from '@adonisjs/core/commands/configure'
 import { access, readFile, readdir } from 'node:fs/promises'
+import { join } from 'node:path'
+import { pathToFileURL } from 'node:url'
 import { wireHost } from './src/configure_wiring.js'
-
-const fileDestinations = [
-  'app/services/masquerade_user_provider.ts',
-  'config/masquerade.ts',
-  'providers/masquerade_native_provider.ts',
-  'app/middleware/masquerade_context_middleware.ts',
-] as const
-const bannerDestinations = [
-  'app/middleware/share_masquerade_status_middleware.ts',
-  'resources/views/components/masquerade/banner.edge',
-] as const
-const formControllerDestination = 'app/controllers/masquerade_form_controller.ts'
-const routeDestinations = ['start/masquerade_routes.ts', 'start/masquerade_limiter.ts'] as const
 
 /**
  * Scaffold a fail-closed native-session and Lucid setup, then wire recognized auth, kernel and
@@ -22,6 +11,9 @@ const routeDestinations = ['start/masquerade_routes.ts', 'start/masquerade_limit
 export async function configure(command: Configure): Promise<void> {
   const namespace = await readOption(command, 'namespace', 'Masquerade namespace')
   const guard = await readOption(command, 'guard', 'Raw session guard name')
+  const directories = command.app.rcFile.directories
+  const authFile = join(directories.config, 'auth.ts')
+  const kernelFile = join(directories.start, 'kernel.ts')
 
   if (!isNamespace(namespace)) {
     command.logger.error(
@@ -38,9 +30,9 @@ export async function configure(command: Configure): Promise<void> {
     return
   }
 
-  if (!(await fileExists(command.app.makePath('config/auth.ts')))) {
+  if (!(await fileExists(command.app.configPath('auth.ts')))) {
     command.logger.error(
-      'config/auth.ts was not found. Configure @adonisjs/auth first, then rerun this command.'
+      `${authFile} was not found. Configure @adonisjs/auth first, then rerun this command.`
     )
     command.exitCode = 1
     return
@@ -87,6 +79,24 @@ export async function configure(command: Configure): Promise<void> {
   const banner = command.parsedFlags.banner === true
   const formController =
     command.parsedFlags.formController === true || command.parsedFlags['form-controller'] === true
+  const fileDestinations = [
+    join(directories.services, 'masquerade_user_provider.ts'),
+    join(directories.config, 'masquerade.ts'),
+    join(directories.providers, 'masquerade_native_provider.ts'),
+    join(directories.middleware, 'masquerade_context_middleware.ts'),
+  ]
+  const bannerDestinations = [
+    join(directories.middleware, 'share_masquerade_status_middleware.ts'),
+    join(directories.views, 'components/masquerade/banner.edge'),
+  ]
+  const formControllerDestination = join(
+    directories.httpControllers,
+    'masquerade_form_controller.ts'
+  )
+  const routeDestinations = [
+    join(directories.start, 'masquerade_routes.ts'),
+    join(directories.start, 'masquerade_limiter.ts'),
+  ]
   const destinations = [
     ...fileDestinations,
     ...(banner ? bannerDestinations : []),
@@ -175,33 +185,31 @@ export async function configure(command: Configure): Promise<void> {
     : await wireHost(command, codemods, guard, { banner, formController })
   if (codemodError) {
     command.logger.error(
-      'Host wiring failed in an AdonisJS codemod. Resolve the reported error and check config/auth.ts, start/kernel.ts and adonisrc.ts before booting the package.'
+      `Host wiring failed in an AdonisJS codemod. Resolve the reported error and check ${authFile}, ${kernelFile} and adonisrc.ts before booting the package.`
     )
     command.exitCode = 1
     return
   }
   if (wiring.auth === 'wired')
     command.logger.info(
-      `Wired config/auth.ts: the raw ${guard} guard reuses userProvider and ${guard}_effective is the default guard.`
+      `Wired ${authFile}: the raw ${guard} guard reuses userProvider and ${guard}_effective is the default guard.`
     )
   if (wiring.auth === 'already')
-    command.logger.info(`config/auth.ts already makes ${guard}_effective the default guard.`)
+    command.logger.info(`${authFile} already makes ${guard}_effective the default guard.`)
   if (wiring.kernel === 'wired')
-    command.logger.info(
-      'Registered the context middleware after initialize_auth in start/kernel.ts.'
-    )
+    command.logger.info(`Registered the context middleware after initialize_auth in ${kernelFile}.`)
   if (wiring.kernel === 'already')
-    command.logger.info('start/kernel.ts already registers the context middleware.')
+    command.logger.info(`${kernelFile} already registers the context middleware.`)
   if (wiring.routes !== 'skipped')
     command.logger.info(
-      'Mounted the control routes in start/masquerade_routes.ts with the limiters in start/masquerade_limiter.ts.'
+      `Mounted the control routes in ${routeDestinations[0]} with the limiters in ${routeDestinations[1]}.`
     )
   if (banner && wiring.status === 'wired')
     command.logger.info(
       'Registered the optional banner status middleware after silent authentication; include components/masquerade/banner in an authenticated Edge layout.'
     )
   if (banner && wiring.status === 'already')
-    command.logger.info('start/kernel.ts already registers the banner status middleware.')
+    command.logger.info(`${kernelFile} already registers the banner status middleware.`)
   if (formController && wiring.routes !== 'skipped')
     command.logger.info(
       'Mounted the generated host-owned form controller on the control routes; HTML forms redirect and flash, while JSON clients keep the package response.'
@@ -218,7 +226,7 @@ export async function configure(command: Configure): Promise<void> {
       : []),
     ...(wiring.kernel === 'skipped'
       ? [
-          'Wire app/middleware/masquerade_context_middleware.ts as router middleware after initialize_auth and before any silent_auth middleware; preserve this order in start/kernel.ts.',
+          `Wire ${fileDestinations[3]} as router middleware after initialize_auth and before any silent_auth middleware; preserve this order in ${kernelFile}.`,
         ]
       : []),
     'Implement the generated account incarnation, security stamp, active-account checks, and deny-by-default policy using your account model. Make stamps change on privilege, password, suspension, and logout-all changes.',
@@ -236,12 +244,12 @@ export async function configure(command: Configure): Promise<void> {
       : []),
     ...(formController
       ? [
-          'Edit app/controllers/masquerade_form_controller.ts for your host redirect destinations and localized flash handling. Use --form-controller with --banner to make the generated banner Stop form use this controller.',
+          `Edit ${formControllerDestination} for your host redirect destinations and localised flash handling. Use --form-controller with --banner to make the generated banner Stop form use this controller.`,
         ]
       : []),
     ...(banner && wiring.status === 'skipped'
       ? [
-          'Wire app/middleware/share_masquerade_status_middleware.ts in start/kernel.ts after silent_auth_middleware, then include components/masquerade/banner in an authenticated Edge layout. The middleware shares only safe status fields on authenticated effective-guard routes; public and raw control routes do not read mode status.',
+          `Wire ${bannerDestinations[0]} in ${kernelFile} after silent_auth_middleware, then include components/masquerade/banner in an authenticated Edge layout. The middleware shares only safe status fields on authenticated effective-guard routes; public and raw control routes do not read mode status.`,
         ]
       : []),
     'Keep context enforcement in report mode during form rollout; switch to enforce after clients submit the current context token. Host-managed retention never prunes idle rows.',
@@ -293,7 +301,9 @@ async function migrationsFolder(command: Configure): Promise<string> {
   const folder = Array.isArray(paths)
     ? paths.find((path): path is string => typeof path === 'string' && path.length > 0)
     : undefined
-  return folder ? folder.replace(/^\.\//, '').replace(/\/+$/, '') : 'database/migrations'
+  return folder
+    ? folder.replace(/^\.\//, '').replace(/\/+$/, '')
+    : command.app.rcFile.directories.migrations
 }
 
 /** Where the host's `#models/*` import maps `#models/user`, without an extension. */
@@ -312,18 +322,20 @@ async function userModelPath(command: Configure): Promise<string> {
         .replace('*', 'user')
         .replace(/^\.\//, '')
         .replace(/\.[cm]?[jt]s$/, '')
-    : 'app/models/user'
+    : join(command.app.rcFile.directories.models, 'user')
 }
 
 /** `config/database.ts`, or `undefined` when the app has none. A file that fails to load throws. */
 async function databaseConfig(command: Configure): Promise<DatabaseConfig | undefined> {
   try {
-    const module = (await command.app.import(command.app.makeURL('config/database.ts').href)) as {
+    const module = (await command.app.import(
+      pathToFileURL(command.app.configPath('database.ts')).href
+    )) as {
       default?: DatabaseConfig
     }
     return module.default
   } catch (error) {
-    if (!(await fileExists(command.app.makePath('config/database.ts')))) return undefined
+    if (!(await fileExists(command.app.configPath('database.ts')))) return undefined
     throw error
   }
 }

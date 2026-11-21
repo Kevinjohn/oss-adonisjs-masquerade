@@ -313,7 +313,7 @@ pnpm test:consumer --package=tmp/native-session-package.tgz
 ```
 
 The functional suite covers identity, context, action, token and session transport, and
-alternate-identifier behavior. The original numeric User integration exercises the complete
+alternate-identifier behaviour. The original numeric User integration exercises the complete
 provider/effective-guard facade, raw actor, lazy Bouncer, global silent authentication and real
 HTTP controls. `Member` uses `support_accounts.account_key` with application-assigned string and
 UUID identifiers and no `id` property. Its separate host routes prove native provider canonical
@@ -365,4 +365,4 @@ memory store, so counters reset on restart and are not shared between app proces
 store for a multi-process deployment. Tests select the memory store, lower the start budget to two,
 and clear limiter state between cases. Authentication and Shield CSRF middleware still run before
 the route limiters. See the [official rate-limiting guide](https://docs.adonisjs.com/guides/security/rate-limiting)
-for supported stores and middleware behavior.
+for supported stores and middleware behaviour.

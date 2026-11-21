@@ -1,5 +1,5 @@
 {{{
-  exports({ to: app.makePath('start/masquerade_limiter.ts') })
+  exports({ to: app.startPath('masquerade_limiter.ts') })
 }}}
 import limiter from '@adonisjs/limiter/services/main'
 import type UserModel from '#models/user'

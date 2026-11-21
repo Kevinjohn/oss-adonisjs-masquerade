@@ -63,7 +63,7 @@ function enable(form) {
       } else {
         const { response, issue } = await managedRequest('/kit/account/logout', 'POST')
         if (!response.ok)
-          throw new Error(issue.message ?? issue.title ?? 'Log out failed. Please retry.')
+          throw new Error(issue.message ?? issue.title ?? 'Sign out failed. Please retry.')
         window.location.assign('/login')
       }
     } catch (error) {

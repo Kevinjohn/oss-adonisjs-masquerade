@@ -1,16 +1,8 @@
 import type { ObserverEvent } from '@kevinjohn/adonisjs-masquerade/types'
+import type {} from '@kevinjohn/adonisjs-masquerade/masquerade_provider'
 import emitter from '@adonisjs/core/services/emitter'
 import logger from '@adonisjs/core/services/logger'
 import env from '#start/env'
-
-declare module '@adonisjs/core/types' {
-  interface EventsList {
-    'masquerade:started': ObserverEvent
-    'masquerade:stopped': ObserverEvent
-    'masquerade:expired': ObserverEvent
-    'masquerade:invalidated': ObserverEvent
-  }
-}
 
 const webhookUrl = env.get('MASQUERADE_ALERT_WEBHOOK_URL')
 

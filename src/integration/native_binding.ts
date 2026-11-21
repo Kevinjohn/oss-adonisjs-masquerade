@@ -6,6 +6,8 @@ export interface NativeRuntimeAdapter {
   readonly authority: { readonly namespace: string; readonly guard: string }
   /** Raw native guard selected for this adapter when it differs from authority.guard. */
   readonly guard?: string
+  /** Expected native transport, when known without constructing a request guard. */
+  readonly driverName?: 'session' | 'access_tokens'
   /** Native adapters keyed by their raw Auth guard name when multiple transports share an authority. */
   readonly adapters?: Readonly<Record<string, NativeRuntimeAdapter>>
   /** Authenticate the actor through this adapter's raw guard. */

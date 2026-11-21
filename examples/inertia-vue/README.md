@@ -48,7 +48,7 @@ The demo commands use `tmp/db.sqlite3`. Functional and browser tests use the sep
 
 The [Vue client guide](../../docs/guide/clients/vue.md) explains each piece.
 
-Run app checks from this directory with `pnpm lint`, `pnpm typecheck`, `pnpm build`, `pnpm test functional`, and `pnpm test:browser`. From the repository root, `pnpm test:inertia-vue -- --no-browser` runs the local package build/pack, installs this fixture dependency, and runs the non-browser checks. The full root command also runs the Chromium suite. Browser coverage exercises Chromium and a 320px viewport; it does not certify screen-reader behavior, other browser engines, or every assistive-technology combination.
+Run app checks from this directory with `pnpm lint`, `pnpm typecheck`, `pnpm build`, `pnpm test functional`, and `pnpm test:browser`. From the repository root, `pnpm test:inertia-vue -- --no-browser` runs the local package build/pack, installs this fixture dependency, and runs the non-browser checks. The full root command also runs the Chromium suite. Browser coverage exercises Chromium and a 320px viewport; it does not certify screen-reader behaviour, other browser engines, or every assistive-technology combination.
 
 While workspace identity is being revalidated, the previous customer name, email and banner stay
 hidden. A failed or mismatched response keeps those details hidden and leaves explicit Stop/status
