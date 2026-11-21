@@ -20,7 +20,7 @@ As a host operator, I want to stop a selected actor's mode or confirm stopping a
 
 - Exactly one of `--actor` or `--all` is required; incarnation is allowed only with actor.
 - `--all` prompts “End every active masquerade mode?” unless `--force`; declining reports “Nothing stopped.”
-- A well-formed explicit owner with no active matching row returns zero; resolving an omitted incarnation may fail if the actor cannot be found. Invalid input or unavailable storage returns an error. Success reports actual stopped transitions: expired rows clear without increasing that count, and contention can leave modes active after `--all`. Check status and retry remaining work.
+- A well-formed explicit owner with no active matching row returns zero; resolving an omitted incarnation may fail if the actor cannot be found. Invalid input or unavailable storage returns an error. A successful operator stop records an `invalidated` event, not `stopped`; expired rows clear with `expired` without increasing the stopped count. Contention can leave modes active after `--all`. Check status and retry remaining work.
 
 ## User flow
 
@@ -33,9 +33,9 @@ flowchart TD
     E -->|Decline| F["Nothing is stopped"]
     E -->|Confirm| G["Attempt to stop active modes"]
     D --> H{"Selection resolves and operation succeeds?"}
-    G --> I["Report actual stopped count, possibly zero; check status and retry contention"]
+    G --> H
     H -->|No| J["See input, unresolved incarnation or unavailable error"]
-    H -->|Yes| I
+    H -->|Yes| I["Report actual stopped count, possibly zero; check status and retry contention"]
 ```
 
 ## Code flow
@@ -44,15 +44,16 @@ Scope: CLI operator request through `stopActiveModes` and per-owner state transi
 
 ```mermaid
 flowchart TD
-    A["StopCommand.run"] --> B["Validate actor/all/incarnation flags"]
-    B --> C{"all and force is false?"}
+    A["StopCommand.run"] --> B{"Valid actor/all/incarnation flags?"}
+    B -->|No| X["Log usage error; exitCode 1"]
+    B -->|Yes| C{"all and force is false?"}
     C -->|Yes| D["Prompt for confirmation"]
     D -->|Declined| E["Log Nothing stopped and return"]
     D -->|Confirmed| F{"this.all?"}
     C -->|No| F
     F -->|Yes| G["stopActiveModes with selector all"]
     F -->|No| H["stopActiveModes with actor and incarnation"]
-    G --> I["Emit transitions and count stopped modes"]
+    G --> I["CAS invalidated or expired transitions; count applied invalidations"]
     H --> I
     I --> J["Log actual stopped count, including zero; errors remain errors"]
 ```

@@ -16,14 +16,22 @@ As a signed-in actor, I want to start a temporary support mode for an eligible t
 | `targetId`                                    | JSON/form value                       | Required; string or safe integer, canonicalized to string; nonempty, at most 255 UTF-8 bytes, well-formed with no control characters, and cannot equal actor ID                                              |
 | `reason`                                      | JSON/form value                       | Optional by default: absent, null or blank stores null; when supplied nonblank, trim/normalize; 1–500 Unicode code points and at most 2,000 UTF-8 bytes                                                      |
 | `durationSeconds`                             | JSON number or URL-form number string | Optional; omitted or blank URL-form field uses configured default (package default 900); safe integer 60 through configured maximum (default 3600). URL-form strings must be canonical; JSON null is invalid |
-| `access`                                      | JSON/form choice                      | Optional; `view` default or `edit`; edit requires host `canEdit` to return literal `true`                                                                                                                    |
+| `access`                                      | JSON/form choice                      | Optional; omitted or blank URL-form field defaults to `view`; `edit` requires host `canEdit` to return literal `true`; JSON null invalid                                                                     |
 | `_masqueradeContext` / `X-Masquerade-Context` | Hidden form field or request header   | Current token from status; if both are sent they must agree; cookie-authenticated writes also require Shield CSRF                                                                                            |
 
 - The body is at most 8 KiB and must be JSON or URL-encoded form data; multipart and unknown fields are refused.
-- If reason is configured as required, absent, null or blank reason is refused. A successful start stores one active mode and returns its `ModeView` with a fresh context token.
+- If reason is configured as required, absent, null or blank reason is refused. A nonblank reason must also be well-formed and free of disallowed control and invisible formatting characters. A successful start stores one active mode and returns its `ModeView` with a fresh context token.
 - Input shape and the context token are checked first, so a stale token is refused with `E_MASQUERADE_CONTEXT_CHANGED` even while a mode is active. Invalid input, stale context, a failed `canMasquerade` policy or a failed edit policy refuses start; the actor remains authenticated as themselves.
 - Starting while a mode is already active is refused with `E_MASQUERADE_ALREADY_ACTIVE`; the active mode is not replaced or extended. Starting from an active row whose deadline has passed clears it to idle and then refuses with `E_MASQUERADE_CONTEXT_CHANGED`; no new mode starts from it.
 - A bearer token also needs the configured `masquerade` ability before status or start reads or changes mode state.
+
+## Raw controls and the optional HTML adapter
+
+The JSON controller requires a raw guard for both start and stop. It forwards invalid control shapes to the service so authenticated, admitted control attempts reach the same denial audit boundary. Authentication, Shield and limiter failures retain their host handling.
+
+The generated form controller uses the shared transition path for an explicit HTML preference. It accepts URL-encoded forms, flashes the action on success or the stable Masquerade code on failure, then redirects to the host-selected path. Other exceptions propagate. Requests preferring JSON delegate to the package controller. Both response paths prevent caching.
+
+**Source:** [control parser](../../http/control_input.ts), [controller](../../http/controllers.ts), [example form controller](../../examples/native-session/app/controllers/masquerade_form_controller.ts). **Coverage:** [controller tests](../../tests/http_controllers.spec.ts), [form adapter tests](../../tests/form_controller_stub.spec.ts).
 
 ## User flow
 
@@ -51,15 +59,18 @@ flowchart TD
     B --> C["MasqueradeController.control"]
     C --> D["runtimeFor and raw-guard check"]
     D --> E["requireStartControl(ctx)"]
-    E --> F["runtime.service.start(ctx, input)"]
-    F --> G["MasqueradeService.start validates input shape and context; mismatch throws E_MASQUERADE_CONTEXT_CHANGED"]
+    E --> F["runtime.service.start(ctx, input); authenticate actor and read row"]
+    F --> G["Validate input shape and context; mismatch throws E_MASQUERADE_CONTEXT_CHANGED"]
+    G -->|Invalid| I
     G --> L{"Existing row active?"}
     L -->|Lapsed| M["clear to idle, throw E_MASQUERADE_CONTEXT_CHANGED"]
     L -->|Active| N["throw E_MASQUERADE_ALREADY_ACTIVE"]
     L -->|No| P["Validate selection, actor, target and policies"]
-    P --> H{"Accepted?"}
+    P --> H{"Accepted, including request-local policy and stamps?"}
     H -->|No| I["MasqueradeError path"]
-    H -->|Yes| J["Return ModeView and rotated contextToken"]
+    H -->|Yes| K["Commit mode and audit event by CAS"]
+    K -->|Applied| J["Return ModeView and rotated contextToken"]
+    K -->|Conflict or unavailable| I
 ```
 
 **Code references:** [route mount](../../http/control_routes.ts), [controller](../../http/controllers.ts), [parser](../../http/control_input.ts), [service start and active-row refusals](../../src/service.ts), [start guide](../../docs/guide/usage.md#read-status-and-start).

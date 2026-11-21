@@ -20,6 +20,8 @@ As a signed-in actor, I want to stop my active support mode with the current con
 - Stop always requires the expected token, whatever `contextEnforcement` is set to: a header and hidden field that disagree are rejected with `E_MASQUERADE_CONTEXT_CHANGED`; otherwise a missing or malformed token is rejected with `E_MASQUERADE_CONTEXT_REQUIRED` and a stale one with `E_MASQUERADE_CONTEXT_CHANGED`. A concurrent or lost response requires reading `GET /masquerade`; clients must not automatically replay the old stop.
 - Token transport also requires the configured `masquerade` ability; the ability does not grant edit access or bypass host policy.
 
+The [raw controls and optional HTML adapter](us-actor-01-start-stop-mode.md#raw-controls-and-the-optional-html-adapter) share the stop validation and audit boundary. A JSON stop may supply the context header with an explicitly empty body. Unknown stop fields or an unparsed, non-empty payload cannot stop a mode.
+
 ## User flow
 
 ```mermaid
@@ -41,11 +43,14 @@ flowchart TD
     A["MasqueradeController.stop"] --> B["MasqueradeController.control"]
     B --> C["runtimeFor and raw-guard check"]
     C --> D["requireStopControl(ctx)"]
-    D --> E["runtime.service.stop(ctx, input)"]
-    E --> F["MasqueradeService.stop validates context and commits transition"]
-    F --> G{"Stopped?"}
-    G -->|No| H["MasqueradeError response path"]
-    G -->|Yes| I["Return idle ModeView with rotated contextToken"]
+    D --> E["runtime.service.stop(ctx, input); authenticate actor and read row"]
+    E --> F{"Input and context valid?"}
+    F -->|No| H["MasqueradeError response path"]
+    F -->|Yes| Q{"Row active?"}
+    Q -->|No| K["Record control_noop; return unchanged idle context"]
+    Q -->|Yes| G["Commit idle transition; expired if lapsed, otherwise stopped"]
+    G -->|Failure| H
+    G -->|Applied| I["Return idle ModeView with rotated contextToken"]
 ```
 
 **Code references:** [controller](../../http/controllers.ts), [stop parser](../../http/control_input.ts), [service stop](../../src/service.ts), [context check](../../src/context_token.ts), [context guide](../../docs/guide/security.md#context-tokens-and-browser-clients), [stop guide](../../docs/guide/usage.md#stop-with-the-refreshed-token).

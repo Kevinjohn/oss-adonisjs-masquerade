@@ -27,11 +27,17 @@ flowchart TD
     A["Active mode has fixed view or edit access"] --> B["Stop with current context"]
     B --> C["Refresh status after committed stop"]
     C --> D["Start a new mode with selected access"]
-    D --> E{"Requested access is edit?"}
-    E -->|No| F["Start view mode because view was selected or omitted"]
+    D --> Q{"Current context and common start checks pass?"}
+    Q -->|No| R["Refuse restart; inspect status"]
+    Q -->|Yes| E{"Requested access is edit?"}
+    E -->|No| F["Request view mode because view was selected or omitted"]
     E -->|Yes| G{"Does canEdit return literal true?"}
     G -->|No| H["Refuse requested edit; operator remains idle"]
-    G -->|Yes| I["Start edit mode until stopped"]
+    G -->|Yes| I["Request edit mode until stopped"]
+    F --> X{"Remaining checks and commit succeed?"}
+    I --> X
+    X -->|Yes| Y["New mode with fixed access"]
+    X -->|No| R
 ```
 
 ## Code flow
@@ -43,12 +49,17 @@ flowchart TD
     A["MasqueradeController.stop"] --> B["MasqueradeService.stop commits idle transition and rotates context"]
     B --> C["MasqueradeController.status reads current ModeView"]
     C --> D["MasqueradeController.start parses new input"]
-    D --> E["MasqueradeService.start checks canMasquerade and requested access"]
+    D --> E["MasqueradeService.start checks context, idle row, selection and canMasquerade"]
+    E -->|Refused| R["Propagate refusal"]
     E --> F{"Requested access is edit?"}
-    F -->|No| G["Commit view mode and rotate context"]
+    F -->|No| G["Check request-local policy and stamps; CAS view mode"]
     F -->|Yes| H{"canEdit returns literal true?"}
     H -->|No| I["Refuse start; actor remains idle"]
-    H -->|Yes| J["Commit edit mode and rotate context"]
+    H -->|Yes| J["Check request-local policy and stamps; CAS edit mode"]
+    G -->|Applied| K["Return mode and rotated context"]
+    J -->|Applied| K
+    G -->|Refused or failed| R
+    J -->|Refused or failed| R
 ```
 
 **Code references:** [service start/stop](../../src/service.ts), [control parser](../../http/control_input.ts), [access contract](../../docs/maintainers/design/spec-masquerade.md#14-view-only-default-and-per-start-edit-access-accepted-22-october-2026).

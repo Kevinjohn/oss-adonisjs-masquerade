@@ -12,21 +12,21 @@ As an application developer integrating Account Kit, I want account-management r
 ## Acceptance criteria
 
 - Host applies the blocker to account registration/management operations and authenticates them with the raw guard, not the effective target identity.
-- When unauthenticated, the blocker continues to the route's normal guest/auth handling. When authenticated and the actor has an active mode, it throws `E_MASQUERADE_ACTION_BLOCKED` with `blockedBy: sensitive`.
+- When unauthenticated, the blocker continues to the route's normal guest/auth handling. When authenticated and the actor has an unexpired active mode, it throws `E_MASQUERADE_ACTION_BLOCKED` with `blockedBy: sensitive`.
 - Logout and CSRF routes remain outside the blocked group so the actor can end their native session.
-- The package cannot enforce this boundary on host routes where the middleware/guard is omitted. For host-owned account routes `masquerade:routes` shows only the guard category and the `sensitive`/`allowMutation` markers; it does not detect `AccountKitAccountBlocker`, so review blocker placement by hand. It classifies only `accountKit.*` route names as Account Kit managed.
+- The package cannot enforce this boundary on host routes where the middleware/guard is omitted. For host-owned account routes `masquerade:routes` can report `Account Kit blocker registered` for the recognized named middleware reference, as well as guard category and route markers; this is diagnostic, not enforcement. It classifies only `accountKit.*` route names as Account Kit managed.
 
 ## User flow
 
 ```mermaid
 flowchart TD
-    A["Actor requests a native account action"] --> B{"Raw actor authenticated?"}
+    A["Actor requests a native account action"] --> R{"Logout or CSRF?"}
+    R -->|No| B{"Raw actor authenticated?"}
     B -->|No| C["Continue to normal guest or auth response"]
-    B -->|Yes| D{"Actor has active support mode?"}
+    B -->|Yes| D{"Actor has unexpired active support mode?"}
     D -->|Yes| E["Refuse managed account action"]
     D -->|No| F["Continue as raw actor"]
-    A --> G["Actor uses logout or CSRF route"]
-    G --> H["Route stays outside the blocker"]
+    R -->|Yes| H["Route stays outside the blocker"]
 ```
 
 ## Code flow
@@ -41,7 +41,7 @@ flowchart TD
     D -->|No| E["next()"]
     D -->|Yes| F["provider.createUserForGuard and accountOwner"]
     F --> G["runtimeFor(ctx).activeMode"]
-    G --> H{"Mode active?"}
+    G --> H{"Mode active and not expired?"}
     H -->|Yes| I["Throw E_MASQUERADE_ACTION_BLOCKED"]
     H -->|No| E
 ```
