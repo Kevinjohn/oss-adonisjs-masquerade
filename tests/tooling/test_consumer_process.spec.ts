@@ -19,6 +19,7 @@ const processHelperPath = path.join(repoRoot, 'bin/helpers/consumer_process.ts')
 const artifactHelperPath = path.join(repoRoot, 'bin/helpers/consumer_artifact.ts')
 const registryVersionPath = path.join(repoRoot, 'bin/helpers/registry_version.ts')
 const nativePgLeasePath = path.join(repoRoot, 'bin/helpers/native_pg_lease.ts')
+const eventTypesHelperPath = path.join(repoRoot, 'bin/helpers/consumer_event_types.ts')
 
 type FixtureOptions = {
   mode?: 'normal' | 'late-output' | 'hang' | 'timeout' | 'silent-descendant'
@@ -98,6 +99,10 @@ async function fixture(options: FixtureOptions = {}): Promise<Fixture> {
   await writeFile(
     path.join(root, 'bin/helpers/native_pg_lease.ts'),
     await readFile(nativePgLeasePath)
+  )
+  await writeFile(
+    path.join(root, 'bin/helpers/consumer_event_types.ts'),
+    await readFile(eventTypesHelperPath)
   )
 
   const peers = {
@@ -189,6 +194,17 @@ if (args[0] === 'install') {
 }
 if (args[0] === 'pg:start') { process.stdout.write('server started\\n'); process.exit(0) }
 if (args[0] === 'pg:stop') process.exit(0)
+if (args[0] === 'exec' && args[1] === 'tsc') {
+  if (args.length !== 4 || args[2] !== '--project') throw new Error('Expected an isolated event type project')
+  const project = JSON.parse(await readFile(args[3], 'utf8'))
+  if (project.extends || project.files?.length !== 1 || project.compilerOptions?.module !== 'NodeNext' ||
+      project.compilerOptions?.moduleResolution !== 'NodeNext' || !project.compilerOptions?.strict) {
+    throw new Error('Event type probe inherited the host project or was not strict NodeNext')
+  }
+  const source = await readFile(path.join(path.dirname(args[3]), project.files[0]), 'utf8')
+  if (!source.includes("from '@kevinjohn/adonisjs-masquerade/masquerade_provider'")) throw new Error('Missing provider type probe')
+  process.exit(0)
+}
 if (args[0] === 'exec' && args[1] === 'node' && args[3] === 'configure') {
   const check = path.join(process.cwd(), 'configure-check')
   for (const file of ['config/masquerade.ts', 'app/services/masquerade_user_provider.ts', 'providers/masquerade_native_provider.ts', 'app/middleware/masquerade_context_middleware.ts', 'database/migrations/fixture_create_masquerade_tables.ts']) {

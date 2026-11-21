@@ -1,4 +1,4 @@
-import { rm, writeFile } from 'node:fs/promises'
+import { mkdtemp, rm, writeFile } from 'node:fs/promises'
 import { join } from 'node:path'
 
 // Compile in an isolated NodeNext program, without the example's host augmentations or config.
@@ -39,22 +39,28 @@ export async function verifyConsumerEventTypes(
   app: string,
   run: (args: string[]) => Promise<unknown>
 ) {
-  const file = join(app, 'packed-event-probe.ts')
-  await writeFile(file, eventProbe)
+  const directory = await mkdtemp(join(app, 'packed-event-probe-'))
   try {
-    await run([
-      'exec',
-      'tsc',
-      '--strict',
-      '--module',
-      'NodeNext',
-      '--moduleResolution',
-      'NodeNext',
-      '--noEmit',
-      '--skipLibCheck',
-      file,
-    ])
+    const project = join(directory, 'tsconfig.json')
+    await writeFile(join(directory, 'event_probe.ts'), eventProbe)
+    // Do not compile against the host's tsconfig or fixture declarations. TypeScript 6 also
+    // rejects explicit source-file arguments when a tsconfig exists in the working directory.
+    await writeFile(
+      project,
+      JSON.stringify({
+        compilerOptions: {
+          strict: true,
+          module: 'NodeNext',
+          moduleResolution: 'NodeNext',
+          noEmit: true,
+          skipLibCheck: true,
+          types: [],
+        },
+        files: ['event_probe.ts'],
+      })
+    )
+    await run(['exec', 'tsc', '--project', project])
   } finally {
-    await rm(file, { force: true })
+    await rm(directory, { recursive: true, force: true })
   }
 }
