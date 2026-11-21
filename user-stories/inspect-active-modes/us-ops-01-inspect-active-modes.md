@@ -16,7 +16,7 @@ As a Masquerade operator, I want to list active support modes so that I can see 
 | `--limit` | Number flag | Defaults to 50 (`DEFAULT_ACTIVE_MODE_LIMIT`); safe integer from 1 through 1000 (`MAX_ACTIVE_MODE_LIMIT`) |
 
 - The command renders namespace, actor, actor incarnation, target, access and expiry for each returned mode.
-- When no modes are active it reports that state; it does not alter or expire a mode.
+- When no active rows are returned it reports that state; it does not alter or expire a mode. Stored active rows can be lapsed, and results are bounded to the configured store's visible scope, oldest update first.
 - Invalid limits or missing Masquerade configuration fail rather than silently returning an empty result.
 
 ## User flow
@@ -41,7 +41,7 @@ flowchart TD
     C --> D["openOperatorStore and read active modes"]
     D --> E{"Any modes?"}
     E -->|No| F["Log No active masquerade modes"]
-    E -->|Yes| G["Render table with namespace, actor, target, access and expiry"]
+    E -->|Yes| G["Render table with namespace, actor, incarnation, target, access and expiry"]
 ```
 
 **Code references:** [StatusCommand](../../commands/status.ts), [active mode query](../../src/active_modes.ts), [operations guide](../../docs/guide/operations.md#see-and-end-active-modes).

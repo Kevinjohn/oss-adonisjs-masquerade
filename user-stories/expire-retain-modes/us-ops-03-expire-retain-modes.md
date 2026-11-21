@@ -15,7 +15,7 @@ As a host operator, I want a scheduled bounded cleanup pass so that expired mode
 | -------------- | ----------- | -------------------------------------------- |
 | `--batch-size` | Number flag | Defaults to 100; safe integer from 1 to 1000 |
 
-- One invocation prunes eligible events first, then processes one bounded batch of expired mode rows; compare-and-set protects mode transitions.
+- One invocation prunes a bounded batch of eligible events first, then processes one bounded batch of expired mode rows; compare-and-set protects mode transitions. It clears expired rows to idle rather than deleting the mode rows. Failures during the pass report confirmed partial progress, with an indeterminate marker when the failed operation may have committed.
 - Configured event retention applies to every namespace visible through the store; use a scoped store for different retention periods. `host-managed` event retention is not pruned by this command.
 - No background worker starts automatically; the host scheduler must invoke this command.
 
@@ -24,9 +24,11 @@ As a host operator, I want a scheduled bounded cleanup pass so that expired mode
 ```mermaid
 flowchart TD
     A["Host scheduler invokes masquerade:prune"] --> B["Set bounded batch size"]
-    B --> C["Remove events older than configured retention"]
+    B --> C["Remove bounded events older than configured retention if enabled"]
     C --> D["Expire eligible modes"]
-    D --> E["Log counts for this pass"]
+    D --> Q{"Pass succeeded?"}
+    Q -->|Yes| E["Log counts for this pass"]
+    Q -->|No| R["See error and confirmed progress if available"]
 ```
 
 ## Code flow
@@ -41,7 +43,7 @@ flowchart TD
     D --> E["store.pruneEvents when retention is not host-managed"]
     E --> F["store.expiredBatch"]
     F --> G["read candidate and compare-and-set clear per owner"]
-    G --> H["Return expired and eventsDeleted counts"]
+    G --> H["Return expired and eventsDeleted counts; conflicts skipped"]
     H --> I["Log result"]
 ```
 

@@ -37,9 +37,12 @@ Scope: route policy middleware; the host handler performs its normal target auth
 ```mermaid
 flowchart TD
     A["masqueradeContext(ctx, next)"] --> B["runtime.admit(ctx) calls MasqueradeService.admit"]
-    B --> C["Service rechecks canEdit for active edit mode"]
-    C --> D["Check unsafe-request context token under configured enforcement"]
-    D --> E{"Active mode and routeMarkers(ctx).sensitive?"}
+    B --> C{"Admission succeeds, including canEdit recheck for active edit?"}
+    C -->|No| Z["Propagate admission refusal; native unauthorised goes to named auth"]
+    C -->|Yes| D["Check context for unsafe requests or supplied header under configured enforcement"]
+    D --> X{"Context accepted or report mode?"}
+    X -->|No| Y["Throw context error"]
+    X -->|Yes| E{"Active mode and routeMarkers(ctx).sensitive?"}
     E -->|Yes, any method| F["Throw E_MASQUERADE_ACTION_BLOCKED"]
     E -->|No| G{"Active mode and unsafe method?"}
     G -->|No| H["next() to host authorization and handler"]

@@ -12,7 +12,7 @@ As a host policy owner, I want to invalidate a support mode when either account 
 ## Acceptance criteria
 
 - Supply the current subject, incarnation, active flag and security stamp in the inspection snapshot. Native adapters may use `stampFrom` with a non-empty selection of stable fields. Core uses the inspected stamp.
-- A changed stamp or incarnation, inactive or missing account, revoked global permission, or revoked edit permission for an edit mode prevents the triggering request and clears the selection upon a successful transition. View admission does not call canEdit.
+- A changed stamp or incarnation in the inspected snapshot, inactive or missing account, revoked global permission, or revoked edit permission for an edit mode prevents the triggering request and clears the selection upon a successful transition. A newly authenticated actor incarnation uses a different owner key and cannot inherit the prior mode. View admission does not call canEdit.
 - An authority or policy exception returns unavailable and preserves the selection. A credential or request-local denial also prevents the request while preserving the selection. Repeated admission in one request retains its first decision.
 
 ## User flow
@@ -20,13 +20,23 @@ As a host policy owner, I want to invalidate a support mode when either account 
 ```mermaid
 flowchart TD
     A["Change account or permission"] --> B["Attempt the next protected action"]
-    B["Attempt the next protected action"] --> C["Reject work on an invalid selection"]
+    B --> C{"Selection still eligible?"}
+    C -->|No| D["Reject triggering work; inspect status"]
+    C -->|Yes| E["Continue normal request checks"]
 ```
 
 ## Code flow
 
 ```mermaid
 flowchart TD
-    A["Inspect current snapshots"] --> B["Evaluate global and access policies"]
-    B["Evaluate global and access policies"] --> C["Commit invalidation when required"]
+    A["Authenticate actor; read active row"] --> P{"Expired?"}
+    P -->|Yes| X["Commit expiry; reject current request"]
+    P -->|No| B["Inspect both snapshots; compare identities and stamps"]
+    B --> Q{"Eligible and global policies approve?"}
+    Q -->|No| C["Commit invalidation; reject current request"]
+    Q -->|Yes| D["Check request-local policy"]
+    D --> E{"Allowed?"}
+    E -->|Yes| F["Admit target"]
+    E -->|No| R["Refuse current request; preserve mode"]
+    B -->|Inspection or policy exception| R
 ```

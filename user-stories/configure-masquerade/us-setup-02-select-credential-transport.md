@@ -19,14 +19,21 @@ As an application developer, I want to bind each effective guard to the intended
 
 ```mermaid
 flowchart TD
-    A["Register guard pair"] --> B["Call a route with credentials"]
-    B["Call a route with credentials"] --> C["Use only the selected transport"]
+    A["Register guard pair"] --> Q{"Registration valid?"}
+    Q -->|No| R["Correct guard configuration"]
+    Q -->|Yes| B["Call an effective route with credentials"]
+    B --> C["Use only the selected transport or receive refusal"]
 ```
 
 ## Code flow
 
 ```mermaid
 flowchart TD
-    A["Select route guards"] --> B["Verify live drivers"]
-    B["Verify live drivers"] --> C["Authenticate actor through adapter"]
+    A["Select route guards"] --> Q{"Single mapped native transport?"}
+    Q -->|No| R["Fail Masquerade operation"]
+    Q -->|Yes, effective| B["Verify both live driver names"]
+    Q -->|Yes, raw| C["Authenticate actor through adapter"]
+    B --> S{"Drivers match registration?"}
+    S -->|Yes| C
+    S -->|No| R
 ```

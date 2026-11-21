@@ -41,8 +41,9 @@ flowchart TD
     B --> C{"runtime.selectGuard(ctx).kind is effective?"}
     C -->|Yes| D["runtime.admit(ctx) and use admitted.view"]
     C -->|No| E["runtime.service.status(ctx)"]
-    D --> F["ctx.view?.share masquerade and masqueradeContextField"]
-    E --> F
+    D --> P["Set Cache-Control private, no-store"]
+    E --> P
+    P --> F["ctx.view?.share masquerade and masqueradeContextField"]
     F --> G["Return ModeView"]
     H["ShareMasqueradeStatusMiddleware.handle"] --> I{"Effective route and ctx.auth.check?"}
     I -->|No| J["next()"]

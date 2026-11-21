@@ -15,7 +15,7 @@ As an application test author, I want to exercise a real support mode through th
 - Before the requested route, the plugin uses the `loginAs` actor's credentials to read status and start through the real control routes with the current status context. The host's limiter, policy callbacks, security-stamp checks and audit path therefore run.
 - The plugin adds the active context header to unsafe methods only when the request does not already carry one; an explicitly supplied header is preserved so tests can exercise stale or mismatched context. Cookie-authenticated unsafe requests still need Shield CSRF.
 - A missing `loginAs` identity or an invalid status/start response fails the request setup; the protected request is not sent unmasked by mistake.
-- After the tested response, the plugin reads cleanup status and stops only if that cleanup status response is not 401 and the mode remains active. This is independent of the tested response status. A cleanup status 401 skips HTTP stop; the next admission invalidates the mode. Malformed or non-200 cleanup status (other than 401), or a malformed/non-200 stop response, throws and fails cleanup/the test. This is an after-response cleanup path, not a guarantee that every interruption runs stop.
+- After the tested response, the plugin reads cleanup status and stops only if the mode is still active with the exact context token returned by setup. This is independent of the tested response status. A cleanup status 401 skips HTTP stop; a later admission may invalidate an ineligible actor's mode. Malformed or non-200 cleanup status (other than 401), or a malformed/non-200 stop response, throws and fails cleanup/the test. This is an after-response cleanup path, not a guarantee that every interruption runs stop.
 
 ## User flow
 
@@ -27,12 +27,12 @@ flowchart TD
  C -->|Yes| E["Send request with current context on unsafe method unless explicit header supplied"]
  E --> F["Assert host route behavior and response"]
  F --> G{"Cleanup status response is 401?"}
- G -->|Yes| H["Skip HTTP stop; next admission clears invalid actor mode when needed"]
+ G -->|Yes| H["Skip HTTP stop"]
  G -->|No| J{"Cleanup status is valid and 200?"}
  J -->|No| K["Fail cleanup and test"]
- J -->|Yes| L{"Mode remains active?"}
+ J -->|Yes| L{"Mode remains active with original context?"}
  L -->|No| M["Finish without stop"]
- L -->|Yes| I["Stop active mode through current control context"]
+ L -->|Yes| I["Stop active mode through original start context"]
  I --> N{"Stop response is valid and 200?"}
  N -->|No| K
  N -->|Yes| O["Finish cleanup"]
@@ -52,12 +52,12 @@ flowchart TD
  F --> G["Send tested request through real host route"]
  G --> H["After response, GET status"]
  H --> I{"Status is 401?"}
- I -->|Yes| J["Skip HTTP stop; next admission invalidates actor mode"]
+ I -->|Yes| J["Skip HTTP stop"]
  I -->|No| V{"expectMode: valid 200 cleanup status?"}
  V -->|No| X["Throw cleanup error; fail test"]
- V -->|Yes| K{"Mode remains active?"}
+ V -->|Yes| K{"Active and token equals started.contextToken?"}
  K -->|No| L["Finish cleanup"]
- K -->|Yes| M["POST stop with current context"]
+ K -->|Yes| M["POST stop with started.contextToken"]
  M --> W{"expectMode: valid 200 stop response?"}
  W -->|No| X
  W -->|Yes| L

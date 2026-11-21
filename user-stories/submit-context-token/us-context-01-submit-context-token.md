@@ -17,7 +17,7 @@ As a signed-in actor using a covered form or client, I want to submit the contex
 | `X-Masquerade-Context` | HTTP header                      | Current token from `GET /masquerade`; used for unsafe client requests                 |
 | Shield CSRF token      | Host form/client field or header | Still required by cookie-authenticated writes; Masquerade context does not replace it |
 
-- If both context transports are supplied, they must match. In enforce mode, missing or stale context on an unsafe request is rejected. HTTP control bodies are limited to 8 KiB; JSON and URL-encoded forms are supported, multipart and unknown fields are refused.
+- If both context transports are supplied when checking context, they must match. In enforce mode, missing or stale context on an unsafe request is rejected. A safe request needs no token, but supplying the header triggers the same freshness check. HTTP control bodies are limited to 8 KiB; JSON and URL-encoded forms are supported, multipart and unknown fields are refused.
 - State-changing start and stop rotate context; an authorized idle/absent stop returns unchanged context; clients refresh status and rebuild the action instead of fetching a new token and replaying old intent.
 - On API token routes, the token ability is checked separately from context freshness and cannot upgrade the mode access level.
 
@@ -25,7 +25,7 @@ As a signed-in actor using a covered form or client, I want to submit the contex
 
 ```mermaid
 flowchart TD
-    A["Render action with current context token"] --> B["Submit unsafe request with that token and CSRF"]
+    A["Render action with current context token"] --> B["Submit unsafe request with that token; CSRF for cookie clients"]
     B --> C{"Token matches current mode?"}
     C -->|No| R{"Enforce mode?"}
     R -->|Yes| D["Receive context refusal; refresh status and rebuild the action"]
@@ -43,13 +43,19 @@ flowchart TD
     A["masqueradeContext(ctx, next)"] --> B["routeGuards and runtime.selectGuard"]
     B --> C{"Selected guard is effective?"}
     C -->|No| D["next() without effective-mode admission"]
-    C -->|Yes| E["runtime.admit(ctx)"]
-    E --> F{"Unsafe request?"}
+    C -->|Yes| E["Mark context enforced; runtime.admit(ctx)"]
+    E --> Q{"Admission succeeds?"}
+    Q -->|Native unauthorized| D
+    Q -->|Other failure| R["Propagate admission refusal"]
+    Q -->|Yes| F{"Unsafe request or context header present?"}
     F -->|No| G["Check sensitive and mutation route markers"]
     F -->|Yes| H["requireContext submitted token against admitted contextToken"]
-    H --> I{"Context accepted or report mode?"}
-    I -->|No| J["Throw E_MASQUERADE_CONTEXT_CHANGED or REQUIRED"]
+    H --> I{"Context accepted?"}
     I -->|Yes| G
+    I -->|No| T{"Enforce mode?"}
+    T -->|Yes| J["Throw E_MASQUERADE_CONTEXT_CHANGED or REQUIRED"]
+    T -->|No| U["Log warning"]
+    U --> G
     G --> K["next() or throw route-policy error"]
 ```
 

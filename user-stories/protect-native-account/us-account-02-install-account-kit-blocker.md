@@ -14,7 +14,7 @@ As an application developer integrating Account Kit, I want to register the Acco
 - The provider's `ready` hook requires an Account Kit native adapter with a managed guard and a managed HTTP service, then asserts the managed guard. A missing piece throws `InvalidArgumentsException` and startup fails.
 - Once the router is committed, the provider checks the registered `accountKit.*` routes against Account Kit's route registration, and fails startup with `Account Kit blocker middleware is missing` when any mounted managed route lacks the blocker. A console lifecycle commits the router itself first; other lifecycles do not. Route registration is asserted first: registered `accountKit.*` routes that are not mounted fail startup with an `is not mounted` error. With no mounted `accountKit.*` route, the blocker-installation check is skipped.
 - On a request, the global blocker passes any route that is not named `accountKit.*`, and passes `accountKit.account.logout` and `accountKit.auth.csrf` without a store read. These two stay available so the actor can end the session or fetch a CSRF token to stop the mode.
-- For other managed routes it re-validates route registration, then applies the raw-actor check: unauthenticated requests continue; an authenticated actor with an active mode receives `E_MASQUERADE_ACTION_BLOCKED` with `blockedBy: 'sensitive'` before the handler; a store or adapter failure is `E_MASQUERADE_UNAVAILABLE`.
+- For other managed routes it re-validates route registration, then applies the raw-actor check: unauthenticated requests continue; an authenticated actor with an unexpired active mode receives `E_MASQUERADE_ACTION_BLOCKED` with `blockedBy: 'sensitive'` before the handler; a store or adapter failure is `E_MASQUERADE_UNAVAILABLE`. An expired stored row is treated as inactive without changing it.
 - Once verified, `masquerade:routes` lists managed routes as blocked while active (logout and CSRF as exempt); otherwise they stay `UNCLASSIFIED`.
 - Host-owned account routes are not covered by this global blocker; see US-ACCOUNT-01.
 
@@ -44,15 +44,18 @@ flowchart TD
     B -->|Yes| D["assertGuard; managedRegistration(router)"]
     D --> E{"Router committed?"}
     E -->|No| F["Return; the blocker validates per request"]
-    E -->|Yes| G["assertManagedRouteRegistration, then installed(domains)"]
-    G --> H{"Blocker on every accountKit.* route?"}
+    E -->|Yes| G["assertManagedRouteRegistration"]
+    G -->|Registration fails| C
+    G --> Q{"Any managed route mounted?"}
+    Q -->|No| F
+    Q -->|Yes| H{"Blocker on every accountKit.* route?"}
     H -->|No| C
     H -->|Yes| I["recordAccountKitBlocker"]
     J["AccountKitBlocker.handle"] --> K{"accountKit.* name and not logout or csrf?"}
     K -->|No| L["next()"]
     K -->|Yes| M["assertManagedRouteRegistration"]
     M --> N["AccountKitAccountBlocker.handle: raw.check and activeMode"]
-    N --> O{"Authenticated with active mode?"}
+    N --> O{"Authenticated with unexpired active mode?"}
     O -->|Yes| P["Throw E_MASQUERADE_ACTION_BLOCKED"]
     O -->|No| L
 ```

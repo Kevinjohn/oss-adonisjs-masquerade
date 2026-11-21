@@ -43,11 +43,14 @@ flowchart TD
     A["MasqueradeController.stop"] --> B["MasqueradeController.control"]
     B --> C["runtimeFor and raw-guard check"]
     C --> D["requireStopControl(ctx)"]
-    D --> E["runtime.service.stop(ctx, input)"]
-    E --> F["MasqueradeService.stop validates context and commits transition"]
-    F --> G{"Stopped?"}
-    G -->|No| H["MasqueradeError response path"]
-    G -->|Yes| I["Return idle ModeView with rotated contextToken"]
+    D --> E["runtime.service.stop(ctx, input); authenticate actor and read row"]
+    E --> F{"Input and context valid?"}
+    F -->|No| H["MasqueradeError response path"]
+    F -->|Yes| Q{"Row active?"}
+    Q -->|No| K["Record control_noop; return unchanged idle context"]
+    Q -->|Yes| G["Commit idle transition; expired if lapsed, otherwise stopped"]
+    G -->|Failure| H
+    G -->|Applied| I["Return idle ModeView with rotated contextToken"]
 ```
 
 **Code references:** [controller](../../http/controllers.ts), [stop parser](../../http/control_input.ts), [service stop](../../src/service.ts), [context check](../../src/context_token.ts), [context guide](../../docs/guide/security.md#context-tokens-and-browser-clients), [stop guide](../../docs/guide/usage.md#stop-with-the-refreshed-token).

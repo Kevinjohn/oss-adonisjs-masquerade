@@ -12,7 +12,7 @@ As an application developer with a custom control store, I want to run the packa
 ## Acceptance criteria
 
 - `createStore` is called once per run and must return a clean, isolated store.
-- The suite throws an assertion error when the store breaks the observable contract, for example owner isolation, detached reads, one winner among competing compare-and-set calls, revision and event agreement, control outcomes that create or change a mode row, expiry and active batch ordering, or bounded event pruning.
+- The suite fails when the store breaks the observable contract, for example owner isolation, detached reads, one winner among competing compare-and-set calls, revision and event agreement, control outcomes that create or change a mode row, expiry and active batch ordering, or bounded event pruning. Assertions run throughout; a store's unexpected exception also fails the test.
 - A pass does not prove database isolation or behavior under independent connections; the guide asks for adapter-level tests for those.
 - `MemoryControlStore` is an in-process test utility, not a production persistence choice.
 
@@ -36,8 +36,10 @@ flowchart TD
     B --> C["store.read, compareAndSet and conflict checks"]
     C --> D["recordControlOutcome never creates or changes a row"]
     D --> E["pruneEvents, expiredBatch and activeBatch bounds and order"]
-    E --> F{"Every assertion holds?"}
-    F -->|No| G["Throw AssertionError"]
+    E --> F{"All remaining checks pass?"}
+    C -->|Unexpected failure| G["Reject test"]
+    D -->|Unexpected failure| G
+    F -->|No| G
     F -->|Yes| H["Resolve"]
 ```
 

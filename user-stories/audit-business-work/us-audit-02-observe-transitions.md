@@ -20,13 +20,15 @@ As an application developer, I want to subscribe to support transitions so that 
 ```mermaid
 flowchart TD
     A["Subscribe to named transition"] --> B["Receive bounded event"]
-    B["Receive bounded event"] --> C["Notify operators"]
+    B --> C["Notify operators through host listener"]
 ```
 
 ## Code flow
 
 ```mermaid
 flowchart TD
-    A["Commit transition"] --> B["Freeze redacted projection"]
-    B["Freeze redacted projection"] --> C["Invoke emitter and logger"]
+    A["compareAndSet transition"] --> Q{"Acknowledged applied with matching event ID?"}
+    Q -->|Yes| B["Freeze redacted projection"]
+    Q -->|No| R["No success event; return conflict or propagate error"]
+    B --> C["Invoke emitter and logger independently without awaiting"]
 ```

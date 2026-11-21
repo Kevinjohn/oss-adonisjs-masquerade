@@ -52,7 +52,9 @@ flowchart TD
     G --> E2{"assertContextEnforced: active mode without enforced context middleware?"}
     L --> E2
     E2 -->|Yes| Z["Throw E_MASQUERADE_UNAVAILABLE"]
-    E2 -->|No| M["Guard exposes admitted effective user"]
+    E2 -->|No| P{"Session facade and raw guard no longer authenticated?"}
+    P -->|Yes| W["Throw native unauthorized"]
+    P -->|No| M["Guard exposes admitted effective user"]
     M --> N["Effective token user type does not promise currentAccessToken; read the actor token via the raw guard"]
 ```
 

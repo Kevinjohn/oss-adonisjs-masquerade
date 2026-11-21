@@ -20,13 +20,20 @@ As an authorised host reviewer, I want to filter the control ledger by time so t
 ```mermaid
 flowchart TD
     A["Open authorised history"] --> B["Choose time range and page"]
-    B["Choose time range and page"] --> C["Inspect the recorded accounts"]
+    B --> Q{"Valid filters?"}
+    Q -->|No| R["Receive HTTP 400; correct filters"]
+    Q -->|Yes| C["Inspect the recorded accounts"]
 ```
 
 ## Code flow
 
 ```mermaid
 flowchart TD
-    A["Authorise and parse"] --> B["Query namespace ledger"]
-    B["Query namespace ledger"] --> C["Resolve incarnation and render"]
+    A["Authorize viewMasqueradeHistory"] --> Q{"Authorized?"}
+    Q -->|No| R["Propagate authorization refusal"]
+    Q -->|Yes| P["Parse query filters"]
+    P --> S{"Filters valid?"}
+    S -->|No| T["Return HTTP 400"]
+    S -->|Yes| B["Query namespace ledger; paginate 50"]
+    B --> C["Resolve recorded identities; render names only when identity matches"]
 ```

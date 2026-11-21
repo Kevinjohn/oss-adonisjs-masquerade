@@ -25,6 +25,7 @@ flowchart TD
     B --> C{"Mode active on this request?"}
     C -->|Yes| D["Fields name actor, target, mode and access"]
     C -->|No| E["Fields name the actor as both identities"]
+    B -->|Identity resolution fails| X["No identity fields; propagate refusal"]
     D --> F["Host writes its audit record"]
     E --> F
 ```
@@ -43,7 +44,9 @@ flowchart TD
     G -->|Yes| F["Return frozen fields"]
     G -->|"Expired or invalidated mode"| H["Throw E_MASQUERADE_CONTEXT_CHANGED"]
     G -->|"Store or policy failure"| I["Throw E_MASQUERADE_UNAVAILABLE"]
-    D --> F
+    G -->|Request-local policy refusal| J["Throw E_MASQUERADE_NOT_ALLOWED"]
+    D -->|Actor resolved| F
+    D -->|No mapped actor or invalid credentials| X["Propagate refusal"]
 ```
 
 **Code references:** [audit fields](../../http/audit_fields.ts), [audit guide](../../docs/guide/audit.md).

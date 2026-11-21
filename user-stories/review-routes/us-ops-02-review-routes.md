@@ -12,7 +12,7 @@ As an application maintainer, I want a route coverage report so that I can find 
 ## Acceptance criteria
 
 - The command requires `config/masquerade`, resolves effective and raw guard names, commits the router, and reports each registered route's methods, pattern, guard category and recognized markers.
-- Package control handlers are identified by controller/method; unresolved handlers, possible name-inferred controls, unprotected routes and unsupported mixed guards remain visible for human review.
+- Package control handlers are identified by controller/method; unresolved handlers, possible name-inferred controls, unprotected routes, unsupported mixed guards and distinct effective transports remain visible for human review. Verified Account Kit managed routes receive their own classifications; supported host-owned account blocker references are labelled separately.
 - The report is diagnostic only. It does not change route definitions or enforce authorization.
 
 ## User flow
@@ -35,9 +35,11 @@ flowchart TD
     A["RoutesCommand.run"] --> B["Load masquerade config, router and auth manager"]
     B --> C["router.commit and router.toJSON"]
     C --> D["inspectRouteCoverage"]
-    D --> E["routeGuards and routeMarkers"]
-    D --> F["isPackageControl and host-control checks"]
-    E --> G["Group and label route lines"]
+    D --> Q{"accountKit.* route name?"}
+    Q -->|Yes| X["Classify managed/exempt or unclassified by verified blocker"]
+    Q -->|No| E["Resolve registered account blocker, routeGuards and routeMarkers"]
+    E --> F["isPackageControl and host-control checks"]
+    X --> G["Group and label route lines"]
     F --> G
     G --> H["logger.info report sections"]
 ```

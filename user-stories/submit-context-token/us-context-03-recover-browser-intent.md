@@ -19,14 +19,19 @@ As a support actor, I want to revalidate the identity behind my open workspace s
 
 ```mermaid
 flowchart TD
-    A["Return to tab or submit old draft"] --> B["Inspect current identity and context"]
-    B["Inspect current identity and context"] --> C["Create a fresh action"]
+    A["Return to tab or receive stale-action refusal"] --> B["Inspect current identity and context"]
+    B --> Q{"Fresh effective identity confirmed?"}
+    Q -->|Yes| C["Create a fresh customer action"]
+    Q -->|No| R["Keep customer actions closed; inspect raw status"]
 ```
 
 ## Code flow
 
 ```mermaid
 flowchart TD
-    A["Capture context with payload"] --> B["Reject stale intent or detect restoration"]
-    B["Reject stale intent or detect restoration"] --> C["Reload raw state"]
+    A["JSON client sends original payload and context"] --> B["Discard outdated generation; refresh raw status after current response"]
+    B --> Q{"Active, unexpired and effective read matches context?"}
+    Q -->|Yes| D["Render customer and permitted actions"]
+    Q -->|No| E["Keep customer actions closed; raw stop when available"]
+    H["Inertia history restoration after support visit"] --> C["Return to raw support workspace"]
 ```
