@@ -106,6 +106,7 @@ export async function prepare(
       '@kevinjohn/adonisjs-account-kit',
       '--users-table=users',
       '--user-id-type=integer',
+      '--migration-directory=database/migrations',
     ],
     app,
     childEnv,
