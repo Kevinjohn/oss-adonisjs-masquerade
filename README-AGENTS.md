@@ -10,13 +10,13 @@ Use these notes to assess Masquerade and protect its guarantees. Human overview:
 ## Requirements
 
 Core 7, Auth 10; Lucid 22.4.2+ for the Lucid store; Session 8.1+ for session auth. Optional: Bouncer 4,
-Japa API client 3.2.1+ and Account Kit 0.4.2. Require `canMasquerade`; `canEdit` and `canUseRequest` are
+Japa API client 3.2.1+ and Account Kit 0.5.0. Require `canMasquerade`; `canEdit` and `canUseRequest` are
 optional.
 
 ## Install
 
 ```sh
-pnpm add https://github.com/Kevinjohn/oss-adonisjs-masquerade/releases/download/v0.4.3/kevinjohn-adonisjs-masquerade-0.4.3.tgz
+pnpm add https://github.com/Kevinjohn/oss-adonisjs-masquerade/releases/download/v0.5.0/kevinjohn-adonisjs-masquerade-0.5.0.tgz
 node ace configure @kevinjohn/adonisjs-masquerade --namespace=my_app --guard=web
 ```
 

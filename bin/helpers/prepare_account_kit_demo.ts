@@ -67,7 +67,7 @@ export async function prepare(
     childEnv,
     signal
   )
-  await ensureKitArtifact(join(workspace, 'account-kit-0.4.2.tgz'), signal)
+  await ensureKitArtifact(join(workspace, 'account-kit-0.5.0.tgz'), signal)
   signal?.throwIfAborted()
   await copyNativeDemo(native, app)
   await overlay(demo, app)
@@ -106,6 +106,7 @@ export async function prepare(
       '@kevinjohn/adonisjs-account-kit',
       '--users-table=users',
       '--user-id-type=integer',
+      '--migration-directory=database/migrations',
     ],
     app,
     childEnv,

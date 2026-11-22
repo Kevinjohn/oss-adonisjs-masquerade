@@ -485,6 +485,7 @@ try {
                   '@kevinjohn/adonisjs-account-kit',
                   '--users-table=users',
                   '--user-id-type=integer',
+                  '--migration-directory=database/migrations',
                 ],
                 `${label}_configure`,
                 env
