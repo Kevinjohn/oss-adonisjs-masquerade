@@ -95,11 +95,7 @@ async function verifyConfigure(app: string, profileName: string): Promise<void> 
     JSON.stringify({ name: 'packed-configure-check', type: 'module', imports: manifest.imports })
   )
   await cp(join(app, 'ace.js'), join(check, 'ace.js'))
-  for (const name of [
-    'config/masquerade.ts',
-    'providers/masquerade_native_provider.ts',
-    'app/middleware/masquerade_context_middleware.ts',
-  ])
+  for (const name of ['config/masquerade.ts', 'providers/masquerade_native_provider.ts'])
     await rm(join(check, name), { force: true })
   const migrationRoot = join(check, 'database/migrations')
   for (const name of await readdir(migrationRoot))
@@ -125,7 +121,6 @@ async function verifyConfigure(app: string, profileName: string): Promise<void> 
     for (const file of [
       'app/services/masquerade_user_provider.ts',
       'providers/masquerade_native_provider.ts',
-      'app/middleware/masquerade_context_middleware.ts',
     ])
       await readFile(join(check, file), 'utf8')
     const migrations = await readdir(migrationRoot)

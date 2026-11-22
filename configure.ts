@@ -2,7 +2,7 @@ import type Configure from '@adonisjs/core/commands/configure'
 import { access, lstat, readFile, stat } from 'node:fs/promises'
 import { basename, extname, join, sep } from 'node:path'
 import { fileURLToPath, pathToFileURL } from 'node:url'
-import { wireHost } from './src/configure_wiring.js'
+import { contextMiddleware, wireHost } from './src/configure_wiring.js'
 
 /**
  * Scaffold a fail-closed native-session and Lucid setup, then wire recognized auth, kernel and
@@ -84,7 +84,6 @@ export async function configure(command: Configure): Promise<void> {
     join(directories.services, 'masquerade_user_provider.ts'),
     join(directories.config, 'masquerade.ts'),
     join(directories.providers, 'masquerade_native_provider.ts'),
-    join(directories.middleware, 'masquerade_context_middleware.ts'),
   ]
   const bannerDestinations = [
     join(directories.middleware, 'share_masquerade_status_middleware.ts'),
@@ -133,7 +132,6 @@ export async function configure(command: Configure): Promise<void> {
       guardLiteral: JSON.stringify(guard),
     }),
     await codemods.makeUsingStub(command.stubsRoot, 'configure/native_provider.stub', {}),
-    await codemods.makeUsingStub(command.stubsRoot, 'configure/context_middleware.stub', {}),
     ...(banner
       ? [
           await codemods.makeUsingStub(command.stubsRoot, 'configure/status_middleware.stub', {}),
@@ -220,7 +218,7 @@ export async function configure(command: Configure): Promise<void> {
       : []),
     ...(wiring.kernel === 'skipped'
       ? [
-          `Wire ${fileDestinations[3]} as router middleware after initialize_auth and before any silent_auth middleware; preserve this order in ${kernelFile}.`,
+          `Register ${contextMiddleware} as router middleware after initialize_auth and before any silent_auth middleware; preserve this order in ${kernelFile}.`,
         ]
       : []),
     'Implement the generated account incarnation, security stamp, active-account checks, and deny-by-default policy using your account model. Make stamps change on privilege, password, suspension, and logout-all changes.',

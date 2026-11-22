@@ -28,6 +28,7 @@ Proposed exports:
 ./masquerade_provider
 ./auth            # effective guard factory
 ./http            # context middleware, sensitive()/allowMutation() markers, error mapping, controllers
+./masquerade_context_middleware  # default-exports the context middleware class for router.use
 ./native          # native session authority factory
 ./stores/lucid    # optional SQLite/PostgreSQL store and migration stub
 ./testing         # memory store and ControlStore conformance suite

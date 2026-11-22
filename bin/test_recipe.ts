@@ -111,7 +111,9 @@ function verifyRecipe(parts: typeof snippets): void {
   requireRecipe(parts.businessRoutes.includes('.use(allowMutation())'), 'mutation marker')
   requireRecipe(parts.businessRoutes.includes('.use(sensitive())'), 'sensitive marker')
   const init = parts.kernelOrder.indexOf("'@adonisjs/auth/initialize_auth_middleware'")
-  const context = parts.kernelOrder.indexOf("'#middleware/masquerade_context_middleware'")
+  const context = parts.kernelOrder.indexOf(
+    "'@kevinjohn/adonisjs-masquerade/masquerade_context_middleware'"
+  )
   const silent = parts.kernelOrder.indexOf("'#middleware/silent_auth_middleware'")
   requireRecipe(init >= 0 && init < context && context < silent, 'context middleware order')
   requireRecipe(
@@ -134,8 +136,8 @@ for (const [name, mutated] of [
     {
       ...snippets,
       kernelOrder: snippets.kernelOrder.replace(
-        "() => import('#middleware/masquerade_context_middleware'),\n  () => import('#middleware/silent_auth_middleware')",
-        "() => import('#middleware/silent_auth_middleware'),\n  () => import('#middleware/masquerade_context_middleware')"
+        "() => import('@kevinjohn/adonisjs-masquerade/masquerade_context_middleware'),\n  () => import('#middleware/silent_auth_middleware')",
+        "() => import('#middleware/silent_auth_middleware'),\n  () => import('@kevinjohn/adonisjs-masquerade/masquerade_context_middleware')"
       ),
     },
   ],
@@ -293,7 +295,7 @@ async function applyRecipe(app: string): Promise<void> {
   const kernel = await readFile(kernelPath, 'utf8')
   const contextLine = extract(
     snippets.kernelOrder,
-    / {2}\(\) => import\('#middleware\/masquerade_context_middleware'\),/,
+    / {2}\(\) => import\('@kevinjohn\/adonisjs-masquerade\/masquerade_context_middleware'\),/,
     'context middleware import'
   )
   const authLine = extract(
@@ -482,7 +484,7 @@ try {
       await expectBrokenJourney(
         app,
         'start/kernel.ts',
-        "  () => import('#middleware/masquerade_context_middleware'),\n",
+        "  () => import('@kevinjohn/adonisjs-masquerade/masquerade_context_middleware'),\n",
         '',
         'context middleware',
         // Without the middleware the effective guard refuses the target before any handler runs.

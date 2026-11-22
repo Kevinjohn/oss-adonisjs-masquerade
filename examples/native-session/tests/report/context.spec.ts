@@ -1,7 +1,7 @@
 import { test } from '@japa/runner'
 import testUtils from '@adonisjs/core/services/test_utils'
 import { cleanUsers, createUsers } from '#tests/helpers/users'
-import MasqueradeContextMiddleware from '@kevinjohn/adonisjs-masquerade/http'
+import MasqueradeContextMiddleware from '@kevinjohn/adonisjs-masquerade/masquerade_context_middleware'
 
 const warnings: unknown[] = []
 

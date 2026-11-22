@@ -27,7 +27,8 @@ async function host(files: { auth?: string; kernel?: string }) {
   }
 }
 
-const contextEntry = "  () => import('#middleware/masquerade_context_middleware'),"
+const contextEntry =
+  "  () => import('@kevinjohn/adonisjs-masquerade/masquerade_context_middleware'),"
 
 test.group('configure wiring', (group) => {
   // Each case loads a ts-morph project, which takes several seconds on CI runners.
@@ -233,6 +234,27 @@ test.group('configure wiring', (group) => {
     }
   })
 
+  test('recognises the 0.5.1 wrapper and ./http registrations as already wired', async ({
+    assert,
+  }) => {
+    const initialize = "  () => import('@adonisjs/auth/initialize_auth_middleware'),"
+    for (const entry of [
+      "  () => import('#middleware/masquerade_context_middleware'),",
+      "  () => import('@kevinjohn/adonisjs-masquerade/http'),",
+      contextEntry,
+    ]) {
+      const source = starterKernel.replace(initialize, `${initialize}\n${entry}`)
+      const h = await host({ kernel: source })
+      try {
+        assert.equal(await wireContextMiddleware(h.project(), h.kernel), 'already')
+        assert.equal(await readFile(h.kernel, 'utf8'), source)
+        assert.equal(await wireStatusMiddleware(h.project(), h.kernel), 'wired')
+      } finally {
+        await rm(h.root, { recursive: true, force: true })
+      }
+    }
+  })
+
   test('does not accept existing context middleware in the wrong order', async ({ assert }) => {
     const initialize = "  () => import('@adonisjs/auth/initialize_auth_middleware'),"
     const silent = "  () => import('#middleware/silent_auth_middleware'),"
@@ -269,7 +291,7 @@ test.group('configure wiring', (group) => {
       assert.include(
         kernel,
         [
-          "  () => import('#middleware/masquerade_context_middleware'),",
+          contextEntry,
           "  () => import('#middleware/silent_auth_middleware'),",
           "  () => import('#middleware/share_masquerade_status_middleware'),",
         ].join('\n')

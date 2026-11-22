@@ -102,11 +102,13 @@ const editorSettings = {
   semicolons: 'remove',
 } as unknown as Parameters<SourceFile['formatText']>[0]
 
-const contextMiddleware = "() => import('#middleware/masquerade_context_middleware')"
+export const contextMiddleware =
+  "() => import('@kevinjohn/adonisjs-masquerade/masquerade_context_middleware')"
 const statusMiddleware = "() => import('#middleware/share_masquerade_status_middleware')"
 
+// The 0.5.1 generated wrapper and the ./http default export remain recognised on configure reruns.
 function isContextMiddleware(entry: string): boolean {
-  return /^\s*(?:async\s+)?\(\s*\)\s*=>\s*import\s*\(\s*(['"])(?:#middleware\/masquerade_context_middleware|@kevinjohn\/adonisjs-masquerade\/http)\1\s*\)\s*$/.test(
+  return /^\s*(?:async\s+)?\(\s*\)\s*=>\s*import\s*\(\s*(['"])(?:#middleware\/masquerade_context_middleware|@kevinjohn\/adonisjs-masquerade\/(?:http|masquerade_context_middleware))\1\s*\)\s*$/.test(
     entry
   )
 }

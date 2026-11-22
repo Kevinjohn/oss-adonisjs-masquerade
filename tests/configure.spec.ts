@@ -78,8 +78,17 @@ test.group('Masquerade configure scaffold', (group) => {
       assert.include(output.config, 'securityStamp: stampFrom<User>')
       assert.include(output.userProvider, "model: () => import('#models/user')")
       assert.include(output.nativeProvider, "bindValue('masquerade.native', nativeAdapter)")
-      assert.include(output.middleware, 'export default class MasqueradeContextMiddleware')
-      assert.include(output.middleware, 'return masqueradeContext(ctx, next)')
+      assert.notInclude(
+        await listScaffoldPaths(f.root),
+        'app/middleware/masquerade_context_middleware.ts'
+      )
+      assert.isTrue(
+        first.messages.some((message) =>
+          message.includes(
+            "Register () => import('@kevinjohn/adonisjs-masquerade/masquerade_context_middleware') as router middleware"
+          )
+        )
+      )
       assert.isUndefined(output.banner)
       assert.isUndefined(output.statusMiddleware)
       assert.isUndefined(output.formController)
@@ -886,7 +895,6 @@ async function readScaffold(root: string) {
     config: await read('config/masquerade.ts'),
     userProvider: await read('app/services/masquerade_user_provider.ts'),
     nativeProvider: await read('providers/masquerade_native_provider.ts'),
-    middleware: await read('app/middleware/masquerade_context_middleware.ts'),
     statusMiddleware: paths.includes('app/middleware/share_masquerade_status_middleware.ts')
       ? await read('app/middleware/share_masquerade_status_middleware.ts')
       : undefined,

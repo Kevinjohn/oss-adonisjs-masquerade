@@ -346,7 +346,7 @@ generated `canUseRequest` property entirely; its `false` placeholder denies ever
 
 ## Wire auth middleware and routes
 
-Add the generated context middleware to `router.use` after Auth initialisation and before
+Add the package context middleware to `router.use` after Auth initialisation and before
 `silent_auth` or any later middleware that calls `auth.check()`. Preserve all other host middleware
 and their order:
 
@@ -357,15 +357,16 @@ and their order:
 router.use([
   // Existing body parser, session, Shield, and other middleware.
   () => import('@adonisjs/auth/initialize_auth_middleware'),
-  () => import('#middleware/masquerade_context_middleware'),
+  () => import('@kevinjohn/adonisjs-masquerade/masquerade_context_middleware'),
   () => import('#middleware/silent_auth_middleware'),
 ])
 ```
 
-Starting with release 0.5.0, a host may
-register `() => import('@kevinjohn/adonisjs-masquerade/http')` in that same position instead of
-the generated wrapper. The existing `masqueradeContext(ctx, next)` function and wrappers keep
-working. Release 0.4.3 requires the wrapper.
+Configure registers this import. Releases 0.5.0 and 0.5.1 do not have this subpath; there, register
+`() => import('@kevinjohn/adonisjs-masquerade/http')` or the generated
+`#middleware/masquerade_context_middleware` wrapper in the same position. Both keep working in later
+releases, configure reruns recognise them, and the `masqueradeContext(ctx, next)` function stays
+available for host-owned wrappers. Release 0.4.3 requires the wrapper.
 
 Keep the supported named `auth` middleware on route groups. Package control routes authenticate
 with the raw guard so an active effective identity cannot replace the actor used to stop a mode:

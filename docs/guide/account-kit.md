@@ -275,7 +275,7 @@ router.use([
   () => import('@adonisjs/auth/initialize_auth_middleware'),
   () => import('@kevinjohn/adonisjs-masquerade/account-kit/middleware'),
   () => import('#middleware/account_kit_actor_admission_middleware'),
-  () => import('#middleware/masquerade_context_middleware'),
+  () => import('@kevinjohn/adonisjs-masquerade/masquerade_context_middleware'),
   // silent_auth and other application middleware...
 ])
 ```

@@ -2,6 +2,14 @@
 
 ## Unreleased
 
+### Added
+
+- Export the context middleware class as the default export of
+  `@kevinjohn/adonisjs-masquerade/masquerade_context_middleware`. Configure registers this import
+  in new installs instead of generating `app/middleware/masquerade_context_middleware.ts`. The
+  `./http` default export and existing generated wrappers keep working, and configure reruns still
+  recognise them.
+
 ### Fixed
 
 - Log the effective guard, raw guard and expected and actual driver when a cross-wired guard
