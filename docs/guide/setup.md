@@ -359,7 +359,7 @@ router.use([
 ])
 ```
 
-With the next release containing the default `MasqueradeContextMiddleware` export, a host may
+Starting with release 0.5.0, a host may
 register `() => import('@kevinjohn/adonisjs-masquerade/http')` in that same position instead of
 the generated wrapper. The existing `masqueradeContext(ctx, next)` function and wrappers keep
 working. Release 0.4.3 requires the wrapper.
