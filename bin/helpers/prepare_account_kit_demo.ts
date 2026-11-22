@@ -67,7 +67,7 @@ export async function prepare(
     childEnv,
     signal
   )
-  await ensureKitArtifact(join(workspace, 'account-kit-0.5.0.tgz'), signal)
+  await ensureKitArtifact(join(workspace, 'account-kit-0.5.1.tgz'), signal)
   signal?.throwIfAborted()
   await copyNativeDemo(native, app)
   await overlay(demo, app)
@@ -114,7 +114,13 @@ export async function prepare(
   )
   await runDemoCommand(
     process.execPath,
-    ['ace.js', 'account-kit:admission:install', '--users-table=users', '--user-id-type=integer'],
+    [
+      'ace.js',
+      'account-kit:admission:install',
+      '--users-table=users',
+      '--user-id-type=integer',
+      '--migration-directory=database/migrations',
+    ],
     app,
     childEnv,
     signal

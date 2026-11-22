@@ -499,6 +499,7 @@ try {
                   'account-kit:admission:install',
                   '--users-table=users',
                   '--user-id-type=integer',
+                  '--migration-directory=database/migrations',
                 ],
                 `${label}_admission_install`,
                 env
