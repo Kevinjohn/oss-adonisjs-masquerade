@@ -64,7 +64,10 @@ provider. Since v0.5.0, boot compares known native transport registration metada
 and effective wrapper are checked on the live request before Masquerade reads mode state. The
 package no longer invokes a guard factory with a synthetic context as 0.4.3 did. Configure adds
 the package provider, native binding provider, and command loader to `adonisrc.ts`, and creates
-starter files and a migration in the default connection's first migrations folder.
+starter files. It creates the migration in the default connection's first migrations folder when
+none exists. With `--force`, it regenerates a single existing TypeScript migration in place across
+that connection's migration folders. Multiple existing Masquerade migrations stop configure before
+it writes files.
 In the current source, custom directories declared in `adonisrc.ts` are respected throughout generation, conflict
 preflight and host wiring. Keep the corresponding host import aliases aligned in `package.json`.
 

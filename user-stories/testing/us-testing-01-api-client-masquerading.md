@@ -45,7 +45,7 @@ Scope: Japa API client test plugin through the host's actual control routes and 
 ```mermaid
 flowchart TD
  A["masqueradeApiClient registers request.masquerading"] --> B["ApiClient setup requires same-request loginAs authData"]
- B --> C["GET status and POST start with the status context plus Shield CSRF"]
+ B --> C["GET status, then POST start with its context token; add Shield CSRF to start when the helper is available"]
  C --> D{"Both 200 with boolean isMasquerading and string contextToken, and start active?"}
  D -->|No| E["Throw setup error before tested request"]
  D -->|Yes| F["Set unsafe context header only if caller did not set it"]

@@ -2,7 +2,7 @@
 
 ## Unreleased
 
-- Configure uses the primary migration directory from named database exports and reuses nested Masquerade migration paths.
+- Configure reads named database exports and reuses an existing Masquerade migration at its original path across the default connection’s migration directories.
 
 ## 0.5.0 - 2026-11-21
 

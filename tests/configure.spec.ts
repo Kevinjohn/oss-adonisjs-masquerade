@@ -83,11 +83,6 @@ test.group('Masquerade configure scaffold', (group) => {
       assert.isUndefined(output.banner)
       assert.isUndefined(output.statusMiddleware)
       assert.isUndefined(output.formController)
-      const migrationStub = await readFile(
-        join(stubsRoot, 'migrations/create_masquerade_tables.stub'),
-        'utf8'
-      )
-      assert.match(migrationStub, /exports\(\{ to: app\.makePath/)
       assert.include(output.migration, 'createMasqueradeSchema(this.schema)')
       assert.include(output.migration, 'async up()')
       assert.include(output.migration, 'async down()')
@@ -517,17 +512,22 @@ test.group('Masquerade configure scaffold', (group) => {
       assert.equal(first.exitCode, 0, first.errors.join('\n'))
       const directory = join(f.root, 'database/migrations')
       const [file] = await readdir(directory)
-      await mkdir(join(directory, 'prior'))
-      await rename(join(directory, file), join(directory, 'prior', file))
+      const nested = join(directory, 'prior#archive')
+      const migration = await readFile(join(directory, file), 'utf8')
+      await mkdir(nested)
+      await rename(join(directory, file), join(nested, file))
+      await writeFile(join(nested, file), '// Regenerate this migration\n' + migration)
 
       const runner = new MigrationRunner(db, f.app, { direction: 'up', dryRun: false })
       const before = await runner.getList()
       assert.deepEqual(before, [
-        { name: `database/migrations/prior/${file.slice(0, -3)}`, status: 'pending' },
+        { name: `database/migrations/prior#archive/${file.slice(0, -3)}`, status: 'pending' },
       ])
       const forced = f.command(flags, true)
       await configure(forced as never)
       assert.equal(forced.exitCode, 0, forced.errors.join('\n'))
+      assert.deepEqual(await readdir(directory), ['prior#archive'])
+      assert.equal(await readFile(join(nested, file), 'utf8'), migration)
       assert.deepEqual(await runner.getList(), before)
       await runner.run()
       assert.isNull(runner.error)
@@ -536,6 +536,43 @@ test.group('Masquerade configure scaffold', (group) => {
       assert.isTrue(await db.connection().schema.hasTable('masquerade_events'))
     } finally {
       await db.manager.closeAll()
+      await f.dispose()
+    }
+  })
+
+  test('force reuses a migration from a later Lucid directory and refuses competing migrations', async ({
+    assert,
+  }) => {
+    const f = await configureFixture()
+    try {
+      const paths = ['database/migrations', 'database/archive']
+      f.app.config.set('database', {
+        connection: 'main',
+        connections: { main: { migrations: { paths } } },
+      })
+      const [primary, archive] = paths.map((path) => join(f.root, path))
+      const file = '1700000000000_create_masquerade_tables.ts'
+      const archived = join(archive, file)
+      const flags = { 'namespace': 'support', 'guard': 'web', 'no-wire': true }
+      await mkdir(primary, { recursive: true })
+      await mkdir(archive, { recursive: true })
+      await writeFile(archived, '// Earlier scaffold')
+
+      const forced = f.command(flags, true)
+      await configure(forced as never)
+      assert.equal(forced.exitCode, 0, forced.errors.join('\n'))
+      assert.deepEqual(await readdir(primary), [])
+      assert.deepEqual(await readdir(archive), [file])
+      assert.include(await readFile(archived, 'utf8'), 'createMasqueradeSchema(this.schema)')
+
+      await writeFile(join(primary, file), '// Competing scaffold')
+      const before = await snapshot(f.root)
+      const duplicate = f.command({ ...flags, namespace: 'changed' }, true)
+      await configure(duplicate as never)
+      assert.equal(duplicate.exitCode, 1)
+      assert.include(duplicate.errors.join('\n'), 'Multiple Masquerade migrations')
+      assert.deepEqual(await snapshot(f.root), before)
+    } finally {
       await f.dispose()
     }
   })

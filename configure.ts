@@ -1,7 +1,7 @@
 import type Configure from '@adonisjs/core/commands/configure'
 import { access, lstat, readFile, stat } from 'node:fs/promises'
-import { basename, extname, join, relative, sep } from 'node:path'
-import { pathToFileURL } from 'node:url'
+import { basename, extname, join, sep } from 'node:path'
+import { fileURLToPath, pathToFileURL } from 'node:url'
 import { wireHost } from './src/configure_wiring.js'
 
 /**
@@ -73,10 +73,10 @@ export async function configure(command: Configure): Promise<void> {
     return
   }
 
-  const migrationFolder = await migrationsFolder(command)
-  const migrationFile = await findMigrationFile(command, command.app.makePath(migrationFolder))
-  if (!migrationFile) return
-  const migrationDestination = `${migrationFolder}/${migrationFile}`
+  const migrationFolders = await migrationsFolders(command)
+  const migrationPath = await findMigrationPath(command, migrationFolders)
+  if (!migrationPath) return
+  const migrationDestination = command.app.relativePath(migrationPath)
   const banner = command.parsedFlags.banner === true
   const formController =
     command.parsedFlags.formController === true || command.parsedFlags['form-controller'] === true
@@ -103,12 +103,12 @@ export async function configure(command: Configure): Promise<void> {
     ...(banner ? bannerDestinations : []),
     ...(formController ? [formControllerDestination] : []),
     ...(shouldSkipAutoWiring(command) ? [] : routeDestinations),
-    migrationDestination,
-  ]
+  ].map((destination) => command.app.makePath(destination))
+  destinations.push(migrationPath)
   if (!command.force) {
     const existingPaths = await Promise.all(
       destinations.map(async (destination) =>
-        (await fileExists(command.app.makePath(destination))) ? destination : null
+        (await fileExists(destination)) ? command.app.relativePath(destination) : null
       )
     ).then((paths) => paths.filter((path): path is string => path !== null))
     if (existingPaths.length) {
@@ -126,7 +126,6 @@ export async function configure(command: Configure): Promise<void> {
   codemods.on('error', (error: unknown) => {
     codemodError = error
   })
-  const entity = command.app.generators.createEntity('masquerade_tables')
   const generated = [
     await codemods.makeUsingStub(command.stubsRoot, 'configure/user_provider.stub', {}),
     await codemods.makeUsingStub(command.stubsRoot, 'configure/masquerade_config.stub', {
@@ -148,13 +147,7 @@ export async function configure(command: Configure): Promise<void> {
       ? [await codemods.makeUsingStub(command.stubsRoot, 'configure/form_controller.stub', {})]
       : []),
     await codemods.makeUsingStub(command.stubsRoot, 'migrations/create_masquerade_tables.stub', {
-      entity,
-      flags: command.parsedFlags,
-      migration: {
-        tableName: 'masquerade_tables',
-        folder: migrationFolder,
-        fileName: migrationFile,
-      },
+      migrationPath,
     }),
   ]
   if (generated.some((result) => 'status' in result && result.status === 'skipped')) {
@@ -290,8 +283,8 @@ type DatabaseConfig = {
   connections?: Record<string, { migrations?: { paths?: unknown } }>
 }
 
-/** The default connection's first migrations folder, as `node ace make:migration` offers it. */
-async function migrationsFolder(command: Configure): Promise<string> {
+/** The default connection's migration directories, resolved as Lucid resolves them. */
+async function migrationsFolders(command: Configure): Promise<[string, ...string[]]> {
   // Configure runs before the application boots, so config/database.ts is read directly.
   const database =
     command.app.config?.get<DatabaseConfig | undefined>('database', undefined) ??
@@ -299,12 +292,14 @@ async function migrationsFolder(command: Configure): Promise<string> {
   const paths = database?.connection
     ? database.connections?.[database.connection]?.migrations?.paths
     : undefined
-  const folder = Array.isArray(paths)
-    ? paths.find((path): path is string => typeof path === 'string' && path.length > 0)
-    : undefined
-  return folder
-    ? folder.replace(/^\.\//, '').replace(/\/+$/, '')
-    : command.app.rcFile.directories.migrations
+  const [first, ...rest] = Array.isArray(paths)
+    ? paths.filter((path): path is string => typeof path === 'string' && path.length > 0)
+    : []
+  const resolveFolder = (path: string) => fileURLToPath(new URL(path, command.app.appRoot))
+  return [
+    resolveFolder(first ?? `./${command.app.rcFile.directories.migrations}`),
+    ...rest.map(resolveFolder),
+  ]
 }
 
 /** Where the host's `#models/*` import maps `#models/user`, without an extension. */
@@ -360,34 +355,44 @@ async function fileExists(path: string): Promise<boolean> {
   }
 }
 
-async function findMigrationFile(command: Configure, folder: string): Promise<string | undefined> {
+async function findMigrationPath(
+  command: Configure,
+  folders: [string, ...string[]]
+): Promise<string | undefined> {
   const { sourceFiles } = await import('@adonisjs/lucid/utils')
-  const info = await stat(folder).catch((error: unknown) => {
-    if ((error as NodeJS.ErrnoException).code !== 'ENOENT') throw error
-  })
-  if (info && !info.isDirectory()) throw new Error(`Expected a migration directory at ${folder}`)
-  const { files } = await sourceFiles(pathToFileURL(folder + sep), '.', false)
-  const existing = files.filter(({ absPath }) =>
-    /^\d{13}_create_masquerade_tables$/.test(basename(absPath, extname(absPath)))
+  const discovered = await Promise.all(
+    folders.map(async (folder) => {
+      const info = await stat(folder).catch((error: unknown) => {
+        if ((error as NodeJS.ErrnoException).code !== 'ENOENT') throw error
+      })
+      if (info && !info.isDirectory())
+        throw new Error(`Expected a migration directory at ${folder}`)
+      const { files } = await sourceFiles(pathToFileURL(folder + sep), '.', false)
+      return files
+    })
   )
+  const existing = discovered
+    .flat()
+    .filter(({ absPath }) =>
+      /^\d{13}_create_masquerade_tables$/.test(basename(absPath, extname(absPath)))
+    )
   if (existing.length > 1) {
     command.logger.error(
-      `Multiple Masquerade migrations were found in ${folder}. Review migration history before rerunning configure.`
+      `Multiple Masquerade migrations were found in the default connection. Review migration history before rerunning configure.`
     )
     command.exitCode = 1
     return
   }
   if (existing[0]) {
     const path = existing[0].absPath
-    if (extname(path) === '.ts') return relative(folder, path)
+    if (extname(path) === '.ts') return path
     command.logger.error(
       `Masquerade cannot regenerate the existing migration ${path} from a TypeScript stub. Preserve its migration identity and complete configuration manually.`
     )
     command.exitCode = 1
     return
   }
-  const filename = `${Date.now()}_create_masquerade_tables.ts`
-  const path = join(folder, filename)
+  const path = join(folders[0], `${Date.now()}_create_masquerade_tables.ts`)
   const entry = await lstat(path).catch((error: unknown) => {
     if ((error as NodeJS.ErrnoException).code !== 'ENOENT') throw error
   })
@@ -398,7 +403,7 @@ async function findMigrationFile(command: Configure, folder: string): Promise<st
     command.exitCode = 1
     return
   }
-  return filename
+  return path
 }
 
 function isModuleNotFound(error: unknown): boolean {
