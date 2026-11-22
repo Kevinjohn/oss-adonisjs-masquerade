@@ -10,6 +10,7 @@ import { managedRegistration } from './registration.js'
 
 /** Opt-in blocker for host-owned native account routes. Keep logout and CSRF outside its group. */
 export class AccountKitAccountBlocker {
+  /** Refuse the route with `E_MASQUERADE_ACTION_BLOCKED` (`sensitive`) while a mode is active. */
   async handle(ctx: HttpContext, next: () => Promise<unknown>): Promise<unknown> {
     let adapter: AccountKitAdapter<unknown>
     let raw: GuardContract<unknown>
@@ -52,6 +53,10 @@ export class AccountKitAccountBlocker {
 
 /** Global blocker for Account Kit's registered managed routes. */
 export class AccountKitBlocker extends AccountKitAccountBlocker {
+  /**
+   * Block managed `accountKit.*` routes while a mode is active, except logout and CSRF, after
+   * checking the managed route registration. Other routes pass through.
+   */
   async handle(ctx: HttpContext, next: () => Promise<unknown>): Promise<unknown> {
     const name = ctx.route?.name
     if (

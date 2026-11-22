@@ -164,7 +164,7 @@ class CoreService<User, Request extends object> implements MasqueradeService<Req
     const row = await this.read(owner)
     return row?.state === 'active' && this.readCurrentTimestamp() < row.expiresAt
   }
-  /** The authenticated actor alone: no row read, policy call or invalidation. */
+  /** The authenticated actor alone: no row read, host callback or invalidation. */
   async [actorIdentity](request: Request): Promise<{ id: string; incarnation: string }> {
     const actor = await this.authenticateActor(request)
     return { id: actor.id, incarnation: actor.incarnation }
@@ -389,12 +389,12 @@ class CoreService<User, Request extends object> implements MasqueradeService<Req
       }
       // §6.4 Active: any second start is 409 with no replacement or extension (I02).
       if (row?.state === 'active') throw new MasqueradeError('E_MASQUERADE_ALREADY_ACTIVE')
-      // §7.1 step 3 reason policy, §14.1 access and the duration bounds.
+      // §7.1 step 3 reason requirement, §14.1 access and the duration bounds.
       const { targetId, reason, duration, access } = requireStartSelection(fields, {
         actorId: actor.id,
         defaultDuration: this.config.durationSeconds!,
         maxDuration: this.config.maxDurationSeconds!,
-        reasonPolicy: this.config.reason!,
+        reasonRequirement: this.config.reason!,
       })
       // Only the requested values: an inspected incarnation would reveal that the account exists.
       attempted = { targetId, access }
@@ -521,7 +521,7 @@ class CoreService<User, Request extends object> implements MasqueradeService<Req
       // I06: a lapsed mode is recorded as expired, as admission, prune and the CLI record it.
       if (this.readCurrentTimestamp() >= row.expiresAt)
         return modeView(owner, await this.clear(owner, row, 'expired', 'expired'))
-      // §6.4 Active: idle with one stopped event; I08: no target load or policy call.
+      // §6.4 Active: idle with one stopped event; I08: no target load or host callback.
       return modeView(owner, await this.clear(owner, row, 'stopped', 'stopped'))
     } catch (error) {
       // I09: an indeterminate commit may have applied, so it records no denial.

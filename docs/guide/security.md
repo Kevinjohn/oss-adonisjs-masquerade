@@ -52,7 +52,7 @@ use any administrative route marked `allowMutation()`, for example to grant thei
 role, and keeps that privilege after the mode ends.
 
 Modes default to view access. The actor may request edit access when starting, but an
-optional host `canEdit` policy must return exactly `true`; omitting the callback or returning any
+optional host `canEdit` callback must return exactly `true`; omitting the callback or returning any
 other value never grants edit. `canMasquerade` keeps its existing role and input. For an edit start,
 `canEdit({ actor, target, reason, request })` runs after `canMasquerade` and before
 `canUseRequest`. View starts never call it.
@@ -163,19 +163,32 @@ await fetch('/business/mutate', {
 })
 ```
 
-If a request sends both header and form tokens, they must match. Missing context is 428; stale or
-conflicting context is 409. Do not fetch a newer token and replay an old intent: refresh or rebuild
-the user's action under the current mode first.
-GET/HEAD/OPTIONS requests do not need the token, though active-mode policy still applies. A
-GET/HEAD/OPTIONS request that does send `X-Masquerade-Context` is checked like an unsafe one: a
-stale value is refused with 409 (logged under `report`), so a client never shows data from a mode
-it does not know it is in.
+If a request sends both header and form tokens, they must match. GET/HEAD/OPTIONS requests do not
+need the token, though active-mode policy still applies. A GET/HEAD/OPTIONS request that does send
+`X-Masquerade-Context` has that value checked like an unsafe request's token.
 
-Start and stop always enforce their expected token. Business middleware may run in `report` while
-the host migrates forms; it logs would-be missing/stale errors and admits the request. Report mode
-is not a stale-form protection boundary. Inventory all rendered forms and clients, deploy token
-submission, verify the warnings have stopped, then switch to `enforce` before relying on stale
-intent rejection.
+`contextEnforcement` decides what a business route does when that check fails. The two modes differ
+only there:
+
+- **`enforce`** refuses the request. A missing or malformed token is
+  `428 E_MASQUERADE_CONTEXT_REQUIRED`; a stale or conflicting one is
+  `409 E_MASQUERADE_CONTEXT_CHANGED`. A read carrying a stale header is refused with 409 as well, so a client never shows data from a
+  mode it does not know it is in.
+- **`report`** is a diagnostic rollout mode. It logs the would-be 428 or 409 as a warning with the
+  code, route and actor ID, then admits the request. A read carrying a stale header is logged and
+  answered. Report mode is not a stale-form protection boundary.
+
+In both modes the active-mode access rule still applies: `sensitive()`, `view_only` and
+`mutation_not_allowed` blocks are unchanged, and start and stop always enforce their expected token.
+The focused cases are in `tests/http_context_middleware.spec.ts`: "refuses a safe request whose
+context header is stale and admits a current one" (stale reads per mode), "requires context on idle
+unsafe routes in report mode and ignores query state" and "report mode still applies the access
+rule".
+
+Do not fetch a newer token and replay an old intent: refresh or rebuild the user's action under the
+current mode first. Run business middleware in `report` while the host migrates forms. Inventory all
+rendered forms and clients, deploy token submission, verify the warnings have stopped, then switch to
+`enforce` before relying on stale intent rejection.
 
 <a id="duration-transition-and-recovery-behavior"></a>
 
@@ -228,7 +241,7 @@ authentication, CSRF and the control limiter succeed, admitted start/stop denial
 context conflicts and idle-stop no-ops are also recorded when the store is available. A start
 denial records the requested target ID and access, never an incarnation the authority returned. Authentication
 failures, pre-boundary CSRF/limiter rejections, status/business denials and local tenant denials use
-host diagnostics instead. A successful start audit stores its normalised reason, or none when the reason policy is optional
+host diagnostics instead. A successful start audit stores its normalised reason, or none when the reason requirement is optional
 and no reason was given. Set `reason: 'required'` when compliance needs a justification for every
 start. Denied or invalid
 control attempts omit the reason. Do not use reasons as case notes; avoid secrets and unnecessary

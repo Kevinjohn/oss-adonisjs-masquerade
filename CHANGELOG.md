@@ -9,6 +9,16 @@
   in new installs instead of generating `app/middleware/masquerade_context_middleware.ts`. The
   `./http` default export and existing generated wrappers keep working, and configure reruns still
   recognise them.
+- Export `MasqueradeErrorCode`, `MasqueradeBlockedBy`, `MasqueradeSetupErrorCode` and
+  `MasqueradeSetupErrorField` from `@kevinjohn/adonisjs-masquerade/types`; the root exports are
+  unchanged.
+- Generate API reference pages for the three Account Kit entry points and link them from the
+  reference index.
+
+### Changed
+
+- Describe the `report` and `enforce` context-check modes separately, including how each treats a
+  read carrying a stale token, and use lazy controller imports in the README and example routes.
 
 ### Fixed
 

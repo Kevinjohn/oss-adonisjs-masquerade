@@ -1,5 +1,12 @@
 import type { MasqueradeErrorCode } from './errors.js'
 
+export type {
+  MasqueradeBlockedBy,
+  MasqueradeErrorCode,
+  MasqueradeSetupErrorCode,
+  MasqueradeSetupErrorField,
+} from './errors.js'
+
 /** Canonical provider identifier. */
 export type SubjectId = string
 /** UTC ISO 8601 timestamp. */
@@ -95,7 +102,7 @@ export interface ActiveModeRow extends RowBase {
   targetIncarnation: string
   actorStampHash: string
   targetStampHash: string
-  /** Null when the host's reason policy is optional and no reason was given. */
+  /** Null when the reason requirement is optional and no reason was given. */
   reason: string | null
   startedAt: Instant
   expiresAt: Instant
@@ -208,11 +215,11 @@ export interface MasqueradeConfig<User, Request, Store extends RequestControlSto
 /** Start control input. */
 export interface StartInput {
   targetId: string | number
-  /** Required only when the configured reason policy is required. */
+  /** Required only when the configured reason requirement is `required`. */
   reason?: string
   durationSeconds?: number
   expectedContext: ContextToken
-  /** Defaults to view; edit requires explicit host policy permission. */
+  /** Defaults to view; edit requires the host `canEdit` callback to return `true`. */
   access?: ModeAccess
 }
 /** Stop control input: only the current context token. */

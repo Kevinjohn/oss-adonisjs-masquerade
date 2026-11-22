@@ -1,6 +1,4 @@
 import { middleware } from '#start/kernel'
-import Session from '#controllers/session_controller'
-import NewAccount from '#controllers/new_account_controller'
 import router from '@adonisjs/core/services/router'
 
 import './masquerade_control_routes.js'
@@ -12,7 +10,10 @@ if (process.env.NODE_ENV === 'test') {
   await import('./token_test_routes.js')
 }
 
-const controllers = { Session, NewAccount }
+const controllers = {
+  Session: () => import('#controllers/session_controller'),
+  NewAccount: () => import('#controllers/new_account_controller'),
+}
 
 router.on('/').render('pages/home').as('home')
 

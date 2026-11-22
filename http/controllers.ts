@@ -1,7 +1,10 @@
 import type { HttpContext } from '@adonisjs/core/http'
 import { runtimeFor } from '../src/integration/runtime.js'
 import { MasqueradeError } from '../src/errors.js'
-import { requireStartControl, requireStopControl } from './control_input.js'
+import {
+  parseStartControlOrInvalidMarker,
+  parseStopControlOrInvalidMarker,
+} from './control_input.js'
 import type { MasqueradeService, ModeView } from '../src/types.js'
 
 // The concrete core implements start/stop with unknown inputs; the host-facing service
@@ -22,14 +25,14 @@ export class MasqueradeController {
   /** `POST /start`: pass the raw control input to the service for validation and audit. */
   async start(ctx: HttpContext): Promise<void> {
     await this.control(ctx, async (runtime) =>
-      (runtime.service as RawControlService).start(ctx, requireStartControl(ctx))
+      (runtime.service as RawControlService).start(ctx, parseStartControlOrInvalidMarker(ctx))
     )
   }
 
   /** `POST /stop`: pass the raw control input to the service for validation and audit. */
   async stop(ctx: HttpContext): Promise<void> {
     await this.control(ctx, async (runtime) =>
-      (runtime.service as RawControlService).stop(ctx, requireStopControl(ctx))
+      (runtime.service as RawControlService).stop(ctx, parseStopControlOrInvalidMarker(ctx))
     )
   }
 
@@ -38,8 +41,8 @@ export class MasqueradeController {
     const runtime = await this.rawRuntime(ctx)
     const service = runtime.service as RawControlService
     return action === 'start'
-      ? service.start(ctx, requireStartControl(ctx, true))
-      : service.stop(ctx, requireStopControl(ctx, true))
+      ? service.start(ctx, parseStartControlOrInvalidMarker(ctx, { formOnly: true }))
+      : service.stop(ctx, parseStopControlOrInvalidMarker(ctx, { formOnly: true }))
   }
 
   private async rawRuntime(ctx: HttpContext) {

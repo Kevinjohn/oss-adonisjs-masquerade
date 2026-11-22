@@ -34,14 +34,15 @@ the [release notes](https://github.com/Kevinjohn/oss-adonisjs-masquerade/release
 ## Quick example
 
 Use the effective Auth guard for customer-facing routes. Mark routes that allow edits or must remain
-blocked during masquerade. Replace the controller imports below with your host application's controllers:
+blocked during masquerade. Replace the lazily imported controllers below with your host application's controllers:
 
 ```ts
 import router from '@adonisjs/core/services/router'
 import { middleware } from '#start/kernel'
 import { allowMutation, sensitive } from '@kevinjohn/adonisjs-masquerade/http'
-import OrdersController from '#controllers/orders_controller'
-import AccountController from '#controllers/account_controller'
+
+const OrdersController = () => import('#controllers/orders_controller')
+const AccountController = () => import('#controllers/account_controller')
 
 const asCustomer = middleware.auth({ guards: ['web_effective'] })
 
