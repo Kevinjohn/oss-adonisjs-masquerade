@@ -450,6 +450,38 @@ test.group('Masquerade configure scaffold', (group) => {
     }
   })
 
+  test('uses the same absolute RC migration fallback as Lucid', async ({ assert }) => {
+    const f = await configureFixture()
+    const directory = join(f.root, 'schema')
+    f.app.rcFile.directories.migrations = directory
+    const db = new Database(
+      {
+        connection: 'primary',
+        connections: {
+          primary: {
+            client: 'better-sqlite3',
+            connection: { filename: join(f.root, 'db.sqlite3') },
+            useNullAsDefault: true,
+          },
+        },
+      },
+      new Logger({ name: 'configure', enabled: false }),
+      new Emitter(f.app)
+    )
+    try {
+      const configured = f.command({ 'namespace': 'support', 'guard': 'web', 'no-wire': true })
+      await configure(configured as never)
+      assert.equal(configured.exitCode, 0, configured.errors.join('\n'))
+      const runner = new MigrationRunner(db, f.app, { direction: 'up', dryRun: false })
+      const migrations = await runner.getList()
+      assert.lengthOf(migrations, 1)
+      assert.match(migrations[0].name, /^schema\/\d{13}_create_masquerade_tables$/)
+    } finally {
+      await db.manager.closeAll()
+      await f.dispose()
+    }
+  })
+
   test('reads named database exports before boot and Lucid discovers the generated migration', async ({
     assert,
   }) => {

@@ -296,10 +296,12 @@ async function migrationsFolders(command: Configure): Promise<[string, ...string
     ? paths.filter((path): path is string => typeof path === 'string' && path.length > 0)
     : []
   const resolveFolder = (path: string) => fileURLToPath(new URL(path, command.app.appRoot))
-  return [
-    resolveFolder(first ?? `./${command.app.rcFile.directories.migrations}`),
-    ...rest.map(resolveFolder),
-  ]
+  if (first === undefined) {
+    const directory =
+      command.app.relativePath(command.app.migrationsPath()) || 'database/migrations'
+    return [resolveFolder(`./${directory}`)]
+  }
+  return [resolveFolder(first), ...rest.map(resolveFolder)]
 }
 
 /** Where the host's `#models/*` import maps `#models/user`, without an extension. */
