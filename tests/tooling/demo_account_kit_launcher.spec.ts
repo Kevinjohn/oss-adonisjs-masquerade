@@ -32,8 +32,8 @@ const nativeSource = path.join(repoRoot, 'examples/native-session')
 const overlaySource = path.join(repoRoot, 'examples/account-kit-demo')
 const wiringSource = path.join(helperSource, 'account_kit_host_wiring.ts')
 const kitUrl =
-  'https://github.com/Kevinjohn/oss-adonisjs-account-kit/releases/download/v0.5.0/kevinjohn-adonisjs-account-kit-0.5.0.tgz'
-const kitSha = '3764066815874a615d6af1a56524a5c086436df6f338a9ed6d5592628d132bbe'
+  'https://github.com/Kevinjohn/oss-adonisjs-account-kit/releases/download/v0.5.1/kevinjohn-adonisjs-account-kit-0.5.1.tgz'
+const kitSha = '543eaaf9a7514c23e8c1cb91bc29421d953993b7a4bb72eabd82053c16394bda'
 const syntheticKit = Buffer.from('synthetic Account Kit release for isolated launcher tests\n')
 const syntheticSha = createHash('sha256').update(syntheticKit).digest('hex')
 const stopTimeoutMs = 8_000
@@ -261,9 +261,9 @@ async function fixture(options: FixtureOptions = {}): Promise<Demo> {
   assert.equal((pinnedSource.match(new RegExp(kitSha, 'g')) ?? []).length, 1)
   assert.match(
     pinnedSource,
-    /kitReleaseUrl\s*=\s*'https:\/\/github\.com\/Kevinjohn\/oss-adonisjs-account-kit\/releases\/download\/v0\.5\.0\/kevinjohn-adonisjs-account-kit-0\.5\.0\.tgz'/
+    /kitReleaseUrl\s*=\s*'https:\/\/github\.com\/Kevinjohn\/oss-adonisjs-account-kit\/releases\/download\/v0\.5\.1\/kevinjohn-adonisjs-account-kit-0\.5\.1\.tgz'/
   )
-  assert.match(pinnedSource, new RegExp(`kitReleaseVersion\\s*=\\s*'0\\.5\\.0'`))
+  assert.match(pinnedSource, new RegExp(`kitReleaseVersion\\s*=\\s*'0\\.5\\.1'`))
   assert.match(pinnedSource, new RegExp(`kitReleaseSha256\\s*=\\s*'${kitSha}'`))
   if (options.patchPin !== false) {
     const copiedText = await readFile(copiedWiring, 'utf8')
@@ -847,7 +847,7 @@ test.group('Account Kit demo launcher', (group) => {
       ),
       1
     )
-    await writeFile(path.join(demo.stateRoot, 'account-kit-0.5.0.tgz'), 'tampered on relaunch')
+    await writeFile(path.join(demo.stateRoot, 'account-kit-0.5.1.tgz'), 'tampered on relaunch')
     const calls = await commandLog(demo)
     const callsBeforeTamper = calls.length
     const tamperedRelaunch = launch(demo, [], cleanup)
@@ -979,7 +979,7 @@ test.group('Account Kit demo launcher', (group) => {
     cleanup(() => cleanupFixture(tampered))
     await mkdir(tampered.stateRoot, { recursive: true })
     await writeFile(path.join(tampered.stateRoot, 'recipe.json'), JSON.stringify({ schema: 1 }))
-    await writeFile(path.join(tampered.stateRoot, 'account-kit-0.5.0.tgz'), 'tampered cache')
+    await writeFile(path.join(tampered.stateRoot, 'account-kit-0.5.1.tgz'), 'tampered cache')
     const first = launch(tampered, [], cleanup)
     const firstResult = await exitOf(first)
     assert.equal(firstResult.code, 1, firstResult.text)
@@ -996,7 +996,7 @@ test.group('Account Kit demo launcher', (group) => {
     await writeFile(path.join(unmodified.stateRoot, 'recipe.json'), JSON.stringify({ schema: 1 }))
     await copyFile(
       unmodified.releaseBytes,
-      path.join(unmodified.stateRoot, 'account-kit-0.5.0.tgz')
+      path.join(unmodified.stateRoot, 'account-kit-0.5.1.tgz')
     )
     const second = launch(unmodified, [], cleanup)
     const secondResult = await exitOf(second)
@@ -1221,9 +1221,9 @@ test.group('Account Kit demo launcher', (group) => {
     assert.equal((source.match(new RegExp(kitSha, 'g')) ?? []).length, 1)
     assert.match(
       source,
-      /kitReleaseUrl\s*=\s*\n\s*'https:\/\/github\.com\/Kevinjohn\/oss-adonisjs-account-kit\/releases\/download\/v0\.5\.0\/kevinjohn-adonisjs-account-kit-0\.5\.0\.tgz'/
+      /kitReleaseUrl\s*=\s*\n\s*'https:\/\/github\.com\/Kevinjohn\/oss-adonisjs-account-kit\/releases\/download\/v0\.5\.1\/kevinjohn-adonisjs-account-kit-0\.5\.1\.tgz'/
     )
-    assert.match(source, /kitReleaseVersion\s*=\s*'0\.5\.0'/)
+    assert.match(source, /kitReleaseVersion\s*=\s*'0\.5\.1'/)
     const demo = await fixture()
     cleanup(() => cleanupFixture(demo))
     demo.env.KIT_DEMO_TEST_RELEASE_URL = 'https://not-the-pinned-release.example.test/file.tgz'
