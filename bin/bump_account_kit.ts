@@ -63,6 +63,20 @@ if (!target || !/^\d+\.\d+\.\d+$/.test(target)) {
 
 const topLevel = await git(['rev-parse', '--show-toplevel'])
 const root = topLevel.trim()
+/** Lists the guide and README lines that name an Account Kit release other than `version`. */
+async function otherKitReleases(version: string): Promise<string[]> {
+  const found: string[] = []
+  const files = await git(['ls-files', '-z'], root)
+  const paths = files.split('\0').filter(isKitVersionedDoc)
+  for (const path of paths) {
+    const text = await readFile(join(root, path), 'utf8').catch(() => '')
+    for (const stale of staleKitVersions(text, version)) {
+      found.push(`${path}:${stale.line}: Account Kit ${stale.version}`)
+    }
+  }
+  return found
+}
+
 const manifest = JSON.parse(await readFile(join(root, 'package.json'), 'utf8'))
 const current: unknown = manifest.peerDependencies?.[kitPackage]
 if (typeof current !== 'string' || !/^\d+\.\d+\.\d+$/.test(current)) {
@@ -77,6 +91,12 @@ if (manifest.version === current || manifest.version === target) {
   console.error(
     `This package's own version ${manifest.version} matches an Account Kit version; rewrite by hand.`
   )
+  // A hand rewrite gets the same list of user-facing lines that an automatic one would.
+  const lines = await otherKitReleases(target)
+  if (lines.length) {
+    console.error(`\nUser-facing lines naming an Account Kit release other than ${target}:`)
+    console.error(lines.join('\n'))
+  }
   process.exit(1)
 }
 
@@ -121,13 +141,7 @@ if (leftovers) {
   console.log(`\nStill naming ${from.version} (update by hand where it is not history):`)
   console.log(leftovers.trimEnd())
 }
-const otherReleases: string[] = []
-for (const path of tracked.split('\0').filter(isKitVersionedDoc)) {
-  const text = await readFile(join(root, path), 'utf8').catch(() => '')
-  for (const { line, version } of staleKitVersions(text, to.version)) {
-    otherReleases.push(`${path}:${line}: Account Kit ${version}`)
-  }
-}
+const otherReleases = await otherKitReleases(to.version)
 if (otherReleases.length) {
   console.log(`\nUser-facing lines naming an Account Kit release other than ${to.version}:`)
   console.log(otherReleases.join('\n'))
