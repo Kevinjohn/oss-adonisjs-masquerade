@@ -81,7 +81,7 @@ test('runtime rejects an effective guard whose native driver differs from its ra
   f.auth.config.guards.web = driver('session')
   await assert.rejects(
     () => runtimeConfiguration(f.app as never),
-    'Effective masquerade guard web_effective wraps the access_tokens driver, but web uses the session driver'
+    'Effective masquerade guard web_effective wraps the access_tokens driver, but the adapter registered for raw guard web declares the session driver'
   )
   const g = configuration(
     {},
@@ -165,6 +165,79 @@ test('guard factories only run on a live request; cross-wired guards fail before
   )
   assert.equal(authentication, 1)
   assert.equal(reads, 1)
+})
+
+test('a cross-wired or failing guard on a live request is logged before the unchanged 503', async ({
+  assert,
+}) => {
+  const session = () => ({ driverName: 'session' })
+  const f = configuration(
+    {},
+    { web_effective: markEffectiveFactory(() => session(), 'web', 'session'), web: session }
+  )
+  const wiring = await runtimeConfiguration(f.app as never)
+  const runtime = await createRuntime(
+    {
+      nodeEnvironment: 'test',
+      container: {
+        make: async (name: string) =>
+          name === 'emitter' ? { emit: async () => {} } : { info: () => {}, error: () => {} },
+      },
+    } as never,
+    wiring
+  )
+  const logged: Array<{ fields: Record<string, unknown>; message: string }> = []
+  const ctx = {
+    route: {
+      middleware: { all: () => [{ name: 'auth', args: [{ guards: ['web_effective'] }] }] },
+    },
+    logger: {
+      error: (fields: Record<string, unknown>, message: string) => logged.push({ fields, message }),
+    },
+    auth: {
+      use: (name: string) => (f.auth.config.guards[name] as () => unknown)(),
+    },
+  }
+  f.auth.config.guards.web = () => ({ driverName: 'access_tokens' })
+  const crossWired = await runtime.service.status(ctx as never).catch((error) => error)
+  assert.equal(crossWired.code, 'E_MASQUERADE_UNAVAILABLE')
+  assert.equal(crossWired.message, 'Masquerade is unavailable')
+  assert.equal(crossWired.status, 503)
+  assert.isUndefined(crossWired.cause)
+  assert.deepEqual(logged, [
+    {
+      fields: {
+        code: 'E_MASQUERADE_UNAVAILABLE',
+        component: 'guard_wiring',
+        effectiveGuard: 'web_effective',
+        rawGuard: 'web',
+        guard: 'web',
+        expectedDriver: 'session',
+        actualDriver: 'access_tokens',
+      },
+      message: 'Masquerade effective guard and its raw guard use different drivers',
+    },
+  ])
+  logged.length = 0
+  f.auth.config.guards.web = () => {
+    throw new Error('Host guard factory failed')
+  }
+  const failed = await runtime.service.status(ctx as never).catch((error) => error)
+  assert.equal(failed.code, 'E_MASQUERADE_UNAVAILABLE')
+  assert.isUndefined(failed.cause)
+  assert.deepEqual(logged, [
+    {
+      fields: {
+        code: 'E_MASQUERADE_UNAVAILABLE',
+        component: 'guard_wiring',
+        effectiveGuard: 'web_effective',
+        rawGuard: 'web',
+        guard: 'web',
+        error: 'Host guard factory failed',
+      },
+      message: 'Masquerade could not construct a guard for the effective route',
+    },
+  ])
 })
 
 test('runtime service uses route-selected token actor despite a conflicting cookie actor', async ({

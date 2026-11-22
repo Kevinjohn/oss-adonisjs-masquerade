@@ -2,6 +2,13 @@
 
 ## Unreleased
 
+### Fixed
+
+- Log the effective guard, raw guard and expected and actual driver when a cross-wired guard
+  refuses an effective-route request, and log a guard construction failure instead of hiding it.
+  The `503 E_MASQUERADE_UNAVAILABLE` response is unchanged. The boot error for mismatched
+  transport metadata now names the adapter registered for the raw guard.
+
 ## 0.5.1 - 2026-11-22
 
 - Require Account Kit `0.5.1` exactly.
