@@ -29,8 +29,8 @@ flowchart TD
 
 ```mermaid
 flowchart TD
-    A["Authorize viewMasqueradeHistory"] --> Q{"Authorized?"}
-    Q -->|No| R["Propagate authorization refusal"]
+    A["Authorise viewMasqueradeHistory"] --> Q{"Authorised?"}
+    Q -->|No| R["Propagate authorisation refusal"]
     Q -->|Yes| P["Parse query filters"]
     P --> S{"Filters valid?"}
     S -->|No| T["Return HTTP 400"]

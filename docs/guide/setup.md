@@ -68,7 +68,7 @@ starter files. It creates the migration in the default connection's first migrat
 none exists. With `--force`, it regenerates a single existing TypeScript migration in place across
 that connection's migration folders. Multiple existing Masquerade migrations stop configure before
 it writes files.
-In the current source, custom directories declared in `adonisrc.ts` are respected throughout generation, conflict
+Since release 0.5.0, custom directories declared in `adonisrc.ts` are respected throughout generation, conflict
 preflight and host wiring. Keep the corresponding host import aliases aligned in `package.json`.
 
 Configure then wires the host when its files have the AdonisJS starter-kit shape, and prints the
@@ -323,7 +323,7 @@ ineligible account must not be treated as active.
 A start reason is optional by default. Add `reason: 'required'` to the config when every start must
 carry a justification; see [use a support mode](usage.md#read-status-and-start).
 
-`canMasquerade` is required and must explicitly authorize the actor-target pair. It runs when a mode
+`canMasquerade` is required and must explicitly authorise the actor-target pair. It runs when a mode
 starts with `request` and any supplied `reason` available, and again on each active admission without either
 value. A `false` result at start denies the start. A `false` result during active admission is a
 global denial: Masquerade invalidates the mode and rejects that request with context-changed (409).

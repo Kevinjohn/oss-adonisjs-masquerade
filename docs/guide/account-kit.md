@@ -18,8 +18,7 @@ standard AdonisJS native-auth host already includes it.
 Masquerade remains optional and core does not import Account Kit. The Account Kit integration
 provides the native authority, checks the actor's configured credential, and installs middleware to
 block managed account actions while a mode is active. Configure exactly one transport: the session
-or access-token strategy selected by the Account Kit instance. In Masquerade 0.5.0, one Account Kit
-host supports either a session-only configuration or an access-token-only configuration. Combining
+or access-token strategy selected by the Account Kit instance. One Account Kit host supports either a session-only configuration or an access-token-only configuration. Combining
 both Masquerade transports in one host is unsupported.
 
 ## Run the local demo
@@ -295,9 +294,8 @@ commit the routes as `<group>.accountKit.*`, which the blocker does not match, s
 This prerelease interface works with Account Kit `0.5.1`, the only version the optional peer
 declares. Historical matrix results cover the unscoped release for both strategies, with session
 management on and off, on SQLite and PostgreSQL at the declared floor and latest compatible peers.
-The scoped release is validated separately in the pull request that updates this dependency. Other Account Kit versions and MySQL are not tested; a second composed Masquerade transport is unsupported. Account Kit `0.1.1` and later resolve `configProvider` through
-`@adonisjs/core`, addressing the Core `7.0.0` Ace-startup failure documented in the
-[0.1.1 release notes](https://github.com/Kevinjohn/oss-adonisjs-account-kit/releases/tag/v0.1.1).
+The scoped release is validated separately in the pull request that updates this dependency. Other Account Kit versions and MySQL are not tested; a second composed Masquerade transport is unsupported. The declared release resolves `configProvider` through
+`@adonisjs/core`, so Ace starts under Core `7.0.0`.
 The tested artifact hashes and matrix are recorded in the
 [maintainer ledger](https://github.com/Kevinjohn/oss-adonisjs-masquerade/blob/main/docs/maintainers/requirement-ledger.md#v12-account-kit-acceptance-t-kit-and-t-kit-http).
 
@@ -396,7 +394,7 @@ report does not replace review of host middleware or route behaviour.
 
 On SQLite, Masquerade's active business admission runs three Account Kit transactions: `current`
 validates the actor, then `inspectAccountAccess` inspects the actor and target. Each transaction
-takes the database writer lock, so active-mode traffic serializes with Account Kit writes. With
+takes the database writer lock, so active-mode traffic serialises with Account Kit writes. With
 session management enabled, `current` also writes the session's last-seen time. On a route covered
 by the host admission gate, `AccountAdmission.require` adds another transaction before
 `masqueradeContext`; `isAdmitted` in `canMasquerade` also performs policy reads on active admission.

@@ -14,7 +14,7 @@ As an application developer integrating Account Kit, I want account-management r
 - Host applies the blocker to account registration/management operations and authenticates them with the raw guard, not the effective target identity.
 - When unauthenticated, the blocker continues to the route's normal guest/auth handling. When authenticated and the actor has an unexpired active mode, it throws `E_MASQUERADE_ACTION_BLOCKED` with `blockedBy: sensitive`.
 - Logout and CSRF routes remain outside the blocked group so the actor can end their native session.
-- The package cannot enforce this boundary on host routes where the middleware/guard is omitted. For host-owned account routes `masquerade:routes` can report `Account Kit blocker registered` for the recognized named middleware reference, as well as guard category and route markers; this is diagnostic, not enforcement. It classifies only `accountKit.*` route names as Account Kit managed.
+- The package cannot enforce this boundary on host routes where the middleware/guard is omitted. For host-owned account routes `masquerade:routes` can report `Account Kit blocker registered` for the recognised named middleware reference, as well as guard category and route markers; this is diagnostic, not enforcement. It classifies only `accountKit.*` route names as Account Kit managed.
 
 ## User flow
 
@@ -46,4 +46,4 @@ flowchart TD
     H -->|No| E
 ```
 
-**Code references:** [blocker](../../account_kit/middleware.ts), [example route grouping](https://github.com/Kevinjohn/oss-adonisjs-starter-examples/blob/v0.13.0/apps/hypermedia/start/routes.ts), [integration guide](../../docs/guide/account-kit.md#block-host-owned-account-routes), [route report classification](../../commands/routes.ts), [recognized markers](../../src/integration/route_markers.ts).
+**Code references:** [blocker](../../account_kit/middleware.ts), [example route grouping](https://github.com/Kevinjohn/oss-adonisjs-starter-examples/blob/v0.13.0/apps/hypermedia/start/routes.ts), [integration guide](../../docs/guide/account-kit.md#block-host-owned-account-routes), [route report classification](../../commands/routes.ts), [recognised markers](../../src/integration/route_markers.ts).

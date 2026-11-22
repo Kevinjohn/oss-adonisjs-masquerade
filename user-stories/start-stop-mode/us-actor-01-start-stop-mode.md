@@ -7,14 +7,14 @@ As a signed-in actor, I want to start a temporary support mode for an eligible t
 **Entry:** Read `GET /masquerade`, then submit `POST /masquerade/start`, mounted by `masqueradeRoutes()`.
 **Documentation:** [Read status and start](../../docs/guide/usage.md#read-status-and-start).
 **Source:** [MasqueradeController.start](../../http/controllers.ts), [start input parser](../../http/control_input.ts), [service start](../../src/service.ts).
-**Coverage:** [HTTP controller tests](../../tests/http_controllers.spec.ts), [core authorization tests](../../tests/core_authorization.spec.ts).
+**Coverage:** [HTTP controller tests](../../tests/http_controllers.spec.ts), [core authorisation tests](../../tests/core_authorization.spec.ts).
 
 ## Acceptance criteria
 
 | Field or header                               | Control                               | Required/default/conditions                                                                                                                                                                                  |
 | --------------------------------------------- | ------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| `targetId`                                    | JSON/form value                       | Required; string or safe integer, canonicalized to string; nonempty, at most 255 UTF-8 bytes, well-formed with no control characters, and cannot equal actor ID                                              |
-| `reason`                                      | JSON/form value                       | Optional by default: absent, null or blank stores null; when supplied nonblank, trim/normalize; 1–500 Unicode code points and at most 2,000 UTF-8 bytes                                                      |
+| `targetId`                                    | JSON/form value                       | Required; string or safe integer, canonicalised to string; nonempty, at most 255 UTF-8 bytes, well-formed with no control characters, and cannot equal actor ID                                              |
+| `reason`                                      | JSON/form value                       | Optional by default: absent, null or blank stores null; when supplied nonblank, trim/normalise; 1–500 Unicode code points and at most 2,000 UTF-8 bytes                                                      |
 | `durationSeconds`                             | JSON number or URL-form number string | Optional; omitted or blank URL-form field uses configured default (package default 900); safe integer 60 through configured maximum (default 3600). URL-form strings must be canonical; JSON null is invalid |
 | `access`                                      | JSON/form choice                      | Optional; omitted or blank URL-form field defaults to `view`; `edit` requires host `canEdit` to return literal `true`; JSON null invalid                                                                     |
 | `_masqueradeContext` / `X-Masquerade-Context` | Hidden form field or request header   | Current token from status; if both are sent they must agree; cookie-authenticated writes also require Shield CSRF                                                                                            |

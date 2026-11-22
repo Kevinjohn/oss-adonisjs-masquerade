@@ -77,7 +77,7 @@ export async function handleBlockedAction(
 
 In the application's error handler, call `if (await handleBlockedAction(error, ctx)) return` before
 `super.handle(error, ctx)`. The default path preserves the package JSON response. The host owns
-its wording, flash rendering, redirect destination and templates; no package translation catalog is used.
+its wording, flash rendering, redirect destination and templates; no package translation catalogue is used.
 
 The native-session browser fixture keeps status and stop on the raw actor guard so an operator can
 inspect or end a recorded mode if the target, actor eligibility, or start permission changes. A

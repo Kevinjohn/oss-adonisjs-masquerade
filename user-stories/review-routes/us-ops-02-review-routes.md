@@ -11,9 +11,9 @@ As an application maintainer, I want a route coverage report so that I can find 
 
 ## Acceptance criteria
 
-- The command requires `config/masquerade`, resolves effective and raw guard names, commits the router, and reports each registered route's methods, pattern, guard category and recognized markers.
+- The command requires `config/masquerade`, resolves effective and raw guard names, commits the router, and reports each registered route's methods, pattern, guard category and recognised markers.
 - Package control handlers are identified by controller/method; unresolved handlers, possible name-inferred controls, unprotected routes, unsupported mixed guards and distinct effective transports remain visible for human review. Verified Account Kit managed routes receive their own classifications; supported host-owned account blocker references are labelled separately.
-- The report is diagnostic only. It does not change route definitions or enforce authorization.
+- The report is diagnostic only. It does not change route definitions or enforce authorisation.
 
 ## User flow
 
@@ -28,7 +28,7 @@ flowchart TD
 
 ## Code flow
 
-Scope: committed route metadata analysis; report output does not enforce route behavior.
+Scope: committed route metadata analysis; report output does not enforce route behaviour.
 
 ```mermaid
 flowchart TD

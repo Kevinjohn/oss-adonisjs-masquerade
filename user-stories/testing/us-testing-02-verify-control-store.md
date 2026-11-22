@@ -1,6 +1,6 @@
 # US-TESTING-02 — Verify a custom control store against the package contract
 
-As an application developer with a custom control store, I want to run the package's conformance suite against it so that behavior the package relies on is checked before the store is used.
+As an application developer with a custom control store, I want to run the package's conformance suite against it so that behaviour the package relies on is checked before the store is used.
 
 **Status:** Current; source-reviewed test helper, not runtime-tested.
 **Access:** Application test author with a factory that returns a fresh, isolated store per call.
@@ -13,7 +13,7 @@ As an application developer with a custom control store, I want to run the packa
 
 - `createStore` is called once per run and must return a clean, isolated store.
 - The suite fails when the store breaks the observable contract, for example owner isolation, detached reads, one winner among competing compare-and-set calls, revision and event agreement, control outcomes that create or change a mode row, expiry and active batch ordering, or bounded event pruning. Assertions run throughout; a store's unexpected exception also fails the test.
-- A pass does not prove database isolation or behavior under independent connections; the guide asks for adapter-level tests for those.
+- A pass does not prove database isolation or behaviour under independent connections; the guide asks for adapter-level tests for those.
 - `MemoryControlStore` is an in-process test utility, not a production persistence choice.
 
 ## User flow

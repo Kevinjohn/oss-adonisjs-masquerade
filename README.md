@@ -80,7 +80,9 @@ The [four released starter apps](https://github.com/Kevinjohn/oss-adonisjs-start
 Bug reports and documentation fixes are welcome. Read [CONTRIBUTING.md](CONTRIBUTING.md) before
 opening a pull request. Report vulnerabilities privately as described in [SECURITY.md](SECURITY.md).
 
-## License
+<a id="license"></a>
+
+## Licence
 
 [MIT](LICENSE.md)
 

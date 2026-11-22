@@ -50,7 +50,7 @@ eligibility, stamp, target, or policy changes; token controls also require the c
 
 Logout of one session ends that credential only. Other valid sessions retain the account-wide
 mode. Expiry is fixed and non-sliding. Already-admitted requests and work handed to jobs or external
-systems cannot be recalled; propagate the safe actor/effective projection and reauthorize in the
+systems cannot be recalled; propagate the safe actor/effective projection and reauthorise in the
 host worker where needed.
 
 Keep audit reasons bounded and free of secrets or unnecessary personal data. Successful start

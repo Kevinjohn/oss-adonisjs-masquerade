@@ -2,7 +2,7 @@
 
 As a signed-in actor using a covered form or client, I want to submit the context token captured with that action so that a stale request cannot run under a different support mode.
 
-**Status:** Current; source-reviewed middleware behavior.
+**Status:** Current; source-reviewed middleware behaviour.
 **Access:** Authenticated effective-guard business routes; token is bound to the raw actor and is not a credential. Integrated API tokens additionally need the configured `masquerade` ability.
 **Entry:** `_masqueradeContext` on a form or `X-Masquerade-Context` on a client request; unsafe methods also retain the host CSRF requirement.
 **Documentation:** [Context token contract](../../docs/guide/glossary.md), [JSON client](../../docs/guide/clients/json.md), [security](../../docs/guide/security.md#context-tokens-and-browser-clients).
@@ -18,7 +18,7 @@ As a signed-in actor using a covered form or client, I want to submit the contex
 | Shield CSRF token      | Host form/client field or header | Still required by cookie-authenticated writes; Masquerade context does not replace it |
 
 - If both context transports are supplied when checking context, they must match. In enforce mode, missing or stale context on an unsafe request is rejected. A safe request needs no token, but supplying the header triggers the same freshness check. HTTP control bodies are limited to 8 KiB; JSON and URL-encoded forms are supported, multipart and unknown fields are refused.
-- State-changing start and stop rotate context; an authorized idle/absent stop returns unchanged context; clients refresh status and rebuild the action instead of fetching a new token and replaying old intent.
+- State-changing start and stop rotate context; an authorised idle/absent stop returns unchanged context; clients refresh status and rebuild the action instead of fetching a new token and replaying old intent.
 - On API token routes, the token ability is checked separately from context freshness and cannot upgrade the mode access level.
 
 ## User flow
@@ -36,7 +36,7 @@ flowchart TD
 
 ## Code flow
 
-Scope: router middleware on effective routes; context enforcement must run after auth initialization and before the handler.
+Scope: router middleware on effective routes; context enforcement must run after auth initialisation and before the handler.
 
 ```mermaid
 flowchart TD
@@ -45,7 +45,7 @@ flowchart TD
     C -->|No| D["next() without effective-mode admission"]
     C -->|Yes| E["Mark context enforced; runtime.admit(ctx)"]
     E --> Q{"Admission succeeds?"}
-    Q -->|Native unauthorized| D
+    Q -->|Native unauthorised| D
     Q -->|Other failure| R["Propagate admission refusal"]
     Q -->|Yes| F{"Unsafe request or context header present?"}
     F -->|No| G["Check sensitive and mutation route markers"]

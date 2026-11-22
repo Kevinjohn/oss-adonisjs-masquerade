@@ -2,12 +2,12 @@
 
 As a signed-in actor, I want to restart my support mode with a different access level so that the mode remains fixed at the level deliberately chosen for its lifetime.
 
-**Status:** Current; source-reviewed transition behavior.
+**Status:** Current; source-reviewed transition behaviour.
 **Access:** Actor authenticated by the raw control guard; requesting edit still requires host `canEdit` approval.
 **Entry:** Stop the current mode, refresh `GET /masquerade`, then start again with `access: view` or `access: edit`.
 **Documentation:** [Access level and defaults](../../docs/guide/usage.md#read-status-and-start), [accepted access contract](../../docs/maintainers/design/spec-masquerade.md#14-view-only-default-and-per-start-edit-access-accepted-22-october-2026).
 **Source:** [start/stop service transitions](../../src/service.ts), [control input](../../http/control_input.ts).
-**Coverage:** [Core authorization tests](../../tests/core_authorization.spec.ts), [mode transition tests](../../tests/mode_transition.spec.ts).
+**Coverage:** [Core authorisation tests](../../tests/core_authorization.spec.ts), [mode transition tests](../../tests/mode_transition.spec.ts).
 
 ## Acceptance criteria
 

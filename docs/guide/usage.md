@@ -197,7 +197,7 @@ router
   .use(middleware.auth({ guards: ['web_effective'] }))
 ```
 
-The handler authorizes the effective customer, never the raw actor. The complete controller recipe
+The handler authorises the effective customer, never the raw actor. The complete controller recipe
 below includes the `Bouncer<User>` helper and a customer-owned reversible preference mutation. The
 customer's normal business ability still applies; edit access and `allowMutation()` are both
 required for a non-sensitive mutation. The sensitive route is rejected before its handler runs. Do not

@@ -5,6 +5,24 @@ roles, permissions, tenant rules, route sensitivity, limiter policy and audit re
 [development plan](design/development-plan.md) controls v1 scope; this repository does not target
 AdonisJS Plus compatibility.
 
+## Spelling
+
+Package prose uses British spelling: guides, recipes, READMEs, contributor instructions, user
+stories, comments, TSDoc and human-readable configure output (behaviour, authorise,
+authorisation, recognise, initialise, catalogue, licence). Write the framework's name as
+"AdonisJS", never "Adonis".
+
+These keep their published spelling, even inside British prose:
+
+- identifiers, API names, options, file names and import paths, such as `initialize_auth`,
+  `authorize()` and `LICENSE.md`;
+- error codes and error messages, such as `E_UNAUTHORIZED_ACCESS`, and any message a test asserts;
+- anchors and the headings they derive from; when a heading changes, keep the old anchor with an
+  `<a id="...">` line above it;
+- quoted framework, platform and protocol names and messages, such as the `Authorization` header
+  and GitHub release artifacts;
+- code samples, and published changelog entries.
+
 ## Distribution
 
 Releases are distributed as GitHub prereleases with a packed tarball. The manually dispatched

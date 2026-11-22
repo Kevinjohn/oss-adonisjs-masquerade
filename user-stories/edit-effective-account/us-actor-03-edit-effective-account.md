@@ -1,8 +1,8 @@
 # US-ACTOR-03 — Make an allowed mutation during support
 
-As a support actor, I want to make a customer-owned mutation only when I start an editable mode and the route opts in so that ordinary customer authorization remains in force.
+As a support actor, I want to make a customer-owned mutation only when I start an editable mode and the route opts in so that ordinary customer authorisation remains in force.
 
-**Status:** Current; source-reviewed admission and route-marker behavior.
+**Status:** Current; source-reviewed admission and route-marker behaviour.
 **Access:** Active mode with `access: edit`, host `canEdit` returning literal `true`, an `allowMutation()` route marker, and the target account's normal permission.
 **Entry:** Unsafe business route marked with `allowMutation()` and authenticated through the effective guard.
 **Documentation:** [Use the effective customer identity](../../docs/guide/usage.md#use-the-effective-customer-identity), [view-only and edit policy](../../docs/guide/security.md#actor-target-and-scope).
@@ -13,7 +13,7 @@ As a support actor, I want to make a customer-owned mutation only when I start a
 
 - View is selected explicitly or is the omitted `access` default; an edit request without approval is refused, never silently downgraded. An edit start requires `canEdit({ actor, target, reason, request })` to return exactly `true`; active edit admission rechecks `canEdit({ actor, target })`.
 - For an active mode, `masqueradeContext` rejects sensitive routes for every HTTP method. On other unsafe requests it rejects access other than `edit` or a missing `allowMutation()` marker.
-- `allowMutation()` only marks a route; it does not grant target-side permission. The handler's ordinary Bouncer or authorization check must still allow the effective target.
+- `allowMutation()` only marks a route; it does not grant target-side permission. The handler's ordinary Bouncer or authorisation check must still allow the effective target.
 - Sensitive routes remain blocked even when a route also has `allowMutation()`.
 
 ## User flow
@@ -32,7 +32,7 @@ flowchart TD
 
 ## Code flow
 
-Scope: route policy middleware; the host handler performs its normal target authorization and persistence after `next()`.
+Scope: route policy middleware; the host handler performs its normal target authorisation and persistence after `next()`.
 
 ```mermaid
 flowchart TD
@@ -45,7 +45,7 @@ flowchart TD
     X -->|Yes| E{"Active mode and routeMarkers(ctx).sensitive?"}
     E -->|Yes, any method| F["Throw E_MASQUERADE_ACTION_BLOCKED"]
     E -->|No| G{"Active mode and unsafe method?"}
-    G -->|No| H["next() to host authorization and handler"]
+    G -->|No| H["next() to host authorisation and handler"]
     G -->|Yes| I{"Edit access and allowMutation marker?"}
     I -->|No| F
     I -->|Yes| H

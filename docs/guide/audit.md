@@ -30,7 +30,7 @@ The package's control ledger is the `masquerade_events` table created by the gen
 The package ships no history page or admin ability. The controller below is a host recipe: before
 using it, register a route behind the raw `web` guard, provide the `viewMasqueradeHistory` ability,
 and create the `admin/masquerade_history` view. Adapt the example's `nativeAdapter` and user name
-field to your application's configured authority and display field. The recipe authorizes first,
+field to your application's configured authority and display field. The recipe authorises first,
 then validates optional ISO `from` and `to` filters and a positive safe-integer `page`. Invalid
 input returns a 400 without package-owned error text; adapt that response to the host's validation
 renderer. The example's `audit_history_identity` and
@@ -148,7 +148,7 @@ emitter.on('masquerade:started', (event) => {
 
 Event listeners run after commit and are best effort. The event kind is one of the four transitions
 and omits the reason; listeners do not receive denied starts/stops or no-op controls. Do not use
-event delivery as the durable control ledger or the host's business audit. In the current source, the package provider supplies the Adonis event list
+event delivery as the durable control ledger or the host's business audit. Since release 0.5.0, the package provider supplies the AdonisJS event list
 augmentation, so hosts no longer redeclare the event names. When using release 0.4.3 or earlier,
 declare the four transition event names as `ObserverEvent` in `EventsList` instead.
 [Alert on masquerade

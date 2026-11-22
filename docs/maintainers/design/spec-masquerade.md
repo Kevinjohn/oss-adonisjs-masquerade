@@ -147,7 +147,7 @@ interface MasqueradeConfig<User, Request> {
 }
 ```
 
-Boot fails on unknown fields, non-finite or out-of-range durations, a maximum above 3600, missing policy, missing `incarnation`, unsafe namespace, the memory store outside tests, or an effective guard whose declared transport differs from the driver declared by the adapter registered for its raw guard. The concrete raw guard is compared on each effective-route request, before actor authentication. There is no allow-all scaffold.
+Boot fails on unknown fields, non-finite or out-of-range durations, a maximum above 3600, missing policy, missing `incarnation`, unsafe namespace, the memory store outside tests, an effective guard whose wrapper carries no native transport metadata, or an effective guard whose declared transport differs from the driver declared by the adapter registered for its raw guard. Boot compares registration metadata only; an adapter that declares no driver defers the comparison to the request. On each effective-route request the concrete effective and raw guards are constructed and their drivers compared before actor authentication; a mismatch or construction failure is refused with `503 E_MASQUERADE_UNAVAILABLE` before any store read. There is no allow-all scaffold.
 
 ### 5.2 Service and views
 

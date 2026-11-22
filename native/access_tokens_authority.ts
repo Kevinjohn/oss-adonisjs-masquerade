@@ -39,6 +39,11 @@ export type AccessTokensAuthorityOptions<User> =
 export interface NativeAccessTokensAdapter<User = unknown> extends NativeRuntimeAdapter {
   readonly authority: NativeAuthority<User>
   readonly guard: string
+  /**
+   * Declare `'access_tokens'` when the adapter's raw guard uses the access-tokens driver, so boot
+   * rejects an effective guard wired to another transport; omit it to defer every driver check to
+   * the live effective-route request.
+   */
   readonly driverName?: 'access_tokens'
   /**
    * Authenticate through the raw access-tokens guard; `E_UNAUTHORIZED_ACCESS` passes through.

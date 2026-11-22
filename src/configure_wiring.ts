@@ -13,7 +13,7 @@ type WireHostOptions = { banner: boolean; formController: boolean }
 
 /**
  * Perform the mechanical host wiring after the scaffold is registered. Each step edits only a
- * recognized shape; anything else is skipped so configure prints the manual step instead.
+ * recognised shape; anything else is skipped so configure prints the manual step instead.
  */
 export async function wireHost(
   command: Configure,

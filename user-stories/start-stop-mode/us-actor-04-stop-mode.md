@@ -3,7 +3,7 @@
 As a signed-in actor, I want to stop my active support mode with the current context token so that subsequent business requests use my own account identity.
 
 **Status:** Current; source-reviewed HTTP control.
-**Access:** Actor authenticated by the configured raw control guard; this story follows an active mode. An authorized idle/absent stop is also accepted as a no-op with unchanged context. API tokens also need the configured `masquerade` ability.
+**Access:** Actor authenticated by the configured raw control guard; this story follows an active mode. An authorised idle/absent stop is also accepted as a no-op with unchanged context. API tokens also need the configured `masquerade` ability.
 **Entry:** `POST /masquerade/stop` mounted by `masqueradeRoutes()`.
 **Documentation:** [Stop with the refreshed token](../../docs/guide/usage.md#stop-with-the-refreshed-token).
 **Source:** [MasqueradeController.stop](../../http/controllers.ts), [parseStopControlOrInvalidMarker](../../http/control_input.ts), [MasqueradeService.stop](../../src/service.ts).

@@ -25,7 +25,7 @@ flowchart TD
  B --> C{"Did setup pass the HTTP 200 and field checks, with start active?"}
  C -->|No| D["Fail setup; do not send target request"]
  C -->|Yes| E["Send request with current context on unsafe method unless explicit header supplied"]
- E --> F["Assert host route behavior and response"]
+ E --> F["Assert host route behaviour and response"]
  F --> G{"Cleanup status response is 401?"}
  G -->|Yes| H["Skip HTTP stop"]
  G -->|No| J{"Status is 200 with boolean isMasquerading and string contextToken?"}
