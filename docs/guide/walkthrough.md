@@ -17,7 +17,7 @@ _The raw operator session offers only eligible customers. Enter a short, useful 
 
 Choose Customer One, select **Can edit** for this reversible preference task, enter “Customer
 requested help with email settings”, and start support mode. View-only is the default; edit is
-available only because the host's `canEdit` policy approves this operator and customer. The customer page shows both identities and the fixed deadline. The operator remains authenticated; Masquerade does not sign in as the customer.
+available only because the host's `canEdit` callback approves this operator and customer. The customer page shows both identities and the fixed deadline. The operator remains authenticated; Masquerade does not sign in as the customer.
 
 ![The customer view with a visible support banner naming the operator, effective customer, account-wide scope, Can edit access and deadline.](../assets/walkthrough/support_customer_active.png)
 
@@ -48,7 +48,7 @@ _Stopping returns the browser to the raw operator workspace. It does not change 
 The native session guard continues to authenticate the operator on every request. On covered business routes, the effective guard resolves the selected customer, so the application's usual customer authorisation applies. The operator's permissions are not combined with the customer's, and the customer does not log in. This walkthrough uses session transport; token configuration is covered in the [access-token guide](access-tokens.md).
 
 Mode is stored server-side for the actor account and shared by valid integrated sessions. Every
-start defaults to view-only; edit is selected at start and requires the host's `canEdit` policy.
+start defaults to view-only; edit is selected at start and requires the host's `canEdit` callback.
 The selected level applies across the account's integrated sessions and tokens. The default deadline
 is 15 minutes, with a one-hour maximum; an application may choose shorter limits. Later requests do not extend the deadline. Stopping or expiry ends the mode for the account, while logging out one browser session does not stop other sessions. Already admitted requests and side effects handed to other systems cannot be undone by stopping.
 

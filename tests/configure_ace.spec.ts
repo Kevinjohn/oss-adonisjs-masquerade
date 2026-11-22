@@ -102,9 +102,9 @@ export default defineConfig({
       assert.equal(rcFile.match(/@kevinjohn\/adonisjs-masquerade\/commands/g)?.length, 1)
       assert.include(rcFile, '#providers/masquerade_native_provider')
 
-      const middlewareModule = await import(
-        pathToFileURL(join(root, 'app/middleware/masquerade_context_middleware.ts')).href
-      )
+      assert.isFalse(existsSync(join(root, 'app/middleware/masquerade_context_middleware.ts')))
+      const middlewarePath = '@kevinjohn/adonisjs-masquerade/masquerade_context_middleware'
+      const middlewareModule = await import(middlewarePath)
       assert.equal(typeof middlewareModule.default, 'function', JSON.stringify(middlewareModule))
       assert.equal(typeof middlewareModule.default.prototype.handle, 'function')
       const middleware = new middlewareModule.default()
@@ -115,10 +115,7 @@ export default defineConfig({
           continued = true
         }
       )
-      assert.isTrue(
-        continued,
-        'generated middleware class should load and invoke the package handler'
-      )
+      assert.isTrue(continued, 'the middleware subpath should load and invoke the package handler')
     } finally {
       process.exitCode = previousProcessExitCode
       await rm(root, { recursive: true, force: true })
@@ -143,7 +140,7 @@ export default defineConfig({
       assert.include(auth, 'web_effective: effectiveSessionGuard(webGuard),')
       assert.include(
         await readFile(join(wired, 'start/kernel.ts'), 'utf8'),
-        "initialize_auth_middleware'),\n  () => import('#middleware/masquerade_context_middleware'),"
+        "initialize_auth_middleware'),\n  () => import('@kevinjohn/adonisjs-masquerade/masquerade_context_middleware'),"
       )
       assert.include(
         await readFile(join(wired, 'start/kernel.ts'), 'utf8'),
@@ -254,7 +251,6 @@ export default defineConfig({
         'settings/masquerade.ts',
         'bootstrap/providers/masquerade_native_provider.ts',
         'domain/services/masquerade_user_provider.ts',
-        'domain/middleware/masquerade_context_middleware.ts',
         'domain/middleware/share_masquerade_status_middleware.ts',
         'domain/controllers/masquerade_form_controller.ts',
         'templates/components/masquerade/banner.edge',
@@ -265,7 +261,7 @@ export default defineConfig({
       const kernelPath = join(host, 'bootstrap/kernel.ts')
       const kernelBefore = await readFile(kernelPath, 'utf8')
       const kernel = kernelBefore.replace(
-        "  () => import('#middleware/masquerade_context_middleware'),",
+        "  () => import('@kevinjohn/adonisjs-masquerade/masquerade_context_middleware'),",
         "  () => import('@kevinjohn/adonisjs-masquerade/http'),"
       )
       await writeFile(kernelPath, kernel)

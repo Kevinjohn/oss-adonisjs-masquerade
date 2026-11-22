@@ -1,6 +1,7 @@
 import { createInvalidInputError } from './error_helpers.js'
 
-export type ReasonPolicy = 'optional' | 'required'
+/** Whether a start must carry a reason; set by the `reason` configuration key. */
+export type ReasonRequirement = 'optional' | 'required'
 
 export function normalizeReason(value: unknown): string {
   if (typeof value !== 'string') throw createInvalidInputError()
@@ -23,9 +24,9 @@ export function normalizeReason(value: unknown): string {
 }
 
 /** An optional reason that is absent, null or blank is stored as null; any other value is normalized. */
-export function requireStartReason(value: unknown, policy: ReasonPolicy): string | null {
+export function requireStartReason(value: unknown, requirement: ReasonRequirement): string | null {
   if (
-    policy === 'optional' &&
+    requirement === 'optional' &&
     (value === undefined || value === null || (typeof value === 'string' && !value.trim()))
   )
     return null

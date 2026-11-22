@@ -14,6 +14,8 @@ if (process.env.TEST_BUILT_EXPORTS === '1') {
     const commands = await import('@kevinjohn/adonisjs-masquerade/commands')
     const auth = await import('@kevinjohn/adonisjs-masquerade/auth')
     const http = await import('@kevinjohn/adonisjs-masquerade/http')
+    const contextMiddlewarePath = '@kevinjohn/adonisjs-masquerade/masquerade_context_middleware'
+    const contextMiddleware = await import(contextMiddlewarePath)
     const native = await import('@kevinjohn/adonisjs-masquerade/native')
     const accountKitPath = '@kevinjohn/adonisjs-masquerade/account-kit'
     const accountKitProviderPath = '@kevinjohn/adonisjs-masquerade/account-kit/provider'
@@ -45,6 +47,7 @@ if (process.env.TEST_BUILT_EXPORTS === '1') {
     assert.isFunction(accountKitMiddleware.default)
     assert.isFunction(accountKitMiddleware.AccountKitAccountBlocker)
     assert.equal(http.default, http.MasqueradeContextMiddleware)
+    assert.equal(contextMiddleware.default, http.MasqueradeContextMiddleware)
     for (const name of [
       'MasqueradeController',
       'masqueradeRoutes',

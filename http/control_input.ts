@@ -2,10 +2,22 @@ import type { HttpContext } from '@adonisjs/core/http'
 
 const BODY_LIMIT = 8 * 1024
 
-/** Parse start control input while leaving invalid-shape handling to the service audit boundary. */
-export function requireStartControl(ctx: HttpContext, formOnly = false): Record<string, unknown> {
+/** Options for the control input parsers. */
+type ControlInputOptions = {
+  /** Accept only an `application/x-www-form-urlencoded` body. */
+  formOnly?: boolean
+}
+
+/**
+ * Parse start control input, or return the malformed-input marker so the service records its
+ * normal denied-outcome audit for an invalid shape.
+ */
+export function parseStartControlOrInvalidMarker(
+  ctx: HttpContext,
+  { formOnly = false }: ControlInputOptions = {}
+): Record<string, unknown> {
   const body = readControlBody(ctx)
-  if (!body || (formOnly && !isForm(ctx)) || !isWithinBodyLimit(ctx)) return invalidInput()
+  if (!body || (formOnly && !isForm(ctx)) || !isWithinBodyLimit(ctx)) return invalidInputMarker()
   if (
     Object.keys(body).some(
       (key) =>
@@ -19,7 +31,7 @@ export function requireStartControl(ctx: HttpContext, formOnly = false): Record<
         ].includes(key)
     )
   )
-    return invalidInput()
+    return invalidInputMarker()
   const expectedContext = controlToken(ctx, body)
   const durationSeconds = formDuration(ctx, body.durationSeconds)
   // The body parser turns blank form fields into null; a blank optional field takes its default.
@@ -34,12 +46,15 @@ export function requireStartControl(ctx: HttpContext, formOnly = false): Record<
   }
 }
 
-/** Parse stop control input while leaving invalid-shape handling to the service audit boundary. */
-export function requireStopControl(ctx: HttpContext, formOnly = false): Record<string, unknown> {
+/** Parse stop control input, or return the malformed-input marker for an invalid shape. */
+export function parseStopControlOrInvalidMarker(
+  ctx: HttpContext,
+  { formOnly = false }: ControlInputOptions = {}
+): Record<string, unknown> {
   const body = readControlBody(ctx)
-  if (!body || (formOnly && !isForm(ctx)) || !isWithinBodyLimit(ctx)) return invalidInput()
+  if (!body || (formOnly && !isForm(ctx)) || !isWithinBodyLimit(ctx)) return invalidInputMarker()
   if (Object.keys(body).some((key) => !['_masqueradeContext', '_csrf'].includes(key)))
-    return invalidInput()
+    return invalidInputMarker()
   return { expectedContext: controlToken(ctx, body) ?? '' }
 }
 
@@ -94,6 +109,6 @@ function rejectedContextToken(): string {
 }
 
 /** Deliberately malformed core input makes the service write its normal denied-outcome audit. */
-function invalidInput(): Record<string, unknown> {
+function invalidInputMarker(): Record<string, unknown> {
   return { __invalidHttpInput: true }
 }

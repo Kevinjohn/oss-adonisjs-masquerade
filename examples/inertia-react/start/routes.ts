@@ -8,12 +8,14 @@
 */
 
 import { middleware } from '#start/kernel'
-import Session from '#controllers/session_controller'
-import NewAccount from '#controllers/new_account_controller'
+import router from '@adonisjs/core/services/router'
 import './masquerade_control_routes.js'
 import './demo_routes.js'
-const controllers = { Session, NewAccount }
-import router from '@adonisjs/core/services/router'
+
+const controllers = {
+  Session: () => import('#controllers/session_controller'),
+  NewAccount: () => import('#controllers/new_account_controller'),
+}
 
 router.on('/').renderInertia('home', {}).as('home')
 router

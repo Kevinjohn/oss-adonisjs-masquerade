@@ -10,7 +10,10 @@
     "providers/masquerade_provider.ts",
     "commands/main.ts",
     "testing/main.ts",
-    "plugins/api_client.ts"
+    "plugins/api_client.ts",
+    "account_kit/main.ts",
+    "account_kit/provider.ts",
+    "account_kit/middleware.ts"
   ],
   "out": "docs/reference/api",
   "plugin": ["typedoc-plugin-markdown"],

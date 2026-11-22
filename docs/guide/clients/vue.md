@@ -82,7 +82,7 @@ Register the app's native adapter provider and the package provider. Add the pac
 
 ## Split raw controls from effective work
 
-Register `masqueradeContext` after body parsing, session, Shield, and auth initialisation. The package's native routes and host support controls use the raw `web` guard. Customer reads and reversible mutations use `web_effective`. A mode starts with `access: 'view'`; a start form may request edit, which the host's `canEdit` policy must approve. `allowMutation()` opts a route into ordinary mutation only in edit mode, and `sensitive()` always blocks:
+Register `masqueradeContext` after body parsing, session, Shield, and auth initialisation. The package's native routes and host support controls use the raw `web` guard. Customer reads and reversible mutations use `web_effective`. A mode starts with `access: 'view'`; a start form may request edit, which the host's `canEdit` callback must approve. `allowMutation()` opts a route into ordinary mutation only in edit mode, and `sensitive()` always blocks:
 
 ```ts
 router

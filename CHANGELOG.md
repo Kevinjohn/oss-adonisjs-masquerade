@@ -2,6 +2,34 @@
 
 ## Unreleased
 
+### Added
+
+- Export the context middleware class as the default export of
+  `@kevinjohn/adonisjs-masquerade/masquerade_context_middleware`. Configure registers this import
+  in new installs instead of generating `app/middleware/masquerade_context_middleware.ts`. The
+  `./http` default export and existing generated wrappers keep working, and configure reruns still
+  recognise them.
+- Export `MasqueradeErrorCode`, `MasqueradeBlockedBy`, `MasqueradeSetupErrorCode` and
+  `MasqueradeSetupErrorField` from `@kevinjohn/adonisjs-masquerade/types`; the root exports are
+  unchanged.
+- Generate API reference pages for the three Account Kit entry points and link them from the
+  reference index.
+
+### Changed
+
+- Describe the `report` and `enforce` context-check modes separately, including how each treats a
+  read carrying a stale token, and use lazy controller imports in the README and example routes.
+
+### Fixed
+
+- Log the effective guard, raw guard and expected and actual driver when a cross-wired guard
+  refuses an effective-route request, and log a guard construction failure instead of hiding it.
+  The `503 E_MASQUERADE_UNAVAILABLE` response is unchanged. The boot error for mismatched
+  transport metadata now names the adapter registered for the raw guard.
+- Configure reports a Lucid migration path that is not a directory as a one-line error with exit
+  code 1 instead of throwing, and prints application-relative paths in its migration and skipped
+  wiring messages.
+
 ## 0.5.1 - 2026-11-22
 
 - Require Account Kit `0.5.1` exactly.

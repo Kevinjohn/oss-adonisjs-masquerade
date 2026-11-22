@@ -28,6 +28,7 @@ Proposed exports:
 ./masquerade_provider
 ./auth            # effective guard factory
 ./http            # context middleware, sensitive()/allowMutation() markers, error mapping, controllers
+./masquerade_context_middleware  # default-exports the context middleware class for router.use
 ./native          # native session authority factory
 ./stores/lucid    # optional SQLite/PostgreSQL store and migration stub
 ./testing         # memory store and ControlStore conformance suite
@@ -146,7 +147,7 @@ interface MasqueradeConfig<User, Request> {
 }
 ```
 
-Boot fails on unknown fields, non-finite or out-of-range durations, a maximum above 3600, missing policy, missing `incarnation`, unsafe namespace, the memory store outside tests, or an effective guard whose native driver differs from its raw guard's. There is no allow-all scaffold.
+Boot fails on unknown fields, non-finite or out-of-range durations, a maximum above 3600, missing policy, missing `incarnation`, unsafe namespace, the memory store outside tests, or an effective guard whose declared transport differs from the driver declared by the adapter registered for its raw guard. The concrete raw guard is compared on each effective-route request, before actor authentication. There is no allow-all scaffold.
 
 ### 5.2 Service and views
 

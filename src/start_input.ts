@@ -1,22 +1,22 @@
 import { isBoundedString } from './bounded_string.js'
 import { createInvalidInputError } from './error_helpers.js'
 import { requireStartReason } from './reason.js'
-import type { ReasonPolicy } from './reason.js'
+import type { ReasonRequirement } from './reason.js'
 import type { ModeAccess } from './types.js'
 
 type StartSelectionOptions = {
   actorId: string
   defaultDuration: number
   maxDuration: number
-  reasonPolicy: ReasonPolicy
+  reasonRequirement: ReasonRequirement
 }
 
 /** Parse the selection only after context freshness and existing mode checks. */
 export function requireStartSelection(
   input: Record<string, unknown>,
-  { actorId, defaultDuration, maxDuration, reasonPolicy }: StartSelectionOptions
+  { actorId, defaultDuration, maxDuration, reasonRequirement }: StartSelectionOptions
 ): { targetId: string; reason: string | null; duration: number; access: ModeAccess } {
-  const reason = requireStartReason(input.reason, reasonPolicy)
+  const reason = requireStartReason(input.reason, reasonRequirement)
   if (!(
     typeof input.targetId === 'string' ||
     (typeof input.targetId === 'number' && Number.isSafeInteger(input.targetId))

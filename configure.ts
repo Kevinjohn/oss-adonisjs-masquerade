@@ -2,7 +2,7 @@ import type Configure from '@adonisjs/core/commands/configure'
 import { access, lstat, readFile, stat } from 'node:fs/promises'
 import { basename, extname, join, sep } from 'node:path'
 import { fileURLToPath, pathToFileURL } from 'node:url'
-import { wireHost } from './src/configure_wiring.js'
+import { contextMiddleware, wireHost } from './src/configure_wiring.js'
 
 /**
  * Scaffold a fail-closed native-session and Lucid setup, then wire recognized auth, kernel and
@@ -74,7 +74,7 @@ export async function configure(command: Configure): Promise<void> {
   }
 
   const migrationFolders = await migrationsFolders(command)
-  const migrationPath = await findMigrationPath(command, migrationFolders)
+  const migrationPath = await resolveMigrationPathOrReport(command, migrationFolders)
   if (!migrationPath) return
   const migrationDestination = command.app.relativePath(migrationPath)
   const banner = command.parsedFlags.banner === true
@@ -84,7 +84,6 @@ export async function configure(command: Configure): Promise<void> {
     join(directories.services, 'masquerade_user_provider.ts'),
     join(directories.config, 'masquerade.ts'),
     join(directories.providers, 'masquerade_native_provider.ts'),
-    join(directories.middleware, 'masquerade_context_middleware.ts'),
   ]
   const bannerDestinations = [
     join(directories.middleware, 'share_masquerade_status_middleware.ts'),
@@ -133,7 +132,6 @@ export async function configure(command: Configure): Promise<void> {
       guardLiteral: JSON.stringify(guard),
     }),
     await codemods.makeUsingStub(command.stubsRoot, 'configure/native_provider.stub', {}),
-    await codemods.makeUsingStub(command.stubsRoot, 'configure/context_middleware.stub', {}),
     ...(banner
       ? [
           await codemods.makeUsingStub(command.stubsRoot, 'configure/status_middleware.stub', {}),
@@ -220,7 +218,7 @@ export async function configure(command: Configure): Promise<void> {
       : []),
     ...(wiring.kernel === 'skipped'
       ? [
-          `Wire ${fileDestinations[3]} as router middleware after initialize_auth and before any silent_auth middleware; preserve this order in ${kernelFile}.`,
+          `Register ${contextMiddleware} as router middleware after initialize_auth and before any silent_auth middleware; preserve this order in ${kernelFile}.`,
         ]
       : []),
     'Implement the generated account incarnation, security stamp, active-account checks, and deny-by-default policy using your account model. Make stamps change on privilege, password, suspension, and logout-all changes.',
@@ -357,18 +355,32 @@ async function fileExists(path: string): Promise<boolean> {
   }
 }
 
-async function findMigrationPath(
+/**
+ * Resolve the migration path to generate or regenerate. A failure is logged, sets the exit code
+ * and returns undefined.
+ */
+async function resolveMigrationPathOrReport(
   command: Configure,
   folders: [string, ...string[]]
 ): Promise<string | undefined> {
   const { sourceFiles } = await import('@adonisjs/lucid/utils')
-  const discovered = await Promise.all(
-    folders.map(async (folder) => {
-      const info = await stat(folder).catch((error: unknown) => {
+  const infos = await Promise.all(
+    folders.map((folder) =>
+      stat(folder).catch((error: unknown) => {
         if ((error as NodeJS.ErrnoException).code !== 'ENOENT') throw error
       })
-      if (info && !info.isDirectory())
-        throw new Error(`Expected a migration directory at ${folder}`)
+    )
+  )
+  const file = folders.find((_, index) => infos[index] && !infos[index].isDirectory())
+  if (file) {
+    command.logger.error(
+      `Expected a migration directory at ${command.app.relativePath(file)}. Point the default connection migrations.paths at directories and rerun configure.`
+    )
+    command.exitCode = 1
+    return
+  }
+  const discovered = await Promise.all(
+    folders.map(async (folder) => {
       const { files } = await sourceFiles(pathToFileURL(folder + sep), '.', false)
       return files
     })
@@ -389,7 +401,7 @@ async function findMigrationPath(
     const path = existing[0].absPath
     if (extname(path) === '.ts') return path
     command.logger.error(
-      `Masquerade cannot regenerate the existing migration ${path} from a TypeScript stub. Preserve its migration identity and complete configuration manually.`
+      `Masquerade cannot regenerate the existing migration ${command.app.relativePath(path)} from a TypeScript stub. Preserve its migration identity and complete configuration manually.`
     )
     command.exitCode = 1
     return
@@ -400,7 +412,7 @@ async function findMigrationPath(
   })
   if (entry) {
     command.logger.error(
-      `The migration destination ${path} is occupied by an entry that Lucid ignores. Move it out of the migration directory and rerun configure.`
+      `The migration destination ${command.app.relativePath(path)} is occupied by an entry that Lucid ignores. Move it out of the migration directory and rerun configure.`
     )
     command.exitCode = 1
     return

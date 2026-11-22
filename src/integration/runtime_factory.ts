@@ -104,7 +104,7 @@ export async function runtimeConfiguration(app: ApplicationService): Promise<Run
     const rawDriver = rawAdapters[raw].driverName
     if (effectiveDriver && rawDriver && effectiveDriver !== rawDriver)
       throw new InvalidArgumentsException(
-        `Effective masquerade guard ${name} wraps the ${effectiveDriver} driver, but ${raw} uses the ${rawDriver} driver`
+        `Effective masquerade guard ${name} wraps the ${effectiveDriver} driver, but the adapter registered for raw guard ${raw} declares the ${rawDriver} driver`
       )
     if (!effectiveDriver)
       throw new InvalidArgumentsException(
@@ -162,15 +162,32 @@ export async function createRuntime(
         for (const name of routeGuards(ctx.route, wiring.effectiveGuardName)) {
           const driver = wiring.effectiveDrivers[name]
           if (!driver) throw new MasqueradeError('E_MASQUERADE_UNAVAILABLE')
-          try {
-            if (
-              (ctx.auth.use(name as never) as GuardContract<unknown>).driverName !== driver ||
-              (ctx.auth.use(wiring.effectiveRawGuards[name] as never) as GuardContract<unknown>)
-                .driverName !== driver
-            )
+          const rawGuard = wiring.effectiveRawGuards[name]
+          for (const guard of [name, rawGuard]) {
+            const fields = {
+              code: 'E_MASQUERADE_UNAVAILABLE',
+              component: 'guard_wiring',
+              effectiveGuard: name,
+              rawGuard,
+              guard,
+            }
+            let actualDriver: unknown
+            try {
+              actualDriver = (ctx.auth.use(guard as never) as GuardContract<unknown>).driverName
+            } catch (error) {
+              ctx.logger?.error(
+                { ...fields, error: error instanceof Error ? error.message : String(error) },
+                'Masquerade could not construct a guard for the effective route'
+              )
               throw new MasqueradeError('E_MASQUERADE_UNAVAILABLE')
-          } catch {
-            throw new MasqueradeError('E_MASQUERADE_UNAVAILABLE')
+            }
+            if (actualDriver !== driver) {
+              ctx.logger?.error(
+                { ...fields, expectedDriver: driver, actualDriver },
+                'Masquerade effective guard and its raw guard use different drivers'
+              )
+              throw new MasqueradeError('E_MASQUERADE_UNAVAILABLE')
+            }
           }
         }
       }

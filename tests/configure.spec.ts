@@ -78,8 +78,17 @@ test.group('Masquerade configure scaffold', (group) => {
       assert.include(output.config, 'securityStamp: stampFrom<User>')
       assert.include(output.userProvider, "model: () => import('#models/user')")
       assert.include(output.nativeProvider, "bindValue('masquerade.native', nativeAdapter)")
-      assert.include(output.middleware, 'export default class MasqueradeContextMiddleware')
-      assert.include(output.middleware, 'return masqueradeContext(ctx, next)')
+      assert.notInclude(
+        await listScaffoldPaths(f.root),
+        'app/middleware/masquerade_context_middleware.ts'
+      )
+      assert.isTrue(
+        first.messages.some((message) =>
+          message.includes(
+            "Register () => import('@kevinjohn/adonisjs-masquerade/masquerade_context_middleware') as router middleware"
+          )
+        )
+      )
       assert.isUndefined(output.banner)
       assert.isUndefined(output.statusMiddleware)
       assert.isUndefined(output.formController)
@@ -392,6 +401,53 @@ test.group('Masquerade configure scaffold', (group) => {
         1
       )
     } finally {
+      await f.dispose()
+    }
+  })
+
+  test('reports a migration path that is not a directory without writing files', async ({
+    assert,
+  }) => {
+    const f = await configureFixture()
+    try {
+      await writeFile(join(f.root, 'schema.txt'), 'not a directory')
+      f.app.config.set('database', {
+        connection: 'main',
+        connections: { main: { migrations: { paths: ['schema.txt'] } } },
+      })
+      const before = await snapshot(f.root)
+      const configured = f.command({ namespace: 'support', guard: 'web' })
+      await configure(configured as never)
+      assert.equal(configured.exitCode, 1)
+      assert.deepEqual(configured.errors, [
+        'Expected a migration directory at schema.txt. Point the default connection migrations.paths at directories and rerun configure.',
+      ])
+      assert.deepEqual(await snapshot(f.root), before)
+      assert.deepEqual(f.registered, [])
+    } finally {
+      await f.dispose()
+    }
+  })
+
+  test('reports a migration destination occupied by an entry that Lucid ignores', async ({
+    assert,
+  }) => {
+    const f = await configureFixture()
+    const now = Date.now
+    Date.now = () => 1_700_000_000_000
+    try {
+      const occupied = 'database/migrations/1700000000000_create_masquerade_tables.ts'
+      await mkdir(join(f.root, occupied), { recursive: true })
+      const configured = f.command({ namespace: 'support', guard: 'web' })
+      await configure(configured as never)
+      assert.equal(configured.exitCode, 1)
+      assert.deepEqual(configured.errors, [
+        `The migration destination ${occupied} is occupied by an entry that Lucid ignores. Move it out of the migration directory and rerun configure.`,
+      ])
+      assert.deepEqual(await listScaffoldPaths(f.root), [occupied])
+      assert.deepEqual(f.registered, [])
+    } finally {
+      Date.now = now
       await f.dispose()
     }
   })
@@ -886,7 +942,6 @@ async function readScaffold(root: string) {
     config: await read('config/masquerade.ts'),
     userProvider: await read('app/services/masquerade_user_provider.ts'),
     nativeProvider: await read('providers/masquerade_native_provider.ts'),
-    middleware: await read('app/middleware/masquerade_context_middleware.ts'),
     statusMiddleware: paths.includes('app/middleware/share_masquerade_status_middleware.ts')
       ? await read('app/middleware/share_masquerade_status_middleware.ts')
       : undefined,

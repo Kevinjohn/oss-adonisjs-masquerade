@@ -3,7 +3,7 @@
 As a signed-in actor, I want to start a temporary support mode for an eligible target so that I can inspect the target's account using a request-scoped effective identity.
 
 **Status:** Current; source-reviewed HTTP control.
-**Access:** Actor authenticated by the configured raw control guard; host `canMasquerade` policy must approve actor and target. For API access tokens, the token also needs the configured `masquerade` ability.
+**Access:** Actor authenticated by the configured raw control guard; host `canMasquerade` callback must approve actor and target. For API access tokens, the token also needs the configured `masquerade` ability.
 **Entry:** Read `GET /masquerade`, then submit `POST /masquerade/start`, mounted by `masqueradeRoutes()`.
 **Documentation:** [Read status and start](../../docs/guide/usage.md#read-status-and-start).
 **Source:** [MasqueradeController.start](../../http/controllers.ts), [start input parser](../../http/control_input.ts), [service start](../../src/service.ts).
@@ -21,7 +21,7 @@ As a signed-in actor, I want to start a temporary support mode for an eligible t
 
 - The body is at most 8 KiB and must be JSON or URL-encoded form data; multipart and unknown fields are refused.
 - If reason is configured as required, absent, null or blank reason is refused. A nonblank reason must also be well-formed and free of disallowed control and invisible formatting characters. A successful start stores one active mode and returns its `ModeView` with a fresh context token.
-- Input shape and the context token are checked first, so a stale token is refused with `E_MASQUERADE_CONTEXT_CHANGED` even while a mode is active. Invalid input, stale context, a failed `canMasquerade` policy or a failed edit policy refuses start; the actor remains authenticated as themselves.
+- Input shape and the context token are checked first, so a stale token is refused with `E_MASQUERADE_CONTEXT_CHANGED` even while a mode is active. Invalid input, stale context, a failed `canMasquerade` callback or a failed `canEdit` callback refuses start; the actor remains authenticated as themselves.
 - Starting while a mode is already active is refused with `E_MASQUERADE_ALREADY_ACTIVE`; the active mode is not replaced or extended. Starting from an active row whose deadline has passed clears it to idle and then refuses with `E_MASQUERADE_CONTEXT_CHANGED`; no new mode starts from it.
 - A bearer token also needs the configured `masquerade` ability before status or start reads or changes mode state.
 
@@ -58,7 +58,7 @@ flowchart TD
     A["masqueradeRoutes mounts POST /start"] --> B["MasqueradeController.start"]
     B --> C["MasqueradeController.control"]
     C --> D["runtimeFor and raw-guard check"]
-    D --> E["requireStartControl(ctx)"]
+    D --> E["parseStartControlOrInvalidMarker(ctx)"]
     E --> F["runtime.service.start(ctx, input); authenticate actor and read row"]
     F --> G["Validate input shape and context; mismatch throws E_MASQUERADE_CONTEXT_CHANGED"]
     G -->|Invalid| I

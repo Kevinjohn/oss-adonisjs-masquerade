@@ -44,6 +44,10 @@ async function installed(
 export default class AccountKitProvider {
   constructor(protected app: ApplicationService) {}
 
+  /**
+   * Check the managed guard against Account Kit and, once the router has committed, that every
+   * mounted `accountKit.*` route carries the blocker.
+   */
   async ready(): Promise<void> {
     const adapter = (await this.app.container.make(
       'masquerade.native'
