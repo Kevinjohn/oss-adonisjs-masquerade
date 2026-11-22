@@ -1,12 +1,14 @@
 import { test } from '@japa/runner'
 import {
   type KitRelease,
+  isKitVersionedDoc,
   kitReleaseUrl,
   rewriteFor,
   rewriteLedger,
   rewriteLockfile,
   rewriteManifest,
   rewriteText,
+  staleKitVersions,
 } from '../../bin/helpers/account_kit_bump.js'
 
 const from: KitRelease = {
@@ -140,5 +142,26 @@ test.group('Account Kit bump', () => {
     assert.strictEqual(rewriteFor('examples/api/package.json'), rewriteManifest)
     assert.strictEqual(rewriteFor('docs/maintainers/requirement-ledger.md'), rewriteLedger)
     assert.strictEqual(rewriteFor('docs/guide/setup.md'), rewriteText)
+  })
+
+  test('reports Account Kit releases other than the target in user-facing pages', ({ assert }) => {
+    const page = [
+      'Use the scoped Account Kit `0.4.0` GitHub release.',
+      'The scoped release is Account Kit `0.3.3` in the troubleshooting table and Account',
+      'Kit 0.2.1 across a wrap.',
+      `pnpm add ${kitReleaseUrl('0.3.3')}`,
+      'youch 0.3.3 and Core `7.0.0` are not Account Kit versions.',
+    ].join('\n')
+
+    assert.deepEqual(staleKitVersions(page, '0.4.0'), [
+      { line: 2, version: '0.3.3' },
+      { line: 3, version: '0.2.1' },
+      { line: 4, version: '0.3.3' },
+      { line: 4, version: '0.3.3' },
+    ])
+    assert.isTrue(isKitVersionedDoc('docs/guide/troubleshooting.md'))
+    assert.isTrue(isKitVersionedDoc('README-AGENTS.md'))
+    assert.isFalse(isKitVersionedDoc('docs/maintainers/requirement-ledger.md'))
+    assert.isFalse(isKitVersionedDoc('CHANGELOG.md'))
   })
 })

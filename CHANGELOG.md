@@ -43,6 +43,8 @@
   first surface on a live request.
 - Export `MasqueradeContextMiddleware` from `@kevinjohn/adonisjs-masquerade/http` and declare the
   provider's typed Masquerade transition events.
+- Configure honours custom directories declared in `adonisrc.ts` for generated files, conflict
+  preflight and host wiring.
 - Document and verify the package user stories and implementation flows.
 
 ## 0.4.3 - 2026-11-21

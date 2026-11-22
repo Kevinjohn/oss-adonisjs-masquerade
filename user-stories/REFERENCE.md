@@ -2,7 +2,7 @@
 
 ## Source baseline and scope
 
-Fetched `origin/main` baseline: [`db85e1060eafe6019befd8a5e4f1f2b678fb3bd3`](https://github.com/Kevinjohn/oss-adonisjs-masquerade/commit/db85e1060eafe6019befd8a5e4f1f2b678fb3bd3). Inventory covers public package exports, setup scaffolds, HTTP control routes, effective guards, context and route markers, Account Kit blocker, Ace operator commands, guides, examples and relevant tests.
+Fetched `origin/main` baseline: [`be18100db21f1e254373da02d377f67780d2c949`](https://github.com/Kevinjohn/oss-adonisjs-masquerade/commit/be18100db21f1e254373da02d377f67780d2c949). Inventory covers public package exports, setup scaffolds, HTTP control routes, effective guards, context and route markers, Account Kit blocker, Ace operator commands, guides, examples and relevant tests.
 
 ## Roles and boundaries
 

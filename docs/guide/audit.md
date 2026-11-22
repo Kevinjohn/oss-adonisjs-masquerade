@@ -148,7 +148,7 @@ emitter.on('masquerade:started', (event) => {
 
 Event listeners run after commit and are best effort. The event kind is one of the four transitions
 and omits the reason; listeners do not receive denied starts/stops or no-op controls. Do not use
-event delivery as the durable control ledger or the host's business audit. In the current source, the package provider supplies the Adonis event list
+event delivery as the durable control ledger or the host's business audit. Since release 0.5.0, the package provider supplies the Adonis event list
 augmentation, so hosts no longer redeclare the event names. When using release 0.4.3 or earlier,
 declare the four transition event names as `ObserverEvent` in `EventsList` instead.
 [Alert on masquerade

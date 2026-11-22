@@ -68,7 +68,7 @@ starter files. It creates the migration in the default connection's first migrat
 none exists. With `--force`, it regenerates a single existing TypeScript migration in place across
 that connection's migration folders. Multiple existing Masquerade migrations stop configure before
 it writes files.
-In the current source, custom directories declared in `adonisrc.ts` are respected throughout generation, conflict
+Since release 0.5.0, custom directories declared in `adonisrc.ts` are respected throughout generation, conflict
 preflight and host wiring. Keep the corresponding host import aliases aligned in `package.json`.
 
 Configure then wires the host when its files have the AdonisJS starter-kit shape, and prints the

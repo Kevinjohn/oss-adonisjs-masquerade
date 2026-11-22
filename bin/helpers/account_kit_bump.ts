@@ -85,6 +85,36 @@ export function rewriteText(text: string, from: KitRelease, to: KitRelease): str
   return replaceVersion(result, from.version, to.version)
 }
 
+/** User-facing pages whose every Account Kit version must equal the declared peer. */
+export function isKitVersionedDoc(path: string): boolean {
+  return /^docs\/guide\/[^/]+\.md$/.test(path) || /^README[^/]*\.md$/.test(path)
+}
+
+const kitVersionPatterns = [
+  /Account\s+Kit\s+`?v?(\d+\.\d+\.\d+)/g,
+  /adonisjs-account-kit\/releases\/(?:download|tag)\/v(\d+\.\d+\.\d+)/g,
+  /adonisjs-account-kit-(\d+\.\d+\.\d+)\.tgz/g,
+]
+
+/**
+ * Lists the 1-based lines that name an Account Kit release other than `version`. A version only
+ * counts when the text ties it to Account Kit, by name or by release URL.
+ */
+export function staleKitVersions(
+  text: string,
+  version: string
+): { line: number; version: string }[] {
+  const stale: { line: number; version: string }[] = []
+  for (const pattern of kitVersionPatterns) {
+    for (const match of text.matchAll(pattern)) {
+      if (match[1] === version) continue
+      const end = match.index + match[0].length
+      stale.push({ line: text.slice(0, end).split('\n').length, version: match[1] })
+    }
+  }
+  return stale.sort((a, b) => a.line - b.line)
+}
+
 /** Picks the rewrite for a tracked path, or `undefined` for files the bump leaves alone. */
 export function rewriteFor(
   path: string

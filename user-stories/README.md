@@ -4,7 +4,7 @@ Source-reviewed integration and operator journeys for Masquerade's HTTP controls
 
 “Current” records source availability under the stated configuration; it does not claim that an application journey was run.
 
-Source baseline: `origin/main` at `db85e10`.
+Source baseline: `origin/main` at `be18100`.
 
 ## Index
 

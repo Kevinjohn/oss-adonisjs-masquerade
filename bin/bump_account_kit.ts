@@ -5,7 +5,8 @@
  * release URLs and tarball names, the exact peer, lockfile integrity and versions, the release
  * SHA-256 and source commit, and version mentions in code and docs. `CHANGELOG.md` and the
  * requirement ledger's pin history stay as written; the script lists the lines that still name the
- * old version so they can be updated by hand.
+ * old version so they can be updated by hand. It also lists guide and README lines that name any
+ * other Account Kit release, which a plain version rewrite cannot reach.
  */
 import { execFile } from 'node:child_process'
 import { createHash } from 'node:crypto'
@@ -17,7 +18,9 @@ import {
   kitPackage,
   kitReleaseUrl,
   kitRepository,
+  isKitVersionedDoc,
   rewriteFor,
+  staleKitVersions,
 } from './helpers/account_kit_bump.js'
 
 const run = promisify(execFile)
@@ -117,5 +120,16 @@ const leftovers = await git(
 if (leftovers) {
   console.log(`\nStill naming ${from.version} (update by hand where it is not history):`)
   console.log(leftovers.trimEnd())
+}
+const otherReleases: string[] = []
+for (const path of tracked.split('\0').filter(isKitVersionedDoc)) {
+  const text = await readFile(join(root, path), 'utf8').catch(() => '')
+  for (const { line, version } of staleKitVersions(text, to.version)) {
+    otherReleases.push(`${path}:${line}: Account Kit ${version}`)
+  }
+}
+if (otherReleases.length) {
+  console.log(`\nUser-facing lines naming an Account Kit release other than ${to.version}:`)
+  console.log(otherReleases.join('\n'))
 }
 console.log('\nAdd the changelog entry and any pin history notes, then run pnpm check.')
