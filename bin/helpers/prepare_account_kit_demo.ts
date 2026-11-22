@@ -114,7 +114,13 @@ export async function prepare(
   )
   await runDemoCommand(
     process.execPath,
-    ['ace.js', 'account-kit:admission:install', '--users-table=users', '--user-id-type=integer'],
+    [
+      'ace.js',
+      'account-kit:admission:install',
+      '--users-table=users',
+      '--user-id-type=integer',
+      '--migration-directory=database/migrations',
+    ],
     app,
     childEnv,
     signal

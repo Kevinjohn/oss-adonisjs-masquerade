@@ -201,6 +201,7 @@ if (command === 'configure') {
   try { await readFile('database/migrations/1780000000000_account_kit_users.ts') } catch { await writeFile('database/migrations/1780000000000_account_kit_users.ts', 'export default class AccountKitUsers {}\\n') }
 }
 if (command === 'account-kit:admission:install') {
+  if (!args.includes('--migration-directory=database/migrations')) throw new Error('expected the Lucid migration directory')
   await mkdir('database/migrations', { recursive: true })
   try { await readFile('database/migrations/1780000000001_account_kit_admission.ts') } catch { await writeFile('database/migrations/1780000000001_account_kit_admission.ts', 'export default class AccountKitAdmission {}\\n') }
 }
