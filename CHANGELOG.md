@@ -2,9 +2,16 @@
 
 ## Unreleased
 
+- Configure reads named database exports and reuses an existing Masquerade migration at its original path across the default connection’s migration directories.
+
 ## 0.5.0 - 2026-11-21
 
 - Require Account Kit `0.5.0` exactly.
+- Compare known native transport registration metadata at boot. Validate the concrete raw guard
+  and effective wrapper on applicable requests before reading mode state, so invalid wiring can
+  first surface on a live request.
+- Export `MasqueradeContextMiddleware` from `@kevinjohn/adonisjs-masquerade/http` and declare the
+  provider's typed Masquerade transition events.
 - Document and verify the package user stories and implementation flows.
 
 ## 0.4.3 - 2026-11-21

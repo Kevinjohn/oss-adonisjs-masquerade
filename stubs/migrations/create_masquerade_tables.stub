@@ -1,5 +1,5 @@
 {{{
-  exports({ to: app.makePath(migration.folder, entity.path, migration.fileName) })
+  exports({ to: migrationPath })
 }}}
 import { BaseSchema } from '@adonisjs/lucid/schema'
 import { createMasqueradeSchema, dropMasqueradeSchema } from '@kevinjohn/adonisjs-masquerade/stores/lucid'
