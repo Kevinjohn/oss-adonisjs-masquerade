@@ -1,6 +1,6 @@
 import type Configure from '@adonisjs/core/commands/configure'
-import { access, readFile, readdir } from 'node:fs/promises'
-import { join } from 'node:path'
+import { access, lstat, readFile, stat } from 'node:fs/promises'
+import { basename, extname, join, relative, sep } from 'node:path'
 import { pathToFileURL } from 'node:url'
 import { wireHost } from './src/configure_wiring.js'
 
@@ -74,7 +74,8 @@ export async function configure(command: Configure): Promise<void> {
   }
 
   const migrationFolder = await migrationsFolder(command)
-  const migrationFile = await findMigrationFile(command.app.makePath(migrationFolder))
+  const migrationFile = await findMigrationFile(command, command.app.makePath(migrationFolder))
+  if (!migrationFile) return
   const migrationDestination = `${migrationFolder}/${migrationFile}`
   const banner = command.parsedFlags.banner === true
   const formController =
@@ -333,7 +334,7 @@ async function databaseConfig(command: Configure): Promise<DatabaseConfig | unde
     )) as {
       default?: DatabaseConfig
     }
-    return module.default
+    return module.default ?? (module as DatabaseConfig)
   } catch (error) {
     if (!(await fileExists(command.app.configPath('database.ts')))) return undefined
     throw error
@@ -359,18 +360,45 @@ async function fileExists(path: string): Promise<boolean> {
   }
 }
 
-async function findMigrationFile(folder: string): Promise<string> {
-  let files: string[] = []
-  try {
-    files = await readdir(folder)
-  } catch (error) {
-    if (!(error && typeof error === 'object' && 'code' in error && error.code === 'ENOENT'))
-      throw error
+async function findMigrationFile(command: Configure, folder: string): Promise<string | undefined> {
+  const { sourceFiles } = await import('@adonisjs/lucid/utils')
+  const info = await stat(folder).catch((error: unknown) => {
+    if ((error as NodeJS.ErrnoException).code !== 'ENOENT') throw error
+  })
+  if (info && !info.isDirectory()) throw new Error(`Expected a migration directory at ${folder}`)
+  const { files } = await sourceFiles(pathToFileURL(folder + sep), '.', false)
+  const existing = files.filter(({ absPath }) =>
+    /^\d{13}_create_masquerade_tables$/.test(basename(absPath, extname(absPath)))
+  )
+  if (existing.length > 1) {
+    command.logger.error(
+      `Multiple Masquerade migrations were found in ${folder}. Review migration history before rerunning configure.`
+    )
+    command.exitCode = 1
+    return
   }
-  const existing = files
-    .filter((file) => /^\d{13}_create_masquerade_tables\.ts$/.test(file))
-    .sort()[0]
-  return existing ?? `${Date.now()}_create_masquerade_tables.ts`
+  if (existing[0]) {
+    const path = existing[0].absPath
+    if (extname(path) === '.ts') return relative(folder, path)
+    command.logger.error(
+      `Masquerade cannot regenerate the existing migration ${path} from a TypeScript stub. Preserve its migration identity and complete configuration manually.`
+    )
+    command.exitCode = 1
+    return
+  }
+  const filename = `${Date.now()}_create_masquerade_tables.ts`
+  const path = join(folder, filename)
+  const entry = await lstat(path).catch((error: unknown) => {
+    if ((error as NodeJS.ErrnoException).code !== 'ENOENT') throw error
+  })
+  if (entry) {
+    command.logger.error(
+      `The migration destination ${path} is occupied by an entry that Lucid ignores. Move it out of the migration directory and rerun configure.`
+    )
+    command.exitCode = 1
+    return
+  }
+  return filename
 }
 
 function isModuleNotFound(error: unknown): boolean {

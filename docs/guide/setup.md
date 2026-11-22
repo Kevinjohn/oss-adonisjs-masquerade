@@ -60,7 +60,7 @@ Choose a stable namespace for this identity domain and the name of the raw sessi
 checks the namespace and guard syntax, that `config/auth.ts` and `#models/user` exist, and that
 the assembler code transformer and Lucid can be imported. It reads the shape of `config/auth.ts`
 only to decide whether to wire it, as below; it does not check the selected guard's driver or
-provider. In the current source (for the next release), boot compares known native transport registration metadata; the actual selected guard
+provider. Since v0.5.0, boot compares known native transport registration metadata. The actual selected guard
 and effective wrapper are checked on the live request before Masquerade reads mode state. The
 package no longer invokes a guard factory with a synthetic context as 0.4.3 did. Configure adds
 the package provider, native binding provider, and command loader to `adonisrc.ts`, and creates
