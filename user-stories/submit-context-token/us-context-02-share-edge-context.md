@@ -12,7 +12,7 @@ As an application developer rendering Edge pages, I want the current mode status
 ## Acceptance criteria
 
 - `shareMasquerade(ctx)` shares two Edge values: `masquerade` (the safe `ModeView`) and `masqueradeContextField()`, which renders `<input type="hidden" name="_masqueradeContext" value="...">` with the token HTML-escaped. It returns the `ModeView`.
-- On an effective-guard route it shares the request's memoized admission, so the view cannot show a mode newer than the one the handler ran under. On any other route it shares read-only status; it does not admit, invalidate or apply `canUseRequest`.
+- On an effective-guard route it shares the request's memoised admission, so the view cannot show a mode newer than the one the handler ran under. On any other route it shares read-only status; it does not admit, invalidate or apply `canUseRequest`.
 - When the context has no Edge `view`, the call still returns the mode and shares nothing.
 - The hidden field carries the context token only. Cookie-authenticated forms still need Shield's `csrfField()` alongside it.
 - The `--banner` scaffold's status middleware shares only `masquerade` (to Edge and Inertia) on effective, authenticated routes, and its banner reads `masquerade.contextToken` directly. It does not share `masqueradeContextField`.

@@ -97,7 +97,7 @@ request, so a missing middleware, or one registered with `server.use` where no r
 fails closed instead of skipping view-only, `sensitive()` and context checks.
 
 If native session authentication fails, `check()` returns `false`; calling `getUserOrFail()` after
-that failed attempt raises the native session unauthorized error. Masquerade admission errors still
+that failed attempt raises the native session unauthorised error. Masquerade admission errors still
 propagate unchanged.
 
 ## Account Kit admission and managed actions
@@ -208,7 +208,7 @@ alone reports persisted state, not whether a new business request can still be a
 
 When a business request is rejected with context changed because expiry was discovered, refresh
 status and the rendered context before presenting the current state. Do not automatically replay the
-rejected action: the user's intent may be stale, and a refreshed context token does not authorize
+rejected action: the user's intent may be stale, and a refreshed context token does not authorise
 that old intent. Ask the user to initiate a fresh action when appropriate.
 
 A nested start cannot replace, renew, or extend an active mode. Stop, then submit a fresh start with
@@ -220,7 +220,7 @@ When the store is unavailable, status and stop return 503; login and logout stil
 do not read mode state. Package errors carry stable codes and fixed English fallbacks. The default JSON handler looks
 up `errors.<code>` through the request's i18n instance when present, while the host owns custom
 presentation. The handler keeps the generic JSON envelope and status with `Cache-Control: no-store`.
-The package ships no translation catalog or loader.
+The package ships no translation catalogue or loader.
 
 While masquerading, the operator's browser renders the target's content on the application's
 origin with the operator's own cookies. A stored script the target could inject, which would

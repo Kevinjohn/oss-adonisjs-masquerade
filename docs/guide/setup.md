@@ -323,7 +323,7 @@ ineligible account must not be treated as active.
 A start reason is optional by default. Add `reason: 'required'` to the config when every start must
 carry a justification; see [use a support mode](usage.md#read-status-and-start).
 
-`canMasquerade` is required and must explicitly authorize the actor-target pair. It runs when a mode
+`canMasquerade` is required and must explicitly authorise the actor-target pair. It runs when a mode
 starts with `request` and any supplied `reason` available, and again on each active admission without either
 value. A `false` result at start denies the start. A `false` result during active admission is a
 global denial: Masquerade invalidates the mode and rejects that request with context-changed (409).

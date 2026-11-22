@@ -5,7 +5,7 @@ The [`API entry-point map`](https://kevinjohn.github.io/oss-adonisjs-masquerade/
 `@kevinjohn/adonisjs-masquerade/stores/lucid` path, and the conformance helper under
 `@kevinjohn/adonisjs-masquerade/testing`.
 
-Masquerade stores one mode per owner and appends an audit event for each committed transition. The public `ControlStore` type is exported from `@kevinjohn/adonisjs-masquerade/types`; a reusable behavioral suite is exported from `@kevinjohn/adonisjs-masquerade/testing`.
+Masquerade stores one mode per owner and appends an audit event for each committed transition. The public `ControlStore` type is exported from `@kevinjohn/adonisjs-masquerade/types`; a reusable behavioural suite is exported from `@kevinjohn/adonisjs-masquerade/testing`.
 
 An application that serves requests through a separate store can implement `RequestControlStore`: `read`, `compareAndSet`, and `recordControlOutcome`. Supply it through `MasqueradeConfig.store` without a cast. The service checks these request capabilities at creation. The operator listing, stop, and prune commands check their additional store capabilities when invoked. A full `ControlStore` still satisfies the configuration type and remains the contract for the conformance suite. Test-only stores are rejected outside the test environment.
 

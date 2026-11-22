@@ -394,7 +394,7 @@ report does not replace review of host middleware or route behaviour.
 
 On SQLite, Masquerade's active business admission runs three Account Kit transactions: `current`
 validates the actor, then `inspectAccountAccess` inspects the actor and target. Each transaction
-takes the database writer lock, so active-mode traffic serializes with Account Kit writes. With
+takes the database writer lock, so active-mode traffic serialises with Account Kit writes. With
 session management enabled, `current` also writes the session's last-seen time. On a route covered
 by the host admission gate, `AccountAdmission.require` adds another transaction before
 `masqueradeContext`; `isAdmitted` in `canMasquerade` also performs policy reads on active admission.

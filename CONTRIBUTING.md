@@ -5,7 +5,7 @@ Thanks for helping. Bug reports and documentation fixes are welcome.
 ## Before you start
 
 - For a bug, open an issue with a reproduction first, unless the fix is one line.
-- For a feature or behavior change, open an issue to agree on the shape before writing code.
+- For a feature or behaviour change, open an issue to agree on the shape before writing code.
 - Report security problems privately as described in [SECURITY.md](SECURITY.md). Do not open a
   public issue.
 
@@ -14,7 +14,7 @@ Thanks for helping. Bug reports and documentation fixes are welcome.
 Every change follows these principles.
 
 - **Built for everyone who uses AdonisJS.** Follow the open-source AdonisJS packages and starter
-  kits for names, shapes and behavior. Match AdonisJS Plus only where that costs nothing; Plus
+  kits for names, shapes and behaviour. Match AdonisJS Plus only where that costs nothing; Plus
   compatibility is not a goal and never outweighs consistency for open-source users.
 - **The application owns its language.** Errors carry stable codes and English fallback messages.
   If the request context has `i18n`, Masquerade looks up `errors.<code>` there; the package ships no
@@ -97,8 +97,8 @@ gitignored `plans/` directory; do not commit them.
 ### Store adapters
 
 A control store for another database is a useful first contribution. The conformance suite in
-`@kevinjohn/adonisjs-masquerade/testing` checks a store against the behavior of the Lucid store, including
-compare-and-swap behavior with concurrent calls on one store instance; races across independent
+`@kevinjohn/adonisjs-masquerade/testing` checks a store against the behaviour of the Lucid store, including
+compare-and-swap behaviour with concurrent calls on one store instance; races across independent
 connections need their own tests.
 
 ## Code of conduct

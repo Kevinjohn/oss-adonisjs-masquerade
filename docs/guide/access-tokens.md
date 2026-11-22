@@ -121,7 +121,7 @@ active business admission, while stop does not read start policy, stamps, or tar
 Never select a transport from the `Authorization` header, try one credential after another, or
 combine distinct raw guards on one route. Same-raw aliases are safe. Conflicting session and token
 selection fails closed. This keeps the actor identity tied to the route's declared guard even when
-a request includes both a cookie and bearer credential. Native unauthorized responses continue to
+a request includes both a cookie and bearer credential. Native unauthorised responses continue to
 come from the selected Auth guard. `silent_auth` on an effective token route resolves the selected
 token adapter; it must not use an incidental session cookie.
 

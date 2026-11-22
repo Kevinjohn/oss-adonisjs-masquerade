@@ -1,6 +1,6 @@
 # Masquerade documentation
 
-Masquerade lets an authorized support operator use an AdonisJS application through a customer's
+Masquerade lets an authorised support operator use an AdonisJS application through a customer's
 account while remaining authenticated as the operator. The account-wide mode is shared across
 valid integrated sessions and opaque access tokens, has a fixed duration, and can be explicitly
 stopped. Token adapters preserve Auth 10 bearer validation and require a configured ability.
@@ -48,7 +48,7 @@ with real application screenshots.
 
 - [Troubleshooting](guide/troubleshooting.md): diagnose setup and boot problems, missing or stale
   context, denied actions, expiry, and storage failures.
-- [Security boundaries](guide/security.md): actor and customer identity, sessions, authorization,
+- [Security boundaries](guide/security.md): actor and customer identity, sessions, authorisation,
   context tokens, expiry, audit, and side effects.
 - [Custom authorities](guide/custom-authorities.md): provide coherent account identity and
   security-stamp values.

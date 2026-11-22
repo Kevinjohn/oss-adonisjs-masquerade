@@ -1,10 +1,10 @@
 # US-ACTOR-02 — Read customer routes as the effective account
 
-As an authorized support actor with an active mode, I want covered business routes to resolve the target account as their effective identity so that I can inspect the customer's view without acquiring the customer's credentials.
+As an authorised support actor with an active mode, I want covered business routes to resolve the target account as their effective identity so that I can inspect the customer's view without acquiring the customer's credentials.
 
 **Status:** Current; source-reviewed native-session and native access-token integrations.
 **Access:** Actor retains their raw session or opaque access token; host `canMasquerade` and per-request admission determine whether the target is effective.
-**Entry:** Business route uses `web_effective` or host-configured `api_effective` (or the configured effective alias); `masqueradeContext` runs after auth initialization and before the effective guard authenticates.
+**Entry:** Business route uses `web_effective` or host-configured `api_effective` (or the configured effective alias); `masqueradeContext` runs after auth initialisation and before the effective guard authenticates.
 **Documentation:** [Use the effective customer identity](../../docs/guide/usage.md#use-the-effective-customer-identity), [security identity boundary](../../docs/guide/security.md#actor-target-and-scope).
 **Source:** [EffectiveSessionGuard](../../auth/effective_session_guard.ts), [EffectiveAccessTokensGuard](../../auth/effective_access_tokens_guard.ts), [request admission](../../src/service.ts).
 **Coverage:** [Session guard tests](../../tests/effective_session_guard.spec.ts), [access-token guard tests](../../tests/effective_access_tokens_guard.spec.ts), [route guard tests](../../tests/route_guard_selection.spec.ts).
@@ -13,7 +13,7 @@ As an authorized support actor with an active mode, I want covered business rout
 
 - In idle state, the effective guard authenticates the raw actor. In an admitted active mode, it exposes the target user for covered business routes while the raw guard remains the credential owner.
 - The service rechecks actor and target eligibility, security stamps and `canMasquerade` for active requests; edit modes also recheck `canEdit`.
-- Expired or invalidated mode rejects the triggering request with context-changed behavior; it does not silently retry that request as the actor. A later new idle request uses the actor.
+- Expired or invalidated mode rejects the triggering request with context-changed behaviour; it does not silently retry that request as the actor. A later new idle request uses the actor.
 - A host `canUseRequest` refusal rejects only the current request and keeps the active mode unchanged.
 - The effective access-token user type does not promise `currentAccessToken`; this is a type-level `Omit` only, and in idle state the facade returns the raw actor object unchanged. Read the actor's token through the raw guard, never through the effective user. Host wiring selects the effective token guard explicitly.
 - The package never logs in as the target, mints a target credential, or combines actor and target permissions.
@@ -34,7 +34,7 @@ flowchart TD
 
 ## Code flow
 
-Scope: effective session or access-token guard through cached service admission; the host handler then applies its normal target-side authorization.
+Scope: effective session or access-token guard through cached service admission; the host handler then applies its normal target-side authorisation.
 
 ```mermaid
 flowchart TD
@@ -53,7 +53,7 @@ flowchart TD
     L --> E2
     E2 -->|Yes| Z["Throw E_MASQUERADE_UNAVAILABLE"]
     E2 -->|No| P{"Session facade and raw guard no longer authenticated?"}
-    P -->|Yes| W["Throw native unauthorized"]
+    P -->|Yes| W["Throw native unauthorised"]
     P -->|No| M["Guard exposes admitted effective user"]
     M --> N["Effective token user type does not promise currentAccessToken; read the actor token via the raw guard"]
 ```

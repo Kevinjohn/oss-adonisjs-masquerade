@@ -1,6 +1,6 @@
 # Decision gaps
 
-The accepted actor/target, read-only default, edit access, route coverage and context contracts are recorded in [the Masquerade technical specification](../docs/maintainers/design/spec-masquerade.md) and summarized in [security](../docs/guide/security.md), [usage](../docs/guide/usage.md) and [route report](../docs/guide/route-report.md).
+The accepted actor/target, read-only default, edit access, route coverage and context contracts are recorded in [the Masquerade technical specification](../docs/maintainers/design/spec-masquerade.md) and summarised in [security](../docs/guide/security.md), [usage](../docs/guide/usage.md) and [route report](../docs/guide/route-report.md).
 
 The host supplies the history route, ability and view in [US-AUDIT-03](audit-business-work/us-audit-03-review-transition-history.md). The package provides no mounted review screen. The React, Vue and JSON workspaces in [US-CONTEXT-03](submit-context-token/us-context-03-recover-browser-intent.md) demonstrate recovery for their own clients. A consuming application needs to verify its middleware order, policies and browser flows separately.
 

@@ -3,7 +3,7 @@
 As an application developer, I want the safe actor and effective identity fields for the current request so that my own business audit record shows who acted and whose account was affected.
 
 **Status:** Current; source-reviewed helper, not runtime-tested.
-**Access:** Host handler on a route covered by the Masquerade auth setup, after the host's own authorization and business write.
+**Access:** Host handler on a route covered by the Masquerade auth setup, after the host's own authorisation and business write.
 **Entry:** `await masqueradeAuditFields(ctx)` from `@kevinjohn/adonisjs-masquerade/http`, spread into the host's audit writer.
 **Documentation:** [Audit business work](../../docs/guide/audit.md).
 **Source:** [masqueradeAuditFields](../../http/audit_fields.ts).
@@ -21,7 +21,7 @@ As an application developer, I want the safe actor and effective identity fields
 
 ```mermaid
 flowchart TD
-    A["Handler finishes the authorized business write"] --> B["Call masqueradeAuditFields"]
+    A["Handler finishes the authorised business write"] --> B["Call masqueradeAuditFields"]
     B --> C{"Mode active on this request?"}
     C -->|Yes| D["Fields name actor, target, mode and access"]
     C -->|No| E["Fields name the actor as both identities"]
@@ -39,7 +39,7 @@ flowchart TD
     A["masqueradeAuditFields(ctx)"] --> B["runtimeFor(ctx)"]
     B --> C{"runtime.selectGuard(ctx).kind is effective?"}
     C -->|No| D["runtime.actor(ctx); actor as both identities"]
-    C -->|Yes| E["runtime.service.resolve(ctx) runs memoized admission"]
+    C -->|Yes| E["runtime.service.resolve(ctx) runs memoised admission"]
     E --> G{"Admitted?"}
     G -->|Yes| F["Return frozen fields"]
     G -->|"Expired or invalidated mode"| H["Throw E_MASQUERADE_CONTEXT_CHANGED"]

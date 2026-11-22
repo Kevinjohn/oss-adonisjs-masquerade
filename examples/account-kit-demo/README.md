@@ -83,7 +83,7 @@ This removes the demo SQLite database files. The same command creates a fresh da
 original fictional accounts, and starts the demo. It keeps the workspace and `.env`.
 
 If the first setup is interrupted before the launcher writes `tmp/account-kit-demo/recipe.json`,
-it will report an unrecognized workspace on the next run. Inspect `tmp/account-kit-demo/` and
+it will report an unrecognised workspace on the next run. Inspect `tmp/account-kit-demo/` and
 deliberately move or remove that directory before retrying. The launcher does not clear an
 unmarked directory for you.
 

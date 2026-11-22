@@ -12,7 +12,7 @@ As a signed-in actor, I want to read my current support mode and context token s
 ## Acceptance criteria
 
 - The response shows the stored idle or active `ModeView` and a context token. An active stored row remains displayed as active even after its expiry until admission or cleanup processes it; status itself does not expire the mode, recheck target admission policy, or write mode state.
-- The context token identifies the current mode context for freshness checks; it does not authorize business access or replace route policy, context middleware, or the raw actor credential.
+- The context token identifies the current mode context for freshness checks; it does not authorise business access or replace route policy, context middleware, or the raw actor credential.
 
 ## User flow
 

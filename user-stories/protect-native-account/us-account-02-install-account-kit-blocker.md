@@ -35,7 +35,7 @@ flowchart TD
 
 ## Code flow
 
-Scope: provider startup validation and the global blocker's per-request branch; host handler behavior is outside this story.
+Scope: provider startup validation and the global blocker's per-request branch; host handler behaviour is outside this story.
 
 ```mermaid
 flowchart TD

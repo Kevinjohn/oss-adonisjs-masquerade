@@ -5,7 +5,7 @@ import { fileURLToPath, pathToFileURL } from 'node:url'
 import { contextMiddleware, wireHost } from './src/configure_wiring.js'
 
 /**
- * Scaffold a fail-closed native-session and Lucid setup, then wire recognized auth, kernel and
+ * Scaffold a fail-closed native-session and Lucid setup, then wire recognised auth, kernel and
  * route shapes unless `--no-wire` is passed.
  */
 export async function configure(command: Configure): Promise<void> {

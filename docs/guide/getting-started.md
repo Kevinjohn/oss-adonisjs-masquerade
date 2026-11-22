@@ -48,7 +48,7 @@ and the other words used below.
    the effective guard to `config/auth.ts`, the context middleware to `start/kernel.ts` and the
    control routes; [setup](setup.md#generate-the-starter-files) lists each edit. Review conflicts
    and boot diagnostics rather than forcing generated files over existing application code.
-3. **Choose host-owned callbacks.** `canMasquerade` is required and must explicitly authorize the
+3. **Choose host-owned callbacks.** `canMasquerade` is required and must explicitly authorise the
    actor-target pair at start and on every active admission. Decide what persisted security epoch
    changes invalidate all modes, and how target account-wide eligibility is checked. Add
    `canUseRequest` only for request-local rules such as tenant or route access. Do not use a
@@ -60,7 +60,7 @@ and the other words used below.
 5. **Add context to every covered unsafe client.** Edge forms include the rendered token; clients
    send their captured token with each mutation. Use `contextEnforcement: 'report'` while migrating,
    then switch to `enforce` after coverage is complete and warnings stop. A refreshed token does
-   not authorize an old form's intent.
+   not authorise an old form's intent.
 6. **Review coverage and exercise two sessions.** Run `node ace masquerade:routes`, review every
    business and raw-guard route, then verify start, stop, fixed expiry, stale forms, and the shared
    mode from two valid sessions. See [route coverage review](route-report.md) and

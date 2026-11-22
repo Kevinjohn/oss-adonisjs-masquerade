@@ -4,7 +4,7 @@ Use these notes to assess Masquerade and protect its guarantees. Human overview:
 
 ## Fit check
 
-- AdonisJS 7 on Node.js 24+ with SQLite or PostgreSQL; the host owns authentication, authorization,
+- AdonisJS 7 on Node.js 24+ with SQLite or PostgreSQL; the host owns authentication, authorisation,
   routes and user-facing error messages. Masquerade never creates a target login.
 
 ## Requirements
