@@ -70,7 +70,7 @@ test('runtime rejects missing raw or unmapped effective factories at configurati
   )
 })
 
-test('runtime rejects an effective guard whose native driver differs from its raw guard', async ({
+test('boot rejects an effective guard whose transport differs from its raw adapter metadata', async ({
   assert,
 }) => {
   const driver = (driverName: string) => () => ({ driverName })
@@ -78,7 +78,6 @@ test('runtime rejects an effective guard whose native driver differs from its ra
     {},
     { web_effective: markEffectiveFactory(driver('access_tokens'), 'web', 'access_tokens') }
   )
-  f.auth.config.guards.web = driver('session')
   await assert.rejects(
     () => runtimeConfiguration(f.app as never),
     'Effective masquerade guard web_effective wraps the access_tokens driver, but the adapter registered for raw guard web declares the session driver'
@@ -87,9 +86,51 @@ test('runtime rejects an effective guard whose native driver differs from its ra
     {},
     { web_effective: markEffectiveFactory(driver('session'), 'web', 'session') }
   )
-  g.auth.config.guards.web = driver('session')
   const wiring = await runtimeConfiguration(g.app as never)
   assert.equal(wiring.effectiveRawGuards.web_effective, 'web')
+})
+
+test('a raw guard whose driver differs from agreeing metadata boots and refuses the effective route', async ({
+  assert,
+}) => {
+  let authentication = 0
+  const f = configuration(
+    {},
+    {
+      web_effective: markEffectiveFactory(() => ({ driverName: 'session' }), 'web', 'session'),
+      web: () => ({ driverName: 'access_tokens' }),
+    }
+  )
+  f.native.adapters.web = {
+    authority: f.authority,
+    driverName: 'session',
+    authenticateActor: async () => {
+      authentication++
+      return { id: 'a', incarnation: 'a', user: f.fixture.users.get('a')! }
+    },
+  }
+  const wiring = await runtimeConfiguration(f.app as never)
+  const runtime = await createRuntime(
+    {
+      nodeEnvironment: 'test',
+      container: {
+        make: async (name: string) =>
+          name === 'emitter' ? { emit: async () => {} } : { info: () => {}, error: () => {} },
+      },
+    } as never,
+    wiring
+  )
+  const ctx = {
+    route: {
+      middleware: { all: () => [{ name: 'auth', args: [{ guards: ['web_effective'] }] }] },
+    },
+    auth: { use: (name: string) => (f.auth.config.guards[name] as () => unknown)() },
+  }
+  assert.equal(
+    await errorCode(() => runtime.service.status(ctx as never)),
+    'E_MASQUERADE_UNAVAILABLE'
+  )
+  assert.equal(authentication, 0)
 })
 
 test('guard factories only run on a live request; cross-wired guards fail before actor authentication and store reads', async ({
