@@ -25,6 +25,11 @@ export interface SessionAuthorityOptions<User> {
 /** The native session adapter: account authority plus raw-guard actor authentication. */
 export interface NativeSessionAdapter<User = unknown> {
   readonly authority: NativeAuthority<User>
+  /**
+   * Declare `'session'` when the adapter's raw guard uses the session driver, so boot rejects an
+   * effective guard wired to another transport; omit it to defer every driver check to the live
+   * effective-route request.
+   */
   readonly driverName?: 'session'
   /** Authenticate through the raw session guard; `E_UNAUTHORIZED_ACCESS` passes through unchanged. */
   authenticateActor(ctx: HttpContext): Promise<Subject<User>>

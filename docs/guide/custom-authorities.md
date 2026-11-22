@@ -60,3 +60,11 @@ The snapshot stamp is an opaque, non-empty string of at most 512 UTF-8 bytes. Do
 constant, a read-time timestamp, or a value derived from only some of the security-sensitive
 account state. See [security and operations](security.md#actor-target-and-scope) for the broader
 stamp and session behaviour.
+
+## Custom native adapters
+
+A custom adapter that implements `NativeSessionAdapter` or `NativeAccessTokensAdapter` should
+declare `driverName` as `'session'` or `'access_tokens'` to match its raw guard's driver. Boot then
+rejects an effective guard whose declared transport differs. Omitting `driverName` defers every
+driver check to the live effective-route request, where a mismatch is refused with
+`503 E_MASQUERADE_UNAVAILABLE` before any store read.

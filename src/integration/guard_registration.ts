@@ -2,6 +2,7 @@
 const effectiveFactories = new WeakSet<object>()
 const rawGuardsByFactory = new WeakMap<object, string>()
 const driversByFactory = new WeakMap<object, NativeGuardDriver>()
+/** Native Auth transport an effective guard wraps, compared with the raw adapter's `driverName`. */
 export type NativeGuardDriver = 'session' | 'access_tokens'
 export function markEffectiveFactory<Factory extends (...args: never[]) => unknown>(
   factory: Factory,
@@ -13,6 +14,10 @@ export function markEffectiveFactory<Factory extends (...args: never[]) => unkno
   if (driver) driversByFactory.set(factory, driver)
   return factory
 }
+/**
+ * Transport recorded when the effective guard factory was defined, or `undefined` for a factory
+ * without that metadata, which boot rejects.
+ */
 export function effectiveFactoryDriver(factory: unknown): NativeGuardDriver | undefined {
   return typeof factory === 'function' ? driversByFactory.get(factory) : undefined
 }
