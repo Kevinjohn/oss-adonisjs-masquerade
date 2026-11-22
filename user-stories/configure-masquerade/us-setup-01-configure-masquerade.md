@@ -54,7 +54,7 @@ flowchart TD
     C -->|"package.json read/parse or databaseConfig throws"| R["Error propagates; nothing written"]
     C --> D{"Prerequisites available?"}
     D -->|No| E
-    D -->|Yes| M{"findMigrationPath resolves an unambiguous destination?"}
+    D -->|Yes| M{"resolveMigrationPathOrReport resolves an unambiguous destination?"}
     M -->|No| E
     M -->|Yes| X{"Destinations exist and no force?"}
     X -->|Yes| Y["Log existing-files error, exitCode 1, stop"]

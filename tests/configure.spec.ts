@@ -405,6 +405,53 @@ test.group('Masquerade configure scaffold', (group) => {
     }
   })
 
+  test('reports a migration path that is not a directory without writing files', async ({
+    assert,
+  }) => {
+    const f = await configureFixture()
+    try {
+      await writeFile(join(f.root, 'schema.txt'), 'not a directory')
+      f.app.config.set('database', {
+        connection: 'main',
+        connections: { main: { migrations: { paths: ['schema.txt'] } } },
+      })
+      const before = await snapshot(f.root)
+      const configured = f.command({ namespace: 'support', guard: 'web' })
+      await configure(configured as never)
+      assert.equal(configured.exitCode, 1)
+      assert.deepEqual(configured.errors, [
+        'Expected a migration directory at schema.txt. Point the default connection migrations.paths at directories and rerun configure.',
+      ])
+      assert.deepEqual(await snapshot(f.root), before)
+      assert.deepEqual(f.registered, [])
+    } finally {
+      await f.dispose()
+    }
+  })
+
+  test('reports a migration destination occupied by an entry that Lucid ignores', async ({
+    assert,
+  }) => {
+    const f = await configureFixture()
+    const now = Date.now
+    Date.now = () => 1_700_000_000_000
+    try {
+      const occupied = 'database/migrations/1700000000000_create_masquerade_tables.ts'
+      await mkdir(join(f.root, occupied), { recursive: true })
+      const configured = f.command({ namespace: 'support', guard: 'web' })
+      await configure(configured as never)
+      assert.equal(configured.exitCode, 1)
+      assert.deepEqual(configured.errors, [
+        `The migration destination ${occupied} is occupied by an entry that Lucid ignores. Move it out of the migration directory and rerun configure.`,
+      ])
+      assert.deepEqual(await listScaffoldPaths(f.root), [occupied])
+      assert.deepEqual(f.registered, [])
+    } finally {
+      Date.now = now
+      await f.dispose()
+    }
+  })
+
   test('stops before writing when config/database.ts exists but fails to load', async ({
     assert,
   }) => {

@@ -16,6 +16,9 @@
   refuses an effective-route request, and log a guard construction failure instead of hiding it.
   The `503 E_MASQUERADE_UNAVAILABLE` response is unchanged. The boot error for mismatched
   transport metadata now names the adapter registered for the raw guard.
+- Configure reports a Lucid migration path that is not a directory as a one-line error with exit
+  code 1 instead of throwing, and prints application-relative paths in its migration and skipped
+  wiring messages.
 
 ## 0.5.1 - 2026-11-22
 

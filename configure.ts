@@ -74,7 +74,7 @@ export async function configure(command: Configure): Promise<void> {
   }
 
   const migrationFolders = await migrationsFolders(command)
-  const migrationPath = await findMigrationPath(command, migrationFolders)
+  const migrationPath = await resolveMigrationPathOrReport(command, migrationFolders)
   if (!migrationPath) return
   const migrationDestination = command.app.relativePath(migrationPath)
   const banner = command.parsedFlags.banner === true
@@ -355,18 +355,32 @@ async function fileExists(path: string): Promise<boolean> {
   }
 }
 
-async function findMigrationPath(
+/**
+ * Resolve the migration path to generate or regenerate. A failure is logged, sets the exit code
+ * and returns undefined.
+ */
+async function resolveMigrationPathOrReport(
   command: Configure,
   folders: [string, ...string[]]
 ): Promise<string | undefined> {
   const { sourceFiles } = await import('@adonisjs/lucid/utils')
-  const discovered = await Promise.all(
-    folders.map(async (folder) => {
-      const info = await stat(folder).catch((error: unknown) => {
+  const infos = await Promise.all(
+    folders.map((folder) =>
+      stat(folder).catch((error: unknown) => {
         if ((error as NodeJS.ErrnoException).code !== 'ENOENT') throw error
       })
-      if (info && !info.isDirectory())
-        throw new Error(`Expected a migration directory at ${folder}`)
+    )
+  )
+  const file = folders.find((_, index) => infos[index] && !infos[index].isDirectory())
+  if (file) {
+    command.logger.error(
+      `Expected a migration directory at ${command.app.relativePath(file)}. Point the default connection migrations.paths at directories and rerun configure.`
+    )
+    command.exitCode = 1
+    return
+  }
+  const discovered = await Promise.all(
+    folders.map(async (folder) => {
       const { files } = await sourceFiles(pathToFileURL(folder + sep), '.', false)
       return files
     })
@@ -387,7 +401,7 @@ async function findMigrationPath(
     const path = existing[0].absPath
     if (extname(path) === '.ts') return path
     command.logger.error(
-      `Masquerade cannot regenerate the existing migration ${path} from a TypeScript stub. Preserve its migration identity and complete configuration manually.`
+      `Masquerade cannot regenerate the existing migration ${command.app.relativePath(path)} from a TypeScript stub. Preserve its migration identity and complete configuration manually.`
     )
     command.exitCode = 1
     return
@@ -398,7 +412,7 @@ async function findMigrationPath(
   })
   if (entry) {
     command.logger.error(
-      `The migration destination ${path} is occupied by an entry that Lucid ignores. Move it out of the migration directory and rerun configure.`
+      `The migration destination ${command.app.relativePath(path)} is occupied by an entry that Lucid ignores. Move it out of the migration directory and rerun configure.`
     )
     command.exitCode = 1
     return

@@ -30,7 +30,9 @@ export async function wireHost(
     try {
       return await edit()
     } catch (error) {
-      command.logger.info(`${path} was not edited: ${(error as Error)?.message ?? error}`)
+      command.logger.info(
+        `${command.app.relativePath(path)} was not edited: ${(error as Error)?.message ?? error}`
+      )
       return 'skipped' as const
     }
   }

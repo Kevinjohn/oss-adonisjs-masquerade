@@ -2,12 +2,13 @@ import { test } from '@japa/runner'
 import { CodeTransformer } from '@adonisjs/assembler/code_transformer'
 import { mkdtemp, mkdir, readFile, rm, writeFile } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
-import { join } from 'node:path'
+import { join, relative } from 'node:path'
 import { pathToFileURL } from 'node:url'
 import * as prettier from 'prettier'
 import {
   wireAuthGuards,
   wireContextMiddleware,
+  wireHost,
   wireStatusMiddleware,
 } from '../src/configure_wiring.js'
 import { starterAuthConfig, starterKernel } from './helpers/starter_kit.js'
@@ -253,6 +254,37 @@ test.group('configure wiring', (group) => {
         await rm(h.root, { recursive: true, force: true })
       }
     }
+  })
+
+  test('reports a failed edit with the application-relative path', async ({ assert }) => {
+    const root = join(tmpdir(), 'masquerade-wiring-host')
+    const messages: string[] = []
+    const command = {
+      app: {
+        configPath: (path: string) => join(root, 'config', path),
+        startPath: (path: string) => join(root, 'start', path),
+        relativePath: (path: string) => relative(root, path),
+      },
+      logger: { info: (message: string) => messages.push(message) },
+    }
+    const codemods = {
+      getTsMorphProject: async () => ({
+        addSourceFileAtPathIfExists() {
+          throw new Error('parse failed')
+        },
+      }),
+    }
+    const result = await wireHost(command as never, codemods as never, 'web', {
+      banner: false,
+      formController: false,
+    })
+    assert.deepEqual(result, {
+      auth: 'skipped',
+      kernel: 'skipped',
+      routes: 'skipped',
+      status: 'skipped',
+    })
+    assert.deepEqual(messages, ['start/kernel.ts was not edited: parse failed'])
   })
 
   test('does not accept existing context middleware in the wrong order', async ({ assert }) => {
