@@ -22,7 +22,7 @@ As an AdonisJS application developer, I want to scaffold and finish Masquerade i
 - The command creates native-session configuration, authority/user provider and migration stubs, registers provider and Ace commands, and wires recognised session auth/kernel/route shapes when enabled; the kernel edit registers the package's `masquerade_context_middleware` subpath.
 - Native opaque access-token integration is host-configured separately with an effective token guard and authority, as described in the [access-token guide](../../docs/guide/access-tokens.md). Configure does not automatically wire token authentication.
 - Host completes account incarnation, security stamp, active-account and deny-by-default `canMasquerade` callback behaviour, reviews and applies the migration, and verifies context enforcement before enforcing it.
-- `defineConfig` normalises and validates config. Custom authorities/stores are explicit host integrations; this scaffold does not infer their policy.
+- `defineConfig` normalises and validates supplied values. To defer native adapter or policy wiring until provider boot, follow [US-SETUP-03](us-setup-03-register-integration-callbacks.md). Custom authorities/stores are explicit host integrations; this scaffold does not infer their policy.
 
 ## User flow
 

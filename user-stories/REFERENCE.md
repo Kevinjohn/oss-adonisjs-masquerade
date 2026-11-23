@@ -2,7 +2,7 @@
 
 ## Source baseline and scope
 
-Fetched `origin/main` baseline: [`be18100db21f1e254373da02d377f67780d2c949`](https://github.com/Kevinjohn/oss-adonisjs-masquerade/commit/be18100db21f1e254373da02d377f67780d2c949). Inventory covers public package exports, setup scaffolds, HTTP control routes, effective guards, context and route markers, Account Kit blocker, Ace operator commands, guides, examples and relevant tests.
+Fetched `origin/main` baseline: [`aca712361e2e79b1a871959fdb1d677f07e71973`](https://github.com/Kevinjohn/oss-adonisjs-masquerade/commit/aca712361e2e79b1a871959fdb1d677f07e71973). Inventory covers public package exports, setup scaffolds, HTTP control routes, effective guards, context and route markers, Account Kit blocker, Ace operator commands, guides, examples and relevant tests.
 
 ## Roles and boundaries
 
@@ -12,6 +12,8 @@ Fetched `origin/main` baseline: [`be18100db21f1e254373da02d377f67780d2c949`](htt
 - **Host operator:** person with server command/scheduler access to inspect, stop or prune modes.
 
 These terms describe integration roles. They are not framework roles or a built-in authorisation model. Effective account permissions remain those of the target, and every host business handler still runs its own authorisation. The package has no end-user UI; optional generated form/controller/banner stubs are host-owned integration artifacts.
+
+The [package provider](../providers/masquerade_provider.ts) resolves the configured runtime at boot. Hosts can register an adapter and policy through [US-SETUP-03](configure-masquerade/us-setup-03-register-integration-callbacks.md). Standalone service creation requires authority and policy in its supplied config.
 
 ## Availability and evidence
 

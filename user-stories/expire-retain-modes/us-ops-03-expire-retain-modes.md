@@ -41,9 +41,12 @@ flowchart TD
     B --> C["pruneMasquerade(config, dependencies, options)"]
     C --> D["defineConfig and openControlStore"]
     D --> E["store.pruneEvents when retention is not host-managed"]
-    E --> F["store.expiredBatch"]
+    E -->|Retention succeeds or skipped| F["store.expiredBatch"]
+    E -->|Retention fails| X["Raise PruneProgressError with confirmed counts"]
+    F -->|Batch fails| X
     F --> G["read candidate and compare-and-set clear per owner"]
     G --> H["Return expired and eventsDeleted counts; conflicts skipped"]
+    G -->|Candidate, read or commit fails| X
     H --> I["Log result"]
 ```
 

@@ -4,7 +4,7 @@ Source-reviewed integration and operator journeys for Masquerade's HTTP controls
 
 “Current” records source availability under the stated configuration; it does not claim that an application journey was run.
 
-Source baseline: `origin/main` at `be18100`.
+Source baseline: `origin/main` at `aca712361e2e79b1a871959fdb1d677f07e71973` (0.6.0).
 
 ## Index
 
@@ -33,6 +33,7 @@ Source baseline: `origin/main` at `be18100`.
 | [US-AUDIT-02 — Observe committed transitions](audit-business-work/us-audit-02-observe-transitions.md)                                        | Observe committed transitions                         | Application developer                                  | Current  |
 | [US-AUDIT-03 — Review a page of transition history](audit-business-work/us-audit-03-review-transition-history.md)                            | Review a page of transition history                   | Reviewer authorised by the host                        | Current  |
 | [US-CONTEXT-03 — Recover a stale or restored browser workspace](submit-context-token/us-context-03-recover-browser-intent.md)                | Recover a stale or restored browser workspace         | Signed-in example operator                             | Current  |
+| [US-SETUP-03](configure-masquerade/us-setup-03-register-integration-callbacks.md)                                                            | Register integration callbacks during provider boot   | Application developer                                  | Operator |
 
 ## Catalogue records
 

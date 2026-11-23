@@ -48,6 +48,7 @@ flowchart TD
     F -->|No| H["MasqueradeError response path"]
     F -->|Yes| Q{"Row active?"}
     Q -->|No| K["Record control_noop; return unchanged idle context"]
+    K -->|Audit write failure| H
     Q -->|Yes| G["Commit idle transition; expired if lapsed, otherwise stopped"]
     G -->|Failure| H
     G -->|Applied| I["Return idle ModeView with rotated contextToken"]

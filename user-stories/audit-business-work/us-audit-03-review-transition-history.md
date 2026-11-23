@@ -37,3 +37,5 @@ flowchart TD
     S -->|Yes| B["Query namespace ledger; paginate 50"]
     B --> C["Resolve recorded identities; render names only when identity matches"]
 ```
+
+**Code references:** [Example controller](../../examples/native-session/app/controllers/masquerade_history_controller.ts#L12), [query filters](../../examples/native-session/app/services/audit_history_query.ts), [identity resolution](../../examples/native-session/app/services/audit_history_identity.ts).

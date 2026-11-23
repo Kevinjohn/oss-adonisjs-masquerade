@@ -32,3 +32,5 @@ flowchart TD
     Q -->|No| R["No success event; return conflict or propagate error"]
     B --> C["Invoke emitter and logger independently without awaiting"]
 ```
+
+**Code references:** [Transition acknowledgement](../../src/mode_transition.ts#L50), [observer delivery](../../src/observers.ts#L41), [provider event types](../../src/integration/events.ts).

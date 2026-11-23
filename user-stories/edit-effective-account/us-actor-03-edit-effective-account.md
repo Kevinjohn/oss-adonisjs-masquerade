@@ -36,9 +36,12 @@ Scope: route policy middleware; the host handler performs its normal target auth
 
 ```mermaid
 flowchart TD
-    A["masqueradeContext(ctx, next)"] --> B["runtime.admit(ctx) calls MasqueradeService.admit"]
+    A["masqueradeContext(ctx, next)"] --> A2{"Effective route?"}
+    A2 -->|No| H
+    A2 -->|Yes| B["Mark context enforced; runtime.admit(ctx)"]
     B --> C{"Admission succeeds, including canEdit recheck for active edit?"}
-    C -->|No| Z["Propagate admission refusal; native unauthorised goes to named auth"]
+    C -->|Native unauthorised| K["next() hands off to named Auth"]
+    C -->|Other failure| Z["Propagate admission refusal"]
     C -->|Yes| D["Check context for unsafe requests or supplied header under configured enforcement"]
     D --> X{"Context accepted or report mode?"}
     X -->|No| Y["Throw context error"]
@@ -51,4 +54,4 @@ flowchart TD
     I -->|Yes| H
 ```
 
-**Code references:** [allowMutation and routeMarkers](../../src/integration/route_markers.ts), [masqueradeContext](../../http/context_middleware.ts), [MasqueradeService.admit](../../src/service.ts), [security rules](../../docs/guide/security.md#actor-target-and-scope).
+**Code references:** [allowMutation and routeMarkers](../../src/integration/route_markers.ts), [masqueradeContext](../../http/context_middleware.ts), [MasqueradeService.admit](../../src/service.ts), [security rules](../../docs/guide/security.md#actor-target-and-scope), [shared context flow](../submit-context-token/us-context-01-submit-context-token.md#code-flow).

@@ -1,6 +1,6 @@
 # Capability coverage
 
-Inventory covers package configuration and HTTP/Ace entry points, policy and identity boundaries, context freshness, Account Kit integration, operator commands, guides, examples and relevant tests. The table maps each supported action to its story.
+Inventory covers package configuration and HTTP/Ace entry points, policy and identity boundaries, context freshness, Account Kit integration, operator commands, guides, examples and relevant tests. The table maps each supported action to its story. New identifies a story added in this refresh.
 
 | Story                                                                                | Action                                                                               | Access                                                 | Status   | Catalogue |
 | ------------------------------------------------------------------------------------ | ------------------------------------------------------------------------------------ | ------------------------------------------------------ | -------- | --------- |
@@ -27,5 +27,6 @@ Inventory covers package configuration and HTTP/Ace entry points, policy and ide
 | [US-AUDIT-02](audit-business-work/us-audit-02-observe-transitions.md)                | Observe committed transitions                                                        | Application developer                                  | Current  | Reviewed  |
 | [US-AUDIT-03](audit-business-work/us-audit-03-review-transition-history.md)          | Review a page of transition history                                                  | Reviewer authorised by the host                        | Current  | Reviewed  |
 | [US-CONTEXT-03](submit-context-token/us-context-03-recover-browser-intent.md)        | Recover a stale or restored browser workspace                                        | Signed-in example operator                             | Current  | Reviewed  |
+| [US-SETUP-03](configure-masquerade/us-setup-03-register-integration-callbacks.md)    | Register native adapter and policy from a host provider                              | Application developer                                  | Operator | New       |
 
 The package exposes HTTP controls, effective auth wrappers, native authority and Lucid/memory stores, route markers, Account Kit blockers and provider, Ace commands and a Japa API-client test plugin. Detailed public import paths are in the [API reference](../docs/reference/README.md); action and policy boundaries are linked from each story and the [role/source reference](REFERENCE.md).

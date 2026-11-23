@@ -44,6 +44,9 @@ flowchart TD
     G --> H{"Mode active and not expired?"}
     H -->|Yes| I["Throw E_MASQUERADE_ACTION_BLOCKED"]
     H -->|No| E
+    C -->|Guard failure| J["Return E_MASQUERADE_UNAVAILABLE"]
+    F -->|Identity resolution failure| J
+    G -->|Store failure| J
 ```
 
 **Code references:** [blocker](../../account_kit/middleware.ts), [example route grouping](https://github.com/Kevinjohn/oss-adonisjs-starter-examples/blob/v0.13.0/apps/hypermedia/start/routes.ts), [integration guide](../../docs/guide/account-kit.md#block-host-owned-account-routes), [route report classification](../../commands/routes.ts), [recognised markers](../../src/integration/route_markers.ts).

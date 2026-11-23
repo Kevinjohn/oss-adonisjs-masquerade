@@ -40,7 +40,9 @@ Scope: router middleware on effective routes; context enforcement must run after
 
 ```mermaid
 flowchart TD
-    A["masqueradeContext(ctx, next)"] --> B["routeGuards and runtime.selectGuard"]
+    A["masqueradeContext(ctx, next)"] --> A2{"Route has Auth metadata?"}
+    A2 -->|No| D
+    A2 -->|Yes| B["Set no-store; runtime.selectGuard"]
     B --> C{"Selected guard is effective?"}
     C -->|No| D["next() without effective-mode admission"]
     C -->|Yes| E["Mark context enforced; runtime.admit(ctx)"]

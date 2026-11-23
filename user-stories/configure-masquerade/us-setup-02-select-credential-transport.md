@@ -11,8 +11,9 @@ As an application developer, I want to bind each effective guard to the intended
 
 ## Acceptance criteria
 
-- Register the primary raw guard and a matching adapter for each integrated raw transport. Configure an effective default guard. A missing raw factory, unbound effective factory or mismatched declared driver fails configuration.
+- Register the primary raw guard and a matching adapter for each integrated raw transport. Configure an effective default guard. A missing raw factory, unbound effective factory, missing effective transport metadata or a mismatch between declared driver names fails configuration.
 - On an effective route the runtime constructs the selected guards with the live request and compares both driver names before authenticating the actor or reading the store. A cross-wired factory fails with `E_MASQUERADE_UNAVAILABLE`.
+- The Account Kit 0.6.0 raw session guard reports `driverName: 'session'` and can be wrapped by the effective session guard. An adapter can omit its driver declaration at boot; live guards must still match. [Session guard coverage](../../tests/effective_session_guard.spec.ts#L330)
 - On the token route the token adapter supplies the actor even if a different actor has a session cookie. Unrelated raw guards can still serve native routes. An ambiguous or unbound raw selection cannot enter the Masquerade service.
 
 ## User flow
@@ -29,11 +30,16 @@ flowchart TD
 
 ```mermaid
 flowchart TD
-    A["Select route guards"] --> Q{"Single mapped native transport?"}
+    P["runtimeConfiguration checks registered guards and declared transport metadata"] --> V{"Valid wiring?"}
+    V -->|No| W["Fail boot"]
+    V -->|Yes| A["runtime.selectGuard on live request"]
+    A --> Q{"Single mapped native transport?"}
     Q -->|No| R["Fail Masquerade operation"]
     Q -->|Yes, effective| B["Verify both live driver names"]
-    Q -->|Yes, raw| C["Authenticate actor through adapter"]
+    Q -->|Yes, raw or primary raw fallback| C["Authenticate actor through adapter"]
     B --> S{"Drivers match registration?"}
     S -->|Yes| C
     S -->|No| R
 ```
+
+**Code references:** [Runtime validation and request authentication](../../src/integration/runtime_factory.ts#L71), [route selection](../../src/integration/route_guard_selection.ts#L23).
