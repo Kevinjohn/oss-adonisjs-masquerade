@@ -294,3 +294,36 @@ test('without a configured authority the native adapter names the raw session gu
   const factory = await effectiveSessionGuard(raw).resolver('web_effective', app('web'))
   assert.isFunction(factory)
 })
+
+test('context holds the admitted view-as context only when the effective guard was selected', async ({
+  assert,
+}) => {
+  const actor = { id: 'actor' }
+  const target = { id: 'target' }
+  const context = { isMasquerading: true, effectiveId: 'target' }
+  const raw = {
+    driverName: 'session',
+    isAuthenticated: true,
+    authenticate: async () => actor,
+  } as unknown as GuardContract<typeof actor>
+  let selection: { kind: string; raw?: string } = { kind: 'effective', raw: 'web' }
+  const ctx = {
+    auth: { use: () => raw },
+    containerResolver: {
+      make: async () => ({
+        selectGuard: () => selection,
+        admit: async () => ({ context, effective: { user: target } }),
+      }),
+    },
+  } as unknown as HttpContext
+  markContextEnforced(ctx)
+  const guard = new EffectiveSessionGuard('web', ctx, raw)
+  assert.isUndefined(guard.context)
+  assert.strictEqual(await guard.authenticate(), target)
+  assert.strictEqual(guard.context, context as never)
+  for (const other of [{ kind: 'raw', raw: 'web' }, { kind: 'ambiguous' }]) {
+    selection = other
+    assert.strictEqual(await guard.authenticate(), actor)
+    assert.isUndefined(guard.context)
+  }
+})

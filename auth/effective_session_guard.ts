@@ -5,6 +5,7 @@ import type { HttpContext } from '@adonisjs/core/http'
 import type {} from '@adonisjs/auth/initialize_auth_middleware'
 import { runtimeFor } from '../src/integration/runtime.js'
 import { assertContextEnforced } from '../src/integration/context_enforcement.js'
+import type { ResolvedContext } from '../src/types.js'
 
 /**
  * A native session wrapper; the raw guard continues to own all credentials.
@@ -16,6 +17,11 @@ export class EffectiveSessionGuard<User> implements GuardContract<User> {
   user?: User
   isAuthenticated = false
   authenticationAttempted = false
+  #context: ResolvedContext | undefined
+  /** The view-as context admitted by `authenticate()` when the route selected this effective guard; otherwise undefined. */
+  get context(): ResolvedContext | undefined {
+    return this.#context
+  }
   constructor(
     private rawName: string,
     private ctx: HttpContext,
@@ -39,6 +45,7 @@ export class EffectiveSessionGuard<User> implements GuardContract<User> {
   async authenticate(): Promise<User> {
     this.authenticationAttempted = true
     this.isAuthenticated = false
+    this.#context = undefined
     this.user = undefined
     const runtime = await runtimeFor(this.ctx)
     const selected = runtime.selectGuard(this.ctx)
@@ -52,6 +59,7 @@ export class EffectiveSessionGuard<User> implements GuardContract<User> {
           guardDriverName: this.driverName,
         })
       this.user = admitted.effective.user as User
+      this.#context = admitted.context
     } else {
       const raw = this.ctx.auth.use(
         (selected.kind === 'ambiguous' ? this.rawName : selected.raw) as never

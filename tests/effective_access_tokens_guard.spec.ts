@@ -197,3 +197,34 @@ test('the effective token guard needs a raw guard name that differs from its own
   )
   assert.isFunction(factory)
 })
+
+test('context holds the admitted view-as context only when the effective guard was selected', async ({
+  assert,
+}) => {
+  const token = { id: 'token', currentAccessToken: { id: 1 } }
+  const target = { id: 'target' }
+  const context = { isMasquerading: true, effectiveId: 'target' }
+  const raw = { driverName: 'access_tokens', authenticate: async () => token } as GuardContract<
+    typeof token
+  >
+  let selection: { kind: string; raw?: string } = { kind: 'effective', raw: 'api' }
+  const ctx = {
+    auth: { use: () => raw },
+    containerResolver: {
+      make: async () => ({
+        selectGuard: () => selection,
+        admit: async () => ({ context, effective: { user: target } }),
+      }),
+    },
+  } as unknown as HttpContext
+  markContextEnforced(ctx)
+  const guard = new EffectiveAccessTokensGuard(ctx, raw, 'api')
+  assert.isUndefined(guard.context)
+  assert.deepEqual(await guard.authenticate(), target)
+  assert.strictEqual(guard.context, context as never)
+  for (const other of [{ kind: 'raw', raw: 'api' }, { kind: 'ambiguous' }]) {
+    selection = other
+    assert.deepEqual(await guard.authenticate(), token)
+    assert.isUndefined(guard.context)
+  }
+})
