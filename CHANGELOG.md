@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+- Provide fixed v1 schema helpers for fresh migrations and preserve existing migration files during forced configure.
+
 ## 0.6.0 - 2026-11-23
 
 - Require Account Kit `0.6.0` exactly.

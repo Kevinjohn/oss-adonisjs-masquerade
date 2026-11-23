@@ -48,7 +48,8 @@ export function transition(revision = 1): CompareAndSetInput {
     },
   }
 }
-export async function sqlFixture(options: { poolMax?: number } = {}) {
+export async function sqlFixture(options: { poolMax?: number; createTables?: boolean } = {}) {
+  const createTables = options.createTables ?? true
   const selectedClient = process.env.DB_CLIENT
   if (
     selectedClient !== undefined &&
@@ -97,7 +98,7 @@ export async function sqlFixture(options: { poolMax?: number } = {}) {
       await first.rawQuery(`create schema ${schema}`)
       schemaCreated = true
     }
-    await createMasqueradeSchema(client.schema)
+    if (createTables) await createMasqueradeSchema(client.schema)
     second = database().connection()
     if (!pg) {
       await client.rawQuery('PRAGMA busy_timeout = 5')
@@ -115,14 +116,15 @@ export async function sqlFixture(options: { poolMax?: number } = {}) {
 
   return {
     pg,
+    db: first,
     client,
     second,
     store: new LucidControlStore(client),
     other: new LucidControlStore(second),
     async cleanup() {
       try {
-        await dropMasqueradeSchema(client.schema)
-        if (pg) await first.rawQuery(`drop schema ${schema}`)
+        if (createTables) await dropMasqueradeSchema(client.schema)
+        if (pg) await first.rawQuery(`drop schema ${schema}${createTables ? '' : ' cascade'}`)
       } finally {
         try {
           await Promise.all(databases.map((db) => db.manager.closeAll()))
