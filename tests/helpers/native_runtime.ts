@@ -7,6 +7,9 @@ import { fixture } from './core.js'
 import type { User } from './core.js'
 import type { ControlStore } from '../../src/types.js'
 import { sessionAuthority } from '../../native/main.js'
+import type { NativeSessionAdapter } from '../../native/main.js'
+import type { ApplicationService } from '@adonisjs/core/types'
+import type { MasqueradeCallbackRegistry } from '../../src/callback_registry.js'
 import { effectiveSessionGuard } from '../../auth/main.js'
 
 export async function nativeRuntimeFixture(
@@ -16,6 +19,10 @@ export async function nativeRuntimeFixture(
     rawDefault?: boolean
     aliases?: boolean
     unadaptedGuard?: string
+    /** Leave authority, policy and the native binding to `masquerade.callbacks`. */
+    callbacks?: boolean
+    /** Called from an application provider's `boot()`, listed before the Masquerade provider. */
+    register?: (registry: MasqueradeCallbackRegistry, native: NativeSessionAdapter<User>) => void
   } = {}
 ) {
   const f = fixture()
@@ -38,7 +45,9 @@ export async function nativeRuntimeFixture(
   let storeCreations = 0
   const config = {
     ...f.config,
-    authority: native.authority,
+    ...(options.callbacks
+      ? { authority: undefined, policy: undefined }
+      : { authority: native.authority }),
     store: async () => {
       storeCreations++
       return options.store ?? f.store
@@ -49,12 +58,31 @@ export async function nativeRuntimeFixture(
     .withCoreConfig()
     .merge({
       config: { masquerade: config },
-      rcFileContents: { providers: [() => import('../../providers/masquerade_provider.js')] },
+      rcFileContents: {
+        providers: [
+          ...(options.register
+            ? [
+                async () => ({
+                  default: class {
+                    constructor(protected app: ApplicationService) {}
+                    async boot() {
+                      options.register?.(
+                        await this.app.container.make('masquerade.callbacks'),
+                        native
+                      )
+                    }
+                  },
+                }),
+              ]
+            : []),
+          () => import('../../providers/masquerade_provider.js'),
+        ],
+      },
     })
     .create(new URL('../../', import.meta.url))
   const app = ignitor.createApp('web')
   await app.init()
-  app.container.bindValue('masquerade.native', native)
+  if (!options.callbacks) app.container.bindValue('masquerade.native', native)
   const raw = {
     resolver:
       async () =>

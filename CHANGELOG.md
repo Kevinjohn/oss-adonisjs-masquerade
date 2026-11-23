@@ -2,6 +2,17 @@
 
 ## Unreleased
 
+### Added
+
+- Add `MasqueradeCallbackRegistry`, bound as `masquerade.callbacks`, so an application provider can
+  register `native` and `policy` instead of importing them into `config/masquerade.ts`.
+  `MasqueradeConfig.authority` and `.policy` become optional; without `authority`, the runtime uses
+  the native adapter's. When the application does not bind `masquerade.native`, the provider binds
+  the registered `native`; a hand-bound `masquerade.native` keeps working.
+- Add a read-only `context` to `EffectiveSessionGuard` and `EffectiveAccessTokensGuard`: the
+  view-as context admitted by `authenticate()` when the route selected that effective guard, and
+  `undefined` otherwise.
+
 ## 0.5.2 - 2026-11-23
 
 - Require Account Kit `0.5.2` exactly.

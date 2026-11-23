@@ -1,6 +1,7 @@
 import { randomBytes, randomUUID } from 'node:crypto'
 import { InvalidArgumentsException } from '@adonisjs/core/exceptions'
-import { defineConfig } from './define_config.js'
+import { completeConfig, defineConfig } from './define_config.js'
+import type { CompleteMasqueradeConfig } from './define_config.js'
 import { contextToken, requireContext } from './context_token.js'
 import { buildAdmittedProjection, modeView } from './mode_projection.js'
 import { MasqueradeError } from './errors.js'
@@ -62,7 +63,7 @@ export async function createMasqueradeService<User, Request extends object>(
 ): Promise<MasqueradeService<Request>> {
   let validated
   try {
-    validated = defineConfig(config)
+    validated = completeConfig(defineConfig(config))
   } catch (error) {
     reportDiagnostic(dependencies, 'configuration', 'validate', 'E_MASQUERADE_UNAVAILABLE')
     throw error
@@ -116,7 +117,7 @@ class CoreService<User, Request extends object> implements MasqueradeService<Req
   #viewsAfterInvalidation = new WeakMap<MasqueradeError, ModeView>()
   #admissionsByRequest = new WeakMap<Request, Promise<RequestAdmission<User>>>()
   constructor(
-    private config: MasqueradeConfig<User, Request, RequestControlStore>,
+    private config: CompleteMasqueradeConfig<User, Request, RequestControlStore>,
     private dependencies: ServiceDependencies<User, Request>,
     private store: RequestControlStore
   ) {}

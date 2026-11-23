@@ -3,13 +3,15 @@ import type {} from '@adonisjs/auth/auth_provider'
 import type { GuardContract } from '@adonisjs/auth/types'
 import type { HttpContext } from '@adonisjs/core/http'
 import type { ApplicationService } from '@adonisjs/core/types'
-import { defineConfig } from '../define_config.js'
+import { completeConfig, defineConfig } from '../define_config.js'
+import type { CompleteMasqueradeConfig } from '../define_config.js'
+import { resolveCallbacks } from '../callback_registry.js'
 import { createMasqueradeService } from '../service.js'
 import { admission } from '../request_admission.js'
 import { activeMode } from '../active_mode.js'
 import { actorIdentity } from '../actor_identity.js'
 import type { RequestAdmission } from '../request_admission.js'
-import type { MasqueradeConfig, OwnerKey } from '../types.js'
+import type { MasqueradeConfig, MasqueradePolicy, NativeAuthority, OwnerKey } from '../types.js'
 import type { NativeRuntimeAdapter } from './native_binding.js'
 import type { MasqueradeRuntime } from './runtime.js'
 import {
@@ -25,7 +27,7 @@ import { MasqueradeError } from '../errors.js'
 type TransitionName =
   'masquerade:started' | 'masquerade:stopped' | 'masquerade:expired' | 'masquerade:invalidated'
 export interface RuntimeConfiguration {
-  config: MasqueradeConfig<unknown, HttpContext>
+  config: CompleteMasqueradeConfig<unknown, HttpContext>
   native: NativeRuntimeAdapter
   effectiveGuardName: string
   effectiveGuardNames: readonly string[]
@@ -36,8 +38,27 @@ export interface RuntimeConfiguration {
 }
 /** Validate native wiring without constructing the store or authenticating a request. */
 export async function runtimeConfiguration(app: ApplicationService): Promise<RuntimeConfiguration> {
-  const config = defineConfig(app.config.get<MasqueradeConfig<unknown, HttpContext>>('masquerade'))
+  const configured = defineConfig(
+    app.config.get<MasqueradeConfig<unknown, HttpContext>>('masquerade')
+  )
+  const registry = await app.container.make('masquerade.callbacks')
+  const callbacks = await registry[resolveCallbacks]()
   const native = await app.container.make('masquerade.native')
+  if (callbacks?.native && callbacks.native !== native)
+    throw new InvalidArgumentsException(
+      'Masquerade native is supplied by both masquerade.native and masquerade.callbacks'
+    )
+  if (callbacks?.policy && configured.policy)
+    throw new InvalidArgumentsException(
+      'Masquerade policy is supplied by both config/masquerade.ts and masquerade.callbacks'
+    )
+  const config = completeConfig(
+    defineConfig({
+      ...configured,
+      authority: configured.authority ?? (native?.authority as NativeAuthority<unknown>),
+      policy: configured.policy ?? (callbacks?.policy as MasqueradePolicy<unknown, HttpContext>),
+    })
+  )
   if (
     !native ||
     typeof native.authenticateActor !== 'function' ||

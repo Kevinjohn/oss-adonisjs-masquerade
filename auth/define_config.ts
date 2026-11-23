@@ -12,13 +12,15 @@ export function effectiveSessionGuard<User>(
   return {
     async resolver(name, app) {
       const config = app.config.get<MasqueradeConfig<User, HttpContext>>('masquerade')
-      if (!config?.authority?.guard || config.authority.guard === name)
+      // Without a configured authority, the native adapter's authority names the raw guard.
+      const native = config && !config.authority && (await app.container.make('masquerade.native'))
+      const guard = native ? native.authority?.guard : config?.authority?.guard
+      if (!guard || guard === name)
         throw new InvalidArgumentsException('Configure distinct raw and effective session guards')
-      const rawFactory = await raw.resolver(config.authority.guard, app)
+      const rawFactory = await raw.resolver(guard, app)
       return markEffectiveFactory(
-        (ctx: HttpContext) =>
-          new EffectiveSessionGuard(config.authority.guard, ctx, rawFactory(ctx)),
-        config.authority.guard,
+        (ctx: HttpContext) => new EffectiveSessionGuard(guard, ctx, rawFactory(ctx)),
+        guard,
         'session'
       )
     },

@@ -205,4 +205,33 @@ test.group('masquerade:routes Ace command', () => {
       .handle(['masquerade:routes'])
     assert.include(registeredRoutes(), '/ace-coverage-probe')
   })
+
+  test('uses the runtime authority guard when the config leaves it to the native adapter', async ({
+    assert,
+  }) => {
+    process.exitCode = 0
+    const kernel = new IgnitorFactory()
+      .withCoreProviders()
+      .withCoreConfig()
+      .merge({
+        config: { masquerade: {} },
+        rcFileContents: {
+          commands: [() => import('../commands/main.js')],
+          providers: [() => import('./helpers/auth_manager_provider.js')],
+        },
+      })
+      .create(new URL('../', import.meta.url))
+      .ace()
+    await kernel
+      .configure(async (app) => {
+        await app.boot()
+        app.container.bindValue('masquerade.runtime', {
+          config: { authority: { guard: 'web' } },
+        } as never)
+      })
+      .handle(['masquerade:routes'])
+    const exitCode = process.exitCode
+    process.exitCode = 0
+    assert.equal(exitCode, 0)
+  })
 })

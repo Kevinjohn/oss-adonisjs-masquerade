@@ -276,3 +276,54 @@ test('the effective session guard needs a raw guard with a different name', asyn
   const factory = await effectiveSessionGuard(raw).resolver('web_effective', app('web'))
   assert.isFunction(factory)
 })
+
+test('without a configured authority the native adapter names the raw session guard', async ({
+  assert,
+}) => {
+  const { effectiveSessionGuard } = await import('../auth/define_config.js')
+  const raw = { resolver: async () => () => ({ driverName: 'session' }) } as never
+  const app = (guard: string) =>
+    ({
+      config: { get: () => ({}) },
+      container: { make: async () => ({ authority: { namespace: 'test', guard } }) },
+    }) as never
+  await assert.rejects(
+    () => effectiveSessionGuard(raw).resolver('web_effective', app('web_effective')),
+    'Configure distinct raw and effective session guards'
+  )
+  const factory = await effectiveSessionGuard(raw).resolver('web_effective', app('web'))
+  assert.isFunction(factory)
+})
+
+test('context holds the admitted view-as context only when the effective guard was selected', async ({
+  assert,
+}) => {
+  const actor = { id: 'actor' }
+  const target = { id: 'target' }
+  const context = { isMasquerading: true, effectiveId: 'target' }
+  const raw = {
+    driverName: 'session',
+    isAuthenticated: true,
+    authenticate: async () => actor,
+  } as unknown as GuardContract<typeof actor>
+  let selection: { kind: string; raw?: string } = { kind: 'effective', raw: 'web' }
+  const ctx = {
+    auth: { use: () => raw },
+    containerResolver: {
+      make: async () => ({
+        selectGuard: () => selection,
+        admit: async () => ({ context, effective: { user: target } }),
+      }),
+    },
+  } as unknown as HttpContext
+  markContextEnforced(ctx)
+  const guard = new EffectiveSessionGuard('web', ctx, raw)
+  assert.isUndefined(guard.context)
+  assert.strictEqual(await guard.authenticate(), target)
+  assert.strictEqual(guard.context, context as never)
+  for (const other of [{ kind: 'raw', raw: 'web' }, { kind: 'ambiguous' }]) {
+    selection = other
+    assert.strictEqual(await guard.authenticate(), actor)
+    assert.isUndefined(guard.context)
+  }
+})

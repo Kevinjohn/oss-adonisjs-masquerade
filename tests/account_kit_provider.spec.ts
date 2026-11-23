@@ -59,11 +59,18 @@ async function fixture(
     identifier?: unknown
     environment?: string
     group?: string
+    /** Bind `masquerade.native` through the Masquerade provider and `masquerade.callbacks`. */
+    registered?: boolean
   } = {}
 ) {
   const app = new IgnitorFactory()
     .withCoreProviders()
     .withCoreConfig()
+    .merge({
+      rcFileContents: {
+        providers: options.registered ? [() => import('../providers/masquerade_provider.js')] : [],
+      },
+    })
     .create(new URL('../', import.meta.url))
     .createApp('web')
   await app.init()
@@ -97,8 +104,17 @@ async function fixture(
       },
     }),
   }
+  const registry = options.registered ? await app.container.make('masquerade.callbacks') : undefined
+  registry?.register(() => ({ native: adapter as never }))
   const providerApp = {
-    container: { make: async (key: string) => (key === 'router' ? router : adapter) },
+    container: {
+      make: async (key: string) =>
+        key === 'router'
+          ? router
+          : options.registered
+            ? app.container.make(key as 'masquerade.native')
+            : adapter,
+    },
     getEnvironment: () => options.environment ?? 'console',
   } as unknown as ApplicationService
   return { app, router, adapter, providerApp, provider: new AccountKitProvider(providerApp) }
@@ -184,6 +200,19 @@ test.group('Account Kit provider', () => {
       assert.isFalse(host.router.commited)
       await host.provider.ready()
       assert.isTrue(host.router.commited)
+      assert.isTrue(hasVerifiedAccountKitBlocker(host.providerApp))
+    } finally {
+      await host.app.terminate()
+    }
+  }).skip(!canLoadKit() && !process.env.CI, 'requires installed Account Kit or ACCOUNT_KIT_SOURCE')
+
+  test('a masquerade.native bound from masquerade.callbacks passes the ready checks', async ({
+    assert,
+  }) => {
+    const host = await fixture({ registered: true })
+    try {
+      await host.provider.ready()
+      assert.strictEqual(await host.app.container.make('masquerade.native'), host.adapter as never)
       assert.isTrue(hasVerifiedAccountKitBlocker(host.providerApp))
     } finally {
       await host.app.terminate()

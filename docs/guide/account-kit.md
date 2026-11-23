@@ -182,6 +182,19 @@ not create a target credential. Account Kit's revision invalidates an active mod
 `sessions.revokeOthers` do not advance that revision. A password change with `keepCurrent` can keep
 the actor authenticated while the changed revision invalidates the mode on its next admission.
 
+## Read the view-as context from the effective guard
+
+After `authenticate()` on a route that selected it, the effective guard's `context` holds the
+view-as context Masquerade admitted for the request: the actor, the effective account and, while
+masquerading, the mode's ID and access. It is `undefined` before authentication and when the route
+selected a raw guard or several guards. Each `authenticate()` clears it first.
+
+```ts
+const effective = auth.use('web_effective')
+if (!effective.authenticationAttempted) await effective.authenticate()
+const masqueradeContext = effective.context
+```
+
 ## Keep admission gates in their proper places
 
 Account Kit admission is separate from account restriction. `canAccess` controls whether an account

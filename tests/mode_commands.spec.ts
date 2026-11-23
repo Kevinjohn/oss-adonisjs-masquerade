@@ -1,5 +1,6 @@
 import { test } from '@japa/runner'
 import { IgnitorFactory } from '@adonisjs/core/factories'
+import type { ApplicationService } from '@adonisjs/core/types'
 import { getCommand, getMetaData } from '../commands/main.js'
 import { OPERATOR_STOP_OUTCOME, StopProgressError } from '../src/stop_modes.js'
 import { fixture } from './helpers/core.js'
@@ -11,7 +12,8 @@ async function ace(
   answer?: boolean,
   output?: string[],
   nodeEnvironment = 'test',
-  onError?: (error: unknown) => void
+  onError?: (error: unknown) => void,
+  prepare?: (app: ApplicationService) => void
 ) {
   const previousNodeEnvironment = process.env.NODE_ENV
   const previousExitCode = process.exitCode
@@ -40,6 +42,7 @@ async function ace(
     await kernel
       .configure(async (app) => {
         await app.boot()
+        prepare?.(app)
         if (logger) app.container.bindValue('logger', logger as never)
         if (onError) {
           const commands = await app.container.make('ace')
@@ -105,6 +108,28 @@ test.group('masquerade:status and masquerade:stop Ace commands', () => {
     const row = await f.store.read(f.owner)
     assert.equal(row?.state, 'idle')
     assert.equal(f.store.events.at(-1)?.outcomeCode, OPERATOR_STOP_OUTCOME)
+  })
+
+  test('stop uses the runtime authority when the config leaves it to the native adapter', async ({
+    assert,
+  }) => {
+    const f = fixture()
+    f.state.now = Date.now()
+    await f.start(await f.create())
+    const { authority, ...config } = f.config
+    const exitCode = await ace(
+      config,
+      ['masquerade:stop', '--actor=a'],
+      undefined,
+      undefined,
+      undefined,
+      'test',
+      undefined,
+      (app) => app.container.bindValue('masquerade.runtime', { config: { authority } } as never)
+    )
+    assert.notEqual(exitCode, 1)
+    const row = await f.store.read(f.owner)
+    assert.equal(row?.state, 'idle')
   })
 
   test('operator commands accept the test-only store only in the Node test environment', async ({

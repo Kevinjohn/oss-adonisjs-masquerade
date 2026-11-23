@@ -51,7 +51,8 @@ test('invalid service configuration logs a safe diagnostic and preserves startup
 
 for (const [name, patch] of Object.entries({
   unknown: { extra: true },
-  policy: { policy: undefined },
+  policy: { policy: null },
+  authority: { authority: null },
   incarnation: { authority: { ...fixture().config.authority, incarnation: undefined } },
   namespace: { authority: { ...fixture().config.authority, namespace: '../bad' } },
   namespaceBound: { authority: { ...fixture().config.authority, namespace: 'x'.repeat(129) } },
@@ -75,6 +76,26 @@ for (const [name, patch] of Object.entries({
       'Invalid masquerade configuration'
     )
   })
+
+test('accepts a config without authority and policy; the service still requires them', async ({
+  assert,
+}) => {
+  const f = fixture()
+  const { authority, policy, ...plain } = f.config
+  const config = defineConfig(plain)
+  assert.notProperty(config, 'authority')
+  assert.notProperty(config, 'policy')
+  for (const [missing, field] of [
+    [{ ...plain, policy }, 'authority'],
+    [{ ...plain, authority }, 'policy'],
+  ] as const) {
+    const error = await createMasqueradeService(missing, f.dependencies).catch(
+      (caught: unknown) => caught
+    )
+    assert.instanceOf(error, MasqueradeSetupError)
+    assert.equal((error as MasqueradeSetupError).field, field)
+  }
+})
 
 test('rejects test store outside explicit test environment even when store factory is asynchronous', async ({
   assert,

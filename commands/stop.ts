@@ -41,9 +41,16 @@ export default class StopCommand extends BaseCommand {
       this.logger.info('Nothing stopped.')
       return
     }
-    const config = this.app.config.get('masquerade') as
+    const configured = this.app.config.get('masquerade') as
       MasqueradeConfig<unknown, object> | undefined
-    if (!config) throw new InvalidArgumentsException('Masquerade configuration is required')
+    if (!configured) throw new InvalidArgumentsException('Masquerade configuration is required')
+    // Without a configured authority, the runtime holds the native adapter's.
+    let authority = configured.authority
+    if (!authority) {
+      const runtime = await this.app.container.make('masquerade.runtime')
+      authority = runtime.config.authority
+    }
+    const config = { ...configured, authority }
 
     const [emitterService, logger] = await Promise.all([
       this.app.container.make('emitter'),

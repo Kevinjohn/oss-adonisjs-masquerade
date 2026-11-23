@@ -7,5 +7,6 @@ export type { MasqueradeSetupErrorCode, MasqueradeSetupErrorField } from './src/
 export * as errors from './src/errors.js'
 export { defineConfig } from './src/define_config.js'
 export { createMasqueradeService } from './src/service.js'
+export { MasqueradeCallbackRegistry } from './src/callback_registry.js'
 export { configure } from './configure.js'
 export { stubsRoot } from './stubs/main.js'

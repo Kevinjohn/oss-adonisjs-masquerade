@@ -4,6 +4,7 @@ import type { GuardContract } from '@adonisjs/auth/types'
 import type { HttpContext } from '@adonisjs/core/http'
 import { runtimeFor } from '../src/integration/runtime.js'
 import { assertContextEnforced } from '../src/integration/context_enforcement.js'
+import type { ResolvedContext } from '../src/types.js'
 
 /** Effective user facade for a native opaque access-token guard. */
 export type EffectiveAccessTokensUser<User> = User extends { currentAccessToken: unknown }
@@ -22,6 +23,11 @@ export class EffectiveAccessTokensGuard<RawUser> implements GuardContract<
   user?: EffectiveAccessTokensUser<RawUser>
   isAuthenticated = false
   authenticationAttempted = false
+  #context: ResolvedContext | undefined
+  /** The view-as context admitted by `authenticate()` when the route selected this effective guard; otherwise undefined. */
+  get context(): ResolvedContext | undefined {
+    return this.#context
+  }
   constructor(
     private ctx: HttpContext,
     private raw: GuardContract<RawUser>,
@@ -42,6 +48,7 @@ export class EffectiveAccessTokensGuard<RawUser> implements GuardContract<
   async authenticate(): Promise<EffectiveAccessTokensUser<RawUser>> {
     this.authenticationAttempted = true
     this.isAuthenticated = false
+    this.#context = undefined
     this.user = undefined
     const runtime = await runtimeFor(this.ctx)
     const selected = runtime.selectGuard(this.ctx)
@@ -49,6 +56,7 @@ export class EffectiveAccessTokensGuard<RawUser> implements GuardContract<
       const admitted = await runtime.admit(this.ctx)
       assertContextEnforced(this.ctx, { isMasquerading: admitted.context.isMasquerading })
       this.user = admitted.effective.user as EffectiveAccessTokensUser<RawUser>
+      this.#context = admitted.context
     } else {
       // A public or multi-guard route selects no single credential; this facade still answers
       // only for its own tokens.
