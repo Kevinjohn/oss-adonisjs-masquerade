@@ -2,6 +2,10 @@
 
 ## Unreleased
 
+## 0.5.2 - 2026-11-23
+
+- Require Account Kit `0.5.2` exactly.
+
 ### Added
 
 - Export the context middleware class as the default export of
