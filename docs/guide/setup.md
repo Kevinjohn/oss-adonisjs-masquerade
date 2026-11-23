@@ -65,9 +65,9 @@ and effective wrapper are checked on the live request before Masquerade reads mo
 package no longer invokes a guard factory with a synthetic context as 0.4.3 did. Configure adds
 the package provider, native binding provider, and command loader to `adonisrc.ts`, and creates
 starter files. It creates the migration in the default connection's first migrations folder when
-none exists. With `--force`, it regenerates a single existing TypeScript migration in place across
-that connection's migration folders. Multiple existing Masquerade migrations stop configure before
-it writes files.
+none exists. With `--force`, it refreshes the other scaffolds and preserves the path and contents
+of an existing Masquerade migration found in that connection's migration folders. Multiple
+existing Masquerade migrations stop configure before it writes files.
 Since release 0.5.0, custom directories declared in `adonisrc.ts` are respected throughout generation, conflict
 preflight and host wiring. Keep the corresponding host import aliases aligned in `package.json`.
 
@@ -120,8 +120,8 @@ Generated files fail closed. Once configure has wired the auth default, authenti
 503 until the host callbacks below are filled in. Review the output and replace every placeholder
 before mounting routes. If a generated destination already exists, including
 `start/masquerade_routes.ts` or `start/masquerade_limiter.ts` when wiring, configure leaves files
-unchanged and reports the conflicts; use `--force` only when you intend to replace those
-destinations. A codemod error fails the command; a file whose shape configure does not recognise is left unedited and listed as a manual step.
+unchanged and reports the conflicts. Use `--force` only when you intend to replace the
+other generated files. A codemod error fails the command; a file whose shape configure does not recognise is left unedited and listed as a manual step.
 
 ## Reuse the session user provider
 
@@ -388,6 +388,12 @@ Apply your host's CSRF protection and separate start and stop rate limits. Put b
 groups behind `middleware.auth({ guards: ['web_effective'] })`. See [route coverage review](route-report.md)
 for report labels and release checks. The host still owns CSRF, the limiter budgets and where the
 routes are mounted.
+
+Fresh migrations import `createMasqueradeSchemaV1` and `dropMasqueradeSchemaV1` from
+`@kevinjohn/adonisjs-masquerade/stores/lucid`. Those helpers are the fixed initial schema contract.
+Use the same versioned imports if your application creates or rolls back the Masquerade tables
+inside its own baseline migration. Earlier migrations can still resolve `createMasqueradeSchema`
+and `dropMasqueradeSchema`.
 
 Review the generated migration and your database backup plan, then apply it with the host's normal
 migration process, for example `node ace migration:run`. Follow [pruning and retention

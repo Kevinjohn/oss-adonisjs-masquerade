@@ -13,6 +13,7 @@ import { Database } from '@adonisjs/lucid/database'
 import { MigrationRunner } from '@adonisjs/lucid/migration'
 import { Emitter } from '@adonisjs/core/events'
 import { Logger } from '@adonisjs/core/logger'
+import { sqlFixture } from './helpers/sql_store.js'
 
 test.group('Masquerade configure scaffold', (group) => {
   // configure now wires the host through a ts-morph project, which is slow on CI runners.
@@ -92,7 +93,7 @@ test.group('Masquerade configure scaffold', (group) => {
       assert.isUndefined(output.banner)
       assert.isUndefined(output.statusMiddleware)
       assert.isUndefined(output.formController)
-      assert.include(output.migration, 'createMasqueradeSchema(this.schema)')
+      assert.include(output.migration, 'createMasqueradeSchemaV1(this.schema)')
       assert.include(output.migration, 'async up()')
       assert.include(output.migration, 'async down()')
       assert.deepEqual(f.registered, [
@@ -575,16 +576,8 @@ test.group('Masquerade configure scaffold', (group) => {
     assert,
   }) => {
     const f = await configureFixture()
-    const connection = {
-      client: 'better-sqlite3' as const,
-      connection: { filename: join(f.root, 'db.sqlite3') },
-      useNullAsDefault: true,
-    }
-    const db = new Database(
-      { connection: 'primary', connections: { primary: connection } },
-      new Logger({ name: 'configure', enabled: false }),
-      new Emitter(f.app)
-    )
+    const database = await sqlFixture({ createTables: false })
+    const { db } = database
     try {
       await writeFile(
         join(f.root, 'package.json'),
@@ -601,16 +594,23 @@ test.group('Masquerade configure scaffold', (group) => {
       const directory = join(f.root, 'database/migrations')
       const [file] = await readdir(directory)
       const nested = join(directory, 'prior#archive')
-      const migration = await readFile(join(directory, file), 'utf8')
+      const migration = '// Host migration edit\n' + (await readFile(join(directory, file), 'utf8'))
       await mkdir(nested)
       await rename(join(directory, file), join(nested, file))
-      await writeFile(join(nested, file), '// Regenerate this migration\n' + migration)
+      await writeFile(join(nested, file), migration)
 
       const runner = new MigrationRunner(db, f.app, { direction: 'up', dryRun: false })
       const before = await runner.getList()
       assert.deepEqual(before, [
         { name: `database/migrations/prior#archive/${file.slice(0, -3)}`, status: 'pending' },
       ])
+      const rerun = f.command(flags)
+      await configure(rerun as never)
+      assert.equal(rerun.exitCode, 1)
+      assert.deepEqual(await readdir(directory), ['prior#archive'])
+      assert.equal(await readFile(join(nested, file), 'utf8'), migration)
+      assert.deepEqual(await runner.getList(), before)
+
       const forced = f.command(flags, true)
       await configure(forced as never)
       assert.equal(forced.exitCode, 0, forced.errors.join('\n'))
@@ -622,9 +622,21 @@ test.group('Masquerade configure scaffold', (group) => {
       assert.lengthOf(Object.keys(runner.migratedFiles), 1)
       assert.isTrue(await db.connection().schema.hasTable('masquerade_modes'))
       assert.isTrue(await db.connection().schema.hasTable('masquerade_events'))
+      const rollback = new MigrationRunner(db, f.app, {
+        direction: 'down',
+        dryRun: false,
+        batch: 0,
+      })
+      await rollback.run()
+      assert.isNull(rollback.error)
+      assert.isFalse(await db.connection().schema.hasTable('masquerade_modes'))
+      assert.isFalse(await db.connection().schema.hasTable('masquerade_events'))
     } finally {
-      await db.manager.closeAll()
-      await f.dispose()
+      try {
+        await database.cleanup()
+      } finally {
+        await f.dispose()
+      }
     }
   })
 
@@ -651,7 +663,7 @@ test.group('Masquerade configure scaffold', (group) => {
       assert.equal(forced.exitCode, 0, forced.errors.join('\n'))
       assert.deepEqual(await readdir(primary), [])
       assert.deepEqual(await readdir(archive), [file])
-      assert.include(await readFile(archived, 'utf8'), 'createMasqueradeSchema(this.schema)')
+      assert.equal(await readFile(archived, 'utf8'), '// Earlier scaffold')
 
       await writeFile(join(primary, file), '// Competing scaffold')
       const before = await snapshot(f.root)
@@ -675,13 +687,10 @@ test.group('Masquerade configure scaffold', (group) => {
       await writeFile(file, source)
       const forced = f.command({ 'namespace': 'support', 'guard': 'web', 'no-wire': true }, true)
       await configure(forced as never)
-      assert.equal(forced.exitCode, 1)
-      assert.isTrue(
-        forced.errors.some((message) => message.includes('complete configuration manually'))
-      )
+      assert.equal(forced.exitCode, 0, forced.errors.join('\n'))
       assert.equal(await readFile(file, 'utf8'), source)
       assert.deepEqual(await readdir(join(f.root, 'database/migrations')), ['prior'])
-      assert.notInclude(await readdir(join(f.root, 'config')), 'masquerade.ts')
+      assert.include(await readdir(join(f.root, 'config')), 'masquerade.ts')
     } finally {
       await f.dispose()
     }
