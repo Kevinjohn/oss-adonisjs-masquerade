@@ -7,12 +7,13 @@ As an application maintainer, I want a route coverage report so that I can find 
 **Entry:** `node ace masquerade:routes`.
 **Documentation:** [Route report](../../docs/guide/route-report.md).
 **Source:** [RoutesCommand and inspectRouteCoverage](../../commands/routes.ts).
-**Coverage:** [Routes command tests](../../tests/routes_command.spec.ts), [route metadata tests](../../tests/route_metadata.spec.ts).
+**Coverage:** [Routes command tests](../../tests/routes_command.spec.ts), [managed route report and blocker agreement](../../tests/account_kit_provider.spec.ts), [route metadata tests](../../tests/route_metadata.spec.ts).
 
 ## Acceptance criteria
 
 - The command requires `config/masquerade`, resolves effective and raw guard names, commits the router, and reports each registered route's methods, pattern, guard category and recognised markers.
-- Package control handlers are identified by controller/method; unresolved handlers, possible name-inferred controls, unprotected routes, unsupported mixed guards and distinct effective transports remain visible for human review. Verified Account Kit managed routes receive their own classifications; supported host-owned account blocker references are labelled separately.
+- Package control handlers are identified by controller/method; unresolved handlers, possible name-inferred controls, unprotected routes, unsupported mixed guards and distinct effective transports remain visible for human review. Supported host-owned account blocker references receive their own label.
+- The global blocker and report share the `accountKit.*` route-name rule. With verified registration, logout and CSRF are labelled `Account Kit managed (exempt)` and ordinary managed routes are labelled `Account Kit managed (blocked while active)`. Without verification, every managed route is `UNCLASSIFIED` with a missing or unverified blocker note.
 - The report is diagnostic only. It does not change route definitions or enforce authorisation.
 
 ## User flow
@@ -35,16 +36,20 @@ flowchart TD
     A["RoutesCommand.run"] --> B["Load masquerade config, router and auth manager"]
     B --> C["router.commit and router.toJSON"]
     C --> A2{"Configured authority supplied?"}
-    A2 -->|Yes| D["inspectRouteCoverage with authority.guard"]
+    A2 -->|Yes| S["Read hasVerifiedAccountKitBlocker status"]
     A2 -->|No| R["Use resolved runtime authority"]
-    R --> D
-    D --> Q{"accountKit.* route name?"}
-    Q -->|Yes| X["Classify managed/exempt or unclassified by verified blocker"]
-    Q -->|No| E["Resolve registered account blocker, routeGuards and routeMarkers"]
+    R --> S
+    S --> D["inspectRouteCoverage with authority.guard and blocker status"]
+    D --> Q{"classifyAccountKitRoute by committed route name"}
+    Q -->|Managed or exempt| V{"Blocker verified?"}
+    V -->|Yes| X["Label blocked while active or exempt"]
+    V -->|No| U["Label UNCLASSIFIED with missing or unverified blocker note"]
+    Q -->|Host| E["Resolve registered account blocker, routeGuards and routeMarkers"]
     E --> F["isPackageControl and host-control checks"]
     X --> G["Group and label route lines"]
+    U --> G
     F --> G
     G --> H["logger.info report sections"]
 ```
 
-**Code references:** [RoutesCommand and report](../../commands/routes.ts), [route marker resolver](../../src/integration/route_markers.ts), [route report guide](../../docs/guide/route-report.md).
+**Code references:** [RoutesCommand and report](../../commands/routes.ts), [shared route classification](../../src/integration/account_kit_route_classification.ts), [global blocker](../../account_kit/middleware.ts), [provider verification](../../account_kit/provider.ts), [route marker resolver](../../src/integration/route_markers.ts).

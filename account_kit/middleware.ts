@@ -3,6 +3,7 @@ import { MasqueradeError } from '../src/errors.js'
 import { createUnavailableError } from '../src/error_helpers.js'
 import { accountOwner } from './account_owner.js'
 import { runtimeFor } from '../src/integration/runtime.js'
+import { classifyAccountKitRoute } from '../src/integration/account_kit_route_classification.js'
 import type { AccountKitAdapter } from './main.js'
 import type { GuardContract } from '@adonisjs/auth/types'
 import { assertManagedRouteRegistration } from './route_validation.js'
@@ -58,13 +59,7 @@ export class AccountKitBlocker extends AccountKitAccountBlocker {
    * checking the managed route registration. Other routes pass through.
    */
   async handle(ctx: HttpContext, next: () => Promise<unknown>): Promise<unknown> {
-    const name = ctx.route?.name
-    if (
-      !name?.startsWith('accountKit.') ||
-      name === 'accountKit.account.logout' ||
-      name === 'accountKit.auth.csrf'
-    )
-      return next()
+    if (classifyAccountKitRoute(ctx.route?.name) !== 'managed') return next()
     const router = await ctx.containerResolver.make('router')
     assertManagedRouteRegistration(router.toJSON(), await managedRegistration(router))
     return super.handle(ctx, next)
