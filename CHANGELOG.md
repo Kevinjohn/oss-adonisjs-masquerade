@@ -3,6 +3,7 @@
 ## Unreleased
 
 - Provide fixed v1 schema helpers for fresh migrations and preserve existing migration files during forced configure.
+- Report prune progress failures once through Ace while preserving the original error and confirmed counts.
 
 ## 0.6.0 - 2026-11-23
 
