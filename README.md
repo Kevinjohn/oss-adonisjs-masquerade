@@ -51,6 +51,37 @@ router.post('/orders/:id/notes', [OrdersController, 'note']).use(allowMutation()
 router.post('/account/password', [AccountController, 'update']).use(sensitive()).use(asCustomer)
 ```
 
+## Registering callbacks from a provider
+
+`config/masquerade.ts` may leave out `authority` and `policy`, so it does not import application
+services. An application provider registers them instead, through `masquerade.callbacks`, in its
+`boot()` method:
+
+```ts
+// providers/package_callbacks_provider.ts
+import type { ApplicationService } from '@adonisjs/core/types'
+
+export default class PackageCallbacksProvider {
+  constructor(protected app: ApplicationService) {}
+
+  async boot() {
+    const callbacks = await this.app.container.make('masquerade.callbacks')
+    callbacks.register(async () => {
+      const { nativeAdapter, masqueradePolicy } =
+        await import('#services/auth/masquerade_authority')
+      return { native: nativeAdapter, policy: masqueradePolicy }
+    })
+  }
+}
+```
+
+List this provider in `adonisrc.ts` before `@kevinjohn/adonisjs-masquerade/masquerade_provider`,
+which builds the runtime at boot. The factory runs once, when Masquerade first needs the callbacks.
+Masquerade binds the registered `native` as `masquerade.native`, and the runtime uses its
+`authority` when the config has none. An application that binds `masquerade.native` itself keeps
+working. A value supplied in both places, a second registration, or a registration after the
+runtime was built throws.
+
 ## Tested against
 
 |                         | Every pull request | Weekly and before each release          |

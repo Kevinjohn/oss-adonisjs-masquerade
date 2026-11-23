@@ -5,6 +5,7 @@ import { markEffectiveFactory } from '../src/integration/guard_registration.js'
 import { contextToken } from '../src/context_token.js'
 import { masqueradeContext } from '../http/context_middleware.js'
 import { EffectiveSessionGuard } from '../auth/effective_session_guard.js'
+import { MasqueradeCallbackRegistry } from '../src/callback_registry.js'
 
 const raw = () => ({})
 const effective = (guard: string, driver: 'session' | 'access_tokens' = 'session') =>
@@ -30,7 +31,12 @@ function configuration(
   const app = {
     config: { get: () => f.config },
     container: {
-      make: async (name: string) => (name === 'masquerade.native' ? native : auth),
+      make: async (name: string) =>
+        name === 'masquerade.native'
+          ? native
+          : name === 'masquerade.callbacks'
+            ? new MasqueradeCallbackRegistry()
+            : auth,
     },
   }
   return { app, authority, native, auth, fixture: f }

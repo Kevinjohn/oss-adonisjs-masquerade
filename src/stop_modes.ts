@@ -11,6 +11,7 @@ import type {
   RequestControlStore,
   MasqueradeConfig,
   ModeRow,
+  NativeAuthority,
   OwnerKey,
   TransitionEvent,
 } from './types.js'
@@ -120,7 +121,9 @@ export function isUnknownAccount(error: unknown): boolean {
 }
 
 async function resolveIncarnation<User, Request>(
-  config: MasqueradeConfig<User, Request, RequestControlStore>,
+  config: MasqueradeConfig<User, Request, RequestControlStore> & {
+    authority: NativeAuthority<User>
+  },
   actorId: string,
   actorIncarnation: string | undefined
 ): Promise<string> {
@@ -146,7 +149,9 @@ async function resolveIncarnation<User, Request>(
  * commits an `invalidated` event through CAS and leaves the operator's next request idle.
  */
 export async function stopActiveModes<User, Request>(
-  config: MasqueradeConfig<User, Request, RequestControlStore>,
+  config: MasqueradeConfig<User, Request, RequestControlStore> & {
+    authority: NativeAuthority<User>
+  },
   dependencies: StopModesDependencies,
   selection: StopModesSelection
 ): Promise<StopModesResult> {

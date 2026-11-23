@@ -276,3 +276,21 @@ test('the effective session guard needs a raw guard with a different name', asyn
   const factory = await effectiveSessionGuard(raw).resolver('web_effective', app('web'))
   assert.isFunction(factory)
 })
+
+test('without a configured authority the native adapter names the raw session guard', async ({
+  assert,
+}) => {
+  const { effectiveSessionGuard } = await import('../auth/define_config.js')
+  const raw = { resolver: async () => () => ({ driverName: 'session' }) } as never
+  const app = (guard: string) =>
+    ({
+      config: { get: () => ({}) },
+      container: { make: async () => ({ authority: { namespace: 'test', guard } }) },
+    }) as never
+  await assert.rejects(
+    () => effectiveSessionGuard(raw).resolver('web_effective', app('web_effective')),
+    'Configure distinct raw and effective session guards'
+  )
+  const factory = await effectiveSessionGuard(raw).resolver('web_effective', app('web'))
+  assert.isFunction(factory)
+})

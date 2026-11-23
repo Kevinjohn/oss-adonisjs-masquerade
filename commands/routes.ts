@@ -32,9 +32,15 @@ export default class RoutesCommand extends BaseCommand {
     }
     router.commit()
     const domains = router.toJSON()
+    // Without a configured authority, the runtime holds the native adapter's.
+    let authority = config.authority
+    if (!authority) {
+      const runtime = await this.app.container.make('masquerade.runtime')
+      authority = runtime.config.authority
+    }
     for (const section of await inspectRouteCoverage(
       domains,
-      config.authority.guard,
+      authority.guard,
       String(auth.defaultGuard),
       effectiveGuardNames,
       effectiveRawGuards,

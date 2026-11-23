@@ -3,6 +3,7 @@ import type { ApplicationService } from '@adonisjs/core/types'
 import { controlRouteGuards } from '../src/integration/control_route_guards.js'
 import { createRuntime, runtimeConfiguration } from '../src/integration/runtime_factory.js'
 import type { RuntimeConfiguration } from '../src/integration/runtime_factory.js'
+import { MasqueradeCallbackRegistry, resolveCallbacks } from '../src/callback_registry.js'
 // A side-effect import is retained in the emitted declaration, unlike a type-only empty import.
 import '../src/integration/events.js'
 
@@ -10,8 +11,23 @@ import '../src/integration/events.js'
 export default class MasqueradeProvider {
   #wiring?: Promise<RuntimeConfiguration>
   constructor(protected app: ApplicationService) {}
-  /** Bind `masquerade.runtime` as a lazy singleton. */
+  /**
+   * Bind `masquerade.callbacks`, `masquerade.runtime` as a lazy singleton and, unless the
+   * application binds it, `masquerade.native` from the registered callbacks.
+   */
   register(): void {
+    this.app.container.singleton(MasqueradeCallbackRegistry, () => new MasqueradeCallbackRegistry())
+    this.app.container.alias('masquerade.callbacks', MasqueradeCallbackRegistry)
+    if (!this.app.container.hasBinding('masquerade.native'))
+      this.app.container.singleton('masquerade.native', async (resolver) => {
+        const registry = await resolver.make('masquerade.callbacks')
+        const callbacks = await registry[resolveCallbacks]()
+        if (!callbacks?.native)
+          throw new InvalidArgumentsException(
+            'Masquerade needs a native adapter: bind masquerade.native or register one through masquerade.callbacks'
+          )
+        return callbacks.native
+      })
     this.app.container.singleton('masquerade.runtime', async () => {
       this.#wiring ??= runtimeConfiguration(this.app)
       return createRuntime(this.app, await this.#wiring)
@@ -41,3 +57,9 @@ export default class MasqueradeProvider {
   }
 }
 export type { MasqueradeRuntime } from '../src/integration/runtime.js'
+
+declare module '@adonisjs/core/types' {
+  interface ContainerBindings {
+    'masquerade.callbacks': MasqueradeCallbackRegistry
+  }
+}

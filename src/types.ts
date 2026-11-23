@@ -1,4 +1,5 @@
 import type { MasqueradeErrorCode } from './errors.js'
+import type { NativeRuntimeAdapter } from './integration/native_binding.js'
 
 export type {
   MasqueradeBlockedBy,
@@ -199,8 +200,10 @@ export type RequestControlStore = Pick<
 >
 /** Masquerade configuration, validated by `defineConfig`. */
 export interface MasqueradeConfig<User, Request, Store extends RequestControlStore = ControlStore> {
-  authority: NativeAuthority<User>
-  policy: MasqueradePolicy<User, Request>
+  /** Defaults to the native adapter's `authority` when the runtime builds. */
+  authority?: NativeAuthority<User>
+  /** May instead be registered through `masquerade.callbacks`. */
+  policy?: MasqueradePolicy<User, Request>
   /** Opens the control store when the service is created. */
   store: () => Promise<Store>
   /** Default mode length, 60 to `maxDurationSeconds`; defaults to 900. */
@@ -211,6 +214,12 @@ export interface MasqueradeConfig<User, Request, Store extends RequestControlSto
   retention: { days: number } | 'host-managed'
   /** Defaults to optional; required rejects a start without a reason. */
   reason?: 'optional' | 'required'
+}
+/** Callbacks an application provider registers through `masquerade.callbacks`. */
+export interface MasqueradeCallbacks<User, Request> {
+  /** The native adapter; the package binds it as `masquerade.native`. Its `authority` is the config's `authority`. */
+  native?: NativeRuntimeAdapter & { readonly authority: NativeAuthority<User> }
+  policy?: MasqueradePolicy<User, Request>
 }
 /** Start control input. */
 export interface StartInput {

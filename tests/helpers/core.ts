@@ -1,12 +1,7 @@
 import { createMasqueradeService, defineConfig } from '../../index.js'
 import { MemoryControlStore } from '../../testing/main.js'
-import type {
-  AccountSnapshot,
-  MasqueradeConfig,
-  ModeAccess,
-  ServiceDependencies,
-  Subject,
-} from '../../src/types.js'
+import type { CompleteMasqueradeConfig } from '../../src/define_config.js'
+import type { AccountSnapshot, ModeAccess, ServiceDependencies, Subject } from '../../src/types.js'
 export type User = { id: string; stamp: string; incarnation: string; privateData: string }
 export type Request = { actorId?: string; credentialInvalid?: boolean; denied?: boolean }
 export function fixture() {
@@ -38,7 +33,7 @@ export function fixture() {
     incarnation: user.incarnation,
     user,
   })
-  const config: MasqueradeConfig<User, Request> = {
+  const config: CompleteMasqueradeConfig<User, Request> = {
     authority: {
       namespace: 'test',
       guard: 'web',

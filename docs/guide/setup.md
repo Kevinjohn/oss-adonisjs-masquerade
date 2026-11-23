@@ -266,7 +266,8 @@ Set `contextEnforcement` to `enforce` when business forms carry a captured conte
 covered unsafe business request without the token with 428, including when no one is
 masquerading. An application with existing unsafe forms or clients on effective-guard routes keeps
 the generated `report` until each one sends the token, as described in
-[context tokens and browser clients](security.md#context-tokens-and-browser-clients). Replace the sample model fields and host callbacks with your own. The callbacks stay under the `policy` key in the public config. If you choose a store other than the generated Lucid store, see [custom stores](custom-stores.md).
+[context tokens and browser clients](security.md#context-tokens-and-browser-clients). Replace the sample model fields and host callbacks with your own. The callbacks stay under the `policy` key in the public config. `authority` and `policy` may instead come from the callback registry: see
+[registering callbacks from a provider](https://github.com/Kevinjohn/oss-adonisjs-masquerade/blob/main/README.md#registering-callbacks-from-a-provider). If you choose a store other than the generated Lucid store, see [custom stores](custom-stores.md).
 `incarnation` must be stable for one account's lifetime and different if a deleted ID can be
 reused. Use `incarnation: 'id'` only if the host guarantees account IDs are never reused. The
 incarnation must not change during ordinary security updates.
