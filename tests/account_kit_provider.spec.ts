@@ -8,6 +8,8 @@ import type { HttpContext } from '@adonisjs/core/http'
 import { test } from '@japa/runner'
 import AccountKitProvider from '../account_kit/provider.js'
 import AccountKitBlocker from '../account_kit/middleware.js'
+import { inspectRouteCoverage } from '../commands/routes.js'
+import { MasqueradeError } from '../src/errors.js'
 import { hasVerifiedAccountKitBlocker } from '../src/integration/account_kit_status.js'
 
 function canLoadKit(): boolean {
@@ -44,7 +46,7 @@ async function register(
       prefix: '/kit',
       kit: async () => ({}),
       guard: { strategy, name, forRequest: () => ({}), current: async () => ({}) },
-      enabled: ['passwordReset'],
+      enabled: ['authentication', 'passwordReset'],
     })
   if (group) router.group(mount).prefix('/api').as(group)
   else mount()
@@ -353,6 +355,68 @@ test.group('Account Kit provider', () => {
         { namespace: 'users', actorId: '42', actorIncarnation: 'second' },
       ])
       assert.equal(attempt.nextCalls(), 0)
+    } finally {
+      await host.app.terminate()
+    }
+  }).skip(!canLoadKit() && !process.env.CI, 'requires installed Account Kit or ACCOUNT_KIT_SOURCE')
+
+  test('reports the same managed routes and exemptions as the global blocker', async ({
+    assert,
+  }) => {
+    const host = await fixture()
+    try {
+      host.router.get('/host/csrf', async () => {}).as('host.accountKit.auth.csrf')
+      host.router.commit()
+      const domains = host.router.toJSON()
+      const report = () =>
+        inspectRouteCoverage(
+          domains,
+          'web',
+          'web',
+          ['web'],
+          {},
+          hasVerifiedAccountKitBlocker(host.providerApp)
+        )
+      const unverified = await report()
+      await host.provider.ready()
+      const verified = await report()
+
+      for (const [name, action, label] of [
+        ['accountKit.auth.passwordReset.request', 'MUTATION', 'blocked while active'],
+        ['accountKit.account.logout', 'MUTATION', 'exempt'],
+        ['accountKit.auth.csrf', 'READ', 'exempt'],
+        ['host.accountKit.auth.csrf', 'READ', undefined],
+      ] as const) {
+        const pattern = domains.root.find((entry) => entry.name === name)?.pattern
+        assert.isString(pattern, `expected ${name} to be mounted`)
+        const unclassified = `${pattern} [UNCLASSIFIED ${action}]`
+        const unverifiedLabel = label
+          ? `${unclassified} (blocker missing or unverified)`
+          : unclassified
+        assert.include(`${unverified.join('\n')}\n`, `${unverifiedLabel}\n`, name)
+        if (label) {
+          const managed = verified.find((section) => section.startsWith('Account Kit managed\n'))
+          assert.include(managed, `${pattern} [Account Kit managed (${label}) ${action}]`, name)
+        } else {
+          const unprotected = verified.find((section) => section.startsWith('unprotected\n'))
+          assert.include(`${unprotected}\n`, `${unclassified}\n`, name)
+        }
+
+        const attempt = await block(host, name, { active: true })
+        if (label === 'blocked while active') {
+          await assert.rejects(
+            attempt.call,
+            MasqueradeError,
+            'Action is blocked while masquerading'
+          )
+          assert.lengthOf(attempt.reads, 1, name)
+          assert.equal(attempt.nextCalls(), 0, name)
+        } else {
+          assert.equal(await attempt.call(), 'next', name)
+          assert.lengthOf(attempt.reads, 0, name)
+          assert.equal(attempt.nextCalls(), 1, name)
+        }
+      }
     } finally {
       await host.app.terminate()
     }

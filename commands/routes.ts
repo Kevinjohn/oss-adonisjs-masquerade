@@ -9,6 +9,7 @@ import {
 } from '../src/integration/guard_registration.js'
 import { hasVerifiedAccountKitBlocker } from '../src/integration/account_kit_status.js'
 import { hasRegisteredAccountKitBlocker } from '../src/integration/account_kit_blocker_registration.js'
+import { classifyAccountKitRoute } from '../src/integration/account_kit_route_classification.js'
 
 /** Print a route coverage report from the router's committed route definitions. */
 export default class RoutesCommand extends BaseCommand {
@@ -73,19 +74,18 @@ export function inspectRouteCoverage(
   return (async () => {
     for (const [domain, routes] of Object.entries(domains)) {
       for (const route of routes) {
-        if (route.name?.startsWith('accountKit.')) {
+        const accountKitRoute = classifyAccountKitRoute(route.name)
+        if (accountKitRoute !== 'host') {
           const action = route.methods.some(
             (method) => !['GET', 'HEAD', 'OPTIONS'].includes(method)
           )
             ? 'MUTATION'
             : 'READ'
-          const exempt = ['accountKit.account.logout', 'accountKit.auth.csrf'].includes(route.name)
-          const category =
-            verifiedAccountKitBlocker && !exempt
-              ? 'Account Kit managed (blocked while active)'
-              : verifiedAccountKitBlocker
-                ? 'Account Kit managed (exempt)'
-                : 'UNCLASSIFIED'
+          const category = verifiedAccountKitBlocker
+            ? accountKitRoute === 'exempt'
+              ? 'Account Kit managed (exempt)'
+              : 'Account Kit managed (blocked while active)'
+            : 'UNCLASSIFIED'
           const note = verifiedAccountKitBlocker ? '' : ' (blocker missing or unverified)'
           const line = `  ${route.methods.join(',').padEnd(18)} ${route.pattern}${domain === 'root' ? '' : ` [${domain}]`} [${category} ${action}]${note}`
           const group = verifiedAccountKitBlocker ? 'Account Kit managed' : 'unprotected'

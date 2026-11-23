@@ -14,15 +14,14 @@ The report groups routes by matched authentication guard and shows the request m
 and a coverage label. It is a review aid, not a boot-time registry or an enforcement mechanism. It
 does not establish what an arbitrary host handler or middleware does.
 
-For Account Kit hosts, see the [integration preview](account-kit.md). Routes named `accountKit.*`
-are reported as managed and blocked while active only after the integration provider verifies that
-its global blocker is installed and the mounted routes match Account Kit's registration. If that
-check is missing or unverified, those routes remain `UNCLASSIFIED` with a note. Do not treat a
-managed-route label as proof that every route in the group is blocked: `accountKit.account.logout`
-and `accountKit.auth.csrf` are exempt so logout and CSRF token retrieval remain available. Account
-Kit's `except` option removes omitted endpoints from its registration, so they are not mounted by
-Account Kit; the remaining registered routes stay covered by the blocker. A host-added
-`accountKit.*` route absent from registration fails provider validation.
+The report and the global Account Kit blocker use the same route-name rule. After the integration
+provider verifies blocker installation and route registration, the report labels
+`accountKit.account.logout` and `accountKit.auth.csrf` as `Account Kit managed (exempt)` and other
+`accountKit.*` routes as `Account Kit managed (blocked while active)`. Before verification, the
+report labels every `accountKit.*` route `UNCLASSIFIED` with a missing or unverified blocker note.
+Account Kit's `except` option omits endpoints from both mounting and registration. A host-added
+`accountKit.*` route absent from registration fails provider validation. See the
+[integration preview](account-kit.md).
 
 On a host-owned route, `(Account Kit blocker registered)` means the report resolved a named
 middleware entry to the package's exact `AccountKitAccountBlocker` class. Custom aliases are
@@ -53,9 +52,10 @@ middleware manually. The label confirms registration; review execution order and
   markers against the operations it performs. `allowMutation()` identifies routes that may accept
   ordinary writes in edit mode; it does not grant edit access or target authorisation. View mode
   blocks unsafe actions before route configuration is disclosed.
-- `UNCLASSIFIED` means the route has no recognised auth guard metadata. Decide whether it should be
-  public, authenticated with the effective guard, or an intentional raw-guard control. On such a
-  route the effective guard returns the actor and no mode checks run; see
+- `UNCLASSIFIED` covers routes without recognised auth guard metadata and Account Kit managed
+  routes whose blocker is missing or unverified. For routes without recognised auth guard metadata,
+  decide whether they should be public, authenticated with the effective guard, or an intentional
+  raw-guard control. There the effective guard returns the actor and no mode checks run. See
   [security](security.md#authorisation-and-route-coverage).
 
 The `unresolved handler` flag means a possible controller reference could not be loaded or resolved
