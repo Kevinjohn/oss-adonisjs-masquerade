@@ -20,7 +20,12 @@ import {
   buildOwnerRecord,
   buildModeRecord,
 } from './lucid_row.js'
-export { createMasqueradeSchema, dropMasqueradeSchema } from './lucid_schema.js'
+export {
+  createMasqueradeSchemaV1,
+  dropMasqueradeSchemaV1,
+  createMasqueradeSchemaV1 as createMasqueradeSchema,
+  dropMasqueradeSchemaV1 as dropMasqueradeSchema,
+} from './lucid_schema.js'
 
 /** The Lucid query client surface the store uses: a connection or a transaction. */
 export type LucidControlClient = Pick<

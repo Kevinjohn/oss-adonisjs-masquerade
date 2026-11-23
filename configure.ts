@@ -74,9 +74,9 @@ export async function configure(command: Configure): Promise<void> {
   }
 
   const migrationFolders = await migrationsFolders(command)
-  const migrationPath = await resolveMigrationPathOrReport(command, migrationFolders)
-  if (!migrationPath) return
-  const migrationDestination = command.app.relativePath(migrationPath)
+  const migration = await resolveMigrationPathOrReport(command, migrationFolders)
+  if (!migration) return
+  const migrationDestination = command.app.relativePath(migration.path)
   const banner = command.parsedFlags.banner === true
   const formController =
     command.parsedFlags.formController === true || command.parsedFlags['form-controller'] === true
@@ -103,7 +103,7 @@ export async function configure(command: Configure): Promise<void> {
     ...(formController ? [formControllerDestination] : []),
     ...(shouldSkipAutoWiring(command) ? [] : routeDestinations),
   ].map((destination) => command.app.makePath(destination))
-  destinations.push(migrationPath)
+  destinations.push(migration.path)
   if (!command.force) {
     const existingPaths = await Promise.all(
       destinations.map(async (destination) =>
@@ -112,7 +112,7 @@ export async function configure(command: Configure): Promise<void> {
     ).then((paths) => paths.filter((path): path is string => path !== null))
     if (existingPaths.length) {
       command.logger.error(
-        `Existing Masquerade files were left unchanged: ${existingPaths.join(', ')}. Rerun with --force to replace these generated paths.`
+        `Existing Masquerade files were left unchanged: ${existingPaths.join(', ')}. Rerun with --force to refresh the scaffolds and preserve any existing migration.`
       )
       command.exitCode = 1
       return
@@ -144,10 +144,16 @@ export async function configure(command: Configure): Promise<void> {
     ...(formController
       ? [await codemods.makeUsingStub(command.stubsRoot, 'configure/form_controller.stub', {})]
       : []),
-    await codemods.makeUsingStub(command.stubsRoot, 'migrations/create_masquerade_tables.stub', {
-      migrationPath,
-    }),
   ]
+  if (!migration.exists) {
+    codemods.overwriteExisting = false
+    generated.push(
+      await codemods.makeUsingStub(command.stubsRoot, 'migrations/create_masquerade_tables.stub', {
+        migrationPath: migration.path,
+      })
+    )
+    codemods.overwriteExisting = command.force === true
+  }
   if (generated.some((result) => 'status' in result && result.status === 'skipped')) {
     command.logger.error(
       'One or more generated paths already existed and were skipped. No providers or commands were registered; review the partial files and rerun with --force if replacement is intended.'
@@ -356,13 +362,13 @@ async function fileExists(path: string): Promise<boolean> {
 }
 
 /**
- * Resolve the migration path to generate or regenerate. A failure is logged, sets the exit code
+ * Locate an existing migration or select a new destination. A failure is logged, sets the exit code
  * and returns undefined.
  */
 async function resolveMigrationPathOrReport(
   command: Configure,
   folders: [string, ...string[]]
-): Promise<string | undefined> {
+): Promise<{ path: string; exists: boolean } | undefined> {
   const { sourceFiles } = await import('@adonisjs/lucid/utils')
   const infos = await Promise.all(
     folders.map((folder) =>
@@ -397,15 +403,7 @@ async function resolveMigrationPathOrReport(
     command.exitCode = 1
     return
   }
-  if (existing[0]) {
-    const path = existing[0].absPath
-    if (extname(path) === '.ts') return path
-    command.logger.error(
-      `Masquerade cannot regenerate the existing migration ${command.app.relativePath(path)} from a TypeScript stub. Preserve its migration identity and complete configuration manually.`
-    )
-    command.exitCode = 1
-    return
-  }
+  if (existing[0]) return { path: existing[0].absPath, exists: true }
   const path = join(folders[0], `${Date.now()}_create_masquerade_tables.ts`)
   const entry = await lstat(path).catch((error: unknown) => {
     if ((error as NodeJS.ErrnoException).code !== 'ENOENT') throw error
@@ -417,7 +415,7 @@ async function resolveMigrationPathOrReport(
     command.exitCode = 1
     return
   }
-  return path
+  return { path, exists: false }
 }
 
 function isModuleNotFound(error: unknown): boolean {
