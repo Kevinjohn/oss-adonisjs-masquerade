@@ -28,7 +28,9 @@ lacks a required method. A throwing store factory remains operational
 check the service or database when the factory is unavailable. This distinction applies to
 pruning; it does not change the existing list or stop response contracts.
 
-If a pass fails after some work completes, the command exits unsuccessfully and reports the failed phase and confirmed counts of expired modes and deleted events. A failed expiry commit may have succeeded despite an uncertain acknowledgement; the command flags that possibility separately and excludes it from the confirmed count. Inspect the store before deciding whether to rerun the pass. A later pass can continue from the persisted state.
+When a housekeeping operation fails during the pass, Ace exits with code 1 and prints one progress diagnostic with the failed phase and the confirmed counts of expired modes and deleted events. The diagnostic flags any operation that may have committed despite an uncertain acknowledgement. The confirmed counts exclude that operation. Inspect the store before deciding whether to rerun the pass. A later pass can continue from the persisted state.
+
+Ace reports argument or setup failures through its usual error output. Programmatic callers using `Kernel.exec` can read the typed `PruneProgressError` and exit code 1 from the returned command.
 
 Expired modes are checked during every pass, regardless of event-retention mode. The command
 re-reads each candidate and uses a conditional transition, so it will not clear a newer mode. A

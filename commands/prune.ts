@@ -34,29 +34,29 @@ export default class PruneCommand extends BaseCommand {
     const emitter = emitterService as unknown as {
       emit(name: string, event: unknown): unknown
     }
-    let result
-    try {
-      result = await pruneMasquerade(
-        config,
-        {
-          environment: this.app.nodeEnvironment,
-          emitter: { emit: (name, event) => emitter.emit(name, event) },
-          logger: {
-            info: (event) => logger.info(event, 'Masquerade transition'),
-            error: (event) => logger.error(event, 'Masquerade diagnostic'),
-          },
-          observerErrorHandler: () =>
-            logger.error({ code: 'E_MASQUERADE_OBSERVER_FAILED' }, 'Masquerade observer failed'),
+    const result = await pruneMasquerade(
+      config,
+      {
+        environment: this.app.nodeEnvironment,
+        emitter: { emit: (name, event) => emitter.emit(name, event) },
+        logger: {
+          info: (event) => logger.info(event, 'Masquerade transition'),
+          error: (event) => logger.error(event, 'Masquerade diagnostic'),
         },
-        { batchSize }
-      )
-    } catch (error) {
-      if (error instanceof PruneProgressError)
-        this.logger.error(
-          `Prune failed during ${error.phase}: confirmed expired ${error.completed.expired} mode(s); confirmed deleted ${error.completed.eventsDeleted} event(s).${error.indeterminate ? ' The failed operation may also have committed.' : ''}`
-        )
-      throw error
-    }
+        observerErrorHandler: () =>
+          logger.error({ code: 'E_MASQUERADE_OBSERVER_FAILED' }, 'Masquerade observer failed'),
+      },
+      { batchSize }
+    )
     this.logger.info(`Expired ${result.expired} mode(s); deleted ${result.eventsDeleted} event(s).`)
+  }
+
+  completed(): boolean {
+    if (!(this.error instanceof PruneProgressError)) return false
+    const { phase, completed, indeterminate } = this.error
+    this.logger.error(
+      `Prune failed during ${phase}: confirmed expired ${completed.expired} mode(s); confirmed deleted ${completed.eventsDeleted} event(s).${indeterminate ? ' The failed operation may also have committed.' : ''}`
+    )
+    return true
   }
 }
