@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+- Report prune progress failures once through Ace while preserving the original error and confirmed counts.
+
 ## 0.6.0 - 2026-11-23
 
 - Require Account Kit `0.6.0` exactly.
