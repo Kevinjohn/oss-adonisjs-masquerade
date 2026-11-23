@@ -47,7 +47,9 @@ Scope: separate stop/start transitions; the service exposes no in-place access m
 ```mermaid
 flowchart TD
     A["MasqueradeController.stop"] --> B["MasqueradeService.stop commits idle transition and rotates context"]
+    B -->|Stop fails| R
     B --> C["MasqueradeController.status reads current ModeView"]
+    C -->|Status fails| R
     C --> D["MasqueradeController.start parses new input"]
     D --> E["MasqueradeService.start checks context, idle row, selection and canMasquerade"]
     E -->|Refused| R["Propagate refusal"]

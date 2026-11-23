@@ -29,9 +29,13 @@ flowchart TD
 
 ```mermaid
 flowchart TD
-    A["JSON client sends original payload and context"] --> B["Discard outdated generation; refresh raw status after current response"]
-    B --> Q{"Active, unexpired and effective read matches context?"}
+    A["act checks and submits the original payload and context"] --> P{"Response belongs to current generation?"}
+    P -->|No| S["Discard response"]
+    P -->|Yes| B["refresh reads raw status on success or refusal"]
+    B --> Q{"Active, unexpired and loadCustomer confirms current context?"}
     Q -->|Yes| D["Render customer and permitted actions"]
     Q -->|No| E["Keep customer actions closed; raw stop when available"]
     H["Inertia history restoration after support visit"] --> C["Return to raw support workspace"]
 ```
+
+**Code references:** [JSON submission and refresh](../../examples/native-session/resources/js/demo_json.js#L127), [React history recovery](../../examples/inertia-react/inertia/support_history.ts), [Vue history recovery](../../examples/inertia-vue/inertia/support_history.ts).

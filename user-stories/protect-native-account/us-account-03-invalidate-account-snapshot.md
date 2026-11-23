@@ -29,7 +29,9 @@ flowchart TD
 
 ```mermaid
 flowchart TD
-    A["Authenticate actor; read active row"] --> P{"Expired?"}
+    A["Authenticate actor; read owner row"] --> A2{"Active row?"}
+    A2 -->|No| N["Admit actor as effective identity"]
+    A2 -->|Yes| P{"Expired?"}
     P -->|Yes| X["Commit expiry; reject current request"]
     P -->|No| B["Inspect both snapshots; compare identities and stamps"]
     B --> Q{"Eligible and global policies approve?"}
@@ -38,5 +40,9 @@ flowchart TD
     D --> E{"Allowed?"}
     E -->|Yes| F["Admit target"]
     E -->|No| R["Refuse current request; preserve mode"]
-    B -->|Inspection or policy exception| R
+    B -->|Inspection exception| U["Return unavailable; preserve mode"]
+    Q -->|Global policy exception| U
+    D -->|Request policy exception| U
 ```
+
+**Code references:** [Admission and invalidation](../../src/service.ts#L565), [authority stamp selector](../../native/stamp_from.ts).

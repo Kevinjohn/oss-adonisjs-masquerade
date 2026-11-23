@@ -16,6 +16,7 @@ As an authorised support actor with an active mode, I want covered business rout
 - Expired or invalidated mode rejects the triggering request with context-changed behaviour; it does not silently retry that request as the actor. A later new idle request uses the actor.
 - A host `canUseRequest` refusal rejects only the current request and keeps the active mode unchanged.
 - The effective access-token user type does not promise `currentAccessToken`; this is a type-level `Omit` only, and in idle state the facade returns the raw actor object unchanged. Read the actor's token through the raw guard, never through the effective user. Host wiring selects the effective token guard explicitly.
+- Each `authenticate()` resets the guard’s `context`. Successful effective-route authentication supplies actor and effective IDs and incarnations, plus the mode ID and access while masquerading. Raw fallback leaves it undefined. [Effective guard context](../../docs/guide/account-kit.md#read-the-view-as-context-from-the-effective-guard)
 - The package never logs in as the target, mints a target credential, or combines actor and target permissions.
 
 ## User flow
@@ -38,9 +39,9 @@ Scope: effective session or access-token guard through cached service admission;
 
 ```mermaid
 flowchart TD
-    A["EffectiveSessionGuard or EffectiveAccessTokensGuard.authenticate"] --> B["runtimeFor(ctx) and runtime.selectGuard(ctx)"]
+    A["EffectiveSessionGuard or EffectiveAccessTokensGuard.authenticate clears context and user"] --> B["runtimeFor(ctx) and runtime.selectGuard(ctx)"]
     B --> C{"Effective alias selected?"}
-    C -->|No| D["Authenticate selected raw guard"]
+    C -->|No| D["Authenticate raw guard; context stays undefined"]
     C -->|Yes| E["runtime.admit(ctx) calls MasqueradeService admission"]
     E --> F{"Idle, active valid or expired/invalid?"}
     F -->|Idle| G["buildAdmittedProjection uses actor as effective subject"]
@@ -52,10 +53,10 @@ flowchart TD
     G --> E2{"assertContextEnforced: active mode without enforced context middleware?"}
     L --> E2
     E2 -->|Yes| Z["Throw E_MASQUERADE_UNAVAILABLE"]
-    E2 -->|No| P{"Session facade and raw guard no longer authenticated?"}
-    P -->|Yes| W["Throw native unauthorised"]
-    P -->|No| M["Guard exposes admitted effective user"]
-    M --> N["Effective token user type does not promise currentAccessToken; read the actor token via the raw guard"]
+    E2 -->|No, session| P{"Selected raw guard still authenticated?"}
+    P -->|No| W["Throw native unauthorised"]
+    P -->|Yes| M["Expose admitted effective user and context"]
+    E2 -->|No, access token| M
 ```
 
 **Code references:** [Session facade](../../auth/effective_session_guard.ts), [access-token facade](../../auth/effective_access_tokens_guard.ts), [service admission and local policy](../../src/service.ts), [native access-token wiring](../../docs/guide/access-tokens.md), [effective user type (type-only Omit)](../../auth/effective_access_tokens_guard.ts), [security contract](../../docs/guide/security.md#actor-target-and-scope), [token guard tests](../../tests/effective_access_tokens_guard.spec.ts).

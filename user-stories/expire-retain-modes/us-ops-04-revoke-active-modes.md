@@ -20,6 +20,7 @@ As a host operator, I want to stop a selected actor's mode or confirm stopping a
 
 - Exactly one of `--actor` or `--all` is required; incarnation is allowed only with actor.
 - `--all` prompts “End every active masquerade mode?” unless `--force`; declining reports “Nothing stopped.”
+- The command uses the configured authority when supplied. If omitted, it reads the authority from the [configured runtime](../configure-masquerade/us-setup-03-register-integration-callbacks.md).
 - A well-formed explicit owner with no active matching row returns zero; resolving an omitted incarnation may fail if the actor cannot be found. Invalid input or unavailable storage returns an error. A successful operator stop records an `invalidated` event, not `stopped`; expired rows clear with `expired` without increasing the stopped count. Contention can leave modes active after `--all`. Check status and retry remaining work.
 
 ## User flow
@@ -49,13 +50,20 @@ flowchart TD
     B -->|Yes| C{"all and force is false?"}
     C -->|Yes| D["Prompt for confirmation"]
     D -->|Declined| E["Log Nothing stopped and return"]
-    D -->|Confirmed| F{"this.all?"}
-    C -->|No| F
+    D -->|Confirmed| P{"Masquerade config provides authority?"}
+    C -->|No| P
+    P -->|Config missing| Z["Throw InvalidArgumentsException"]
+    P -->|Authority supplied| F{"this.all?"}
+    P -->|Authority omitted| R["Resolve masquerade.runtime and use runtime.config.authority"]
+    R --> F
     F -->|Yes| G["stopActiveModes with selector all"]
     F -->|No| H["stopActiveModes with actor and incarnation"]
     G --> I["CAS invalidated or expired transitions; count applied invalidations"]
     H --> I
-    I --> J["Log actual stopped count, including zero; errors remain errors"]
+    I -->|Success| J["Log actual stopped count and report stalled bulk scan"]
+    I -->|Invalid selection| X2["Log input error and set exitCode 1"]
+    I -->|Bulk progress error| Y["completed reports phase, confirmed count and any indeterminate commit"]
+    I -->|Other failure| Z2["Propagate error"]
 ```
 
 **Code references:** [StopCommand](../../commands/stop.ts), [stopActiveModes](../../src/stop_modes.ts), [operator guide](../../docs/guide/operations.md#see-and-end-active-modes).

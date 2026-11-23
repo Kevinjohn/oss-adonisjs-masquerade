@@ -34,7 +34,10 @@ Scope: committed route metadata analysis; report output does not enforce route b
 flowchart TD
     A["RoutesCommand.run"] --> B["Load masquerade config, router and auth manager"]
     B --> C["router.commit and router.toJSON"]
-    C --> D["inspectRouteCoverage"]
+    C --> A2{"Configured authority supplied?"}
+    A2 -->|Yes| D["inspectRouteCoverage with authority.guard"]
+    A2 -->|No| R["Use resolved runtime authority"]
+    R --> D
     D --> Q{"accountKit.* route name?"}
     Q -->|Yes| X["Classify managed/exempt or unclassified by verified blocker"]
     Q -->|No| E["Resolve registered account blocker, routeGuards and routeMarkers"]
