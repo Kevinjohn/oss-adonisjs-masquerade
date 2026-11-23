@@ -2,6 +2,10 @@
 
 ## Unreleased
 
+## 0.6.0 - 2026-11-23
+
+- Require Account Kit `0.6.0` exactly.
+
 ### Added
 
 - Add `MasqueradeCallbackRegistry`, bound as `masquerade.callbacks`, so an application provider can
