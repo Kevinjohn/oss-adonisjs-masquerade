@@ -45,7 +45,7 @@ test('preserves a successful measurement when client close fails', async () => {
       return 'measured'
     }),
     (error: unknown) => {
-      assertFailures(error, [closeFailure])
+      assert.strictEqual(error, closeFailure)
       return true
     }
   )

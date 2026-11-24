@@ -88,13 +88,19 @@ test('native adapter rejects malformed canonical identifiers and preserves nativ
     10n ** 256n,
   ]) {
     identifier = malformed
-    assert.equal(await errorCode(() => native.authenticateActor(ctx)), 'E_MASQUERADE_UNAVAILABLE')
+    assert.equal(
+      await errorCode(() => native.authenticateActor(ctx)),
+      'E_MASQUERADE_ACCOUNT_ID_INVALID'
+    )
   }
   identifier = 'a'
   failure = new errors.E_UNAUTHORIZED_ACCESS('Missing credential', { guardDriverName: 'session' })
   await assert.rejects(() => native.authenticateActor(ctx), 'Missing credential')
   failure = new Error('native infrastructure failed')
-  assert.equal(await errorCode(() => native.authenticateActor(ctx)), 'E_MASQUERADE_UNAVAILABLE')
+  assert.equal(
+    await errorCode(() => native.authenticateActor(ctx)),
+    'E_MASQUERADE_ACTOR_AUTHENTICATION_FAILED'
+  )
 })
 
 test('native adapter retains configured namespace/guard and callback receivers', async ({
@@ -173,7 +179,10 @@ test('native adapter rejects an actual non-session raw guard before credential v
       }),
     },
   } as unknown as HttpContext
-  assert.equal(await errorCode(() => native.authenticateActor(ctx)), 'E_MASQUERADE_UNAVAILABLE')
+  assert.equal(
+    await errorCode(() => native.authenticateActor(ctx)),
+    'E_MASQUERADE_GUARD_DRIVER_MISMATCH'
+  )
   assert.equal(authentications, 0)
 })
 
@@ -204,7 +213,10 @@ test('native adapter maps guard lookup failures to unavailable and preserves una
   } as unknown as HttpContext
 
   lookupFailure = new Error('guard factory failed')
-  assert.equal(await errorCode(() => native.authenticateActor(ctx)), 'E_MASQUERADE_UNAVAILABLE')
+  assert.equal(
+    await errorCode(() => native.authenticateActor(ctx)),
+    'E_MASQUERADE_GUARD_CONSTRUCTION_FAILED'
+  )
 
   const unauthorized = new errors.E_UNAUTHORIZED_ACCESS('Missing credential', {
     guardDriverName: 'session',
@@ -244,6 +256,6 @@ test('native session inspection reports isActive exactly and rejects a non-boole
   active = 'false'
   assert.equal(
     await errorCode(() => native.authority.inspectAccount('7')),
-    'E_MASQUERADE_UNAVAILABLE'
+    'E_MASQUERADE_ACCOUNT_ELIGIBILITY_INVALID'
   )
 })

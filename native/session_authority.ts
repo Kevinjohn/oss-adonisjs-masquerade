@@ -1,4 +1,13 @@
-import { E_MASQUERADE_UNAVAILABLE } from '../src/errors.js'
+import {
+  E_MASQUERADE_ACCOUNT_ELIGIBILITY_INVALID,
+  E_MASQUERADE_ACCOUNT_ID_INVALID,
+  E_MASQUERADE_ACCOUNT_INCARNATION_INVALID,
+  E_MASQUERADE_ACTOR_AUTHENTICATION_FAILED,
+  E_MASQUERADE_ACTOR_IDENTITY_FAILED,
+  E_MASQUERADE_GUARD_CONSTRUCTION_FAILED,
+  E_MASQUERADE_GUARD_DRIVER_MISMATCH,
+} from '../src/errors.js'
+import { MasqueradeRequestException } from '../src/request_exception.js'
 import { errors } from '@adonisjs/auth'
 import { InvalidArgumentsException } from '@adonisjs/core/exceptions'
 import type { HttpContext } from '@adonisjs/core/http'
@@ -84,11 +93,12 @@ export function sessionAuthority<User>(
       typeof identifier === 'bigint' ||
       (typeof identifier === 'number' && Number.isSafeInteger(identifier))
     ))
-      throw new E_MASQUERADE_UNAVAILABLE()
+      throw new E_MASQUERADE_ACCOUNT_ID_INVALID()
     const id = String(identifier)
     const accountIncarnation = incarnation === 'id' ? id : incarnation(user)
-    if (!isBoundedString(id, 255) || !isBoundedString(accountIncarnation, 128))
-      throw new E_MASQUERADE_UNAVAILABLE()
+    if (!isBoundedString(id, 255)) throw new E_MASQUERADE_ACCOUNT_ID_INVALID()
+    if (!isBoundedString(accountIncarnation, 128))
+      throw new E_MASQUERADE_ACCOUNT_INCARNATION_INVALID()
     return { id, incarnation: accountIncarnation, user }
   }
   const authority: NativeAuthority<User> = {
@@ -101,7 +111,7 @@ export function sessionAuthority<User>(
       if (!account) return null
       const user = account.getOriginal()
       const active = await isActive(user)
-      if (typeof active !== 'boolean') throw new E_MASQUERADE_UNAVAILABLE()
+      if (typeof active !== 'boolean') throw new E_MASQUERADE_ACCOUNT_ELIGIBILITY_INVALID()
       return {
         subject: buildSubject(user, account.getId()),
         active,
@@ -118,21 +128,22 @@ export function sessionAuthority<User>(
         raw = ctx.auth.use(guard as never) as GuardContract<User>
       } catch (error) {
         if (error instanceof errors.E_UNAUTHORIZED_ACCESS) throw error
-        throw new E_MASQUERADE_UNAVAILABLE()
+        throw new E_MASQUERADE_GUARD_CONSTRUCTION_FAILED(error)
       }
-      if (raw.driverName !== 'session') throw new E_MASQUERADE_UNAVAILABLE()
+      if (raw.driverName !== 'session') throw new E_MASQUERADE_GUARD_DRIVER_MISMATCH()
       let user: User
       try {
         user = await raw.authenticate()
       } catch (error) {
         if (error instanceof errors.E_UNAUTHORIZED_ACCESS) throw error
-        throw new E_MASQUERADE_UNAVAILABLE()
+        throw new E_MASQUERADE_ACTOR_AUTHENTICATION_FAILED(error)
       }
       try {
         const account = await provider.createUserForGuard(user)
         return buildSubject(user, account.getId())
-      } catch {
-        throw new E_MASQUERADE_UNAVAILABLE()
+      } catch (error) {
+        if (error instanceof MasqueradeRequestException) throw error
+        throw new E_MASQUERADE_ACTOR_IDENTITY_FAILED(error)
       }
     },
   })

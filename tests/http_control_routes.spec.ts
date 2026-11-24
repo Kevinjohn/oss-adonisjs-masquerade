@@ -156,10 +156,10 @@ test.group('masqueradeRoutes', () => {
       } catch (error) {
         failure = error
       }
-      assert.instanceOf(failure, errors.E_MASQUERADE_UNAVAILABLE)
+      assert.instanceOf(failure, errors.E_MASQUERADE_CONTROL_GUARD_REQUIRED)
       assert.equal(
-        (failure as InstanceType<typeof errors.E_MASQUERADE_UNAVAILABLE>).code,
-        'E_MASQUERADE_UNAVAILABLE'
+        (failure as InstanceType<typeof errors.E_MASQUERADE_CONTROL_GUARD_REQUIRED>).code,
+        'E_MASQUERADE_CONTROL_GUARD_REQUIRED'
       )
       assert.equal(f.state.authenticateCount, authenticationCount)
       const stillActive = await service.status({ actorId: 'a' })

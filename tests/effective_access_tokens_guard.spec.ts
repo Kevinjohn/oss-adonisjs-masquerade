@@ -64,7 +64,10 @@ test('default effective token facade uses selected token actor and target, never
   } as unknown as HttpContext
   const effective = new EffectiveAccessTokensGuard(ctx, raw, 'api')
   // Without masqueradeContext, view-only and sensitive() are unenforced: the target is refused.
-  assert.equal(await errorCode(() => effective.authenticate()), 'E_MASQUERADE_UNAVAILABLE')
+  assert.equal(
+    await errorCode(() => effective.authenticate()),
+    'E_MASQUERADE_CONTEXT_MIDDLEWARE_MISSING'
+  )
   assert.isFalse(effective.isAuthenticated)
   markContextEnforced(ctx)
   assert.deepEqual(await effective.authenticate(), target)

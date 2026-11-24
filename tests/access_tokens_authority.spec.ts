@@ -99,9 +99,15 @@ test('access token authority denies a missing ability before provider lookup', a
     },
   } as unknown as HttpContext
 
-  assert.equal(await errorCode(() => native.authenticateActor(ctx)), 'E_MASQUERADE_NOT_ALLOWED')
+  assert.equal(
+    await errorCode(() => native.authenticateActor(ctx)),
+    'E_MASQUERADE_TOKEN_ABILITY_REQUIRED'
+  )
   abilityResult = 1
-  assert.equal(await errorCode(() => native.authenticateActor(ctx)), 'E_MASQUERADE_NOT_ALLOWED')
+  assert.equal(
+    await errorCode(() => native.authenticateActor(ctx)),
+    'E_MASQUERADE_TOKEN_ABILITY_REQUIRED'
+  )
   assert.equal(providerLookups, 0)
 })
 
@@ -148,10 +154,16 @@ test('access token authority preserves native 401 and sanitizes other native and
   })
   await assert.rejects(() => native.authenticateActor(ctx), 'Invalid bearer token')
   authenticationFailure = new Error('private native detail')
-  assert.equal(await errorCode(() => native.authenticateActor(ctx)), 'E_MASQUERADE_UNAVAILABLE')
+  assert.equal(
+    await errorCode(() => native.authenticateActor(ctx)),
+    'E_MASQUERADE_ACTOR_AUTHENTICATION_FAILED'
+  )
   authenticationFailure = undefined
   providerFailure = true
-  assert.equal(await errorCode(() => native.authenticateActor(ctx)), 'E_MASQUERADE_UNAVAILABLE')
+  assert.equal(
+    await errorCode(() => native.authenticateActor(ctx)),
+    'E_MASQUERADE_ACTOR_IDENTITY_FAILED'
+  )
 })
 
 test('access token authority rejects non-access-token guards before authentication', async ({
@@ -188,7 +200,10 @@ test('access token authority rejects non-access-token guards before authenticati
     },
   } as unknown as HttpContext
 
-  assert.equal(await errorCode(() => native.authenticateActor(ctx)), 'E_MASQUERADE_UNAVAILABLE')
+  assert.equal(
+    await errorCode(() => native.authenticateActor(ctx)),
+    'E_MASQUERADE_GUARD_DRIVER_MISMATCH'
+  )
   assert.equal(authentications, 0)
 })
 
@@ -286,6 +301,6 @@ test('standalone token inspection reports the account state, incarnation and sta
   active = 'false'
   assert.equal(
     await errorCode(() => adapter.authority.inspectAccount('7')),
-    'E_MASQUERADE_UNAVAILABLE'
+    'E_MASQUERADE_ACCOUNT_ELIGIBILITY_INVALID'
   )
 })

@@ -17,5 +17,8 @@ test('hashes opaque stamps with a512 UTF8 byte bound without storing plaintext',
     '\uDC00',
     'a\uD800b',
   ])
-    assert.throws(() => hashSecurityStamp(value), 'Masquerade is unavailable')
+    assert.throws(
+      () => hashSecurityStamp(value),
+      'The account authority returned an invalid security stamp'
+    )
 })

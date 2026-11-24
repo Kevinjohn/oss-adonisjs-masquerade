@@ -59,7 +59,7 @@ test('edit start requires canEdit literal true; absent, false, non-boolean and t
     const service = await f.create()
     assert.equal(
       await errorCode(() => f.start(service, {}, 'edit')),
-      value === 'throw' ? 'E_MASQUERADE_UNAVAILABLE' : 'E_MASQUERADE_NOT_ALLOWED'
+      value === 'throw' ? 'E_MASQUERADE_EDIT_POLICY_FAILED' : 'E_MASQUERADE_EDIT_DENIED'
     )
     assert.isNull(await f.store.read(f.owner))
     assert.equal(f.store.events[0].kind, 'start_denied')
@@ -126,7 +126,7 @@ test('edit policy follows global policy and precedes request policy on start and
   timeline.length = 0
   globalAllowed = false
   const deniedAdmission = await f.create()
-  assert.equal(await errorCode(() => deniedAdmission.resolve({})), 'E_MASQUERADE_CONTEXT_CHANGED')
+  assert.equal(await errorCode(() => deniedAdmission.resolve({})), 'E_MASQUERADE_MODE_INVALIDATED')
   assert.deepEqual(timeline, ['global'])
   assert.equal(f.store.events.at(-1)!.outcomeCode, 'policy_denied')
 
@@ -147,7 +147,7 @@ test('edit policy follows global policy and precedes request policy on start and
   const deniedStartService = await deniedStart.create()
   assert.equal(
     await errorCode(() => deniedStart.start(deniedStartService, {}, 'edit')),
-    'E_MASQUERADE_NOT_ALLOWED'
+    'E_MASQUERADE_START_DENIED'
   )
   assert.deepEqual(startCalls, ['global'])
 })
@@ -200,7 +200,7 @@ test('start denies false and truthy nonboolean policy; policy throws unavailable
     const service = await f.create()
     assert.equal(
       await errorCode(() => f.start(service)),
-      value === 'throw' ? 'E_MASQUERADE_UNAVAILABLE' : 'E_MASQUERADE_NOT_ALLOWED'
+      value === 'throw' ? 'E_MASQUERADE_START_POLICY_FAILED' : 'E_MASQUERADE_START_DENIED'
     )
     assert.isNull(await f.store.read(f.owner))
     assert.equal(f.store.events[0].kind, 'start_denied')
@@ -235,7 +235,7 @@ test('self-targeting, missing and ineligible targets are denied without target e
           }
         )
       ),
-      kind === 'self' ? 'E_MASQUERADE_INVALID_INPUT' : 'E_MASQUERADE_NOT_ALLOWED'
+      kind === 'self' ? 'E_MASQUERADE_INVALID_INPUT' : 'E_MASQUERADE_TARGET_INELIGIBLE'
     )
     assert.isNull(await f.store.read(f.owner))
     // A parsed request records the requested target and access, never an inspected incarnation;
@@ -297,7 +297,10 @@ test('start policy receives reason/request and admission policy gets neither; lo
   }
   const service = await f.create()
   const active = await f.start(service)
-  assert.equal(await errorCode(() => service.resolve({ denied: true })), 'E_MASQUERADE_NOT_ALLOWED')
+  assert.equal(
+    await errorCode(() => service.resolve({ denied: true })),
+    'E_MASQUERADE_REQUEST_DENIED'
+  )
   const inputs = calls as { reason?: string; request?: unknown }[]
   assert.equal(inputs[0].reason, 'support\ncase\t42')
   assert.property(inputs[0], 'request')
@@ -413,7 +416,7 @@ test('actor and target deletion invalidate an admitted native actor without targ
     })
     f.users.delete(id)
     const next = await f.create()
-    assert.equal(await errorCode(() => next.resolve({})), 'E_MASQUERADE_CONTEXT_CHANGED')
+    assert.equal(await errorCode(() => next.resolve({})), 'E_MASQUERADE_MODE_INVALIDATED')
     assert.equal((await f.store.read(f.owner))!.state, 'idle')
     assert.equal(
       f.store.events.at(-1)!.outcomeCode,
@@ -468,7 +471,7 @@ test('start refuses an operator whose inspected account is inactive or a differe
       const user = { ...result.subject.user, ...change }
       return { ...result, subject: { id: user.id, incarnation: user.incarnation, user } }
     }
-    assert.equal(await startResult(f), 'E_MASQUERADE_NOT_ALLOWED', JSON.stringify(change))
+    assert.equal(await startResult(f), 'E_MASQUERADE_ACTOR_INELIGIBLE', JSON.stringify(change))
     assert.isNull(await f.store.read(f.owner))
   }
 })
@@ -496,7 +499,13 @@ test('a non-boolean active flag or an inconsistent inspected subject fails close
         incarnation: 'other',
       })
     }
-    assert.equal(await startResult(f), 'E_MASQUERADE_UNAVAILABLE', kind)
+    assert.equal(
+      await startResult(f),
+      kind === 'active'
+        ? 'E_MASQUERADE_ACCOUNT_ELIGIBILITY_INVALID'
+        : 'E_MASQUERADE_ACTOR_SUBJECT_INVALID',
+      kind
+    )
     assert.isNull(await f.store.read(f.owner))
   }
 })
@@ -505,7 +514,7 @@ test('start and admission require canUseRequest to return exactly true', async (
   for (const value of [false, undefined, 1, 'yes']) {
     const f = fixture()
     f.config.policy.canUseRequest = async () => value as boolean
-    assert.equal(await startResult(f), 'E_MASQUERADE_NOT_ALLOWED', String(value))
+    assert.equal(await startResult(f), 'E_MASQUERADE_REQUEST_DENIED', String(value))
     assert.isNull(await f.store.read(f.owner))
     assert.equal(f.store.events.at(-1)!.kind, 'start_denied')
   }
@@ -515,7 +524,7 @@ test('start and admission require canUseRequest to return exactly true', async (
   const service = await f.create()
   await f.start(service)
   local = 'yes'
-  assert.equal(await errorCode(() => service.resolve({})), 'E_MASQUERADE_NOT_ALLOWED')
+  assert.equal(await errorCode(() => service.resolve({})), 'E_MASQUERADE_REQUEST_DENIED')
   assert.equal((await f.store.read(f.owner))!.state, 'active')
 })
 
@@ -539,7 +548,7 @@ test('admission invalidates a mode when inspection returns a different account',
     const service = await f.create()
     await f.start(service)
     swap = true
-    assert.equal(await errorCode(() => service.resolve({})), 'E_MASQUERADE_CONTEXT_CHANGED')
+    assert.equal(await errorCode(() => service.resolve({})), 'E_MASQUERADE_MODE_INVALIDATED')
     assert.include(f.store.events.at(-1), { kind: 'invalidated', outcomeCode: code })
   }
 })

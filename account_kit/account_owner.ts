@@ -1,4 +1,7 @@
-import { E_MASQUERADE_UNAVAILABLE } from '../src/errors.js'
+import {
+  E_MASQUERADE_ACCOUNT_ID_INVALID,
+  E_MASQUERADE_ACCOUNT_INCARNATION_INVALID,
+} from '../src/errors.js'
 import type { NativeAuthority } from '../src/types.js'
 import { isBoundedString } from '../src/bounded_string.js'
 
@@ -9,9 +12,9 @@ export function requireCanonicalId(value: unknown): string {
     typeof value !== 'bigint' &&
     !(typeof value === 'number' && Number.isSafeInteger(value))
   )
-    throw new E_MASQUERADE_UNAVAILABLE()
+    throw new E_MASQUERADE_ACCOUNT_ID_INVALID()
   const id = String(value)
-  if (!isBoundedString(id, 255)) throw new E_MASQUERADE_UNAVAILABLE()
+  if (!isBoundedString(id, 255)) throw new E_MASQUERADE_ACCOUNT_ID_INVALID()
   return id
 }
 
@@ -26,6 +29,7 @@ export function resolveAccountOwner<User>(
 ): { id: string; incarnation: string } {
   const id = requireCanonicalId(identifier)
   const accountIncarnation = incarnation === 'id' ? id : incarnation(user)
-  if (!isBoundedString(accountIncarnation, 128)) throw new E_MASQUERADE_UNAVAILABLE()
+  if (!isBoundedString(accountIncarnation, 128))
+    throw new E_MASQUERADE_ACCOUNT_INCARNATION_INVALID()
   return { id, incarnation: accountIncarnation }
 }

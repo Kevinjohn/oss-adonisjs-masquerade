@@ -11,7 +11,7 @@ controls its response: ordinary JSON may contain only a message, JSON:API may in
 session HTML requests may redirect to sign-in. Use the host's authentication and translation
 configuration for that case; do not match a Masquerade authentication code in the response.
 
-Add these English entries to the host application's `errors.json` locale file if it uses
+Add entries like these to the host application's `errors.json` locale file if it uses
 `@adonisjs/i18n`:
 
 ```json
@@ -20,21 +20,30 @@ Add these English entries to the host application's `errors.json` locale file if
   "E_MASQUERADE_ACTION_BLOCKED": "Action is blocked while masquerading",
   "E_MASQUERADE_ALREADY_ACTIVE": "Masquerade is already active",
   "E_MASQUERADE_CONTEXT_CHANGED": "Masquerade context changed",
+  "E_MASQUERADE_MODE_EXPIRED": "The active masquerade mode expired",
+  "E_MASQUERADE_MODE_INVALIDATED": "The active masquerade mode was invalidated",
+  "E_MASQUERADE_TRANSITION_CONFLICT": "The mode changed before the transition could be applied",
+  "E_MASQUERADE_UNKNOWN_COMMIT": "The masquerade transition could not be confirmed",
+  "E_MASQUERADE_TOKEN_ABILITY_REQUIRED": "The token lacks the ability required to control masquerade",
   "E_MASQUERADE_INVALID_INPUT": "Invalid masquerade input",
   "E_MASQUERADE_CONTEXT_REQUIRED": "Masquerade context required",
   "E_MASQUERADE_UNAVAILABLE": "Masquerade is unavailable"
 }
 ```
 
-| Situation                                                           | Response                            | Recovery                                                                                                        |
-| ------------------------------------------------------------------- | ----------------------------------- | --------------------------------------------------------------------------------------------------------------- |
-| Missing control or business context                                 | `428 E_MASQUERADE_CONTEXT_REQUIRED` | Read status and rebuild the action using its current token.                                                     |
-| Stale token, expired mode, or another tab/device changed the mode   | `409 E_MASQUERADE_CONTEXT_CHANGED`  | Refresh status; require deliberate resubmission of rebuilt input. Never refresh a token and replay old intent.  |
-| Start submitted while a mode is active                              | `409 E_MASQUERADE_ALREADY_ACTIVE`   | Read current status and stop before starting another mode.                                                      |
-| View-mode mutation, unmarked edit mutation, or sensitive route      | `403 E_MASQUERADE_ACTION_BLOCKED`   | Use `blockedBy` to explain the denial. Edit and a mutation marker do not grant customer permission.             |
-| Store or service unavailable                                        | `503 E_MASQUERADE_UNAVAILABLE`      | After an uncertain control response, GET status before deciding what to do. Do not blindly retry the old start. |
-| Invalid fields, duration, or reason                                 | `422 E_MASQUERADE_INVALID_INPUT`    | Show the validation problem and ask the operator to submit corrected data with the current token.               |
-| Start denied by eligibility or policy, or a token lacks the ability | `403 E_MASQUERADE_NOT_ALLOWED`      | Show a generic denial; it does not say whether the target exists. See [troubleshooting](troubleshooting.md).    |
+| Situation                                                            | Response                                                                                                | Recovery                                                                                            |
+| -------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------- |
+| Missing control or business context                                  | `428 E_MASQUERADE_CONTEXT_REQUIRED`                                                                     | Read status and rebuild the action using its current token.                                         |
+| Stale or conflicting context tokens                                  | `409 E_MASQUERADE_CONTEXT_CHANGED`                                                                      | Refresh status and rebuild the action.                                                              |
+| Mode expired, invalidated, or changed during a concurrent transition | `409 E_MASQUERADE_MODE_EXPIRED`, `E_MASQUERADE_MODE_INVALIDATED`, or `E_MASQUERADE_TRANSITION_CONFLICT` | Refresh status and ask the operator to deliberately rebuild the action.                             |
+| Start submitted while a mode is active                               | `409 E_MASQUERADE_ALREADY_ACTIVE`                                                                       | Read current status and stop before starting another mode.                                          |
+| View-mode mutation, unmarked edit mutation, or sensitive route       | `403 E_MASQUERADE_ACTION_BLOCKED`                                                                       | Use `blockedBy` to explain the denial. Edit and a mutation marker do not grant customer permission. |
+| A transition could not be confirmed                                  | `503 E_MASQUERADE_UNKNOWN_COMMIT`                                                                       | Read GET status before deciding what to do.                                                         |
+| Guard, adapter or middleware wiring failed                           | `503 E_MASQUERADE_UNAVAILABLE`                                                                          | Use the server exception or diagnostics to identify the wiring fault.                               |
+| An operational failure occurred                                      | A cause-specific 503 such as `E_MASQUERADE_STORE_READ_FAILED` or `E_MASQUERADE_START_POLICY_FAILED`     | Check the failing integration, then read status before rebuilding the action.                       |
+| Invalid fields, duration, or reason                                  | `422 E_MASQUERADE_INVALID_INPUT`                                                                        | Show the validation problem and ask the operator to submit corrected data with the current token.   |
+| Eligibility or host policy denied access                             | `403 E_MASQUERADE_NOT_ALLOWED`                                                                          | Show a generic denial to protect account eligibility.                                               |
+| Token lacks the control ability                                      | `403 E_MASQUERADE_TOKEN_ABILITY_REQUIRED`                                                               | Check the token's abilities.                                                                        |
 
 `E_MASQUERADE_UNAUTHENTICATED` is declared for compatibility and never emitted; native Auth answers
 unauthenticated requests. Setup failures raise `E_MASQUERADE_INVALID_CONFIGURATION` or
@@ -45,7 +54,10 @@ package root's `errors` namespace. A blocked action takes its route cause direct
 `new errors.E_MASQUERADE_ACTION_BLOCKED('sensitive')`. Setup exceptions take the rejected
 configuration field. Use `isMasqueradeRequestError(error)` from
 `@kevinjohn/adonisjs-masquerade/http` if a custom response needs to recognise any package request
-exception.
+exception. Read its `.code` for server diagnostics and `.responseCode` when rendering or
+flashing an error to a client. Wiring exceptions share a response to protect configuration
+details. Eligibility and policy denials share a response to protect account existence and
+eligibility.
 
 The host can branch on `blockedBy` before its normal exception handling. This helper shows
 three presentation paths: JSON passes to the standard handler, HTML renders a host page, and

@@ -27,7 +27,7 @@ With that stamp, these changes were checked against a running app:
 | Email or name changed                | Continues   |
 
 When a mode ends this way, the operator's next customer request gets
-`409 E_MASQUERADE_CONTEXT_CHANGED` and status reads idle. The operator starts again if they still
+`409 E_MASQUERADE_MODE_INVALIDATED` and status reads idle. The operator starts again if they still
 need access.
 
 ## End support for one account on demand
@@ -110,7 +110,7 @@ test('a new security stamp ends the mode', async ({ client }) => {
     .header('accept', 'application/json')
     .loginAs(operator)
   response.assertStatus(409)
-  response.assertBodyContains({ errors: [{ code: 'E_MASQUERADE_CONTEXT_CHANGED' }] })
+  response.assertBodyContains({ errors: [{ code: 'E_MASQUERADE_MODE_INVALIDATED' }] })
 })
 ```
 

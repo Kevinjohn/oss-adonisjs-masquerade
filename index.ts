@@ -1,6 +1,10 @@
 /** Server-side account masquerade core. SQL and framework adapters are separate subpaths. */
 export * from './src/types.js'
-export type { MasqueradeBlockedBy, MasqueradeErrorCode } from './src/errors.js'
+export type {
+  MasqueradeBlockedBy,
+  MasqueradeErrorCode,
+  MasqueradeResponseCode,
+} from './src/errors.js'
 export type { MasqueradeSetupErrorCode, MasqueradeSetupErrorField } from './src/errors.js'
 export * as errors from './src/errors.js'
 export { defineConfig } from './src/define_config.js'

@@ -36,7 +36,7 @@ test('exact expiry clears durably without stamp access and rejects the triggerin
 
   f.state.malformedStamp = true
   f.state.inspectThrows = true
-  assert.equal(await errorCode(() => service.resolve({})), 'E_MASQUERADE_CONTEXT_CHANGED')
+  assert.equal(await errorCode(() => service.resolve({})), 'E_MASQUERADE_MODE_EXPIRED')
   const expired = await f.store.read(f.owner)
   assert.equal(expired!.state, 'idle')
   assert.equal(expired!.revision, storedActive.revision + 1)
@@ -80,7 +80,7 @@ for (const invalidation of [
     if (invalidation === 'edit_denied') f.state.edit = false
     if (invalidation === 'target_incarnation') f.users.get('b')!.incarnation = 'new-b'
     const next = await f.create()
-    assert.equal(await errorCode(() => next.resolve({})), 'E_MASQUERADE_CONTEXT_CHANGED')
+    assert.equal(await errorCode(() => next.resolve({})), 'E_MASQUERADE_MODE_INVALIDATED')
     assert.equal((await f.store.read(f.owner))!.state, 'idle')
     assert.equal(f.store.events.at(-1)!.kind, 'invalidated')
     assert.equal(
@@ -114,7 +114,7 @@ test('edit admission without canEdit invalidates; throwing canEdit preserves mod
     const service = await f.create()
     assert.equal(
       await errorCode(() => service.resolve({})),
-      failure === 'absent' ? 'E_MASQUERADE_CONTEXT_CHANGED' : 'E_MASQUERADE_UNAVAILABLE'
+      failure === 'absent' ? 'E_MASQUERADE_MODE_INVALIDATED' : 'E_MASQUERADE_EDIT_POLICY_FAILED'
     )
     assert.equal((await f.store.read(f.owner))!.state, failure === 'absent' ? 'idle' : 'active')
     if (failure === 'absent') assert.equal(f.store.events.at(-1)!.outcomeCode, 'edit_denied')
@@ -144,7 +144,7 @@ test('a legacy stamp callback is unused and a changed inspected stamp still inva
   const admitted = await next.resolve({})
   assert.equal(admitted.effectiveId, 'b')
   f.users.get('a')!.stamp = 'changed'
-  assert.equal(await errorCode(() => next.resolve({})), 'E_MASQUERADE_CONTEXT_CHANGED')
+  assert.equal(await errorCode(() => next.resolve({})), 'E_MASQUERADE_MODE_INVALIDATED')
   assert.equal((await f.store.read(f.owner))!.state, 'idle')
   assert.equal(f.store.events.at(-1)!.kind, 'invalidated')
   assert.equal(f.store.events.at(-1)!.outcomeCode, 'actor_stamp')
@@ -164,7 +164,10 @@ test('credential and local denial preserve mode; native rejection writes no pack
     () => service.resolve({ credentialInvalid: true }),
   ])
     assert.equal(await errorCode(operation), 'native authentication failed')
-  assert.equal(await errorCode(() => service.resolve({ denied: true })), 'E_MASQUERADE_NOT_ALLOWED')
+  assert.equal(
+    await errorCode(() => service.resolve({ denied: true })),
+    'E_MASQUERADE_REQUEST_DENIED'
+  )
   assert.deepEqual(await f.store.read(f.owner), before)
   assert.lengthOf(f.store.events, 1)
 })
@@ -184,7 +187,14 @@ for (const failure of ['policy', 'inspect', 'read'] as const) {
       f.store.read = async () => {
         throw new Error('offline')
       }
-    assert.equal(await errorCode(() => service.resolve({})), 'E_MASQUERADE_UNAVAILABLE')
+    assert.equal(
+      await errorCode(() => service.resolve({})),
+      {
+        policy: 'E_MASQUERADE_START_POLICY_FAILED',
+        inspect: 'E_MASQUERADE_ACCOUNT_INSPECTION_FAILED',
+        read: 'E_MASQUERADE_STORE_READ_FAILED',
+      }[failure]
+    )
     f.store.read = read
     assert.deepEqual(await f.store.read(f.owner), before)
     assert.lengthOf(f.store.events, 1)
@@ -207,9 +217,9 @@ test('memoizes admission outcomes and freezes safe identity across later mode ch
   assert.equal(actorAfterStop.effectiveId, 'a')
   const denied = { denied: true }
   await f.start(service)
-  assert.equal(await errorCode(() => service.resolve(denied)), 'E_MASQUERADE_NOT_ALLOWED')
+  assert.equal(await errorCode(() => service.resolve(denied)), 'E_MASQUERADE_REQUEST_DENIED')
   denied.denied = false
-  assert.equal(await errorCode(() => service.resolve(denied)), 'E_MASQUERADE_NOT_ALLOWED')
+  assert.equal(await errorCode(() => service.resolve(denied)), 'E_MASQUERADE_REQUEST_DENIED')
   const effectiveUserAfterDeniedAdmission = await service.resolve({})
   assert.equal(effectiveUserAfterDeniedAdmission.effectiveId, 'b')
 })
@@ -226,9 +236,15 @@ for (const invalidation of ['expiry', 'stamp', 'policy'] as const) {
     if (invalidation === 'stamp') f.users.get('b')!.stamp = 'changed'
     if (invalidation === 'policy') f.state.policy = false
     const request = {}
-    assert.equal(await errorCode(() => service.resolve(request)), 'E_MASQUERADE_CONTEXT_CHANGED')
+    assert.equal(
+      await errorCode(() => service.resolve(request)),
+      invalidation === 'expiry' ? 'E_MASQUERADE_MODE_EXPIRED' : 'E_MASQUERADE_MODE_INVALIDATED'
+    )
     const count = f.state.authenticateCount
-    assert.equal(await errorCode(() => service.resolve(request)), 'E_MASQUERADE_CONTEXT_CHANGED')
+    assert.equal(
+      await errorCode(() => service.resolve(request)),
+      invalidation === 'expiry' ? 'E_MASQUERADE_MODE_EXPIRED' : 'E_MASQUERADE_MODE_INVALIDATED'
+    )
     assert.equal(f.state.authenticateCount, count)
     const fresh = await service.resolve({})
     assert.equal(fresh.effectiveId, 'a')
@@ -247,7 +263,7 @@ test('admission refuses a clock past year 9999 rather than comparing it as text'
   const service = await f.create()
   await f.start(service)
   f.state.now = Date.parse('+010000-01-01T00:00:00Z')
-  assert.equal(await errorCode(() => service.resolve({})), 'E_MASQUERADE_UNAVAILABLE')
+  assert.equal(await errorCode(() => service.resolve({})), 'E_MASQUERADE_CLOCK_INVALID')
   assert.equal((await f.store.read(f.owner))!.state, 'active')
 })
 
@@ -282,7 +298,10 @@ for (const cause of ['expiry', 'policy'] as const) {
     assert.isFalse(idle.isMasquerading)
     assert.notEqual(idle.contextToken, active.contextToken)
     assert.deepEqual(idle, await service.status({}))
-    assert.equal(await errorCode(() => service.resolve(request)), 'E_MASQUERADE_CONTEXT_CHANGED')
+    assert.equal(
+      await errorCode(() => service.resolve(request)),
+      cause === 'expiry' ? 'E_MASQUERADE_MODE_EXPIRED' : 'E_MASQUERADE_MODE_INVALIDATED'
+    )
     f.state.policy = true
     const restarted = await f.start(service)
     assert.isTrue(restarted.isMasquerading)
@@ -299,7 +318,7 @@ test('resolveView does not turn local policy, credentials or store failures into
   await f.start(service)
   assert.equal(
     await errorCode(() => service.resolveView({ denied: true })),
-    'E_MASQUERADE_NOT_ALLOWED'
+    'E_MASQUERADE_REQUEST_DENIED'
   )
   await assert.rejects(
     () => service.resolveView({ credentialInvalid: true }),
@@ -308,5 +327,5 @@ test('resolveView does not turn local policy, credentials or store failures into
   f.store.read = async () => {
     throw new Error('store down')
   }
-  assert.equal(await errorCode(() => service.resolveView({})), 'E_MASQUERADE_UNAVAILABLE')
+  assert.equal(await errorCode(() => service.resolveView({})), 'E_MASQUERADE_STORE_READ_FAILED')
 })

@@ -1,4 +1,15 @@
-import { E_MASQUERADE_NOT_ALLOWED, E_MASQUERADE_UNAVAILABLE } from '../src/errors.js'
+import {
+  E_MASQUERADE_ACCOUNT_OWNER_MISMATCH,
+  E_MASQUERADE_ACCOUNT_USER_INVALID,
+  E_MASQUERADE_ACTOR_AUTHENTICATION_FAILED,
+  E_MASQUERADE_GUARD_CONSTRUCTION_FAILED,
+  E_MASQUERADE_GUARD_DRIVER_MISMATCH,
+  E_MASQUERADE_MANAGED_CREDENTIAL_CHECK_FAILED,
+  E_MASQUERADE_SECURITY_STAMP_INVALID,
+  E_MASQUERADE_TOKEN_ABILITY_CHECK_FAILED,
+  E_MASQUERADE_TOKEN_ABILITY_REQUIRED,
+} from '../src/errors.js'
+import { MasqueradeRequestException } from '../src/request_exception.js'
 import { errors } from '@adonisjs/auth'
 import { InvalidArgumentsException } from '@adonisjs/core/exceptions'
 import type { HttpContext } from '@adonisjs/core/http'
@@ -124,7 +135,7 @@ function isKitDenial(error: unknown, code: string): boolean {
 
 function stamp(revision: string | null): string {
   if (revision === null) return 'account-kit:null'
-  if (typeof revision !== 'string' || !revision) throw new E_MASQUERADE_UNAVAILABLE()
+  if (typeof revision !== 'string' || !revision) throw new E_MASQUERADE_SECURITY_STAMP_INVALID()
   return `account-kit:revision:${revision}`
 }
 
@@ -209,9 +220,10 @@ export function accountKitAuthority<User>(
       if (canonical !== id) return null
       const account = await provider.findById(canonical)
       if (!account) return null
-      if (requireCanonicalId(account.getId()) !== canonical) throw new E_MASQUERADE_UNAVAILABLE()
+      if (requireCanonicalId(account.getId()) !== canonical)
+        throw new E_MASQUERADE_ACCOUNT_OWNER_MISMATCH()
       const user = account.getOriginal()
-      if (!user || typeof user !== 'object') throw new E_MASQUERADE_UNAVAILABLE()
+      if (!user || typeof user !== 'object') throw new E_MASQUERADE_ACCOUNT_USER_INVALID()
       return {
         subject: buildAccountSubject(user, canonical),
         active: snapshot.account.active,
@@ -230,25 +242,25 @@ export function accountKitAuthority<User>(
       let raw: GuardContract<User & { currentAccessToken?: { allows(ability: string): unknown } }>
       try {
         raw = ctx.auth.use(guard as never) as typeof raw
-      } catch {
-        throw new E_MASQUERADE_UNAVAILABLE()
+      } catch (error) {
+        throw new E_MASQUERADE_GUARD_CONSTRUCTION_FAILED(error)
       }
-      if (raw.driverName !== strategy) throw new E_MASQUERADE_UNAVAILABLE()
+      if (raw.driverName !== strategy) throw new E_MASQUERADE_GUARD_DRIVER_MISMATCH()
       let user: User & { currentAccessToken?: { allows(ability: string): unknown } }
       try {
         user = await raw.authenticate()
       } catch (error) {
         if (error instanceof errors.E_UNAUTHORIZED_ACCESS) throw error
-        throw new E_MASQUERADE_UNAVAILABLE()
+        throw new E_MASQUERADE_ACTOR_AUTHENTICATION_FAILED(error)
       }
       if (ability) {
         let allowed = false
         try {
           allowed = user.currentAccessToken?.allows(ability) === true
-        } catch {
-          throw new E_MASQUERADE_UNAVAILABLE()
+        } catch (error) {
+          throw new E_MASQUERADE_TOKEN_ABILITY_CHECK_FAILED(error)
         }
-        if (!allowed) throw new E_MASQUERADE_NOT_ALLOWED()
+        if (!allowed) throw new E_MASQUERADE_TOKEN_ABILITY_REQUIRED()
       }
       try {
         const input = await managedGuard.current(ctx)
@@ -257,7 +269,7 @@ export function accountKitAuthority<User>(
         const providerAccount = await provider.createUserForGuard(user)
         const id = requireCanonicalId(providerAccount.getId())
         if (requireCanonicalId(account.id) !== id || requireCanonicalId(input.userId) !== id)
-          throw new E_MASQUERADE_UNAVAILABLE()
+          throw new E_MASQUERADE_ACCOUNT_OWNER_MISMATCH()
         return buildAccountSubject(user, id)
       } catch (error) {
         if (error instanceof errors.E_UNAUTHORIZED_ACCESS) throw error
@@ -265,7 +277,8 @@ export function accountKitAuthority<User>(
           throw new errors.E_UNAUTHORIZED_ACCESS('Invalid session', {
             guardDriverName: strategy,
           })
-        throw new E_MASQUERADE_UNAVAILABLE()
+        if (error instanceof MasqueradeRequestException) throw error
+        throw new E_MASQUERADE_MANAGED_CREDENTIAL_CHECK_FAILED(error)
       }
     },
   })

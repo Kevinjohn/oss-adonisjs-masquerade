@@ -1,12 +1,33 @@
-import { MasqueradeRequestException } from './request_exception.js'
 import {
+  E_MASQUERADE_ACCOUNT_ELIGIBILITY_INVALID,
+  E_MASQUERADE_ACCOUNT_INSPECTION_FAILED,
+  E_MASQUERADE_ACTOR_INELIGIBLE,
   E_MASQUERADE_ALREADY_ACTIVE,
-  E_MASQUERADE_CONTEXT_CHANGED,
+  E_MASQUERADE_AUDIT_WRITE_FAILED,
+  E_MASQUERADE_CLOCK_INVALID,
+  E_MASQUERADE_CONTROL_OPERATION_FAILED,
+  E_MASQUERADE_EDIT_DENIED,
+  E_MASQUERADE_EDIT_POLICY_FAILED,
   E_MASQUERADE_INVALID_INPUT,
-  E_MASQUERADE_NOT_ALLOWED,
-  E_MASQUERADE_UNAVAILABLE,
+  E_MASQUERADE_INVALID_STORE,
+  E_MASQUERADE_MODE_EXPIRED,
+  E_MASQUERADE_MODE_INVALIDATED,
+  E_MASQUERADE_MODE_OWNER_INVALID,
+  E_MASQUERADE_MODE_ROW_INVALID,
+  E_MASQUERADE_REQUEST_DENIED,
+  E_MASQUERADE_REQUEST_POLICY_FAILED,
+  E_MASQUERADE_REVISION_EXHAUSTED,
+  E_MASQUERADE_SECURITY_STAMP_INVALID,
+  E_MASQUERADE_START_DENIED,
+  E_MASQUERADE_START_POLICY_FAILED,
+  E_MASQUERADE_STORE_COMMIT_FAILED,
+  E_MASQUERADE_STORE_OPEN_FAILED,
+  E_MASQUERADE_STORE_READ_FAILED,
+  E_MASQUERADE_TARGET_INELIGIBLE,
+  E_MASQUERADE_TRANSITION_CONFLICT,
   E_MASQUERADE_UNKNOWN_COMMIT,
 } from './errors.js'
+import { MasqueradeRequestException } from './request_exception.js'
 import { randomBytes, randomUUID } from 'node:crypto'
 import { InvalidArgumentsException } from '@adonisjs/core/exceptions'
 import { completeConfig, defineConfig } from './define_config.js'
@@ -60,7 +81,7 @@ import type {
  *
  * @throws `E_MASQUERADE_INVALID_CONFIGURATION` for an invalid config, or
  *   `E_MASQUERADE_INVALID_STORE` for a store that is missing methods or test-only outside tests.
- * @throws `E_MASQUERADE_UNAVAILABLE` when the store factory throws.
+ * @throws `E_MASQUERADE_STORE_OPEN_FAILED` when the store factory throws.
  * @throws {InvalidArgumentsException} When `authenticateActor` or an observer or diagnostic port is missing.
  *
  * @example
@@ -86,7 +107,12 @@ export async function createMasqueradeService<User, Request extends object>(
   try {
     validated = completeConfig(defineConfig(config))
   } catch (error) {
-    reportDiagnostic(dependencies, 'configuration', 'validate', 'E_MASQUERADE_UNAVAILABLE')
+    reportDiagnostic(
+      dependencies,
+      'configuration',
+      'validate',
+      'E_MASQUERADE_INVALID_CONFIGURATION'
+    )
     throw error
   }
   if (typeof dependencies.authenticateActor !== 'function')
@@ -106,7 +132,14 @@ export async function createMasqueradeService<User, Request extends object>(
       'recordControlOutcome',
     ])
   } catch (error) {
-    reportDiagnostic(dependencies, 'store', 'open', 'E_MASQUERADE_UNAVAILABLE')
+    reportDiagnostic(
+      dependencies,
+      'store',
+      'open',
+      error instanceof E_MASQUERADE_INVALID_STORE
+        ? E_MASQUERADE_INVALID_STORE.code
+        : E_MASQUERADE_STORE_OPEN_FAILED.code
+    )
     throw error
   }
   return new CoreService(validated, dependencies, store)
@@ -146,20 +179,17 @@ class CoreService<User, Request extends object> implements MasqueradeService<Req
     try {
       const date = (this.dependencies.clock ?? (() => new Date()))()
       const value = date.toISOString()
-      if (!/^\d{4}-/.test(value)) throw new E_MASQUERADE_UNAVAILABLE()
+      if (!/^\d{4}-/.test(value)) throw new E_MASQUERADE_CLOCK_INVALID()
       return value
-    } catch {
-      throw new E_MASQUERADE_UNAVAILABLE()
+    } catch (error) {
+      if (error instanceof E_MASQUERADE_CLOCK_INVALID) throw error
+      throw new E_MASQUERADE_CLOCK_INVALID(error)
     }
   }
   private async authenticateActor(request: Request): Promise<Subject<User>> {
     // Native authentication errors retain their native rendering and never enter the audit boundary.
     const subject = await this.dependencies.authenticateActor(request)
-    try {
-      return requireValidSubject(subject, this.config.authority)
-    } catch {
-      throw new E_MASQUERADE_UNAVAILABLE()
-    }
+    return requireValidSubject(subject, this.config.authority)
   }
   private buildOwnerKey(actor: Subject<User>): OwnerKey {
     return {
@@ -169,11 +199,22 @@ class CoreService<User, Request extends object> implements MasqueradeService<Req
     }
   }
   private async read(owner: OwnerKey): Promise<ModeRow | null> {
+    let row: ModeRow | null
     try {
-      return requireValidModeRow(await this.store.read(owner), owner)
-    } catch {
-      reportDiagnostic(this.dependencies, 'store', 'read', 'E_MASQUERADE_UNAVAILABLE')
-      throw new E_MASQUERADE_UNAVAILABLE()
+      row = await this.store.read(owner)
+    } catch (error) {
+      const failure =
+        error instanceof MasqueradeRequestException
+          ? error
+          : new E_MASQUERADE_STORE_READ_FAILED(error)
+      reportDiagnostic(this.dependencies, 'store', 'read', failure.code)
+      throw failure
+    }
+    try {
+      return requireValidModeRow(row, owner)
+    } catch (error) {
+      reportDiagnostic(this.dependencies, 'store', 'read', E_MASQUERADE_MODE_ROW_INVALID.code)
+      throw error
     }
   }
   async [checkActiveMode](owner: OwnerKey): Promise<boolean> {
@@ -182,7 +223,7 @@ class CoreService<User, Request extends object> implements MasqueradeService<Req
       typeof owner.actorId !== 'string' ||
       typeof owner.actorIncarnation !== 'string'
     )
-      throw new E_MASQUERADE_UNAVAILABLE()
+      throw new E_MASQUERADE_MODE_OWNER_INVALID()
     const row = await this.read(owner)
     return row?.state === 'active' && this.readCurrentTimestamp() < row.expiresAt
   }
@@ -221,8 +262,8 @@ class CoreService<User, Request extends object> implements MasqueradeService<Req
     outcomeCode,
     attempted,
   }: ControlOutcomeInput): Promise<void> {
+    const event = this.createAuditEvent({ owner, row, kind, outcomeCode })
     try {
-      const event = this.createAuditEvent({ owner, row, kind, outcomeCode })
       if (kind === 'start_denied') {
         delete event.targetId
         delete event.targetIncarnation
@@ -230,14 +271,14 @@ class CoreService<User, Request extends object> implements MasqueradeService<Req
         Object.assign(event, attempted)
       }
       await this.store.recordControlOutcome(event)
-    } catch {
+    } catch (error) {
       reportDiagnostic(
         this.dependencies,
         'store',
         'record_control_outcome',
-        'E_MASQUERADE_UNAVAILABLE'
+        E_MASQUERADE_AUDIT_WRITE_FAILED.code
       )
-      throw new E_MASQUERADE_UNAVAILABLE()
+      throw new E_MASQUERADE_AUDIT_WRITE_FAILED(error)
     }
   }
   private async commit(
@@ -256,12 +297,19 @@ class CoreService<User, Request extends object> implements MasqueradeService<Req
       })
     } catch (error) {
       if (!(error instanceof E_MASQUERADE_UNKNOWN_COMMIT))
-        reportDiagnostic(this.dependencies, 'store', 'compare_and_set', 'E_MASQUERADE_UNAVAILABLE')
+        reportDiagnostic(
+          this.dependencies,
+          'store',
+          'compare_and_set',
+          error instanceof MasqueradeRequestException
+            ? error.code
+            : E_MASQUERADE_STORE_COMMIT_FAILED.code
+        )
       throw error
     }
     if (outcome === 'conflict') {
       await this.read(owner)
-      throw new E_MASQUERADE_CONTEXT_CHANGED()
+      throw new E_MASQUERADE_TRANSITION_CONFLICT()
     }
   }
   private async clear(
@@ -281,16 +329,15 @@ class CoreService<User, Request extends object> implements MasqueradeService<Req
       const snapshot = await this.config.authority.inspectAccount(id)
       if (!snapshot) return null
       requireValidSubject(snapshot.subject, this.config.authority)
-      if (typeof snapshot.active !== 'boolean') throw new E_MASQUERADE_UNAVAILABLE()
+      if (typeof snapshot.active !== 'boolean') throw new E_MASQUERADE_ACCOUNT_ELIGIBILITY_INVALID()
       return snapshot
-    } catch {
-      reportDiagnostic(
-        this.dependencies,
-        'authority',
-        'inspect_account',
-        'E_MASQUERADE_UNAVAILABLE'
-      )
-      throw new E_MASQUERADE_UNAVAILABLE()
+    } catch (error) {
+      const failure =
+        error instanceof MasqueradeRequestException
+          ? error
+          : new E_MASQUERADE_ACCOUNT_INSPECTION_FAILED(error)
+      reportDiagnostic(this.dependencies, 'authority', 'inspect_account', failure.code)
+      throw failure
     }
   }
   private isEligibleActor(
@@ -318,11 +365,21 @@ class CoreService<User, Request extends object> implements MasqueradeService<Req
           ...(reason === undefined ? {} : { reason }),
         })) === true
       if (!allowed)
-        reportDiagnostic(this.dependencies, 'policy', 'can_masquerade', 'E_MASQUERADE_NOT_ALLOWED')
+        reportDiagnostic(
+          this.dependencies,
+          'policy',
+          'can_masquerade',
+          E_MASQUERADE_START_DENIED.code
+        )
       return allowed
-    } catch {
-      reportDiagnostic(this.dependencies, 'policy', 'can_masquerade', 'E_MASQUERADE_UNAVAILABLE')
-      throw new E_MASQUERADE_UNAVAILABLE()
+    } catch (error) {
+      reportDiagnostic(
+        this.dependencies,
+        'policy',
+        'can_masquerade',
+        E_MASQUERADE_START_POLICY_FAILED.code
+      )
+      throw new E_MASQUERADE_START_POLICY_FAILED(error)
     }
   }
   private async assertRequestPermission(
@@ -334,13 +391,23 @@ class CoreService<User, Request extends object> implements MasqueradeService<Req
     let allowed
     try {
       allowed = await this.config.policy.canUseRequest({ actor, target, request })
-    } catch {
-      reportDiagnostic(this.dependencies, 'policy', 'can_use_request', 'E_MASQUERADE_UNAVAILABLE')
-      throw new E_MASQUERADE_UNAVAILABLE()
+    } catch (error) {
+      reportDiagnostic(
+        this.dependencies,
+        'policy',
+        'can_use_request',
+        E_MASQUERADE_REQUEST_POLICY_FAILED.code
+      )
+      throw new E_MASQUERADE_REQUEST_POLICY_FAILED(error)
     }
     if (allowed !== true) {
-      reportDiagnostic(this.dependencies, 'policy', 'can_use_request', 'E_MASQUERADE_NOT_ALLOWED')
-      throw new E_MASQUERADE_NOT_ALLOWED()
+      reportDiagnostic(
+        this.dependencies,
+        'policy',
+        'can_use_request',
+        E_MASQUERADE_REQUEST_DENIED.code
+      )
+      throw new E_MASQUERADE_REQUEST_DENIED()
     }
   }
   private async checkEditPermission(
@@ -358,11 +425,16 @@ class CoreService<User, Request extends object> implements MasqueradeService<Req
           ...(reason === undefined ? {} : { reason }),
         })) === true
       if (!allowed)
-        reportDiagnostic(this.dependencies, 'policy', 'can_edit', 'E_MASQUERADE_NOT_ALLOWED')
+        reportDiagnostic(this.dependencies, 'policy', 'can_edit', E_MASQUERADE_EDIT_DENIED.code)
       return allowed
-    } catch {
-      reportDiagnostic(this.dependencies, 'policy', 'can_edit', 'E_MASQUERADE_UNAVAILABLE')
-      throw new E_MASQUERADE_UNAVAILABLE()
+    } catch (error) {
+      reportDiagnostic(
+        this.dependencies,
+        'policy',
+        'can_edit',
+        E_MASQUERADE_EDIT_POLICY_FAILED.code
+      )
+      throw new E_MASQUERADE_EDIT_POLICY_FAILED(error)
     }
   }
   async status(request: Request): Promise<ModeView> {
@@ -409,7 +481,7 @@ class CoreService<User, Request extends object> implements MasqueradeService<Req
       if (row?.state === 'active' && this.readCurrentTimestamp() >= row.expiresAt) {
         // The denial is recorded against the idle row this request committed.
         row = await this.clear(owner, row, 'expired', 'expired')
-        throw new E_MASQUERADE_CONTEXT_CHANGED()
+        throw new E_MASQUERADE_MODE_EXPIRED()
       }
       // §6.4 Active: any second start is 409 with no replacement or extension (I02).
       if (row?.state === 'active') throw new E_MASQUERADE_ALREADY_ACTIVE()
@@ -428,8 +500,8 @@ class CoreService<User, Request extends object> implements MasqueradeService<Req
       // §7.3: self-targeting is invalid input.
       if (target?.subject.id === actor.id) throw new E_MASQUERADE_INVALID_INPUT()
       // §7.1 step 2: a missing or ineligible actor or target gets the generic denial.
-      if (!this.isEligibleActor(currentActor, actor) || !target?.active)
-        throw new E_MASQUERADE_NOT_ALLOWED()
+      if (!this.isEligibleActor(currentActor, actor)) throw new E_MASQUERADE_ACTOR_INELIGIBLE()
+      if (!target?.active) throw new E_MASQUERADE_TARGET_INELIGIBLE()
       // §6.4 Absent/idle: start requires canMasquerade to return true (§7.1 step 3).
       if (
         !(await this.checkMasqueradePermission(
@@ -439,7 +511,7 @@ class CoreService<User, Request extends object> implements MasqueradeService<Req
           reason ?? undefined
         ))
       )
-        throw new E_MASQUERADE_NOT_ALLOWED()
+        throw new E_MASQUERADE_START_DENIED()
       // §14.1: an edit start needs canEdit true, after canMasquerade and before canUseRequest.
       if (
         access === 'edit' &&
@@ -450,7 +522,7 @@ class CoreService<User, Request extends object> implements MasqueradeService<Req
           reason ?? undefined
         ))
       )
-        throw new E_MASQUERADE_NOT_ALLOWED()
+        throw new E_MASQUERADE_EDIT_DENIED()
       // §7.1 step 3: canUseRequest when configured.
       await this.assertRequestPermission(currentActor.subject, target.subject, request)
       // §7.1 step 3, I11: only the stamp hashes are kept.
@@ -459,14 +531,14 @@ class CoreService<User, Request extends object> implements MasqueradeService<Req
       try {
         actorHash = hashSecurityStamp(currentActor.securityStamp)
         targetHash = hashSecurityStamp(target.securityStamp)
-      } catch {
+      } catch (error) {
         reportDiagnostic(
           this.dependencies,
           'authority',
           'security_stamp',
-          'E_MASQUERADE_UNAVAILABLE'
+          E_MASQUERADE_SECURITY_STAMP_INVALID.code
         )
-        throw new E_MASQUERADE_UNAVAILABLE()
+        throw error
       }
       const event = this.createAuditEvent({
         owner,
@@ -506,21 +578,19 @@ class CoreService<User, Request extends object> implements MasqueradeService<Req
       // I09: an indeterminate commit may have applied, so it records no denial.
       if (error instanceof E_MASQUERADE_UNKNOWN_COMMIT) throw error
       // §6.4: every refused start records one start_denied outcome; I07: other errors are 503.
-      reportDiagnostic(
-        this.dependencies,
-        'control',
-        'start',
-        error instanceof MasqueradeRequestException ? error.code : 'E_MASQUERADE_UNAVAILABLE'
-      )
+      const failure =
+        error instanceof MasqueradeRequestException
+          ? error
+          : new E_MASQUERADE_CONTROL_OPERATION_FAILED(error)
+      reportDiagnostic(this.dependencies, 'control', 'start', failure.code)
       await this.recordControlOutcome({
         owner,
         row,
         kind: 'start_denied',
-        outcomeCode:
-          error instanceof MasqueradeRequestException ? error.code : 'E_MASQUERADE_UNAVAILABLE',
+        outcomeCode: failure.code,
         attempted,
       })
-      throw error instanceof MasqueradeRequestException ? error : new E_MASQUERADE_UNAVAILABLE()
+      throw failure
     }
   }
   async stop(request: Request, input: unknown): Promise<ModeView> {
@@ -554,20 +624,18 @@ class CoreService<User, Request extends object> implements MasqueradeService<Req
       // A failed control_noop record is not also a denial.
       if (idleOutcomeAttempted) throw error
       // §6.4: every refused stop records one stop_denied outcome; I07: other errors are 503.
-      reportDiagnostic(
-        this.dependencies,
-        'control',
-        'stop',
-        error instanceof MasqueradeRequestException ? error.code : 'E_MASQUERADE_UNAVAILABLE'
-      )
+      const failure =
+        error instanceof MasqueradeRequestException
+          ? error
+          : new E_MASQUERADE_CONTROL_OPERATION_FAILED(error)
+      reportDiagnostic(this.dependencies, 'control', 'stop', failure.code)
       await this.recordControlOutcome({
         owner,
         row,
         kind: 'stop_denied',
-        outcomeCode:
-          error instanceof MasqueradeRequestException ? error.code : 'E_MASQUERADE_UNAVAILABLE',
+        outcomeCode: failure.code,
       })
-      throw error instanceof MasqueradeRequestException ? error : new E_MASQUERADE_UNAVAILABLE()
+      throw failure
     }
   }
   /** §7.2 business admission through admit(), once per request (I10). */
@@ -594,7 +662,8 @@ class CoreService<User, Request extends object> implements MasqueradeService<Req
     code: string
   ): Promise<never> {
     const idle = await this.clear(owner, row, kind, code)
-    const error = new E_MASQUERADE_CONTEXT_CHANGED()
+    const error =
+      kind === 'expired' ? new E_MASQUERADE_MODE_EXPIRED() : new E_MASQUERADE_MODE_INVALIDATED()
     this.#viewsAfterInvalidation.set(error, buildModeView(owner, idle))
     throw error
   }
@@ -612,7 +681,7 @@ class CoreService<User, Request extends object> implements MasqueradeService<Req
     // §7.2 step 1: read the owner row on every request; no cross-request allow cache.
     const row = await this.read(owner)
     // §6.4 Any: a revision at Number.MAX_SAFE_INTEGER fails closed.
-    if (row?.revision === Number.MAX_SAFE_INTEGER) throw new E_MASQUERADE_UNAVAILABLE()
+    if (row?.revision === Number.MAX_SAFE_INTEGER) throw new E_MASQUERADE_REVISION_EXHAUSTED()
     // §7.2 step 2: an idle request runs as the actor.
     let effective = actor
     if (row?.state === 'active') {
@@ -637,14 +706,14 @@ class CoreService<User, Request extends object> implements MasqueradeService<Req
             invalid = 'actor_stamp'
           else if (hashSecurityStamp(target.securityStamp) !== row.targetStampHash)
             invalid = 'target_stamp'
-        } catch {
+        } catch (error) {
           reportDiagnostic(
             this.dependencies,
             'authority',
             'security_stamp',
-            'E_MASQUERADE_UNAVAILABLE'
+            E_MASQUERADE_SECURITY_STAMP_INVALID.code
           )
-          throw new E_MASQUERADE_UNAVAILABLE()
+          throw error
         }
         if (
           !invalid &&

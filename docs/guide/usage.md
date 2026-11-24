@@ -157,7 +157,7 @@ still appear active until business admission or cleanup handles it. See
 Custom server-side status screens can call `service.resolveView(request)` to use the same snapshot
 as business admission. If the request expires or invalidates a mode and commits that transition,
 the method returns the idle view and token from that commit. The request remains refused for
-business work. If another request wins the transition, handle `E_MASQUERADE_CONTEXT_CHANGED`
+business work. If another request wins the transition, handle `E_MASQUERADE_TRANSITION_CONFLICT`
 by refreshing on a new request. Authentication, request-local policy and store failures still
 reject. Use raw `status(request)` when you only need to inspect stored state without changing it.
 

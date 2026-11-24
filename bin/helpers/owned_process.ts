@@ -1,3 +1,4 @@
+import { cleanupFailure } from './operation_failures.js'
 import type { ChildProcess } from 'node:child_process'
 
 const termGraceMs = 5000
@@ -80,6 +81,5 @@ export async function terminateOwnedProcess(child: ChildProcess): Promise<void> 
     }
     if (!stopped) failures.push(new Error('The owned process group did not exit after SIGKILL.'))
   }
-  if (failures.length)
-    throw new AggregateError(failures, 'Could not clean up the owned process group.')
+  if (failures.length) throw cleanupFailure(failures, 'Could not clean up the owned process group.')
 }

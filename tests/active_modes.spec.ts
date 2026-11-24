@@ -42,7 +42,7 @@ test.group('active mode listing', () => {
     for (const limit of [0, MAX_ACTIVE_MODE_LIMIT + 1, 1.5])
       assert.equal(
         await errorCode(() => listActiveModes(f.config, f.dependencies, { limit })),
-        'E_MASQUERADE_UNAVAILABLE'
+        'E_MASQUERADE_OPERATOR_INPUT_INVALID'
       )
   })
 
@@ -59,12 +59,12 @@ test.group('active mode listing', () => {
     ]
     assert.equal(
       await errorCode(() => listActiveModes(f.config, f.dependencies, { limit: 1 })),
-      'E_MASQUERADE_UNAVAILABLE'
+      'E_MASQUERADE_STORE_BATCH_INVALID'
     )
     Object.defineProperty(f.store, 'activeBatch', { value: undefined })
     assert.equal(
       await errorCode(() => listActiveModes(f.config, f.dependencies)),
-      'E_MASQUERADE_UNAVAILABLE'
+      'E_MASQUERADE_INVALID_STORE'
     )
   })
 })
@@ -82,11 +82,11 @@ test('a batch row with an unsafe namespace fails closed in listing and prune', a
   f.store.read = async () => unsafe
   assert.equal(
     await errorCode(() => listActiveModes(f.config, f.dependencies)),
-    'E_MASQUERADE_UNAVAILABLE'
+    'E_MASQUERADE_MODE_ROW_INVALID'
   )
   assert.equal(
     await errorCode(() => pruneMasquerade(f.config, f.dependencies)),
-    'E_MASQUERADE_UNAVAILABLE'
+    'E_MASQUERADE_PRUNE_PROGRESS'
   )
 })
 
@@ -104,10 +104,10 @@ test('a non-active batch candidate fails closed in listing and prune', async ({ 
   f.store.read = async () => active
   assert.equal(
     await errorCode(() => listActiveModes(f.config, f.dependencies)),
-    'E_MASQUERADE_UNAVAILABLE'
+    'E_MASQUERADE_MODE_ROW_INVALID'
   )
   assert.equal(
     await errorCode(() => pruneMasquerade(f.config, f.dependencies)),
-    'E_MASQUERADE_UNAVAILABLE'
+    'E_MASQUERADE_PRUNE_PROGRESS'
   )
 })

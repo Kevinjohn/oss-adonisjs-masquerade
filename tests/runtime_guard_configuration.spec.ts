@@ -1,3 +1,6 @@
+import { requestContext } from './helpers/http_context.js'
+import { renderMasqueradeError } from '../http/main.js'
+import { errors } from '../index.js'
 import { test } from '@japa/runner'
 import { errorCode, fixture } from './helpers/core.js'
 import { createRuntime, resolveRuntimeConfiguration } from '../src/integration/runtime_factory.js'
@@ -134,7 +137,7 @@ test('a raw guard whose driver differs from agreeing metadata boots and refuses 
   }
   assert.equal(
     await errorCode(() => runtime.service.status(ctx as never)),
-    'E_MASQUERADE_UNAVAILABLE'
+    'E_MASQUERADE_GUARD_DRIVER_MISMATCH'
   )
   assert.equal(authentication, 0)
 })
@@ -201,14 +204,14 @@ test('guard factories only run on a live request; cross-wired guards fail before
   f.auth.config.guards.web = () => ({ driverName: 'access_tokens' })
   assert.equal(
     await errorCode(() => runtime.service.status(ctx as never)),
-    'E_MASQUERADE_UNAVAILABLE'
+    'E_MASQUERADE_GUARD_DRIVER_MISMATCH'
   )
   // The effective constructor may itself refuse the wrapped factory on a live request.
   f.auth.config.guards.web_effective = () =>
     new EffectiveSessionGuard('web', ctx as never, { driverName: 'access_tokens' } as never)
   assert.equal(
     await errorCode(() => runtime.service.status(ctx as never)),
-    'E_MASQUERADE_UNAVAILABLE'
+    'E_MASQUERADE_GUARD_CONSTRUCTION_FAILED'
   )
   assert.equal(authentication, 1)
   assert.equal(reads, 1)
@@ -247,14 +250,14 @@ test('a cross-wired or failing guard on a live request is logged before the unch
   }
   f.auth.config.guards.web = () => ({ driverName: 'access_tokens' })
   const crossWired = await runtime.service.status(ctx as never).catch((error) => error)
-  assert.equal(crossWired.code, 'E_MASQUERADE_UNAVAILABLE')
-  assert.equal(crossWired.message, 'Masquerade is unavailable')
+  assert.equal(crossWired.code, 'E_MASQUERADE_GUARD_DRIVER_MISMATCH')
+  assert.equal(crossWired.message, 'The guard uses an unexpected driver')
   assert.equal(crossWired.status, 503)
   assert.isUndefined(crossWired.cause)
   assert.deepEqual(logged, [
     {
       fields: {
-        code: 'E_MASQUERADE_UNAVAILABLE',
+        code: 'E_MASQUERADE_GUARD_DRIVER_MISMATCH',
         component: 'guard_wiring',
         effectiveGuard: 'web_effective',
         rawGuard: 'web',
@@ -270,12 +273,22 @@ test('a cross-wired or failing guard on a live request is logged before the unch
     throw new Error('Host guard factory failed')
   }
   const failed = await runtime.service.status(ctx as never).catch((error) => error)
-  assert.equal(failed.code, 'E_MASQUERADE_UNAVAILABLE')
-  assert.isUndefined(failed.cause)
+  assert.equal(failed.code, 'E_MASQUERADE_GUARD_CONSTRUCTION_FAILED')
+  assert.instanceOf(crossWired, errors.E_MASQUERADE_GUARD_DRIVER_MISMATCH)
+  assert.instanceOf(failed, errors.E_MASQUERADE_GUARD_CONSTRUCTION_FAILED)
+  assert.equal(failed.cause.message, 'Host guard factory failed')
+  for (const failure of [crossWired, failed]) {
+    const response = requestContext(fixture(), {})
+    assert.isTrue(renderMasqueradeError(response.ctx, failure))
+    assert.equal(response.responseState.status, 503)
+    assert.deepEqual(response.responseState.json, {
+      errors: [{ code: 'E_MASQUERADE_UNAVAILABLE', message: 'Masquerade is unavailable' }],
+    })
+  }
   assert.deepEqual(logged, [
     {
       fields: {
-        code: 'E_MASQUERADE_UNAVAILABLE',
+        code: 'E_MASQUERADE_GUARD_CONSTRUCTION_FAILED',
         component: 'guard_wiring',
         effectiveGuard: 'web_effective',
         rawGuard: 'web',
@@ -373,13 +386,13 @@ test('unrelated registered raw guard passes selection but cannot enter the servi
   assert.deepEqual(runtime.selectGuard({ route } as never), { kind: 'raw', raw: 'members' })
   assert.equal(
     await errorCode(() => runtime.service.status({ route } as never)),
-    'E_MASQUERADE_UNAVAILABLE'
+    'E_MASQUERADE_NATIVE_ADAPTER_MISSING'
   )
   assert.equal(reads, 0)
   const unknown = { middleware: { all: () => [{ name: 'auth', args: [{ guards: ['missing'] }] }] } }
   assert.equal(
     await errorCode(() => runtime.service.status({ route: unknown } as never)),
-    'E_MASQUERADE_UNAVAILABLE'
+    'E_MASQUERADE_ROUTE_GUARD_UNREGISTERED'
   )
   assert.equal(reads, 0)
 })
@@ -444,7 +457,7 @@ test('a route accepting several raw guards keeps native auth but cannot enter th
   assert.deepEqual(names, ['web'])
   assert.equal(
     await errorCode(() => runtime.service.status(ctx as never)),
-    'E_MASQUERADE_UNAVAILABLE'
+    'E_MASQUERADE_ROUTE_GUARD_AMBIGUOUS'
   )
   assert.equal(reads, 0)
 })

@@ -267,7 +267,7 @@ interface ControlStore {
 ```
 
 - PostgreSQL uses unique insert or conditional update with the event insert in the same transaction. SQLite uses real transactions with bounded busy handling. Process-local mutexes do not satisfy the contract; read-then-unconditional-write is prohibited.
-- The transition UUID is generated before the CAS and retained across the adapter's safe retries. A definite pre-commit failure throws unavailable. A lost commit acknowledgement returns `indeterminate`; the service logs the transition ID server-side and returns 503 `E_MASQUERADE_UNAVAILABLE`. GET status is the recovery path. No automatic retry, compensation or speculative observer emission.
+- The transition UUID is generated before the CAS and retained across the adapter's safe retries. A definite pre-commit failure throws unavailable. A lost commit acknowledgement returns `indeterminate`; the service logs the transition ID server-side and returns 503 `E_MASQUERADE_UNKNOWN_COMMIT`. GET status is the recovery path. No automatic retry, compensation or speculative observer emission.
 - The conformance suite under `./testing` runs against memory, SQLite and PostgreSQL and is the contract for custom stores.
 
 ### 6.4 State transition table
@@ -326,16 +326,20 @@ interface ControlStore {
 - Reason normalization order (for a supplied reason, or any reason in required mode): trim with `String.prototype.trim()`, replace `\r\n` with `\n`, reject any C0 or C1 control except `\n` and `\t`, then require 1–500 Unicode code points and at most 2,000 UTF-8 bytes. Persist the normalized value; never truncate. Acceptable: `Ticket 4821: cannot see invoices`. Unacceptable: a tab-only string, or text containing `\u0007`.
 - JSON errors are `{ errors: [{ code, message }] }` with stable codes, except §14 defines the `blockedBy` field for `E_MASQUERADE_ACTION_BLOCKED`. `message` is looked up as `errors.<code>` through the request's `@adonisjs/i18n` instance when the application has one, and uses English otherwise. No JSON:API negotiation.
 
-| HTTP | Code                            | Meaning                                                                           |
-| ---- | ------------------------------- | --------------------------------------------------------------------------------- |
-| 401  | `E_UNAUTHORIZED_ACCESS` (host)  | Native actor authentication is missing; host negotiation may redirect instead     |
-| 403  | `E_MASQUERADE_NOT_ALLOWED`      | Policy or eligibility denial; no target disclosure                                |
-| 403  | `E_MASQUERADE_ACTION_BLOCKED`   | Sensitive route or mutation denied while active; §14 supplies `blockedBy`         |
-| 409  | `E_MASQUERADE_ALREADY_ACTIVE`   | Cannot nest, replace or renew                                                     |
-| 409  | `E_MASQUERADE_CONTEXT_CHANGED`  | Stale token, concurrent transition, expiry or invalidation; no handler ran        |
-| 422  | `E_MASQUERADE_INVALID_INPUT`    | Invalid control input or self-target                                              |
-| 428  | `E_MASQUERADE_CONTEXT_REQUIRED` | Covered unsafe request lacks a token                                              |
-| 503  | `E_MASQUERADE_UNAVAILABLE`      | Store, authority or policy infrastructure failure, or lost commit acknowledgement |
+| HTTP | Code                                                                                             | Meaning                                                                       |
+| ---- | ------------------------------------------------------------------------------------------------ | ----------------------------------------------------------------------------- |
+| 401  | `E_UNAUTHORIZED_ACCESS` (host)                                                                   | Native actor authentication is missing; host negotiation may redirect instead |
+| 403  | `E_MASQUERADE_NOT_ALLOWED`                                                                       | Policy or eligibility denial; no target disclosure                            |
+| 403  | `E_MASQUERADE_ACTION_BLOCKED`                                                                    | Sensitive route or mutation denied while active; §14 supplies `blockedBy`     |
+| 409  | `E_MASQUERADE_ALREADY_ACTIVE`                                                                    | Cannot nest, replace or renew                                                 |
+| 409  | `E_MASQUERADE_CONTEXT_CHANGED`                                                                   | Stale or conflicting token                                                    |
+| 422  | `E_MASQUERADE_INVALID_INPUT`                                                                     | Invalid control input or self-target                                          |
+| 428  | `E_MASQUERADE_CONTEXT_REQUIRED`                                                                  | Covered unsafe request lacks a token                                          |
+| 409  | `E_MASQUERADE_MODE_EXPIRED`, `E_MASQUERADE_MODE_INVALIDATED`, `E_MASQUERADE_TRANSITION_CONFLICT` | Refresh status after expiry, invalidation or a concurrent transition          |
+| 403  | `E_MASQUERADE_TOKEN_ABILITY_REQUIRED`                                                            | The native token lacks the configured ability                                 |
+| 503  | `E_MASQUERADE_UNKNOWN_COMMIT`                                                                    | A transition could not be confirmed                                           |
+| 503  | `E_MASQUERADE_UNAVAILABLE`                                                                       | A protected wiring fault                                                      |
+| 503  | Cause-specific exception code                                                                    | An operational store, authority, policy or credential failure                 |
 
 Native authentication failures are outside the package JSON envelope: the exception code is
 `E_UNAUTHORIZED_ACCESS`, ordinary JSON may include only a message, JSON:API may include a code,

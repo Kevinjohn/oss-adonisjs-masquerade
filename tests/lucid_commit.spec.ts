@@ -1,3 +1,4 @@
+import { rejects } from 'node:assert/strict'
 import { test } from '@japa/runner'
 import { createMasqueradeService } from '../index.js'
 import { fixture } from './helpers/core.js'
@@ -50,7 +51,10 @@ test('a post-commit pool hook fault preserves the start and retires the store', 
     assert.deepEqual(events, [{ kind: 'started' }])
     assert.deepEqual(core.diagnostics, [])
     assert.deepEqual(messages, ['Masquerade could not release the control store connection'])
-    await assert.rejects(() => service.status(request), 'Masquerade is unavailable')
+    await assert.rejects(
+      () => service.status(request),
+      'The masquerade store is unavailable after a cleanup failure'
+    )
   } finally {
     pool.removeListener('release', failRelease)
     knex.removeListener('query', installReleaseFault)
@@ -204,11 +208,28 @@ if (process.env.DB_CLIENT === 'pg') {
     try {
       await reader.from('masquerade_modes')
       const knex = f.second.getWriteClient()
+      const releaseFailure = new Error('native checkout release failure')
+      const rollbackFailure = new Error('native rollback connection failure')
+      let rollbackFailed = false
+      const client = new Proxy(knex.client, {
+        get(target, property, receiver) {
+          if (property === 'releaseConnection')
+            return async (connection: unknown) => {
+              await target.releaseConnection(connection)
+              if (rollbackFailed) throw releaseFailure
+            }
+          return Reflect.get(target, property, receiver)
+        },
+      })
       const pinned = new Proxy(knex, {
         get(target, property, receiver) {
+          if (property === 'client') return client
           if (property === 'raw')
             return (sql: string) => {
-              if (sql === 'ROLLBACK') throw new Error('native rollback connection failure')
+              if (sql === 'ROLLBACK') {
+                rollbackFailed = true
+                throw rollbackFailure
+              }
               return target.raw(sql)
             }
           if (property === 'destroy')
@@ -230,10 +251,24 @@ if (process.env.DB_CLIENT === 'pg') {
         { sqliteBusyRetries: 0 }
       )
       const a = transition()
-      await assert.rejects(() => store.compareAndSet(a), 'native rollback connection failure')
+      await rejects(
+        () => store.compareAndSet(a),
+        (error) => {
+          assert.instanceOf(error, AggregateError)
+          const { errors: failures } = error as AggregateError
+          assert.lengthOf(failures, 3)
+          assert.equal((failures[0] as { code: string }).code, 'SQLITE_BUSY')
+          assert.strictEqual(failures[1], rollbackFailure)
+          assert.strictEqual(failures[2], releaseFailure)
+          return true
+        }
+      )
       await reader.rollback()
       if (shutdown) await shutdown
-      await assert.rejects(() => store.read(a.owner), 'Masquerade is unavailable')
+      await assert.rejects(
+        () => store.read(a.owner),
+        'The masquerade store is unavailable after a cleanup failure'
+      )
       await assert.rejects(() => f.second.from('masquerade_modes'))
       assert.isNull(await f.store.read(a.owner))
       assert.lengthOf(await f.client.from('masquerade_events'), 0)
@@ -315,7 +350,7 @@ test('rejects externally managed Knex pools before persistence', async ({ assert
           knexQuery: f.client.knexQuery.bind(f.client),
           getWriteClient: () => external,
         }),
-      'Masquerade is unavailable'
+      'The Lucid control store configuration is invalid'
     )
     assert.lengthOf(await f.client.from('masquerade_modes'), 0)
   } finally {
@@ -371,8 +406,11 @@ if (process.env.DB_CLIENT !== 'pg') {
         operation,
         new Promise((resolve) => setTimeout(() => resolve('blocked'), 1000)),
       ])
-      assert.instanceOf(result, Error)
-      assert.equal((result as Error).message, 'native rollback connection failure')
+      assert.instanceOf(result, AggregateError)
+      const { errors: failures } = result as AggregateError
+      assert.lengthOf(failures, 2)
+      assert.equal((failures[0] as { code: string }).code, 'SQLITE_BUSY')
+      assert.equal((failures[1] as Error).message, 'native rollback connection failure')
       const nextCheckout = knex.client.acquireConnection().then(
         async (connection: unknown) => {
           await knex.client.releaseConnection(connection)

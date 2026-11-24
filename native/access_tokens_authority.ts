@@ -1,4 +1,15 @@
-import { E_MASQUERADE_NOT_ALLOWED, E_MASQUERADE_UNAVAILABLE } from '../src/errors.js'
+import {
+  E_MASQUERADE_ACCOUNT_ELIGIBILITY_INVALID,
+  E_MASQUERADE_ACCOUNT_ID_INVALID,
+  E_MASQUERADE_ACCOUNT_INCARNATION_INVALID,
+  E_MASQUERADE_ACTOR_AUTHENTICATION_FAILED,
+  E_MASQUERADE_ACTOR_IDENTITY_FAILED,
+  E_MASQUERADE_GUARD_CONSTRUCTION_FAILED,
+  E_MASQUERADE_GUARD_DRIVER_MISMATCH,
+  E_MASQUERADE_TOKEN_ABILITY_CHECK_FAILED,
+  E_MASQUERADE_TOKEN_ABILITY_REQUIRED,
+} from '../src/errors.js'
+import { MasqueradeRequestException } from '../src/request_exception.js'
 import { errors } from '@adonisjs/auth'
 import { InvalidArgumentsException } from '@adonisjs/core/exceptions'
 import type { AccessTokensUserProviderContract } from '@adonisjs/auth/types/access_tokens'
@@ -47,8 +58,8 @@ export interface NativeAccessTokensAdapter<User = unknown> extends NativeRuntime
   /**
    * Authenticate through the raw access-tokens guard; `E_UNAUTHORIZED_ACCESS` passes through.
    *
-   * @throws `E_MASQUERADE_NOT_ALLOWED` when the token lacks the ability, or
-   *   `E_MASQUERADE_UNAVAILABLE`.
+   * @throws `E_MASQUERADE_TOKEN_ABILITY_REQUIRED` when the token lacks the ability.
+   * @throws A named wiring, credential, ability-check or actor identity exception.
    *
    * @example
    * ```ts
@@ -138,7 +149,7 @@ export function accessTokensAuthority<User>(
         if (!account) return null
         const user = account.getOriginal()
         const active = await isActive(user)
-        if (typeof active !== 'boolean') throw new E_MASQUERADE_UNAVAILABLE()
+        if (typeof active !== 'boolean') throw new E_MASQUERADE_ACCOUNT_ELIGIBILITY_INVALID()
         return {
           subject: buildSubject(user, account.getId(), incarnation),
           active,
@@ -161,11 +172,12 @@ export function accessTokensAuthority<User>(
       typeof identifier !== 'bigint' &&
       !(typeof identifier === 'number' && Number.isSafeInteger(identifier))
     )
-      throw new E_MASQUERADE_UNAVAILABLE()
+      throw new E_MASQUERADE_ACCOUNT_ID_INVALID()
     const id = String(identifier)
     const accountIncarnation = configuredIncarnation === 'id' ? id : configuredIncarnation(user)
-    if (!isBoundedString(id, 255) || !isBoundedString(accountIncarnation, 128))
-      throw new E_MASQUERADE_UNAVAILABLE()
+    if (!isBoundedString(id, 255)) throw new E_MASQUERADE_ACCOUNT_ID_INVALID()
+    if (!isBoundedString(accountIncarnation, 128))
+      throw new E_MASQUERADE_ACCOUNT_INCARNATION_INVALID()
     return { id, incarnation: accountIncarnation, user }
   }
 
@@ -179,31 +191,32 @@ export function accessTokensAuthority<User>(
         raw = ctx.auth.use(guard as never) as GuardContract<
           User & { currentAccessToken?: { allows(ability: string): unknown } }
         >
-      } catch {
-        throw new E_MASQUERADE_UNAVAILABLE()
+      } catch (error) {
+        throw new E_MASQUERADE_GUARD_CONSTRUCTION_FAILED(error)
       }
-      if (raw.driverName !== 'access_tokens') throw new E_MASQUERADE_UNAVAILABLE()
+      if (raw.driverName !== 'access_tokens') throw new E_MASQUERADE_GUARD_DRIVER_MISMATCH()
       let user: User & { currentAccessToken?: { allows(ability: string): unknown } }
       try {
         user = await raw.authenticate()
       } catch (error) {
         if (error instanceof errors.E_UNAUTHORIZED_ACCESS) throw error
-        throw new E_MASQUERADE_UNAVAILABLE()
+        throw new E_MASQUERADE_ACTOR_AUTHENTICATION_FAILED(error)
       }
 
       let allowed = false
       try {
         allowed = user.currentAccessToken?.allows(ability) === true
-      } catch {
-        throw new E_MASQUERADE_UNAVAILABLE()
+      } catch (error) {
+        throw new E_MASQUERADE_TOKEN_ABILITY_CHECK_FAILED(error)
       }
-      if (!allowed) throw new E_MASQUERADE_NOT_ALLOWED()
+      if (!allowed) throw new E_MASQUERADE_TOKEN_ABILITY_REQUIRED()
 
       try {
         const account = await provider.createUserForGuard(user)
         return buildSubject(user, account.getId())
-      } catch {
-        throw new E_MASQUERADE_UNAVAILABLE()
+      } catch (error) {
+        if (error instanceof MasqueradeRequestException) throw error
+        throw new E_MASQUERADE_ACTOR_IDENTITY_FAILED(error)
       }
     },
   })

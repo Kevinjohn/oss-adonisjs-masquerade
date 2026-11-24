@@ -58,7 +58,7 @@ test.group('packed Account Kit credential stamps', (group) => {
 
     const rejected = await accountKitRequest(actorLogin.client, business, actorLogin.credential)
     assert.equal(rejected.status, 409)
-    assert.equal(await errorCode(rejected), 'E_MASQUERADE_CONTEXT_CHANGED')
+    assert.equal(await errorCode(rejected), 'E_MASQUERADE_MODE_INVALIDATED')
     const row = await modeRow(actor.id)
     assert.equal(row?.state, 'idle')
     assert.isNull(row?.target_id)
@@ -109,7 +109,7 @@ test.group('packed Account Kit credential stamps', (group) => {
 
     const rejected = await accountKitRequest(actorLogin.client, business, actorLogin.credential)
     assert.equal(rejected.status, 409)
-    assert.equal(await errorCode(rejected), 'E_MASQUERADE_CONTEXT_CHANGED')
+    assert.equal(await errorCode(rejected), 'E_MASQUERADE_MODE_INVALIDATED')
     assert.equal(await latestOutcome(actor.id), 'actor_stamp')
   })
 
@@ -186,7 +186,7 @@ test.group('packed Account Kit credential stamps', (group) => {
 
     const rejected = await accountKitRequest(freshLogin.client, business, freshLogin.credential)
     assert.equal(rejected.status, 409)
-    assert.equal(await errorCode(rejected), 'E_MASQUERADE_CONTEXT_CHANGED')
+    assert.equal(await errorCode(rejected), 'E_MASQUERADE_MODE_INVALIDATED')
     assert.equal(await latestOutcome(actor.id), 'actor_stamp')
   })
 
@@ -221,7 +221,7 @@ test.group('packed Account Kit credential stamps', (group) => {
 
     const rejected = await accountKitRequest(actorLogin.client, business, actorLogin.credential)
     assert.equal(rejected.status, 409)
-    assert.equal(await errorCode(rejected), 'E_MASQUERADE_CONTEXT_CHANGED')
+    assert.equal(await errorCode(rejected), 'E_MASQUERADE_MODE_INVALIDATED')
     assert.equal(await latestOutcome(actor.id), 'target_stamp')
     const row = await modeRow(actor.id)
     assert.equal(row?.state, 'idle')
@@ -274,7 +274,7 @@ test.group('packed Account Kit credential stamps', (group) => {
 
     const rejected = await accountKitRequest(actorLogin.client, business, actorLogin.credential)
     assert.equal(rejected.status, 409)
-    assert.equal(await errorCode(rejected), 'E_MASQUERADE_CONTEXT_CHANGED')
+    assert.equal(await errorCode(rejected), 'E_MASQUERADE_MODE_INVALIDATED')
     assert.equal(await latestOutcome(actor.id), 'target_stamp')
     const targetAfter = await credentialFootprint(target.id)
     assert.notDeepEqual(targetAfter.credentialsChangedAt, targetBefore.credentialsChangedAt)
@@ -352,7 +352,7 @@ test.group('packed Account Kit credential stamps', (group) => {
 
     const rejected = await accountKitRequest(freshLogin.client, business, freshLogin.credential)
     assert.equal(rejected.status, 409)
-    assert.equal(await errorCode(rejected), 'E_MASQUERADE_CONTEXT_CHANGED')
+    assert.equal(await errorCode(rejected), 'E_MASQUERADE_MODE_INVALIDATED')
     assert.equal(await latestOutcome(actor.id), 'actor_stamp')
   }).skip(!sessionManagementEnabled, 'requires Account Kit sessionManagement')
 

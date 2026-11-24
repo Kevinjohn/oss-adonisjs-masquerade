@@ -78,7 +78,10 @@ for (const [name, change] of [
   test(`rejects a transition that ${name}`, ({ assert }) => {
     const input = start()
     change(input)
-    assert.throws(() => assertValidTransition(input, null), 'Masquerade is unavailable')
+    assert.throws(
+      () => assertValidTransition(input, null),
+      'The mode transition and its audit event are inconsistent'
+    )
   })
 
 test('control outcomes accept only outcome kinds', ({ assert }) => {
@@ -88,6 +91,6 @@ test('control outcomes accept only outcome kinds', ({ assert }) => {
   for (const kind of ['started', 'stopped', 'expired', 'invalidated', 'other'])
     assert.throws(
       () => assertControlOutcome({ ...event, kind } as unknown as ControlOutcomeEvent),
-      'Masquerade is unavailable'
+      'The control outcome event is invalid'
     )
 })

@@ -1,3 +1,4 @@
+import { errors } from '../index.js'
 import { test } from '@japa/runner'
 import { createMasqueradeService, defineConfig } from '../index.js'
 import { OPERATOR_STOP_OUTCOME, stopActiveModes } from '../src/stop_modes.js'
@@ -92,7 +93,7 @@ test.group('operator mode stop', () => {
     f.config.authority.inspectAccount = async () => inspect('c')
     assert.equal(
       await errorCode(() => stopActiveModes(f.config, f.dependencies, { actorId: 'a' })),
-      'E_MASQUERADE_INVALID_INPUT'
+      'E_MASQUERADE_OPERATOR_ACTOR_NOT_FOUND'
     )
     assert.equal((await f.store.read(f.owner))!.state, 'active')
   })
@@ -124,7 +125,7 @@ test.group('operator mode stop', () => {
       await errorCode(() =>
         stopActiveModes(f.config, f.dependencies, { actorId: 'x'.repeat(256) })
       ),
-      'E_MASQUERADE_INVALID_INPUT'
+      'E_MASQUERADE_OPERATOR_INPUT_INVALID'
     )
     assert.equal(inspected, 0)
     f.state.now = Date.parse('+010000-01-01T00:00:00Z')
@@ -134,10 +135,13 @@ test.group('operator mode stop', () => {
       writes++
       return cas(input)
     }
-    assert.equal(
-      await errorCode(() => stopActiveModes(f.config, f.dependencies, { all: true })),
-      'E_MASQUERADE_UNAVAILABLE'
+    const failure = await stopActiveModes(f.config, f.dependencies, { all: true }).catch(
+      (error: unknown) => error
     )
+    assert.instanceOf(failure, errors.E_MASQUERADE_STOP_PROGRESS)
+    const stopped = failure as InstanceType<typeof errors.E_MASQUERADE_STOP_PROGRESS>
+    assert.instanceOf(stopped.cause, errors.E_MASQUERADE_CLOCK_INVALID)
+    assert.equal(stopped.stopped, 0)
     assert.equal(writes, 0)
   })
 
@@ -150,7 +154,7 @@ test.group('operator mode stop', () => {
     f.users.delete('a')
     assert.equal(
       await errorCode(() => stopActiveModes(f.config, f.dependencies, { actorId: 'a' })),
-      'E_MASQUERADE_INVALID_INPUT'
+      'E_MASQUERADE_OPERATOR_ACTOR_NOT_FOUND'
     )
     assert.deepEqual(
       await stopActiveModes(f.config, f.dependencies, { actorId: 'a', actorIncarnation: 'other' }),
@@ -216,7 +220,7 @@ test.group('operator mode stop', () => {
     for (const batchSize of [0, 1001])
       assert.equal(
         await errorCode(() => stopActiveModes(f.config, f.dependencies, { all: true, batchSize })),
-        'E_MASQUERADE_UNAVAILABLE'
+        'E_MASQUERADE_OPERATOR_INPUT_INVALID'
       )
   })
 

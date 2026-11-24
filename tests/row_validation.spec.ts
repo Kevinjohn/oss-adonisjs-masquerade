@@ -10,13 +10,13 @@ test('access fails closed', async ({ assert }) => {
   for (const access of [undefined, null, 'unknown'])
     assert.throws(
       () => requireValidModeRow({ ...row, access } as never, f.owner),
-      'Masquerade is unavailable'
+      'The masquerade store returned an invalid mode row'
     )
   await service.stop({}, { expectedContext: active.contextToken })
   const idle = (await f.store.read(f.owner))!
   assert.throws(
     () => requireValidModeRow({ ...idle, access: 'view' } as never, f.owner),
-    'Masquerade is unavailable'
+    'The masquerade store returned an invalid mode row'
   )
 })
 
@@ -64,7 +64,7 @@ test('malformed store rows fail closed across status, controls and admission', a
         ),
       () => service.stop({}, { expectedContext: `${row.revision}.${row.revisionNonce}` }),
     ])
-      assert.equal(await errorCode(operation), 'E_MASQUERADE_UNAVAILABLE')
+      assert.equal(await errorCode(operation), 'E_MASQUERADE_MODE_ROW_INVALID')
     assert.deepEqual(await original(f.owner), row)
   }
   f.store.read = original
@@ -72,7 +72,7 @@ test('malformed store rows fail closed across status, controls and admission', a
   const idleRow = (await original(f.owner))!
   assert.throws(
     () => requireValidModeRow({ ...idleRow, reason: 'retained' } as never, f.owner),
-    'Masquerade is unavailable'
+    'The masquerade store returned an invalid mode row'
   )
   assert.isFalse(idle.isMasquerading)
 })
@@ -90,6 +90,6 @@ test('an active row longer than the one-hour maximum fails closed', async ({ ass
   })
   assert.throws(
     () => requireValidModeRow({ ...row, expiresAt: at(3_600_001) }, f.owner),
-    'Masquerade is unavailable'
+    'The masquerade store returned an invalid mode row'
   )
 })

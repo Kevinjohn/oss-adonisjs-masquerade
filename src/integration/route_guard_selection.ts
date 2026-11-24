@@ -1,4 +1,9 @@
-import { E_MASQUERADE_UNAVAILABLE } from '../errors.js'
+import {
+  E_MASQUERADE_PRIMARY_GUARD_MISSING,
+  E_MASQUERADE_ROUTE_AUTH_GUARD_MISSING,
+  E_MASQUERADE_ROUTE_GUARD_CONFLICT,
+  E_MASQUERADE_ROUTE_GUARD_UNREGISTERED,
+} from '../errors.js'
 import { hasAuthMiddleware, routeGuards } from './route_guards.js'
 
 type RouteMetadata = { middleware: { all(): Iterable<unknown> } }
@@ -26,8 +31,8 @@ export function selectRouteGuard({
 }: RouteGuardInput): RouteGuardSelection {
   const guards = routeGuards(route, defaultGuard)
   if (guards.length === 0) {
-    if (hasAuthMiddleware(route)) throw new E_MASQUERADE_UNAVAILABLE()
-    if (!primaryRawGuard) throw new E_MASQUERADE_UNAVAILABLE()
+    if (hasAuthMiddleware(route)) throw new E_MASQUERADE_ROUTE_AUTH_GUARD_MISSING()
+    if (!primaryRawGuard) throw new E_MASQUERADE_PRIMARY_GUARD_MISSING()
     return { kind: 'none', raw: primaryRawGuard }
   }
   let selection: RouteGuardSelection | undefined
@@ -37,12 +42,13 @@ export function selectRouteGuard({
       : undefined
     const kind = effectiveRaw ? 'effective' : 'raw'
     const raw = effectiveRaw ?? guard
-    if (!registeredRawGuards.includes(raw)) throw new E_MASQUERADE_UNAVAILABLE()
+    if (!registeredRawGuards.includes(raw)) throw new E_MASQUERADE_ROUTE_GUARD_UNREGISTERED()
     if (!selection || (selection.kind === kind && 'raw' in selection && selection.raw === raw)) {
       selection = { kind, raw }
       continue
     }
-    if (kind !== 'raw' || selection.kind === 'effective') throw new E_MASQUERADE_UNAVAILABLE()
+    if (kind !== 'raw' || selection.kind === 'effective')
+      throw new E_MASQUERADE_ROUTE_GUARD_CONFLICT()
     selection = { kind: 'ambiguous' }
   }
   return selection!

@@ -1,3 +1,4 @@
+import { throwIfOperationFailed } from './helpers/operation_failures.js'
 import { execFileSync } from 'node:child_process'
 import { createHash, randomUUID } from 'node:crypto'
 import { cp, mkdir, mkdtemp, readdir, readFile, rm, writeFile } from 'node:fs/promises'
@@ -336,7 +337,8 @@ try {
             }
           : { ...baseEnv, DB_CLIENT: 'sqlite' }
       const target = engine === 'pg' ? nativePgTarget(env, schemaName) : undefined
-      let engineFailure: unknown
+      let engineFailure: { error: unknown } | undefined
+      const cleanupFailures: unknown[] = []
       let ownsSchema = false
       let hasLease = false
       try {
@@ -410,24 +412,28 @@ try {
         )
         console.log(`[consumer] PASS ${selected}/${engine}`)
       } catch (error) {
-        engineFailure = error
+        engineFailure = { error }
       } finally {
         if (hasLease) {
           try {
             await revokeNativePgLease(app)
           } catch (error) {
-            engineFailure = combineFailures(engineFailure, error)
+            cleanupFailures.push(error)
           }
         }
         if (ownsSchema) {
           try {
             await schema(app, schemaName, 'drop', env)
           } catch (error) {
-            engineFailure = combineFailures(engineFailure, error)
+            cleanupFailures.push(error)
           }
         }
       }
-      if (engineFailure !== undefined) throw engineFailure
+      throwIfOperationFailed(
+        engineFailure,
+        cleanupFailures,
+        'The consumer operation and cleanup both failed.'
+      )
     }
   }
 } catch (error) {
@@ -472,11 +478,9 @@ if (process.exitCode === undefined) {
   else if (processRunner.interruptedBy === 'SIGTERM') process.exitCode = 143
 }
 
+/** @returns Both the already-observed operation and cleanup failures in that order. */
 function combineFailures(primary: unknown, cleanup: unknown): AggregateError {
-  return new AggregateError(
-    primary === undefined ? [cleanup] : [primary, cleanup],
-    'The consumer operation and cleanup both failed.'
-  )
+  return new AggregateError([primary, cleanup], 'The consumer operation and cleanup both failed.')
 }
 
 function describeFailure(error: unknown): string {

@@ -140,10 +140,14 @@ test.group('Account Kit host account blocker', () => {
         h.store.read = async () => {
           throw new Error('store down')
         }
+      const constructor =
+        failure === 'guard'
+          ? errors.E_MASQUERADE_BLOCKER_AUTHENTICATION_FAILED
+          : errors.E_MASQUERADE_STORE_READ_FAILED
       await rejects(h.request, (error: unknown) => {
-        assert.instanceOf(error, errors.E_MASQUERADE_UNAVAILABLE)
-        const unavailable = error as InstanceType<typeof errors.E_MASQUERADE_UNAVAILABLE>
-        assert.equal(unavailable.code, 'E_MASQUERADE_UNAVAILABLE')
+        assert.instanceOf(error, constructor)
+        const unavailable = error as InstanceType<typeof constructor>
+        assert.equal(unavailable.code, constructor.code)
         assert.equal(unavailable.status, 503)
         return true
       })

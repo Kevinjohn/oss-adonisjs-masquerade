@@ -129,7 +129,7 @@ test.group('pruneMasquerade', () => {
       f.dependencies
     ).catch((caught: unknown) => caught)
     assert.notInstanceOf(error, errors.E_MASQUERADE_INVALID_STORE)
-    assert.equal((error as { code: string }).code, 'E_MASQUERADE_UNAVAILABLE')
+    assert.equal((error as { code: string }).code, 'E_MASQUERADE_STORE_OPEN_FAILED')
   })
 
   test('expires a still-current expired row and preserves the active audit projection', async ({
@@ -357,7 +357,7 @@ test.group('pruneMasquerade', () => {
     assert.instanceOf(error, errors.E_MASQUERADE_PRUNE_PROGRESS)
     assert.equal(
       (error as InstanceType<typeof errors.E_MASQUERADE_PRUNE_PROGRESS>).code,
-      'E_MASQUERADE_UNAVAILABLE'
+      'E_MASQUERADE_PRUNE_PROGRESS'
     )
     assert.equal(
       (error as InstanceType<typeof errors.E_MASQUERADE_PRUNE_PROGRESS>).phase,
@@ -378,7 +378,7 @@ test.group('pruneMasquerade', () => {
       {
         category: 'store',
         operation: 'compare_and_set',
-        code: 'E_MASQUERADE_UNAVAILABLE',
+        code: 'E_MASQUERADE_UNKNOWN_COMMIT',
         transitionId: f.store.events[1].id,
       },
     ])
@@ -395,7 +395,7 @@ test.group('pruneMasquerade', () => {
     }
     assert.equal(
       await errorCode(() => pruneMasquerade(f.config, f.dependencies)),
-      'E_MASQUERADE_UNAVAILABLE'
+      'E_MASQUERADE_PRUNE_PROGRESS'
     )
     assert.lengthOf(f.store.events, 0)
   })
@@ -409,7 +409,7 @@ test.group('pruneMasquerade', () => {
       await errorCode(() =>
         pruneMasquerade(f.config, f.dependencies, { now: new Date('+010000-01-01T00:00:00Z') })
       ),
-      'E_MASQUERADE_UNAVAILABLE'
+      'E_MASQUERADE_CLOCK_INVALID'
     )
   })
 
@@ -427,7 +427,7 @@ test.group('pruneMasquerade', () => {
     f.observed.length = 0
     assert.equal(
       await errorCode(() => pruneMasquerade(f.config, f.dependencies)),
-      'E_MASQUERADE_UNAVAILABLE'
+      'E_MASQUERADE_PRUNE_PROGRESS'
     )
     const row = await read(f.owner)
     assert.equal(row?.revision, 1)

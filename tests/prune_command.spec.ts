@@ -160,7 +160,7 @@ test.group('masquerade:prune Ace command', () => {
     assert.equal(command.exitCode, 1)
     assert.instanceOf(command.error, errors.E_MASQUERADE_PRUNE_PROGRESS)
     const error = command.error as InstanceType<typeof errors.E_MASQUERADE_PRUNE_PROGRESS>
-    assert.equal(error.code, 'E_MASQUERADE_UNAVAILABLE')
+    assert.equal(error.code, 'E_MASQUERADE_PRUNE_PROGRESS')
     assert.equal(error.phase, 'expiry_commit')
     assert.deepEqual(error.completed, { expired: 0, eventsDeleted: 0 })
     assert.isTrue(error.indeterminate)

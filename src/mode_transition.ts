@@ -1,4 +1,9 @@
-import { E_MASQUERADE_UNAVAILABLE, E_MASQUERADE_UNKNOWN_COMMIT } from './errors.js'
+import { MasqueradeRequestException } from './request_exception.js'
+import {
+  E_MASQUERADE_REVISION_EXHAUSTED,
+  E_MASQUERADE_STORE_COMMIT_FAILED,
+  E_MASQUERADE_UNKNOWN_COMMIT,
+} from './errors.js'
 import { randomBytes } from 'node:crypto'
 import { observe, reportUnknown } from './observers.js'
 import type { ObserverDependencies } from './observers.js'
@@ -12,7 +17,7 @@ import type {
 } from './types.js'
 
 export function advanceRevision(row: ModeRow | null): number {
-  if (row?.revision === Number.MAX_SAFE_INTEGER) throw new E_MASQUERADE_UNAVAILABLE()
+  if (row?.revision === Number.MAX_SAFE_INTEGER) throw new E_MASQUERADE_REVISION_EXHAUSTED()
   return (row?.revision ?? 0) + 1
 }
 
@@ -47,8 +52,9 @@ export async function commitTransition(
   let outcome
   try {
     outcome = await store.compareAndSet(input)
-  } catch {
-    throw new E_MASQUERADE_UNAVAILABLE()
+  } catch (error) {
+    if (error instanceof MasqueradeRequestException) throw error
+    throw new E_MASQUERADE_STORE_COMMIT_FAILED(error)
   }
   if (outcome?.status === 'conflict') return 'conflict'
   if (outcome?.status !== 'applied' || outcome.transitionId !== input.event.id) {

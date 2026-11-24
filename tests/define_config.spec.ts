@@ -54,7 +54,11 @@ test('invalid service configuration logs a safe diagnostic and preserves startup
   )
   assert.equal((error as Error).message, 'Invalid masquerade configuration')
   assert.deepEqual(f.diagnostics, [
-    { category: 'configuration', operation: 'validate', code: 'E_MASQUERADE_UNAVAILABLE' },
+    {
+      category: 'configuration',
+      operation: 'validate',
+      code: 'E_MASQUERADE_INVALID_CONFIGURATION',
+    },
   ])
 })
 

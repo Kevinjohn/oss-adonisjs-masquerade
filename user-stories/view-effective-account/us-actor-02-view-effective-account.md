@@ -45,14 +45,14 @@ flowchart TD
     C -->|Yes| E["runtime.admit(ctx) calls MasqueradeService admission"]
     E --> F{"Idle, active valid or expired/invalid?"}
     F -->|Idle| G["buildAdmittedProjection uses actor as effective subject"]
-    F -->|Expired/invalid| H["clear mode; throw E_MASQUERADE_CONTEXT_CHANGED"]
+    F -->|Expired/invalid| H["Clear mode and throw MODE_EXPIRED or MODE_INVALIDATED"]
     F -->|Active valid| I["local checks canUseRequest"]
     I --> J{"Request permitted?"}
     J -->|No| K["Reject request without clearing mode"]
     J -->|Yes| L["buildAdmittedProjection uses target as effective subject"]
     G --> E2{"assertContextEnforced: active mode without enforced context middleware?"}
     L --> E2
-    E2 -->|Yes| Z["Throw E_MASQUERADE_UNAVAILABLE"]
+    E2 -->|Yes| Z["Throw E_MASQUERADE_CONTEXT_MIDDLEWARE_MISSING"]
     E2 -->|No, session| P{"Selected raw guard still authenticated?"}
     P -->|No| W["Throw native unauthorised"]
     P -->|Yes| M["Expose admitted effective user and context"]

@@ -1,4 +1,4 @@
-import { E_MASQUERADE_INVALID_STORE, E_MASQUERADE_UNAVAILABLE } from './errors.js'
+import { E_MASQUERADE_INVALID_STORE, E_MASQUERADE_STORE_OPEN_FAILED } from './errors.js'
 import type { MasqueradeSetupErrorField } from './errors.js'
 import type { ControlStore, RequestControlStore } from './types.js'
 
@@ -21,8 +21,8 @@ export async function openControlStore<K extends keyof ControlStore>(
   let store: RequestControlStore
   try {
     store = await factory()
-  } catch {
-    throw new E_MASQUERADE_UNAVAILABLE()
+  } catch (error) {
+    throw new E_MASQUERADE_STORE_OPEN_FAILED(error)
   }
   if (!store) throw new E_MASQUERADE_INVALID_STORE('store')
   if (store.testOnly && environment !== 'test')

@@ -1,5 +1,11 @@
+import {
+  E_MASQUERADE_ACCOUNT_USER_INVALID,
+  E_MASQUERADE_ACTION_BLOCKED,
+  E_MASQUERADE_BLOCKER_ADAPTER_UNAVAILABLE,
+  E_MASQUERADE_BLOCKER_AUTHENTICATION_FAILED,
+  E_MASQUERADE_BLOCKER_MODE_CHECK_FAILED,
+} from '../src/errors.js'
 import { MasqueradeRequestException } from '../src/request_exception.js'
-import { E_MASQUERADE_ACTION_BLOCKED, E_MASQUERADE_UNAVAILABLE } from '../src/errors.js'
 import type { HttpContext } from '@adonisjs/core/http'
 import { resolveAccountOwner } from './account_owner.js'
 import { resolveRuntime } from '../src/integration/runtime.js'
@@ -42,15 +48,19 @@ export class AccountKitAccountBlocker {
       adapter = (await ctx.containerResolver.make(
         'masquerade.native'
       )) as AccountKitAdapter<unknown>
+    } catch (error) {
+      throw new E_MASQUERADE_BLOCKER_ADAPTER_UNAVAILABLE(error)
+    }
+    try {
       raw = ctx.auth.use(adapter.managedGuard.name as never) as GuardContract<unknown>
       authenticated = await raw.check()
-    } catch {
-      throw new E_MASQUERADE_UNAVAILABLE()
+    } catch (error) {
+      throw new E_MASQUERADE_BLOCKER_AUTHENTICATION_FAILED(error)
     }
     if (!authenticated) return next()
     try {
       const user = raw.user
-      if (!user) throw new E_MASQUERADE_UNAVAILABLE()
+      if (!user) throw new E_MASQUERADE_ACCOUNT_USER_INVALID()
       const account = await adapter.provider.createUserForGuard(user)
       const { id: actorId, incarnation } = resolveAccountOwner(
         adapter.authority.incarnation,
@@ -68,7 +78,7 @@ export class AccountKitAccountBlocker {
         throw new E_MASQUERADE_ACTION_BLOCKED('sensitive')
     } catch (error) {
       if (error instanceof MasqueradeRequestException) throw error
-      throw new E_MASQUERADE_UNAVAILABLE()
+      throw new E_MASQUERADE_BLOCKER_MODE_CHECK_FAILED(error)
     }
     return next()
   }

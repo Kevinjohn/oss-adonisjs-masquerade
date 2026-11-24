@@ -153,7 +153,7 @@ test('reads status after an uncertain transition without replaying the old start
   const { elements, selectedAccess } = fixture(async (path, options) => {
     requests.push({ path, options })
     if (path === '/masquerade') return json({ isMasquerading: false, contextToken: 'idle' })
-    return json({ code: 'E_MASQUERADE_UNAVAILABLE', message: 'Unavailable' }, 503)
+    return json({ code: 'E_MASQUERADE_UNKNOWN_COMMIT', message: 'Unavailable' }, 503)
   })
   await tick()
   elements['json-target'].value = '2'

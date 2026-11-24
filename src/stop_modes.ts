@@ -1,8 +1,14 @@
 import {
-  E_MASQUERADE_INVALID_INPUT,
+  E_MASQUERADE_ACCOUNT_INSPECTION_FAILED,
+  E_MASQUERADE_CLOCK_INVALID,
+  E_MASQUERADE_OPERATOR_ACTOR_NOT_FOUND,
+  E_MASQUERADE_OPERATOR_INPUT_INVALID,
+  E_MASQUERADE_STOP_CONFLICT,
   E_MASQUERADE_STOP_PROGRESS,
-  E_MASQUERADE_UNAVAILABLE,
+  E_MASQUERADE_STORE_BATCH_INVALID,
+  E_MASQUERADE_STORE_READ_FAILED,
 } from './errors.js'
+import { MasqueradeRequestException } from './request_exception.js'
 import { randomUUID } from 'node:crypto'
 import { isBoundedString } from './bounded_string.js'
 import { commitTransition, createIdleRowAfterTransition } from './mode_transition.js'
@@ -44,13 +50,14 @@ function readCurrentTimestamp(dependencies: StopModesDependencies): string {
   try {
     const value = (dependencies.clock ?? (() => new Date()))()
     if (!(value instanceof Date) || !Number.isFinite(value.getTime()))
-      throw new E_MASQUERADE_UNAVAILABLE()
+      throw new E_MASQUERADE_CLOCK_INVALID()
     const instant = value.toISOString()
     // Instants compare as text, which holds only for four-digit years.
-    if (!/^\d{4}-/.test(instant)) throw new E_MASQUERADE_UNAVAILABLE()
+    if (!/^\d{4}-/.test(instant)) throw new E_MASQUERADE_CLOCK_INVALID()
     return instant
-  } catch {
-    throw new E_MASQUERADE_UNAVAILABLE()
+  } catch (error) {
+    if (error instanceof E_MASQUERADE_CLOCK_INVALID) throw error
+    throw new E_MASQUERADE_CLOCK_INVALID(error)
   }
 }
 
@@ -94,17 +101,10 @@ async function invalidate(
 async function read(store: RequestControlStore, owner: OwnerKey): Promise<ModeRow | null> {
   try {
     return requireValidModeRow(await store.read(owner), owner)
-  } catch {
-    throw new E_MASQUERADE_UNAVAILABLE()
+  } catch (error) {
+    if (error instanceof MasqueradeRequestException) throw error
+    throw new E_MASQUERADE_STORE_READ_FAILED(error)
   }
-}
-
-/** Errors thrown because the authority has no current account for the actor, not bad input. */
-const unknownAccounts = new WeakSet<InstanceType<typeof E_MASQUERADE_INVALID_INPUT>>()
-
-/** Whether `stopActiveModes` threw because the actor's account could not be found. */
-export function isUnknownAccount(error: unknown): boolean {
-  return error instanceof E_MASQUERADE_INVALID_INPUT && unknownAccounts.has(error)
 }
 
 async function resolveIncarnation<User, Request>(
@@ -119,15 +119,13 @@ async function resolveIncarnation<User, Request>(
   let snapshot
   try {
     snapshot = await config.authority.inspectAccount(actorId)
-  } catch {
-    throw new E_MASQUERADE_UNAVAILABLE()
+  } catch (error) {
+    if (error instanceof MasqueradeRequestException) throw error
+    throw new E_MASQUERADE_ACCOUNT_INSPECTION_FAILED(error)
   }
   // A deleted or reused account has no current incarnation; the operator names the row's.
-  if (!snapshot || snapshot.subject.id !== actorId) {
-    const error = new E_MASQUERADE_INVALID_INPUT()
-    unknownAccounts.add(error)
-    throw error
-  }
+  if (!snapshot || snapshot.subject.id !== actorId)
+    throw new E_MASQUERADE_OPERATOR_ACTOR_NOT_FOUND()
   return snapshot.subject.incarnation
 }
 
@@ -149,13 +147,13 @@ export async function stopActiveModes<User, Request>(
   ])
   if ('actorId' in selection) {
     // Bound the operator's input before it reaches the host authority.
-    if (!isBoundedString(selection.actorId, 255)) throw new E_MASQUERADE_INVALID_INPUT()
+    if (!isBoundedString(selection.actorId, 255)) throw new E_MASQUERADE_OPERATOR_INPUT_INVALID()
     const actorIncarnation = await resolveIncarnation(
       config,
       selection.actorId,
       selection.actorIncarnation
     )
-    if (!isBoundedString(actorIncarnation, 128)) throw new E_MASQUERADE_INVALID_INPUT()
+    if (!isBoundedString(actorIncarnation, 128)) throw new E_MASQUERADE_OPERATOR_INPUT_INVALID()
     const owner = {
       namespace: config.authority.namespace,
       actorId: selection.actorId,
@@ -172,19 +170,19 @@ export async function stopActiveModes<User, Request>(
       )
       if (outcome !== 'conflict') return { stopped: outcome === 'applied' ? 1 : 0 }
     }
-    throw new E_MASQUERADE_UNAVAILABLE()
+    throw new E_MASQUERADE_STOP_CONFLICT()
   }
 
   const batchSize = selection.batchSize ?? DEFAULT_STOP_BATCH_SIZE
   if (!Number.isSafeInteger(batchSize) || batchSize < 1 || batchSize > 1000)
-    throw new E_MASQUERADE_UNAVAILABLE()
+    throw new E_MASQUERADE_OPERATOR_INPUT_INVALID()
   let stoppedCount = 0
   for (;;) {
     let candidates: ModeRow[]
     try {
       candidates = await store.activeBatch({ limit: batchSize })
       if (!Array.isArray(candidates) || candidates.length > batchSize)
-        throw new E_MASQUERADE_UNAVAILABLE()
+        throw new E_MASQUERADE_STORE_BATCH_INVALID()
     } catch (error) {
       throw new E_MASQUERADE_STOP_PROGRESS('active_batch', stoppedCount, error)
     }

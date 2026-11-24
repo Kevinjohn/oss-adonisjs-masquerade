@@ -199,7 +199,7 @@ test('business guard owns the facade while the raw guard retains actor identity;
   })
   ctx.auth = auth as never
   // Without masqueradeContext, view-only and sensitive() are unenforced: the target is refused.
-  await assert.rejects(() => auth.check(), 'Masquerade is unavailable')
+  await assert.rejects(() => auth.check(), 'The request did not run the context middleware')
   assert.isUndefined(auth.use('web_effective').user)
   markContextEnforced(ctx)
   assert.isTrue(await auth.check())

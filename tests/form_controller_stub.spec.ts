@@ -89,7 +89,10 @@ test.group('generated form controller', (group) => {
     await new Controller().start(ctx)
     assert.isFalse(started)
     assert.deepEqual(state.flash, {
-      masquerade: { type: 'error', code: new errors.E_MASQUERADE_UNAVAILABLE().code },
+      masquerade: {
+        type: 'error',
+        code: new errors.E_MASQUERADE_CONTROL_GUARD_REQUIRED().responseCode,
+      },
     })
   })
 
@@ -305,12 +308,20 @@ test.group('generated form controller', (group) => {
         const { ctx, state } = formRequest(runtime, body)
         await new Controller().start(ctx)
         assert.deepEqual(state.flash, {
-          masquerade: { type: 'error', code: 'E_MASQUERADE_UNAVAILABLE' },
+          masquerade: { type: 'error', code: 'E_MASQUERADE_UNKNOWN_COMMIT' },
         })
       } else {
         const { ctx, responseState } = controlRequestContext(f, { body })
         await handleWithDefaultExceptionHandler(ctx, () => new MasqueradeController().start(ctx))
         assert.equal(responseState.status, 503)
+        assert.deepEqual(responseState.json, {
+          errors: [
+            {
+              code: 'E_MASQUERADE_UNKNOWN_COMMIT',
+              message: 'The masquerade transition could not be confirmed',
+            },
+          ],
+        })
       }
       assert.lengthOf(f.store.events, 0)
     }

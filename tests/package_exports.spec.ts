@@ -32,21 +32,17 @@ if (process.env.TEST_BUILT_EXPORTS === '1') {
     assert.isFunction(root.MasqueradeCallbackRegistry)
     assert.notProperty(root, 'MasqueradeError')
     assert.notProperty(root, 'MasqueradeSetupError')
-    assert.deepEqual(Object.keys(root.errors).sort(), [
-      'E_MASQUERADE_ACTION_BLOCKED',
-      'E_MASQUERADE_ALREADY_ACTIVE',
-      'E_MASQUERADE_CONTEXT_CHANGED',
-      'E_MASQUERADE_CONTEXT_REQUIRED',
-      'E_MASQUERADE_INVALID_CONFIGURATION',
-      'E_MASQUERADE_INVALID_INPUT',
-      'E_MASQUERADE_INVALID_STORE',
-      'E_MASQUERADE_NOT_ALLOWED',
-      'E_MASQUERADE_PRUNE_PROGRESS',
-      'E_MASQUERADE_STOP_PROGRESS',
-      'E_MASQUERADE_UNAUTHENTICATED',
-      'E_MASQUERADE_UNAVAILABLE',
-      'E_MASQUERADE_UNKNOWN_COMMIT',
-    ])
+    const exportedExceptions = Object.entries(root.errors)
+    assert.equal(
+      new Set(exportedExceptions.map(([, exception]) => exception)).size,
+      exportedExceptions.length
+    )
+    for (const [code, exception] of exportedExceptions) {
+      assert.equal(exception.code, code)
+      assert.isNumber(exception.status)
+    }
+    assert.notProperty(root.errors, 'E_MASQUERADE_NOT_ALLOWED')
+    assert.notProperty(root.errors, 'E_MASQUERADE_UNAVAILABLE')
     const blocked = new root.errors.E_MASQUERADE_ACTION_BLOCKED('sensitive')
     assert.equal(blocked.code, 'E_MASQUERADE_ACTION_BLOCKED')
     assert.equal(blocked.blockedBy, 'sensitive')

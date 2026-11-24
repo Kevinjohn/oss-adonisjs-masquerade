@@ -1,4 +1,8 @@
-import { E_MASQUERADE_UNAVAILABLE } from '../src/errors.js'
+import {
+  E_MASQUERADE_INVALID_LUCID_STORE,
+  E_MASQUERADE_OPERATOR_INPUT_INVALID,
+  E_MASQUERADE_STORE_RETIRED,
+} from '../src/errors.js'
 import { setTimeout } from 'node:timers/promises'
 import type { QueryClientContract, TransactionClientContract } from '@adonisjs/lucid/types/database'
 import { isValidInstant, requireValidModeRow } from '../src/row_validation.js'
@@ -64,7 +68,7 @@ function isSerializationFailure(error: unknown): boolean {
 }
 function assertBatchInput(input: { limit: number }, instant: Instant): void {
   if (!Number.isSafeInteger(input.limit) || input.limit < 1 || !isValidInstant(instant))
-    throw new E_MASQUERADE_UNAVAILABLE()
+    throw new E_MASQUERADE_OPERATOR_INPUT_INVALID()
 }
 /**
  * Inject db.connection() in write mode; transaction clients and read replicas are unsupported.
@@ -85,7 +89,7 @@ export class LucidControlStore implements ControlStore {
   readonly #delay: number
   #failed = false
   #assertAvailable(): void {
-    if (this.#failed) throw new E_MASQUERADE_UNAVAILABLE()
+    if (this.#failed) throw new E_MASQUERADE_STORE_RETIRED()
   }
   #retireWritePool(knex: ReturnType<LucidControlClient['getWriteClient']>): void {
     if (this.#failed) return
@@ -110,7 +114,7 @@ export class LucidControlStore implements ControlStore {
       this.#delay > 1000 ||
       client.getWriteClient().client.config.connectionPool !== undefined
     )
-      throw new E_MASQUERADE_UNAVAILABLE()
+      throw new E_MASQUERADE_INVALID_LUCID_STORE()
   }
   /**
    * Read the latest mode row for one owner.
@@ -135,6 +139,7 @@ export class LucidControlStore implements ControlStore {
   }
   /**
    * Replace an expected mode row and append its transition event together.
+   * @throws {AggregateError} When a failed transaction and its cleanup both fail, with the transaction first.
    *
    * @example
    * ```ts
@@ -157,6 +162,7 @@ export class LucidControlStore implements ControlStore {
       let completion: Promise<{ ok: true } | { ok: false; error: unknown }> | undefined
       let committing = false
       let rollingBack = false
+      let workFailure: { error: unknown; cleanup: unknown[] } | undefined
       try {
         transaction = await knex.transaction({ connection })
         completion = transaction.executionPromise.then(
@@ -198,6 +204,9 @@ export class LucidControlStore implements ControlStore {
         if (!outcome.ok) throw outcome.error
         return { status: 'applied', transitionId: transitionInput.event.id }
       } catch (error) {
+        const workFailed = !rollingBack
+        const expectedConflict =
+          this.#client.dialect.name === 'postgres' && isSerializationFailure(error)
         const unknownCommit = committing && !isDefiniteCommitFailure(error)
         try {
           if (transaction && !transaction.isCompleted()) {
@@ -227,31 +236,39 @@ export class LucidControlStore implements ControlStore {
             // retires only this connection (Knex destroys a disposed connection on release).
             // The shared pool and this store stay available.
             ;(connection as { __knex__disposed?: unknown }).__knex__disposed ??= cleanupError
-            if (unknownCommit)
-              return { status: 'indeterminate', transitionId: transitionInput.event.id }
-            throw error
+          } else {
+            this.#retireWritePool(knex)
           }
-          this.#retireWritePool(knex)
           if (unknownCommit)
             return { status: 'indeterminate', transitionId: transitionInput.event.id }
-          throw cleanupError
+          if (expectedConflict) throw cleanupError
+          if (!workFailed) throw error
+          workFailure = { error, cleanup: error === cleanupError ? [] : [cleanupError] }
         }
-        if (unknownCommit)
-          return { status: 'indeterminate', transitionId: transitionInput.event.id }
-        // Under REPEATABLE READ or SERIALIZABLE defaults, a lost race fails with 40001/40P01
-        // after a clean rollback; it is the same outcome as a revision mismatch.
-        if (this.#client.dialect.name === 'postgres' && isSerializationFailure(error))
-          return { status: 'conflict' }
-        if (!(
-          this.#client.dialect.name !== 'postgres' &&
-          isBusyError(error) &&
-          attempt < this.#retries
-        ))
-          throw error
+        if (!workFailure) {
+          if (unknownCommit)
+            return { status: 'indeterminate', transitionId: transitionInput.event.id }
+          // A PostgreSQL serialization failure after a clean rollback is a CAS conflict.
+          if (expectedConflict) return { status: 'conflict' }
+          if (!(
+            this.#client.dialect.name !== 'postgres' &&
+            isBusyError(error) &&
+            attempt < this.#retries
+          )) {
+            if (!workFailed) throw error
+            workFailure = { error, cleanup: [] }
+          }
+        }
       } finally {
         try {
           await knex.client.releaseConnection(connection)
-        } catch {
+        } catch (cleanupError) {
+          if (
+            workFailure &&
+            cleanupError !== workFailure.error &&
+            !workFailure.cleanup.includes(cleanupError)
+          )
+            workFailure.cleanup.push(cleanupError)
           this.#retireWritePool(knex)
           // Report cleanup independently so it cannot change the transaction result.
           void Promise.resolve()
@@ -260,6 +277,14 @@ export class LucidControlStore implements ControlStore {
             )
             .catch(() => {})
         }
+      }
+      if (workFailure) {
+        if (workFailure.cleanup.length)
+          throw new AggregateError(
+            [workFailure.error, ...workFailure.cleanup],
+            'Mode transition and cleanup both failed'
+          )
+        throw workFailure.error
       }
       this.#assertAvailable()
       await setTimeout(this.#delay)
@@ -309,7 +334,8 @@ export class LucidControlStore implements ControlStore {
    */
   async activeBatch(input: { limit: number }): Promise<ModeRow[]> {
     this.#assertAvailable()
-    if (!Number.isSafeInteger(input.limit) || input.limit < 1) throw new E_MASQUERADE_UNAVAILABLE()
+    if (!Number.isSafeInteger(input.limit) || input.limit < 1)
+      throw new E_MASQUERADE_OPERATOR_INPUT_INVALID()
     const rows = await this.#client
       .knexQuery()
       .from('masquerade_modes')

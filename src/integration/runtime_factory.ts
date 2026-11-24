@@ -1,4 +1,10 @@
-import { E_MASQUERADE_UNAVAILABLE } from '../errors.js'
+import {
+  E_MASQUERADE_EFFECTIVE_DRIVER_MISSING,
+  E_MASQUERADE_GUARD_CONSTRUCTION_FAILED,
+  E_MASQUERADE_GUARD_DRIVER_MISMATCH,
+  E_MASQUERADE_NATIVE_ADAPTER_MISSING,
+  E_MASQUERADE_ROUTE_GUARD_AMBIGUOUS,
+} from '../errors.js'
 import { InvalidArgumentsException } from '@adonisjs/core/exceptions'
 import type {} from '@adonisjs/auth/auth_provider'
 import type { GuardContract } from '@adonisjs/auth/types'
@@ -174,21 +180,19 @@ export async function createRuntime(
     environment: app.nodeEnvironment,
     authenticateActor: (ctx) => {
       const selected = selectGuard(ctx)
-      const adapter =
-        selected.kind !== 'ambiguous' && Object.hasOwn(wiring.rawAdapters, selected.raw)
-          ? wiring.rawAdapters[selected.raw]
-          : undefined
-      if (!adapter) throw new E_MASQUERADE_UNAVAILABLE()
+      if (selected.kind === 'ambiguous') throw new E_MASQUERADE_ROUTE_GUARD_AMBIGUOUS()
+      if (!Object.hasOwn(wiring.rawAdapters, selected.raw))
+        throw new E_MASQUERADE_NATIVE_ADAPTER_MISSING()
+      const adapter = wiring.rawAdapters[selected.raw]
       if (selected.kind === 'effective') {
         // The middleware can admit a request before named Auth runs. Construct the selected
         // facades with the real request now, and verify the actual raw guard before any store read.
         for (const name of routeGuards(ctx.route, wiring.effectiveGuardName)) {
           const driver = wiring.effectiveDrivers[name]
-          if (!driver) throw new E_MASQUERADE_UNAVAILABLE()
+          if (!driver) throw new E_MASQUERADE_EFFECTIVE_DRIVER_MISSING()
           const rawGuard = wiring.effectiveRawGuards[name]
           for (const guard of [name, rawGuard]) {
             const fields = {
-              code: 'E_MASQUERADE_UNAVAILABLE',
               component: 'guard_wiring',
               effectiveGuard: name,
               rawGuard,
@@ -199,17 +203,26 @@ export async function createRuntime(
               actualDriver = (ctx.auth.use(guard as never) as GuardContract<unknown>).driverName
             } catch (error) {
               ctx.logger?.error(
-                { ...fields, error: error instanceof Error ? error.message : String(error) },
+                {
+                  ...fields,
+                  code: E_MASQUERADE_GUARD_CONSTRUCTION_FAILED.code,
+                  error: error instanceof Error ? error.message : String(error),
+                },
                 'Masquerade could not construct a guard for the effective route'
               )
-              throw new E_MASQUERADE_UNAVAILABLE()
+              throw new E_MASQUERADE_GUARD_CONSTRUCTION_FAILED(error)
             }
             if (actualDriver !== driver) {
               ctx.logger?.error(
-                { ...fields, expectedDriver: driver, actualDriver },
+                {
+                  ...fields,
+                  code: E_MASQUERADE_GUARD_DRIVER_MISMATCH.code,
+                  expectedDriver: driver,
+                  actualDriver,
+                },
                 'Masquerade effective guard and its raw guard use different drivers'
               )
-              throw new E_MASQUERADE_UNAVAILABLE()
+              throw new E_MASQUERADE_GUARD_DRIVER_MISMATCH()
             }
           }
         }

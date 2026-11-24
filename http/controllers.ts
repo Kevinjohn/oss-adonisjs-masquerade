@@ -1,4 +1,4 @@
-import { E_MASQUERADE_UNAVAILABLE } from '../src/errors.js'
+import { E_MASQUERADE_CONTROL_GUARD_REQUIRED } from '../src/errors.js'
 import type { HttpContext } from '@adonisjs/core/http'
 import { resolveRuntime } from '../src/integration/runtime.js'
 import {
@@ -62,7 +62,7 @@ export class MasqueradeController {
 
   private async requireRawRuntime(ctx: HttpContext) {
     const runtime = await resolveRuntime(ctx)
-    if (runtime.selectGuard(ctx).kind !== 'raw') throw new E_MASQUERADE_UNAVAILABLE()
+    if (runtime.selectGuard(ctx).kind !== 'raw') throw new E_MASQUERADE_CONTROL_GUARD_REQUIRED()
     return runtime
   }
 

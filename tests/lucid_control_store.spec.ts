@@ -711,7 +711,7 @@ test.group('Lucid control store', () => {
       for (const change of [{ state: 'bogus' }, { revisionNonce: 'x' }])
         await assert.rejects(
           () => f.store.compareAndSet({ ...a, next: { ...a.next, ...change } as never }),
-          'Masquerade is unavailable'
+          'The masquerade store returned an invalid mode row'
         )
       assert.isNull(await f.store.read(a.owner))
       assert.lengthOf(await f.client.from('masquerade_events'), 0)
@@ -733,7 +733,10 @@ test.group('Lucid control store', () => {
         getWriteClient: () => f.client.getWriteClient(),
       })
       assert.doesNotThrow(() => new LucidControlStore(surface('write')))
-      assert.throws(() => new LucidControlStore(surface('read')), 'Masquerade is unavailable')
+      assert.throws(
+        () => new LucidControlStore(surface('read')),
+        'The Lucid control store configuration is invalid'
+      )
       const tx = await f.client.transaction()
       try {
         assert.throws(() => new LucidControlStore(tx))

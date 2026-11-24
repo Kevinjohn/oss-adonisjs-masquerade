@@ -175,7 +175,12 @@ test('Account Kit actor and target operational inspection errors preserve the co
             ? Object.assign(new Error('post commit'), { code: 'E_ACCOUNT_KIT_POST_COMMIT' })
             : new Error('database unavailable')
       }
-      assert.equal(await errorCode(() => service.resolve(f.context())), 'E_MASQUERADE_UNAVAILABLE')
+      assert.equal(
+        await errorCode(() => service.resolve(f.context())),
+        failure === 'malformed_id'
+          ? 'E_MASQUERADE_ACCOUNT_ID_INVALID'
+          : 'E_MASQUERADE_ACCOUNT_INSPECTION_FAILED'
+      )
       assert.deepEqual(await f.store.read(f.owner), originalRow)
       assert.deepEqual(f.store.events, originalEvents)
     }
@@ -246,7 +251,7 @@ test('Account Kit changes invalidate active modes even when provider users are r
     if (change === 'policy_denied') f.state.admitted = false
     assert.equal(
       await errorCode(() => service.resolve(f.context())),
-      'E_MASQUERADE_CONTEXT_CHANGED'
+      'E_MASQUERADE_MODE_INVALIDATED'
     )
     assert.equal(f.store.events.at(-1)?.outcomeCode, change)
     const row = await f.store.read(f.owner)

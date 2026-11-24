@@ -30,10 +30,10 @@ export function reportDiagnostic(
 function reportFailure(dependencies: ObserverDependencies, error: unknown): void {
   try {
     Promise.resolve(dependencies.observerErrorHandler?.(error)).catch(() => {
-      reportDiagnostic(dependencies, 'observer', 'error_reporter', 'E_MASQUERADE_UNAVAILABLE')
+      reportDiagnostic(dependencies, 'observer', 'error_reporter', 'E_MASQUERADE_OBSERVER_FAILED')
     })
   } catch {
-    reportDiagnostic(dependencies, 'observer', 'error_reporter', 'E_MASQUERADE_UNAVAILABLE')
+    reportDiagnostic(dependencies, 'observer', 'error_reporter', 'E_MASQUERADE_OBSERVER_FAILED')
   }
 }
 
@@ -57,7 +57,7 @@ export function reportUnknown(dependencies: ObserverDependencies, transitionId: 
   const event: DiagnosticEvent = {
     category: 'store',
     operation: 'compare_and_set',
-    code: 'E_MASQUERADE_UNAVAILABLE',
+    code: 'E_MASQUERADE_UNKNOWN_COMMIT',
     transitionId,
   }
   try {

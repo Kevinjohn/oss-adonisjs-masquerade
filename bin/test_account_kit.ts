@@ -1,3 +1,4 @@
+import { throwIfOperationFailed } from './helpers/operation_failures.js'
 import { execFileSync, spawn, type ChildProcess } from 'node:child_process'
 import { createHash, randomUUID } from 'node:crypto'
 import { cp, mkdir, mkdtemp, readdir, readFile, rm, writeFile } from 'node:fs/promises'
@@ -396,7 +397,8 @@ try {
           try {
             let ownsSchema = false
             let hasLease = false
-            let primaryError: unknown
+            let primaryError: { error: unknown } | undefined
+            const cleanupFailures: unknown[] = []
             try {
               const installation = await run(
                 app,
@@ -667,34 +669,28 @@ try {
                 result: 'passed',
               })
             } catch (error) {
-              primaryError = error
+              primaryError = { error }
             } finally {
               if (hasLease)
                 try {
                   await revokeNativePgLease(app)
                 } catch (error) {
                   cell.cleanupError = String(error)
-                  primaryError = primaryError
-                    ? new AggregateError(
-                        [primaryError, error],
-                        'Operation and lease cleanup failed'
-                      )
-                    : error
+                  cleanupFailures.push(error)
                 }
               if (ownsSchema)
                 try {
                   await setupPostgres(app, schema, 'drop', env, true)
                 } catch (error) {
                   cell.cleanupError = String(error)
-                  primaryError = primaryError
-                    ? new AggregateError(
-                        [primaryError, error],
-                        'Operation and schema cleanup failed'
-                      )
-                    : error
+                  cleanupFailures.push(error)
                 }
             }
-            if (primaryError) throw primaryError
+            throwIfOperationFailed(
+              primaryError,
+              cleanupFailures,
+              'Account Kit journey and cleanup failed'
+            )
           } catch (error) {
             const caseNames = (cell.specFiles as string[] | undefined) ?? []
             const caseLogs = await Promise.all(

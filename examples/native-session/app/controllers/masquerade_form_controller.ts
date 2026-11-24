@@ -1,5 +1,5 @@
 import type { HttpContext } from '@adonisjs/core/http'
-import type { MasqueradeErrorCode } from '@kevinjohn/adonisjs-masquerade'
+import type { MasqueradeResponseCode } from '@kevinjohn/adonisjs-masquerade'
 import { isMasqueradeRequestError, MasqueradeController } from '@kevinjohn/adonisjs-masquerade/http'
 
 type FormAction = 'start' | 'stop'
@@ -7,7 +7,7 @@ export type MasqueradeFormFlash =
   | { type: 'success'; action: 'started' | 'stopped' }
   | {
       type: 'error'
-      code: MasqueradeErrorCode
+      code: MasqueradeResponseCode
     }
 
 /** Host-owned HTML form adapter. This is the generated --form-controller starter. */
@@ -40,7 +40,7 @@ export default class MasqueradeFormController extends MasqueradeController {
       ctx.response.redirect().toPath(this.successPath(ctx, action))
     } catch (error) {
       if (!isMasqueradeRequestError(error)) throw error
-      flash(ctx, { type: 'error', code: error.code })
+      flash(ctx, { type: 'error', code: error.responseCode })
       ctx.response.redirect().toPath(this.errorPath(ctx, action))
     }
   }

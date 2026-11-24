@@ -219,6 +219,7 @@ async function measureSqlite() {
   }
 }
 
+/** @throws {AggregateError} When measurement and its PostgreSQL cleanup both fail. */
 async function measurePostgres() {
   const client = new Client({
     host: process.env.DB_HOST ?? '127.0.0.1',

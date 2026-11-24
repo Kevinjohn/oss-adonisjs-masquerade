@@ -22,7 +22,7 @@ test('validates bounded canonical IDs and immutable incarnations against authori
   ])
     assert.throws(
       () => requireValidSubject({ ...subject, ...patch } as never, f.config.authority),
-      'Masquerade is unavailable'
+      'The account authority returned an invalid subject'
     )
   assert.strictEqual(
     requireValidSubject(subject, { ...f.config.authority, incarnation: 'id' }),

@@ -170,7 +170,7 @@ export async function assertControlStoreConformance(
     id: randomUUID(),
     at: event.at,
     kind: 'start_denied',
-    outcomeCode: 'E_MASQUERADE_NOT_ALLOWED',
+    outcomeCode: 'E_MASQUERADE_START_DENIED',
     revision: 0,
   })
   assert.equal(await store.read(absent), null)

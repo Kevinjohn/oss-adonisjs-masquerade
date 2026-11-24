@@ -454,7 +454,12 @@ test.group('Account Kit provider', () => {
           await attempt.call()
           assert.fail('expected unavailable route')
         } catch (error) {
-          assert.equal((error as { code: string }).code, 'E_MASQUERADE_UNAVAILABLE')
+          assert.equal(
+            (error as { code: string }).code,
+            failure === 'guard'
+              ? 'E_MASQUERADE_BLOCKER_AUTHENTICATION_FAILED'
+              : 'E_MASQUERADE_BLOCKER_MODE_CHECK_FAILED'
+          )
           assert.equal((error as { status: number }).status, 503)
         }
       }
@@ -481,7 +486,12 @@ test.group('Account Kit provider', () => {
           return createUserForGuard(user)
         }
         const attempt = await block(host, 'accountKit.auth.passwordReset.request', options)
-        await assert.rejects(attempt.call, 'Masquerade is unavailable')
+        await assert.rejects(
+          attempt.call,
+          options.missingUser
+            ? 'The account provider did not supply a user'
+            : 'The account provider returned an invalid identifier'
+        )
         assert.deepEqual(attempt.reads, [])
         assert.equal(attempt.nextCalls(), 0)
         if (options.missingUser) assert.equal(providerCalls, 0)

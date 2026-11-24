@@ -76,7 +76,9 @@ test('memory CAS rejects transition identity and projection mismatches without m
           next: attempt.next,
           event: attempt.event,
         }),
-      'Masquerade is unavailable'
+      attempt.next.actorId !== f.owner.actorId
+        ? 'The masquerade store returned an invalid mode row'
+        : 'The mode transition and its audit event are inconsistent'
     )
     assert.deepEqual(await f.store.read(f.owner), row)
     assert.lengthOf(f.store.events, 1)

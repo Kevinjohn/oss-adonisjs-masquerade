@@ -1,4 +1,5 @@
 #!/usr/bin/env node
+import { cleanupFailure } from './helpers/operation_failures.js'
 import { spawn, type ChildProcess } from 'node:child_process'
 import { createHash } from 'node:crypto'
 import { createServer } from 'node:net'
@@ -141,10 +142,14 @@ function processGroupExists(groupId: number): boolean {
   }
 }
 
+/** @returns AggregateError when both the operation and cleanup failed. */
 function combineErrors(primary: unknown, cleanupErrors: unknown[]): unknown {
   if (cleanupErrors.length === 0) return primary
-  const errors = primary === undefined ? cleanupErrors : [primary, ...cleanupErrors]
-  return new AggregateError(errors, 'The operation failed and cleanup also failed.')
+  if (primary === undefined) return cleanupFailure(cleanupErrors, 'Demo cleanup failed.')
+  return new AggregateError(
+    [primary, ...cleanupErrors],
+    'The operation failed and cleanup also failed.'
+  )
 }
 
 function describeError(error: unknown): string {
@@ -264,11 +269,12 @@ function cleanupOwnedProcesses(): Promise<void> {
         }
       }
     }
-    if (failures.length) throw new AggregateError(failures, 'Failed to clean up owned processes.')
+    if (failures.length) throw cleanupFailure(failures, 'Failed to clean up owned processes.')
   })()
   return cleanupPromise
 }
 
+/** @throws {AggregateError} When the command and owned-process cleanup both fail. */
 function run(
   command: string,
   args: string[],
@@ -430,6 +436,7 @@ async function waitForDemo(
   )
 }
 
+/** @throws {AggregateError} When server startup or exit fails and cleanup fails too. */
 async function startServer(environment: NodeJS.ProcessEnv): Promise<void> {
   // A signal after the last setup step has already run cleanup, which cannot reach a later child.
   if (interruptedBy) throw new Error(`Interrupted by ${interruptedBy}`)

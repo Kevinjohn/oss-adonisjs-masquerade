@@ -44,7 +44,7 @@ flowchart TD
     G --> H{"Mode active and not expired?"}
     H -->|Yes| I["Throw E_MASQUERADE_ACTION_BLOCKED"]
     H -->|No| E
-    C -->|Guard failure| J["Return E_MASQUERADE_UNAVAILABLE"]
+    C -->|Guard failure| J["Return the named 503 response"]
     F -->|Identity resolution failure| J
     G -->|Store failure| J
 ```

@@ -196,7 +196,7 @@ test.group('packed Account Kit managed route blocker', (group) => {
       assert.equal(reads, 0)
       const denied = await requestManaged(session, '/kit/account/profile', 'GET')
       assert.equal(denied.status, 503)
-      assert.equal((await json(denied)).errors?.[0]?.code, 'E_MASQUERADE_UNAVAILABLE')
+      assert.equal((await json(denied)).errors?.[0]?.code, 'E_MASQUERADE_STORE_READ_FAILED')
       const afterDeniedReads = reads
       if (strategy === 'session') assert.isString(await session.http.csrf())
       assert.equal(reads, afterDeniedReads)

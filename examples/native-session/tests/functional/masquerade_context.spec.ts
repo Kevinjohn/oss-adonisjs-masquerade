@@ -356,7 +356,7 @@ test.group('real HTTP masquerade context and actions', (group) => {
     setMasqueradeStoreUnavailable(true)
     const statusResponse = await client.get('/masquerade').loginAs(actor)
     statusResponse.assertStatus(503)
-    assert.equal(statusResponse.body().errors[0].code, 'E_MASQUERADE_UNAVAILABLE')
+    assert.equal(statusResponse.body().errors[0].code, 'E_MASQUERADE_STORE_READ_FAILED')
     statusResponse.assertHeader('cache-control', 'no-store')
     const stopResponse = await client
       .post('/masquerade/stop')

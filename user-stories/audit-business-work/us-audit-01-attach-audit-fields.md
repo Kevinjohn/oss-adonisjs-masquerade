@@ -42,9 +42,9 @@ flowchart TD
     C -->|Yes| E["runtime.service.resolve(ctx) runs memoised admission"]
     E --> G{"Admitted?"}
     G -->|Yes| F["Return frozen fields"]
-    G -->|"Expired or invalidated mode"| H["Throw E_MASQUERADE_CONTEXT_CHANGED"]
-    G -->|"Store or policy failure"| I["Throw E_MASQUERADE_UNAVAILABLE"]
-    G -->|Request-local policy refusal| J["Throw E_MASQUERADE_NOT_ALLOWED"]
+    G -->|"Expired or invalidated mode"| H["Throw MODE_EXPIRED or MODE_INVALIDATED"]
+    G -->|"Store or policy failure"| I["Throw the store or policy exception"]
+    G -->|Request-local policy refusal| J["Throw E_MASQUERADE_REQUEST_DENIED"]
     D -->|Actor resolved| F
     D -->|No mapped actor or invalid credentials| X["Propagate refusal"]
 ```

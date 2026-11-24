@@ -296,7 +296,7 @@ test.group('native access-token authority', (group) => {
 
     const deniedStatus = await status(client, restrictedValue)
     deniedStatus.assertStatus(403)
-    assert.equal(deniedStatus.body().errors[0].code, 'E_MASQUERADE_NOT_ALLOWED')
+    assert.equal(deniedStatus.body().errors[0].code, 'E_MASQUERADE_TOKEN_ABILITY_REQUIRED')
     const deniedBusiness = await business(client, restrictedValue)
     deniedBusiness.assertStatus(403)
     const deniedStop = await stop(client, restrictedValue, started.body().contextToken)

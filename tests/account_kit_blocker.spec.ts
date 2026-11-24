@@ -89,7 +89,7 @@ test.group('Account Kit managed route coverage', () => {
     assert.isFalse(await check({ ...f.owner, actorIncarnation: 'other' }))
     await assert.rejects(
       () => check({ ...f.owner, namespace: 'other' }),
-      'Masquerade is unavailable'
+      'The mode owner is invalid'
     )
     f.state.now = Date.parse(before!.expiresAt!)
     assert.isFalse(await check(f.owner))
@@ -114,12 +114,11 @@ test.group('Account Kit managed route coverage', () => {
   })
 
   test('maps malformed rows and store failures to unavailable', async ({ assert }) => {
-    for (const badRead of [
-      async () => ({ state: 'active', namespace: 'other' }),
-      async () => {
-        throw new Error('store down')
-      },
-    ]) {
+    for (const failure of ['row', 'read']) {
+      const badRead = async () => {
+        if (failure === 'read') throw new Error('store down')
+        return { state: 'active', namespace: 'other' }
+      }
       const f = fixture()
       f.config.store = async () => Object.assign(Object.create(f.store), { read: badRead })
       const service = await f.create()
@@ -127,7 +126,12 @@ test.group('Account Kit managed route coverage', () => {
         (
           service as typeof service & { [checkActiveMode](owner: typeof f.owner): Promise<boolean> }
         )[checkActiveMode](f.owner)
-      await assert.rejects(check, 'Masquerade is unavailable')
+      await assert.rejects(
+        check,
+        failure === 'row'
+          ? 'The masquerade store returned an invalid mode row'
+          : 'The masquerade store could not read a mode'
+      )
       assert.deepEqual(f.store.events, [])
     }
   })

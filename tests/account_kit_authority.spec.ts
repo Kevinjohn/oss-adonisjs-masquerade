@@ -161,7 +161,10 @@ test('Account Kit adapter captures ability and raw guard settings at constructio
       },
     },
   } as unknown as HttpContext
-  assert.equal(await errorCode(() => adapter.authenticateActor(ctx)), 'E_MASQUERADE_NOT_ALLOWED')
+  assert.equal(
+    await errorCode(() => adapter.authenticateActor(ctx)),
+    'E_MASQUERADE_TOKEN_ABILITY_REQUIRED'
+  )
 })
 
 test('Account Kit session actor check maps managed rejection to native 401 and operation failure to 503', async ({
@@ -226,7 +229,10 @@ test('Account Kit session actor check maps managed rejection to native 401 and o
   }
   assert.equal(kitCalls, 1)
   failure = new Error('db down')
-  assert.equal(await errorCode(() => adapter.authenticateActor(ctx)), 'E_MASQUERADE_UNAVAILABLE')
+  assert.equal(
+    await errorCode(() => adapter.authenticateActor(ctx)),
+    'E_MASQUERADE_MANAGED_CREDENTIAL_CHECK_FAILED'
+  )
   assert.equal(kitCalls, 1)
 })
 
@@ -265,7 +271,10 @@ test('Account Kit denial matching ignores an operational error with the same nam
   const ctx = {
     auth: { use: () => ({ driverName: 'session', authenticate: async () => user }) },
   } as unknown as HttpContext
-  assert.equal(await errorCode(() => adapter.authenticateActor(ctx)), 'E_MASQUERADE_UNAVAILABLE')
+  assert.equal(
+    await errorCode(() => adapter.authenticateActor(ctx)),
+    'E_MASQUERADE_MANAGED_CREDENTIAL_CHECK_FAILED'
+  )
 })
 
 test('Account Kit captures separate revisions when the provider reuses a framework user', async ({
@@ -340,12 +349,12 @@ test('Account Kit inspection distinguishes denied, missing, mismatched and opera
   providerId = 8
   assert.equal(
     await errorCode(() => adapter.authority.inspectAccount('7')),
-    'E_MASQUERADE_UNAVAILABLE'
+    'E_MASQUERADE_ACCOUNT_OWNER_MISMATCH'
   )
   providerId = Object(7n)
   assert.equal(
     await errorCode(() => adapter.authority.inspectAccount('7')),
-    'E_MASQUERADE_UNAVAILABLE'
+    'E_MASQUERADE_ACCOUNT_ID_INVALID'
   )
   // A different canonical account (a coerced "07" for 7, or another ID) is a generic denial, the
   // same answer as a missing account, so the response does not reveal that account 8 exists.
@@ -390,10 +399,16 @@ test('Account Kit actor must have the same canonical owner in raw, managed and c
   const actor = await adapter.authenticateActor(ctx)
   assert.equal(actor.id, '7')
   kitId = 8
-  assert.equal(await errorCode(() => adapter.authenticateActor(ctx)), 'E_MASQUERADE_UNAVAILABLE')
+  assert.equal(
+    await errorCode(() => adapter.authenticateActor(ctx)),
+    'E_MASQUERADE_ACCOUNT_OWNER_MISMATCH'
+  )
   kitId = 7
   managedId = 8
-  assert.equal(await errorCode(() => adapter.authenticateActor(ctx)), 'E_MASQUERADE_UNAVAILABLE')
+  assert.equal(
+    await errorCode(() => adapter.authenticateActor(ctx)),
+    'E_MASQUERADE_ACCOUNT_OWNER_MISMATCH'
+  )
 })
 
 test('Account Kit rejects the wrong raw driver before credential authentication', async ({
@@ -447,7 +462,10 @@ test('Account Kit rejects the wrong raw driver before credential authentication'
         }),
       },
     } as unknown as HttpContext
-    assert.equal(await errorCode(() => adapter.authenticateActor(ctx)), 'E_MASQUERADE_UNAVAILABLE')
+    assert.equal(
+      await errorCode(() => adapter.authenticateActor(ctx)),
+      'E_MASQUERADE_GUARD_DRIVER_MISMATCH'
+    )
   }
   assert.equal(rawAuthentications, 0)
 })
@@ -521,6 +539,9 @@ test('Account Kit token ability denial precedes managed and kit access', async (
   const ctx = {
     auth: { use: () => ({ driverName: 'access_tokens', authenticate: async () => user }) },
   } as unknown as HttpContext
-  assert.equal(await errorCode(() => adapter.authenticateActor(ctx)), 'E_MASQUERADE_NOT_ALLOWED')
+  assert.equal(
+    await errorCode(() => adapter.authenticateActor(ctx)),
+    'E_MASQUERADE_TOKEN_ABILITY_REQUIRED'
+  )
   assert.equal(reads, 0)
 })

@@ -2,19 +2,16 @@
 
 ## Unreleased
 
-- Breaking: replace the root `MasqueradeError` and `errors.MasqueradeError` constructors with
-  `errors.E_MASQUERADE_UNAUTHENTICATED`, `errors.E_MASQUERADE_NOT_ALLOWED`,
-  `errors.E_MASQUERADE_ACTION_BLOCKED`, `errors.E_MASQUERADE_ALREADY_ACTIVE`,
-  `errors.E_MASQUERADE_CONTEXT_CHANGED`, `errors.E_MASQUERADE_INVALID_INPUT`,
-  `errors.E_MASQUERADE_CONTEXT_REQUIRED` and `errors.E_MASQUERADE_UNAVAILABLE`. Pass `blockedBy`
-  directly to `errors.E_MASQUERADE_ACTION_BLOCKED`. Use `isMasqueradeRequestError` from
-  `/http` to recognise any package request exception in an application handler.
-- Breaking: replace the root `MasqueradeSetupError` and `errors.MasqueradeSetupError` constructors
-  with `errors.E_MASQUERADE_INVALID_CONFIGURATION(field)` and
-  `errors.E_MASQUERADE_INVALID_STORE(field)`.
-- The stop, prune and uncertain-commit exceptions can be matched with
-  `errors.E_MASQUERADE_STOP_PROGRESS`, `errors.E_MASQUERADE_PRUNE_PROGRESS` and
-  `errors.E_MASQUERADE_UNKNOWN_COMMIT`. Their stable code remains `E_MASQUERADE_UNAVAILABLE`.
+- Breaking: the shared `MasqueradeError` and `MasqueradeSetupError` constructors, including their
+  `errors` namespace exports, are replaced by cause-specific constructors under `errors`. Match
+  `errors.E_MASQUERADE_INVALID_CONFIGURATION(field)` or `errors.E_MASQUERADE_INVALID_STORE(field)`
+  for setup failures. Pass the route cause directly to `errors.E_MASQUERADE_ACTION_BLOCKED`.
+- Breaking: operational failures, token ability denials, and mode expiry, invalidation and
+  transition conflicts return cause-specific codes. `E_MASQUERADE_UNAVAILABLE` and
+  `E_MASQUERADE_NOT_ALLOWED` remain HTTP response codes for protected wiring and eligibility denials.
+  Use `isMasqueradeRequestError` from `/http` and read `responseCode` when building a client response.
+- Stop progress, prune progress and unconfirmed commits carry `E_MASQUERADE_STOP_PROGRESS`,
+  `E_MASQUERADE_PRUNE_PROGRESS` and `E_MASQUERADE_UNKNOWN_COMMIT`, respectively.
 - Add TypeScript usage examples to public API documentation.
 
 ## 0.6.1 - 2026-11-24

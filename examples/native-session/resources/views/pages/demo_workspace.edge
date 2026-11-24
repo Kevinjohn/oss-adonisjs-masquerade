@@ -9,7 +9,7 @@
           {{ masqueradeFlash.action === 'started' ? 'Support mode started.' : 'Support mode stopped.' }}
         </p>
       @elseif(masqueradeFlash?.type === 'error')
-        @if(masqueradeFlash.code === 'E_MASQUERADE_CONTEXT_CHANGED')
+        @if(['E_MASQUERADE_CONTEXT_CHANGED', 'E_MASQUERADE_TRANSITION_CONFLICT', 'E_MASQUERADE_MODE_EXPIRED', 'E_MASQUERADE_MODE_INVALIDATED'].includes(masqueradeFlash.code))
           <section class="panel support-error" role="alert" aria-labelledby="support-error-title">
             <h2 id="support-error-title" tabindex="-1">Support context changed</h2>
             <p class="support-copy">

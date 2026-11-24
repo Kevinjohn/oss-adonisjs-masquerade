@@ -99,7 +99,7 @@ The constructor API below is unreleased. If you installed the tarball above, see
 and [v0.6.1 error guide](https://github.com/Kevinjohn/oss-adonisjs-masquerade/blob/v0.6.1/docs/guide/errors.md).
 
 Import `errors` from `@kevinjohn/adonisjs-masquerade` and check a request or setup exception with
-`instanceof errors.E_MASQUERADE_…`. JSON clients can continue matching the same stable `code`.
+`instanceof errors.E_MASQUERADE_…`. JSON clients receive the exception’s `responseCode`.
 See [Recover from errors](docs/guide/errors.md) for the constructors and response contract.
 
 ## Documentation

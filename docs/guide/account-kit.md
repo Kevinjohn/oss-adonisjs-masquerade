@@ -387,7 +387,9 @@ An active mode returns the same `403` JSON error as the managed blocker:
 
 The application still owns message translation. Both view and edit modes are blocked, even when
 the raw token lacks the Masquerade ability. No row, an idle or expired row, or an unauthenticated
-request passes; an unavailable guard or store fails closed with `503 E_MASQUERADE_UNAVAILABLE`.
+request passes. A wiring error fails closed with `503 E_MASQUERADE_UNAVAILABLE`. Guard checks and
+store reads report operational failures such as `E_MASQUERADE_BLOCKER_AUTHENTICATION_FAILED`
+and `E_MASQUERADE_STORE_READ_FAILED`.
 The check neither clears nor extends mode and does not call Account Kit `current`.
 
 Apply this middleware only to the account routes you intend to block. Keep native logout, CSRF

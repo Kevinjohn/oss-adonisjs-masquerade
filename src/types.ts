@@ -1,9 +1,10 @@
-import type { MasqueradeErrorCode } from './errors.js'
+import type { MasqueradeErrorCode, MasqueradeSetupErrorCode } from './errors.js'
 import type { NativeRuntimeAdapter } from './integration/native_binding.js'
 
 export type {
   MasqueradeBlockedBy,
   MasqueradeErrorCode,
+  MasqueradeResponseCode,
   MasqueradeSetupErrorCode,
   MasqueradeSetupErrorField,
 } from './errors.js'
@@ -165,7 +166,7 @@ export type DiagnosticOperation =
 export interface DiagnosticEvent {
   readonly category: DiagnosticCategory
   readonly operation: DiagnosticOperation
-  readonly code: MasqueradeErrorCode
+  readonly code: MasqueradeErrorCode | MasqueradeSetupErrorCode | 'E_MASQUERADE_OBSERVER_FAILED'
   readonly transitionId?: string
 }
 /** An indeterminate commit may have succeeded; callers recover through status, never blind retry. */
@@ -326,8 +327,7 @@ export interface MasqueradeService<Request> {
    * Start a mode for the authenticated actor.
    *
    * @throws `E_MASQUERADE_INVALID_INPUT`, `E_MASQUERADE_CONTEXT_REQUIRED`,
-   *   `E_MASQUERADE_CONTEXT_CHANGED`, `E_MASQUERADE_ALREADY_ACTIVE`, `E_MASQUERADE_NOT_ALLOWED` or
-   *   `E_MASQUERADE_UNAVAILABLE`.
+   *   `E_MASQUERADE_CONTEXT_CHANGED`, `E_MASQUERADE_ALREADY_ACTIVE` or a named permission, authority or store exception.
    *
    * @example
    * ```ts
@@ -343,7 +343,7 @@ export interface MasqueradeService<Request> {
    * End the actor's mode; an idle actor gets the idle view back.
    *
    * @throws `E_MASQUERADE_INVALID_INPUT`, `E_MASQUERADE_CONTEXT_REQUIRED`,
-   *   `E_MASQUERADE_CONTEXT_CHANGED` or `E_MASQUERADE_UNAVAILABLE`.
+   *   `E_MASQUERADE_CONTEXT_CHANGED` or a named transition or store exception.
    *
    * @example
    * ```ts
@@ -354,7 +354,7 @@ export interface MasqueradeService<Request> {
   /**
    * Read the actor's mode without changing it.
    *
-   * @throws `E_MASQUERADE_UNAVAILABLE`.
+   * @throws A named credential or store exception.
    *
    * @example
    * ```ts
@@ -365,8 +365,8 @@ export interface MasqueradeService<Request> {
   /**
    * Admit the request once and return its frozen identity. An expired or invalid mode is cleared.
    *
-   * @throws `E_MASQUERADE_CONTEXT_CHANGED`, `E_MASQUERADE_NOT_ALLOWED` or
-   *   `E_MASQUERADE_UNAVAILABLE`.
+   * @throws `E_MASQUERADE_MODE_EXPIRED`, `E_MASQUERADE_MODE_INVALIDATED`,
+   *   or a named credential, authority, policy or store exception.
    *
    * @example
    * ```ts

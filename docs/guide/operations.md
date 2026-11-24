@@ -24,13 +24,12 @@ Concurrent changes can also make an expiry candidate ineligible before it is upd
 
 Pruning preserves `errors.E_MASQUERADE_INVALID_STORE` and its field when the resolved store is missing or
 lacks a required method. A throwing store factory remains operational
-`E_MASQUERADE_UNAVAILABLE`. Fix the reported configuration before rerunning a setup failure;
-check the service or database when the factory is unavailable. This distinction applies to
-pruning; it does not change the existing list or stop response contracts.
+`E_MASQUERADE_STORE_OPEN_FAILED`. Fix the reported configuration before rerunning a setup failure.
+Check the service or database when the factory is unavailable.
 
 When a housekeeping operation fails during the pass, Ace exits with code 1 and prints one progress diagnostic with the failed phase and the confirmed counts of expired modes and deleted events. The diagnostic flags any operation that may have committed despite an uncertain acknowledgement. The confirmed counts exclude that operation. Inspect the store before deciding whether to rerun the pass. A later pass can continue from the persisted state.
 
-Ace reports argument or setup failures through its usual error output. Programmatic callers using `Kernel.exec` can read the exception and exit code 1 from the returned command. Match the exception with `instanceof errors.E_MASQUERADE_PRUNE_PROGRESS`. Its code remains `E_MASQUERADE_UNAVAILABLE`.
+Ace reports argument or setup failures through its usual error output. Programmatic callers using `Kernel.exec` can read the exception and exit code 1 from the returned command. Match the exception with `instanceof errors.E_MASQUERADE_PRUNE_PROGRESS`. The exception exposes the failed phase, confirmed counts and the originating cause.
 
 Expired modes are checked during every pass, regardless of event-retention mode. The command
 re-reads each candidate and uses a conditional transition, so it will not clear a newer mode. A

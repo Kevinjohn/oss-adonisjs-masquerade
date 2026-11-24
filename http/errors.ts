@@ -9,7 +9,7 @@ import { MasqueradeRequestException } from '../src/request_exception.js'
  * import { isMasqueradeRequestError } from '@kevinjohn/adonisjs-masquerade/http'
  *
  * function supportErrorCode(error: unknown) {
- *   return isMasqueradeRequestError(error) ? error.code : undefined
+ *   return isMasqueradeRequestError(error) ? error.responseCode : undefined
  * }
  * ```
  */

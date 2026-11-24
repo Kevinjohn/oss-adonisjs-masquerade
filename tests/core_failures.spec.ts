@@ -23,7 +23,7 @@ test('indeterminate committed start logs a safe diagnostic and never emits or re
         { targetId: 'b', reason: 'private case', expectedContext: idle.contextToken }
       )
     ),
-    'E_MASQUERADE_UNAVAILABLE'
+    'E_MASQUERADE_UNKNOWN_COMMIT'
   )
   assert.deepEqual(f.observed, [])
   assert.deepEqual(
@@ -36,7 +36,7 @@ test('indeterminate committed start logs a safe diagnostic and never emits or re
     {
       category: 'store',
       operation: 'compare_and_set',
-      code: 'E_MASQUERADE_UNAVAILABLE',
+      code: 'E_MASQUERADE_UNKNOWN_COMMIT',
       transitionId: f.store.events[0].id,
     },
   ])
@@ -57,7 +57,7 @@ test('indeterminate committed stop does not emit success or record a false denia
   }
   assert.equal(
     await errorCode(() => service.stop({}, { expectedContext: active.contextToken })),
-    'E_MASQUERADE_UNAVAILABLE'
+    'E_MASQUERADE_UNKNOWN_COMMIT'
   )
   assert.deepEqual(f.observed, [])
   assert.deepEqual(
@@ -70,7 +70,7 @@ test('indeterminate committed stop does not emit success or record a false denia
     {
       category: 'store',
       operation: 'compare_and_set',
-      code: 'E_MASQUERADE_UNAVAILABLE',
+      code: 'E_MASQUERADE_UNKNOWN_COMMIT',
       transitionId: f.store.events[1].id,
     },
   ])
@@ -85,12 +85,12 @@ test('CAS write and required outcome failures return 503 and leave authoritative
   f.store.compareAndSet = async () => {
     throw new Error('write failed')
   }
-  assert.equal(await errorCode(() => f.start(service)), 'E_MASQUERADE_UNAVAILABLE')
+  assert.equal(await errorCode(() => f.start(service)), 'E_MASQUERADE_STORE_COMMIT_FAILED')
   assert.isNull(await f.store.read(f.owner))
   assert.equal(f.store.events[0].kind, 'start_denied')
   assert.deepEqual(f.diagnostics, [
-    { category: 'store', operation: 'compare_and_set', code: 'E_MASQUERADE_UNAVAILABLE' },
-    { category: 'control', operation: 'start', code: 'E_MASQUERADE_UNAVAILABLE' },
+    { category: 'store', operation: 'compare_and_set', code: 'E_MASQUERADE_STORE_COMMIT_FAILED' },
+    { category: 'control', operation: 'start', code: 'E_MASQUERADE_STORE_COMMIT_FAILED' },
   ])
   f.diagnostics.length = 0
   f.store.recordControlOutcome = async () => {
@@ -100,11 +100,11 @@ test('CAS write and required outcome failures return 503 and leave authoritative
     await errorCode(() =>
       service.start({}, { targetId: 'a', reason: 'case', expectedContext: idle.contextToken })
     ),
-    'E_MASQUERADE_UNAVAILABLE'
+    'E_MASQUERADE_AUDIT_WRITE_FAILED'
   )
   assert.equal(
     await errorCode(() => service.stop({}, { expectedContext: idle.contextToken })),
-    'E_MASQUERADE_UNAVAILABLE'
+    'E_MASQUERADE_AUDIT_WRITE_FAILED'
   )
   assert.isNull(await f.store.read(f.owner))
 })
@@ -139,12 +139,12 @@ test('observer sync throws, rejected promises and rejected reporter cannot alter
     {
       category: 'observer',
       operation: 'error_reporter',
-      code: 'E_MASQUERADE_UNAVAILABLE',
+      code: 'E_MASQUERADE_OBSERVER_FAILED',
     },
     {
       category: 'observer',
       operation: 'error_reporter',
-      code: 'E_MASQUERADE_UNAVAILABLE',
+      code: 'E_MASQUERADE_OBSERVER_FAILED',
     },
   ])
   assert.notInclude(JSON.stringify(f.diagnostics), failure.message)
@@ -177,7 +177,14 @@ test('authority and local-policy throws preserve mode without admitting or loggi
         throw new Error('private failure')
       }
     const next = await f.create()
-    assert.equal(await errorCode(() => next.resolve({})), 'E_MASQUERADE_UNAVAILABLE')
+    assert.equal(
+      await errorCode(() => next.resolve({})),
+      {
+        local: 'E_MASQUERADE_REQUEST_POLICY_FAILED',
+        stamp: 'E_MASQUERADE_SECURITY_STAMP_INVALID',
+        incarnation: 'E_MASQUERADE_ACTOR_SUBJECT_INVALID',
+      }[failure]
+    )
     assert.deepEqual(await f.store.read(f.owner), before)
     assert.lengthOf(f.store.events, 1)
   }
@@ -205,8 +212,8 @@ test('conflicting expiry cannot clear a newer committed selection', async ({ ass
     return cas(input)
   }
   const request = {}
-  assert.equal(await errorCode(() => service.resolve(request)), 'E_MASQUERADE_CONTEXT_CHANGED')
-  assert.equal(await errorCode(() => service.resolve(request)), 'E_MASQUERADE_CONTEXT_CHANGED')
+  assert.equal(await errorCode(() => service.resolve(request)), 'E_MASQUERADE_TRANSITION_CONFLICT')
+  assert.equal(await errorCode(() => service.resolve(request)), 'E_MASQUERADE_TRANSITION_CONFLICT')
   const selectionAfterConflictingExpiry = await service.resolve({})
   assert.equal(selectionAfterConflictingExpiry.effectiveId, 'c')
   assert.lengthOf(
@@ -223,17 +230,17 @@ test('status and stop fail closed on store read failure without account or polic
   f.store.read = async () => {
     throw new Error('offline')
   }
-  assert.equal(await errorCode(() => service.status({})), 'E_MASQUERADE_UNAVAILABLE')
+  assert.equal(await errorCode(() => service.status({})), 'E_MASQUERADE_STORE_READ_FAILED')
   assert.equal(
     await errorCode(() => service.stop({}, { expectedContext: '0.' + 'a'.repeat(64) })),
-    'E_MASQUERADE_UNAVAILABLE'
+    'E_MASQUERADE_STORE_READ_FAILED'
   )
   assert.equal(f.state.inspectCount, 0)
   assert.equal(f.state.policyCount, 0)
   assert.deepEqual(f.diagnostics, [
-    { category: 'store', operation: 'read', code: 'E_MASQUERADE_UNAVAILABLE' },
-    { category: 'store', operation: 'read', code: 'E_MASQUERADE_UNAVAILABLE' },
-    { category: 'control', operation: 'stop', code: 'E_MASQUERADE_UNAVAILABLE' },
+    { category: 'store', operation: 'read', code: 'E_MASQUERADE_STORE_READ_FAILED' },
+    { category: 'store', operation: 'read', code: 'E_MASQUERADE_STORE_READ_FAILED' },
+    { category: 'control', operation: 'stop', code: 'E_MASQUERADE_STORE_READ_FAILED' },
   ])
 })
 
@@ -244,27 +251,41 @@ test('authority and policy failures log safe categories while preserving unavail
   const authorityService = await authority.create()
   await authority.start(authorityService)
   authority.state.inspectThrows = true
-  assert.equal(await errorCode(() => authorityService.resolve({})), 'E_MASQUERADE_UNAVAILABLE')
+  assert.equal(
+    await errorCode(() => authorityService.resolve({})),
+    'E_MASQUERADE_ACCOUNT_INSPECTION_FAILED'
+  )
   assert.deepEqual(authority.diagnostics, [
-    { category: 'authority', operation: 'inspect_account', code: 'E_MASQUERADE_UNAVAILABLE' },
+    {
+      category: 'authority',
+      operation: 'inspect_account',
+      code: 'E_MASQUERADE_ACCOUNT_INSPECTION_FAILED',
+    },
   ])
 
   const policy = fixture()
   const policyService = await policy.create()
   await policy.start(policyService)
   policy.state.policyThrows = true
-  assert.equal(await errorCode(() => policyService.resolve({})), 'E_MASQUERADE_UNAVAILABLE')
+  assert.equal(await errorCode(() => policyService.resolve({})), 'E_MASQUERADE_START_POLICY_FAILED')
   assert.deepEqual(policy.diagnostics, [
-    { category: 'policy', operation: 'can_masquerade', code: 'E_MASQUERADE_UNAVAILABLE' },
+    { category: 'policy', operation: 'can_masquerade', code: 'E_MASQUERADE_START_POLICY_FAILED' },
   ])
 
   const requestPolicy = fixture()
   const requestPolicyService = await requestPolicy.create()
   await requestPolicy.start(requestPolicyService)
   requestPolicy.state.localThrows = true
-  assert.equal(await errorCode(() => requestPolicyService.resolve({})), 'E_MASQUERADE_UNAVAILABLE')
+  assert.equal(
+    await errorCode(() => requestPolicyService.resolve({})),
+    'E_MASQUERADE_REQUEST_POLICY_FAILED'
+  )
   assert.deepEqual(requestPolicy.diagnostics, [
-    { category: 'policy', operation: 'can_use_request', code: 'E_MASQUERADE_UNAVAILABLE' },
+    {
+      category: 'policy',
+      operation: 'can_use_request',
+      code: 'E_MASQUERADE_REQUEST_POLICY_FAILED',
+    },
   ])
 
   const stamp = fixture()
@@ -282,11 +303,15 @@ test('authority and policy failures log safe categories while preserving unavail
         }
       )
     ),
-    'E_MASQUERADE_UNAVAILABLE'
+    'E_MASQUERADE_SECURITY_STAMP_INVALID'
   )
   assert.deepEqual(stamp.diagnostics, [
-    { category: 'authority', operation: 'security_stamp', code: 'E_MASQUERADE_UNAVAILABLE' },
-    { category: 'control', operation: 'start', code: 'E_MASQUERADE_UNAVAILABLE' },
+    {
+      category: 'authority',
+      operation: 'security_stamp',
+      code: 'E_MASQUERADE_SECURITY_STAMP_INVALID',
+    },
+    { category: 'control', operation: 'start', code: 'E_MASQUERADE_SECURITY_STAMP_INVALID' },
   ])
   assert.notInclude(JSON.stringify(stamp.diagnostics), 'private stamp case')
 })
@@ -300,9 +325,13 @@ test('malformed inspection stamps log a bounded authority diagnostic and leave a
     await f.start(service)
     f.users.get(account)!.stamp = ''
 
-    assert.equal(await errorCode(() => service.resolve({})), 'E_MASQUERADE_UNAVAILABLE')
+    assert.equal(await errorCode(() => service.resolve({})), 'E_MASQUERADE_SECURITY_STAMP_INVALID')
     assert.deepEqual(f.diagnostics, [
-      { category: 'authority', operation: 'security_stamp', code: 'E_MASQUERADE_UNAVAILABLE' },
+      {
+        category: 'authority',
+        operation: 'security_stamp',
+        code: 'E_MASQUERADE_SECURITY_STAMP_INVALID',
+      },
     ])
     const status = await service.status({})
     assert.isTrue(status.isMasquerading)
@@ -319,7 +348,7 @@ test('actor stamp revocation invalidates before an unrelated malformed target st
   f.users.get('a')!.stamp = 'revoked'
   f.users.get('b')!.stamp = ''
 
-  assert.equal(await errorCode(() => service.resolve({})), 'E_MASQUERADE_CONTEXT_CHANGED')
+  assert.equal(await errorCode(() => service.resolve({})), 'E_MASQUERADE_MODE_INVALIDATED')
   const status = await service.status({})
   assert.isFalse(status.isMasquerading)
   assert.deepEqual(
@@ -347,11 +376,11 @@ test('denied controls and required audit failures log bounded diagnostics withou
         }
       )
     ),
-    'E_MASQUERADE_NOT_ALLOWED'
+    'E_MASQUERADE_START_DENIED'
   )
   assert.deepEqual(f.diagnostics, [
-    { category: 'policy', operation: 'can_masquerade', code: 'E_MASQUERADE_NOT_ALLOWED' },
-    { category: 'control', operation: 'start', code: 'E_MASQUERADE_NOT_ALLOWED' },
+    { category: 'policy', operation: 'can_masquerade', code: 'E_MASQUERADE_START_DENIED' },
+    { category: 'control', operation: 'start', code: 'E_MASQUERADE_START_DENIED' },
   ])
   assert.notInclude(JSON.stringify(f.diagnostics), 'private case detail')
   assert.notInclude(JSON.stringify(f.diagnostics), 'actorId')
@@ -379,12 +408,16 @@ test('denied controls and required audit failures log bounded diagnostics withou
         { targetId: 'b', reason: 'secret reason', expectedContext: idle.contextToken }
       )
     ),
-    'E_MASQUERADE_UNAVAILABLE'
+    'E_MASQUERADE_AUDIT_WRITE_FAILED'
   )
   assert.deepEqual(f.diagnostics, [
-    { category: 'policy', operation: 'can_masquerade', code: 'E_MASQUERADE_NOT_ALLOWED' },
-    { category: 'control', operation: 'start', code: 'E_MASQUERADE_NOT_ALLOWED' },
-    { category: 'store', operation: 'record_control_outcome', code: 'E_MASQUERADE_UNAVAILABLE' },
+    { category: 'policy', operation: 'can_masquerade', code: 'E_MASQUERADE_START_DENIED' },
+    { category: 'control', operation: 'start', code: 'E_MASQUERADE_START_DENIED' },
+    {
+      category: 'store',
+      operation: 'record_control_outcome',
+      code: 'E_MASQUERADE_AUDIT_WRITE_FAILED',
+    },
   ])
   assert.notInclude(JSON.stringify(f.diagnostics), 'sensitive audit-store details')
   assert.notInclude(JSON.stringify(f.diagnostics), 'secret reason')
@@ -405,7 +438,7 @@ test('diagnostic logger sync throws and rejected promises cannot change public f
     f.store.read = async () => {
       throw new Error('store failure')
     }
-    assert.equal(await errorCode(() => service.status({})), 'E_MASQUERADE_UNAVAILABLE')
+    assert.equal(await errorCode(() => service.status({})), 'E_MASQUERADE_STORE_READ_FAILED')
     await new Promise((resolve) => setImmediate(resolve))
     assert.equal(calls, 1)
   }
@@ -425,7 +458,7 @@ test('idle stop does not record a denial when its noop outcome acknowledgement f
 
   assert.equal(
     await errorCode(() => service.stop({}, { expectedContext: idle.contextToken })),
-    'E_MASQUERADE_UNAVAILABLE'
+    'E_MASQUERADE_AUDIT_WRITE_FAILED'
   )
   assert.deepEqual(
     f.store.events.map((event) => event.kind),
@@ -464,7 +497,7 @@ test('expired start first clears and rejects stale intent rather than selecting 
     await errorCode(() =>
       service.start({}, { targetId: 'c', reason: 'case', expectedContext: active.contextToken })
     ),
-    'E_MASQUERADE_CONTEXT_CHANGED'
+    'E_MASQUERADE_MODE_EXPIRED'
   )
   assert.equal((await f.store.read(f.owner))!.state, 'idle')
   assert.deepEqual(
@@ -495,7 +528,7 @@ for (const missingOutcome of [null, undefined]) {
                 { targetId: 'b', reason: 'private case', expectedContext: initial.contextToken }
               )
           : () => service.stop({}, { expectedContext: initial.contextToken })
-      assert.equal(await errorCode(invoke), 'E_MASQUERADE_UNAVAILABLE')
+      assert.equal(await errorCode(invoke), 'E_MASQUERADE_UNKNOWN_COMMIT')
       assert.deepEqual(f.observed, [])
       const last = f.store.events.at(-1)!
       assert.equal(last.kind, operation === 'start' ? 'started' : 'stopped')
@@ -503,7 +536,7 @@ for (const missingOutcome of [null, undefined]) {
         {
           category: 'store',
           operation: 'compare_and_set',
-          code: 'E_MASQUERADE_UNAVAILABLE',
+          code: 'E_MASQUERADE_UNKNOWN_COMMIT',
           transitionId: last.id,
         },
       ])
@@ -527,7 +560,7 @@ test('failed expired-start denial audit preserves committed expiry and returns 5
     await errorCode(() =>
       service.start({}, { targetId: 'c', reason: 'case', expectedContext: active.contextToken })
     ),
-    'E_MASQUERADE_UNAVAILABLE'
+    'E_MASQUERADE_AUDIT_WRITE_FAILED'
   )
   assert.equal((await f.store.read(f.owner))!.state, 'idle')
   assert.deepEqual(

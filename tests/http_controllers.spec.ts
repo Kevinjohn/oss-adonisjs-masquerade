@@ -391,7 +391,12 @@ test.group('masquerade HTTP boundary', () => {
     await handleWithDefaultExceptionHandler(ctx, () => new MasqueradeController().start(ctx))
     assert.equal(responseState.status, 503)
     assert.deepEqual(responseState.json, {
-      errors: [{ code: 'E_MASQUERADE_UNAVAILABLE', message: 'Masquerade is unavailable' }],
+      errors: [
+        {
+          code: 'E_MASQUERADE_AUDIT_WRITE_FAILED',
+          message: 'The masquerade audit outcome could not be recorded',
+        },
+      ],
     })
   })
 

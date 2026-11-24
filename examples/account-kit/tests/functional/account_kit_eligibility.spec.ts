@@ -148,7 +148,7 @@ test.group('packed Account Kit eligibility inspection', (group) => {
       const events = await actorEvents(actor.id)
       assert.lengthOf(events, 1)
       assert.equal(events[0].kind, 'start_denied')
-      assert.equal(events[0].outcome_code, 'E_MASQUERADE_NOT_ALLOWED')
+      assert.equal(events[0].outcome_code, 'E_MASQUERADE_TARGET_INELIGIBLE')
       // The denial records the requested target, and no inspected incarnation.
       assert.equal(events[0].target_id, String(requested))
       assert.isNull(events[0].target_incarnation)
@@ -184,7 +184,7 @@ test.group('packed Account Kit eligibility inspection', (group) => {
       })
       assert.equal(rejected.status, 409, `${kind} target`)
       const response = await json(rejected)
-      assert.equal(response.errors?.[0]?.code, 'E_MASQUERADE_CONTEXT_CHANGED')
+      assert.equal(response.errors?.[0]?.code, 'E_MASQUERADE_MODE_INVALIDATED')
       const after = await modeRow(actor.id)
       assert.equal(after?.state, 'idle')
       assert.isNull(after?.target_id)
@@ -241,7 +241,7 @@ test.group('packed Account Kit eligibility inspection', (group) => {
         headers: headers(session, { 'X-Masquerade-Context': active.contextToken }),
       })
       assert.equal(failed.status, 503)
-      assert.equal((await json(failed)).errors?.[0]?.code, 'E_MASQUERADE_UNAVAILABLE')
+      assert.equal((await json(failed)).errors?.[0]?.code, 'E_MASQUERADE_ACCOUNT_INSPECTION_FAILED')
       assert.deepEqual(await modeRow(actor.id), modeBefore)
       assert.deepEqual(await actorEvents(actor.id), eventsBefore)
     } finally {
@@ -273,7 +273,7 @@ test.group('packed Account Kit eligibility inspection', (group) => {
         headers: headers(session, { 'X-Masquerade-Context': active.contextToken }),
       })
       assert.equal(failed.status, 503)
-      assert.equal((await json(failed)).errors?.[0]?.code, 'E_MASQUERADE_UNAVAILABLE')
+      assert.equal((await json(failed)).errors?.[0]?.code, 'E_MASQUERADE_ACCOUNT_INSPECTION_FAILED')
       assert.deepEqual(await modeRow(actor.id), injectedMode)
       assert.deepEqual(await actorEvents(actor.id), eventsBefore)
     } finally {

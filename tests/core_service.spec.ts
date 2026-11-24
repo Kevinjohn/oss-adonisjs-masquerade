@@ -108,7 +108,7 @@ test("started, stopped and invalidated events carry the row's access; observer p
   assert.equal(f.store.events.at(-1)!.access, 'edit')
   const next = await f.start(service, {}, 'edit')
   f.state.edit = false
-  assert.equal(await errorCode(() => service.resolve({})), 'E_MASQUERADE_CONTEXT_CHANGED')
+  assert.equal(await errorCode(() => service.resolve({})), 'E_MASQUERADE_MODE_INVALIDATED')
   assert.equal(produced.at(-1), 'edit')
   assert.equal(f.store.events.at(-1)!.access, 'edit')
   assert.equal(f.store.events.at(-1)!.outcomeCode, 'edit_denied')
@@ -161,7 +161,7 @@ test('two devices starting at the same context produce one winner and no fallbac
     1
   )
   const rejected = results.find((result) => result.status === 'rejected') as PromiseRejectedResult
-  assert.equal(rejected.reason.code, 'E_MASQUERADE_CONTEXT_CHANGED')
+  assert.equal(rejected.reason.code, 'E_MASQUERADE_TRANSITION_CONFLICT')
   assert.lengthOf(
     f.store.events.filter((event) => event.kind === 'started'),
     1
@@ -222,7 +222,7 @@ test('revision exhaustion fails closed without wrapping or transitions', async (
     () => service.stop({}, { expectedContext: view.contextToken }),
     () => service.start({}, { targetId: 'c', reason: 'case', expectedContext: view.contextToken }),
   ])
-    assert.equal(await errorCode(operation), 'E_MASQUERADE_UNAVAILABLE')
+    assert.equal(await errorCode(operation), 'E_MASQUERADE_REVISION_EXHAUSTED')
   assert.equal((await original(f.owner))!.revision, row.revision)
 })
 
@@ -269,7 +269,7 @@ test('a start that finds a lapsed mode records its denial against the idle row i
     await errorCode(() =>
       service.start({}, { targetId: 'c', reason: 'case', expectedContext: active.contextToken })
     ),
-    'E_MASQUERADE_CONTEXT_CHANGED'
+    'E_MASQUERADE_MODE_EXPIRED'
   )
   const [, expired, denied] = f.store.events
   assert.equal(expired!.kind, 'expired')

@@ -1,6 +1,9 @@
 import {
+  E_MASQUERADE_CLOCK_INVALID,
+  E_MASQUERADE_OPERATOR_INPUT_INVALID,
   E_MASQUERADE_PRUNE_PROGRESS,
-  E_MASQUERADE_UNAVAILABLE,
+  E_MASQUERADE_RETENTION_CUTOFF_INVALID,
+  E_MASQUERADE_STORE_BATCH_INVALID,
   E_MASQUERADE_UNKNOWN_COMMIT,
 } from './errors.js'
 import { randomUUID } from 'node:crypto'
@@ -37,12 +40,13 @@ function resolveNow(options: PruneOptions, dependencies: PruneDependencies): Dat
   try {
     const value = options.now ?? (dependencies.clock ?? (() => new Date()))()
     if (!(value instanceof Date) || !Number.isFinite(value.getTime()))
-      throw new E_MASQUERADE_UNAVAILABLE()
+      throw new E_MASQUERADE_CLOCK_INVALID()
     // Instants compare as text, which holds only for four-digit years.
-    if (!/^\d{4}-/.test(value.toISOString())) throw new E_MASQUERADE_UNAVAILABLE()
+    if (!/^\d{4}-/.test(value.toISOString())) throw new E_MASQUERADE_CLOCK_INVALID()
     return new Date(value.getTime())
-  } catch {
-    throw new E_MASQUERADE_UNAVAILABLE()
+  } catch (error) {
+    if (error instanceof E_MASQUERADE_CLOCK_INVALID) throw error
+    throw new E_MASQUERADE_CLOCK_INVALID(error)
   }
 }
 
@@ -59,7 +63,7 @@ export async function pruneMasquerade<User, Request>(
 ): Promise<PruneResult> {
   const batchSize = options.batchSize ?? DEFAULT_PRUNE_BATCH_SIZE
   if (!Number.isSafeInteger(batchSize) || batchSize < 1 || batchSize > MAX_PRUNE_BATCH_SIZE)
-    throw new E_MASQUERADE_UNAVAILABLE()
+    throw new E_MASQUERADE_OPERATOR_INPUT_INVALID()
 
   const now = resolveNow(options, dependencies).toISOString()
   const validated = defineConfig(config)
@@ -73,36 +77,36 @@ export async function pruneMasquerade<User, Request>(
   // Event retention runs first, so a row that blocks expiry never blocks retention.
   let eventsDeleted = 0
   let expired = 0
-  const throwPruneFailure = (phase: PrunePhase, indeterminate = false): never => {
-    throw new E_MASQUERADE_PRUNE_PROGRESS(phase, { expired, eventsDeleted }, indeterminate)
+  const throwPruneFailure = (phase: PrunePhase, cause: unknown, indeterminate = false): never => {
+    throw new E_MASQUERADE_PRUNE_PROGRESS(phase, { expired, eventsDeleted }, indeterminate, cause)
   }
   if (validated.retention !== 'host-managed') {
     const before = new Date(Date.parse(now) - validated.retention.days * 86_400_000)
-    if (!Number.isFinite(before.getTime())) throw new E_MASQUERADE_UNAVAILABLE()
+    if (!Number.isFinite(before.getTime())) throw new E_MASQUERADE_RETENTION_CUTOFF_INVALID()
     try {
       const deleted = await store.pruneEvents({ before: before.toISOString(), limit: batchSize })
       if (!Number.isSafeInteger(deleted) || deleted < 0 || deleted > batchSize)
-        throw new E_MASQUERADE_UNAVAILABLE()
+        throw new E_MASQUERADE_STORE_BATCH_INVALID()
       eventsDeleted = deleted
-    } catch {
-      return throwPruneFailure('event_retention', true)
+    } catch (error) {
+      return throwPruneFailure('event_retention', error, true)
     }
   }
   let candidates: ModeRow[]
   try {
     candidates = await store.expiredBatch({ now, limit: batchSize })
     if (!Array.isArray(candidates) || candidates.length > batchSize)
-      throw new E_MASQUERADE_UNAVAILABLE()
-  } catch {
-    return throwPruneFailure('expired_batch')
+      throw new E_MASQUERADE_STORE_BATCH_INVALID()
+  } catch (error) {
+    return throwPruneFailure('expired_batch', error)
   }
 
   for (const candidate of candidates) {
     let candidateRow
     try {
       candidateRow = requireActiveCandidate(candidate)
-    } catch {
-      return throwPruneFailure('candidate')
+    } catch (error) {
+      return throwPruneFailure('candidate', error)
     }
     const owner = {
       namespace: candidateRow.namespace,
@@ -112,8 +116,8 @@ export async function pruneMasquerade<User, Request>(
     let current: ModeRow | null
     try {
       current = requireValidModeRow(await store.read(owner), owner)
-    } catch {
-      return throwPruneFailure('read')
+    } catch (error) {
+      return throwPruneFailure('read', error)
     }
     if (
       current?.state !== 'active' ||
@@ -139,8 +143,8 @@ export async function pruneMasquerade<User, Request>(
     let next
     try {
       next = createIdleRowAfterTransition(current, event)
-    } catch {
-      return throwPruneFailure('expiry_commit')
+    } catch (error) {
+      return throwPruneFailure('expiry_commit', error)
     }
     try {
       const outcome = await commitTransition(store, dependencies, {
@@ -151,7 +155,7 @@ export async function pruneMasquerade<User, Request>(
       })
       if (outcome === 'conflict') continue
     } catch (error) {
-      return throwPruneFailure('expiry_commit', error instanceof E_MASQUERADE_UNKNOWN_COMMIT)
+      return throwPruneFailure('expiry_commit', error, error instanceof E_MASQUERADE_UNKNOWN_COMMIT)
     }
     expired++
   }

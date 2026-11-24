@@ -22,7 +22,7 @@ As a signed-in actor, I want to start a temporary support mode for an eligible t
 - The body is at most 8 KiB and must be JSON or URL-encoded form data; multipart and unknown fields are refused.
 - If reason is configured as required, absent, null or blank reason is refused. A nonblank reason must also be well-formed and free of disallowed control and invisible formatting characters. A successful start stores one active mode and returns its `ModeView` with a fresh context token.
 - Input shape and the context token are checked first, so a stale token is refused with `E_MASQUERADE_CONTEXT_CHANGED` even while a mode is active. Invalid input, stale context, a failed `canMasquerade` callback or a failed `canEdit` callback refuses start; the actor remains authenticated as themselves.
-- Starting while a mode is already active is refused with `E_MASQUERADE_ALREADY_ACTIVE`; the active mode is not replaced or extended. Starting from an active row whose deadline has passed clears it to idle and then refuses with `E_MASQUERADE_CONTEXT_CHANGED`; no new mode starts from it.
+- Starting while a mode is already active is refused with `E_MASQUERADE_ALREADY_ACTIVE`; the active mode is not replaced or extended. Starting from an active row whose deadline has passed clears it to idle and then refuses with `E_MASQUERADE_MODE_EXPIRED`; no new mode starts from it.
 - A bearer token also needs the configured `masquerade` ability before status or start reads or changes mode state.
 
 ## Raw controls and the optional HTML adapter
@@ -63,7 +63,7 @@ flowchart TD
     F --> G["Validate input shape and context; mismatch throws E_MASQUERADE_CONTEXT_CHANGED"]
     G -->|Invalid| I
     G --> L{"Existing row active?"}
-    L -->|Lapsed| M["clear to idle, throw E_MASQUERADE_CONTEXT_CHANGED"]
+    L -->|Lapsed| M["clear to idle and throw E_MASQUERADE_MODE_EXPIRED"]
     L -->|Active| N["throw E_MASQUERADE_ALREADY_ACTIVE"]
     L -->|No| P["Validate selection, actor, target and policies"]
     P --> H{"Accepted, including request-local policy and stamps?"}

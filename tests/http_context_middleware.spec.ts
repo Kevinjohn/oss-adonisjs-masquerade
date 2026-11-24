@@ -524,6 +524,6 @@ test('the effective guard admits the target only after masqueradeContext ran for
   const { ctx: bypassed } = requestContext(f, { method: 'GET' })
   await assert.rejects(
     () => new EffectiveSessionGuard('web', bypassed, raw as never).authenticate(),
-    'Masquerade is unavailable'
+    'The request did not run the context middleware'
   )
 })
