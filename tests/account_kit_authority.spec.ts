@@ -2,8 +2,8 @@
 // outcomes go to account_kit_service.spec.ts, boot checks to account_kit_provider.spec.ts.
 // Each test builds inline provider and kit fakes; errorCode() is in tests/helpers/core.ts.
 import {
-  AccountAccessDeniedError,
-  InvalidSessionError,
+  E_ACCOUNT_KIT_ACCOUNT_ACCESS_DENIED,
+  E_ACCOUNT_KIT_INVALID_SESSION,
 } from '@kevinjohn/adonisjs-account-kit/errors'
 import { test } from '@japa/runner'
 import { errors, symbols } from '@adonisjs/auth'
@@ -81,7 +81,7 @@ test('Account Kit authority authenticates through raw guard then current; reject
         inspectAccountAccess: async () => ({ account: { id: 7, active: true }, revision: null }),
         current: async () => {
           calls.push('current')
-          if (reject) throw new InvalidSessionError()
+          if (reject) throw new E_ACCOUNT_KIT_INVALID_SESSION()
           return { id: 7 }
         },
       },
@@ -242,11 +242,11 @@ test('Account Kit denial matching ignores an operational error with the same nam
       authentication: {
         inspectAccountAccess: async () => {
           if (failInspection)
-            throw Object.assign(new Error('db down'), { name: 'AccountAccessDeniedError' })
+            throw Object.assign(new Error('db down'), { name: 'AccountAccessDeniedException' })
           return { account: { id: 1, active: true }, revision: null }
         },
         current: async () => {
-          throw Object.assign(new Error('db down'), { name: 'InvalidSessionError' })
+          throw Object.assign(new Error('db down'), { name: 'InvalidSessionException' })
         },
       },
     }),
@@ -331,7 +331,7 @@ test('Account Kit inspection distinguishes denied, missing, mismatched and opera
       findById: async () => (missing ? null : { getId: () => providerId, getOriginal: () => user }),
     },
   })
-  failure = new AccountAccessDeniedError()
+  failure = new E_ACCOUNT_KIT_ACCOUNT_ACCESS_DENIED()
   assert.isNull(await adapter.authority.inspectAccount('7'))
   failure = undefined
   missing = true
