@@ -11,7 +11,7 @@ As an application maintainer, I want a route coverage report so that I can find 
 
 ## Acceptance criteria
 
-- The command requires `config/masquerade`, resolves effective and raw guard names, commits the router, and reports each registered route's methods, pattern, guard category and recognised markers.
+- The command requires `config/masquerade`, resolves effective and raw guard names, commits the router, and reports each registered route's methods and pattern. Host-owned routes include guard categories and recognised markers. Managed `accountKit.*` routes instead report their managed or unclassified category and READ/MUTATION label without inspecting guards or route markers.
 - Package control handlers are identified by controller/method; unresolved handlers, possible name-inferred controls, unprotected routes, unsupported mixed guards and distinct effective transports remain visible for human review. Supported host-owned account blocker references receive their own label.
 - The global blocker and report share the `accountKit.*` route-name rule. With verified registration, logout and CSRF are labelled `Account Kit managed (exempt)` and ordinary managed routes are labelled `Account Kit managed (blocked while active)`. Without verification, every managed route is `UNCLASSIFIED` with a missing or unverified blocker note.
 - The report is diagnostic only. It does not change route definitions or enforce authorisation.
