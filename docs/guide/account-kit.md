@@ -1,15 +1,15 @@
 # Account Kit integration preview
 
 This page describes the Account Kit adapter planned for Masquerade v1.2. It is a prerelease
-integration preview using the scoped Account Kit `0.6.0` GitHub release. Install its tarball
+integration preview using the scoped Account Kit `0.6.1` GitHub release. Install its tarball
 with pnpm:
 
 ```sh
-pnpm add https://github.com/Kevinjohn/oss-adonisjs-account-kit/releases/download/v0.6.0/kevinjohn-adonisjs-account-kit-0.6.0.tgz
+pnpm add https://github.com/Kevinjohn/oss-adonisjs-account-kit/releases/download/v0.6.1/kevinjohn-adonisjs-account-kit-0.6.1.tgz
 ```
 
 Verify the downloaded archive against the SHA-256 published in the
-[Account Kit 0.6.0 release notes](https://github.com/Kevinjohn/oss-adonisjs-account-kit/releases/tag/v0.6.0)
+[Account Kit 0.6.1 release notes](https://github.com/Kevinjohn/oss-adonisjs-account-kit/releases/tag/v0.6.1)
 before installing it.
 
 Account Kit's HTTP integration requires the host-provided `@vinejs/vine` `^4.4.0` dependency. The
@@ -253,7 +253,7 @@ in `canAccess`.
 
 ## Install the provider and blocker
 
-The provider example below targets the scoped Masquerade `0.6.0` release. Its configure hook
+The provider example below targets the scoped Masquerade `0.6.1` release. Its configure hook
 registers `@kevinjohn/adonisjs-masquerade/masquerade_provider` for the core provider.
 
 Register the Account Kit provider subpath and its global middleware in the host. The middleware
@@ -304,7 +304,7 @@ Ace command it commits the router itself first, and it never commits in other en
 commit the routes as `<group>.accountKit.*`, which the blocker does not match, so startup fails with
 `is not mounted`.
 
-This prerelease interface works with Account Kit `0.6.0`, the only version the optional peer
+This prerelease interface works with Account Kit `0.6.1`, the only version the optional peer
 declares. Historical matrix results cover the unscoped release for both strategies, with session
 management on and off, on SQLite and PostgreSQL at the declared floor and latest compatible peers.
 The scoped release is validated separately in the pull request that updates this dependency. Other Account Kit versions and MySQL are not tested; a second composed Masquerade transport is unsupported. The declared release resolves `configProvider` through
