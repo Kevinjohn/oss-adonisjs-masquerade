@@ -4,7 +4,7 @@
 
 ## 0.7.0 - 2026-11-24
 
-- Require Account Kit 0.7.0 exactly and verify its published archive in the compatibility demo.
+- Require Account Kit `0.7.0` exactly. Verify its published archive in the compatibility demo.
 - Bind the runtime under the `MasqueradeRuntime` class as well as `masquerade.runtime`, so a host service can take it through its constructor with `@inject()`.
 - Breaking: replace the root `MasqueradeError` and `errors.MasqueradeError` constructors with
   `errors.E_MASQUERADE_UNAUTHENTICATED`, `errors.E_MASQUERADE_NOT_ALLOWED`,
