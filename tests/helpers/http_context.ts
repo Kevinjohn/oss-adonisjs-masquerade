@@ -1,5 +1,5 @@
-import { admission } from '../../src/request_admission.js'
-import { actorIdentity } from '../../src/actor_identity.js'
+import { admitOnce } from '../../src/request_admission.js'
+import { authenticateActorIdentity } from '../../src/actor_identity.js'
 import type { RequestAdmission } from '../../src/request_admission.js'
 import type { MasqueradeService } from '../../src/types.js'
 import type { RouteGuardSelection } from '../../src/integration/route_guard_selection.js'
@@ -112,8 +112,10 @@ export function requestContext(f: ReturnType<typeof fixture>, options: RequestCo
         // One service per request, as the provider's singleton runtime gives a real request.
         const service = await (servicePromise ??= f.create())
         const internal = service as MasqueradeService<object> & {
-          [admission]: (request: object) => Promise<RequestAdmission<unknown>>
-          [actorIdentity]: (request: object) => Promise<{ id: string; incarnation: string }>
+          [admitOnce]: (request: object) => Promise<RequestAdmission<unknown>>
+          [authenticateActorIdentity]: (
+            request: object
+          ) => Promise<{ id: string; incarnation: string }>
         }
         return {
           service,
@@ -131,10 +133,10 @@ export function requestContext(f: ReturnType<typeof fixture>, options: RequestCo
                 primaryRawGuard: 'web',
               })),
           admit: async (request: object) => {
-            const fallback = () => internal[admission](request)
+            const fallback = () => internal[admitOnce](request)
             return options.admit ? options.admit(request, fallback) : fallback()
           },
-          actor: (request: object) => internal[actorIdentity](request),
+          actor: (request: object) => internal[authenticateActorIdentity](request),
         }
       },
     },

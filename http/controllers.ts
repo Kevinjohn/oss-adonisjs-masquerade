@@ -1,5 +1,5 @@
 import type { HttpContext } from '@adonisjs/core/http'
-import { runtimeFor } from '../src/integration/runtime.js'
+import { resolveRuntime } from '../src/integration/runtime.js'
 import { MasqueradeError } from '../src/errors.js'
 import {
   parseStartControlOrInvalidMarker,
@@ -38,15 +38,15 @@ export class MasqueradeController {
 
   /** Shared by the generated HTML adapter, which accepts only URL-encoded forms. */
   protected async formTransition(ctx: HttpContext, action: 'start' | 'stop'): Promise<ModeView> {
-    const runtime = await this.rawRuntime(ctx)
+    const runtime = await this.requireRawRuntime(ctx)
     const service = runtime.service as RawControlService
     return action === 'start'
       ? service.start(ctx, parseStartControlOrInvalidMarker(ctx, { formOnly: true }))
       : service.stop(ctx, parseStopControlOrInvalidMarker(ctx, { formOnly: true }))
   }
 
-  private async rawRuntime(ctx: HttpContext) {
-    const runtime = await runtimeFor(ctx)
+  private async requireRawRuntime(ctx: HttpContext) {
+    const runtime = await resolveRuntime(ctx)
     if (runtime.selectGuard(ctx).kind !== 'raw')
       throw new MasqueradeError('E_MASQUERADE_UNAVAILABLE')
     return runtime
@@ -54,11 +54,11 @@ export class MasqueradeController {
 
   private async control(
     ctx: HttpContext,
-    action: (runtime: Awaited<ReturnType<typeof runtimeFor>>) => Promise<unknown>
+    action: (runtime: Awaited<ReturnType<typeof resolveRuntime>>) => Promise<unknown>
   ): Promise<void> {
     ctx.response.header('Cache-Control', 'no-store')
     ctx.response.vary(['Accept', 'X-Masquerade-Context'])
-    const runtime = await this.rawRuntime(ctx)
+    const runtime = await this.requireRawRuntime(ctx)
     const result = await action(runtime)
     ctx.response.status(200).json(result)
   }

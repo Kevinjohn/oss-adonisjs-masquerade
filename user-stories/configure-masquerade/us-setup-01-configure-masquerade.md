@@ -54,12 +54,12 @@ flowchart TD
     A["configure(command)"] --> B["readOption namespace and guard; prompt when omitted"]
     B --> N{"isNamespace and isGuardName valid?"}
     N -->|No| E["Log setup error and set exitCode"]
-    N -->|Yes| C["Check prerequisites. userModelPath reads package.json."]
+    N -->|Yes| C["Check prerequisites. resolveUserModelPath reads package.json."]
     C -->|"package.json read/parse throws"| R["Error propagates before generation"]
     C --> D{"Prerequisites available?"}
     D -->|No| E
-    D -->|Yes| L["migrationsFolders uses loaded config or databaseConfig"]
-    L -->|databaseConfig throws| R
+    D -->|Yes| L["resolveMigrationFolders uses loaded config or loadDatabaseConfig"]
+    L -->|loadDatabaseConfig throws| R
     L --> M{"resolveMigrationPathOrReport resolves an unambiguous destination?"}
     M -->|No| E
     M -->|Yes| X{"Destinations exist and no force?"}

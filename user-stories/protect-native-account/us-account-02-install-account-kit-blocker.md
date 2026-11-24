@@ -41,7 +41,7 @@ Scope: provider startup validation and the global blocker's per-request branch; 
 flowchart TD
     A["AccountKitProvider.ready"] --> B{"Adapter, managedGuard and kit.managedHttp.assertGuard present?"}
     B -->|No| C["Throw InvalidArgumentsException"]
-    B -->|Yes| D["assertGuard; managedRegistration(router); commit uncommitted console router"]
+    B -->|Yes| D["assertGuard; readManagedRegistration(router); commit uncommitted console router"]
     D --> E{"Router committed?"}
     E -->|No| F["Return; the blocker validates per request"]
     E -->|Yes| G["assertManagedRouteRegistration"]

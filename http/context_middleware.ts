@@ -3,7 +3,7 @@ import type { NextFn } from '@adonisjs/core/types/http'
 import { errors } from '@adonisjs/auth'
 import { MasqueradeError } from '../src/errors.js'
 import { requireContext } from '../src/context_token.js'
-import { runtimeFor } from '../src/integration/runtime.js'
+import { resolveRuntime } from '../src/integration/runtime.js'
 import { markContextEnforced } from '../src/integration/context_enforcement.js'
 import { hasAuthMiddleware, routeGuards, routeMarkers } from '../src/integration/route_metadata.js'
 
@@ -30,7 +30,7 @@ export async function masqueradeContext(
   // Resolve the effective aliases before choosing the boundary, but ensure
   // every potentially business-authenticated response is non-cacheable.
   setNoStore(ctx)
-  const runtime = await runtimeFor(ctx)
+  const runtime = await resolveRuntime(ctx)
   // A fallback raw/token guard could bypass admission or replace the effective facade user.
   // Session-only business routes must select effective guards exclusively.
   const selected = runtime.selectGuard(ctx)

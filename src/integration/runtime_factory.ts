@@ -7,16 +7,16 @@ import { completeConfig, defineConfig } from '../define_config.js'
 import type { CompleteMasqueradeConfig } from '../define_config.js'
 import { resolveCallbacks } from '../callback_registry.js'
 import { createMasqueradeService } from '../service.js'
-import { admission } from '../request_admission.js'
-import { activeMode } from '../active_mode.js'
-import { actorIdentity } from '../actor_identity.js'
+import { admitOnce } from '../request_admission.js'
+import { checkActiveMode } from '../active_mode.js'
+import { authenticateActorIdentity } from '../actor_identity.js'
 import type { RequestAdmission } from '../request_admission.js'
 import type { MasqueradeConfig, MasqueradePolicy, NativeAuthority, OwnerKey } from '../types.js'
 import type { NativeRuntimeAdapter } from './native_binding.js'
 import type { MasqueradeRuntime } from './runtime.js'
 import {
-  effectiveFactoryDriver,
-  effectiveFactoryRawGuard,
+  getEffectiveGuardDriver,
+  getEffectiveFactoryRawGuard,
   isEffectiveFactory,
 } from './guard_registration.js'
 import type { NativeGuardDriver } from './guard_registration.js'
@@ -37,7 +37,9 @@ export interface RuntimeConfiguration {
   rawAdapters: Readonly<Record<string, NativeRuntimeAdapter>>
 }
 /** Validate native wiring without constructing the store or authenticating a request. */
-export async function runtimeConfiguration(app: ApplicationService): Promise<RuntimeConfiguration> {
+export async function resolveRuntimeConfiguration(
+  app: ApplicationService
+): Promise<RuntimeConfiguration> {
   const configured = defineConfig(
     app.config.get<MasqueradeConfig<unknown, HttpContext>>('masquerade')
   )
@@ -114,14 +116,14 @@ export async function runtimeConfiguration(app: ApplicationService): Promise<Run
   const effectiveDrivers: Record<string, NativeGuardDriver> = Object.create(null)
   for (const [name, factory] of Object.entries(auth.config.guards)) {
     if (!isEffectiveFactory(factory)) continue
-    const raw = effectiveFactoryRawGuard(factory)
+    const raw = getEffectiveFactoryRawGuard(factory)
     if (!raw || !Object.hasOwn(rawAdapters, raw))
       throw new InvalidArgumentsException(
         `Effective masquerade guard ${name} has no registered raw adapter`
       )
     effectiveRawGuards[name] = raw
     // Compare only registration metadata during boot. Factories require a live HttpContext.
-    const effectiveDriver = effectiveFactoryDriver(factory)
+    const effectiveDriver = getEffectiveGuardDriver(factory)
     const rawDriver = rawAdapters[raw].driverName
     if (effectiveDriver && rawDriver && effectiveDriver !== rawDriver)
       throw new InvalidArgumentsException(
@@ -225,9 +227,9 @@ export async function createRuntime(
       logger.error({ code: 'E_MASQUERADE_OBSERVER_FAILED' }, 'Masquerade observer failed'),
   })
   const internal = service as typeof service & {
-    [admission](ctx: HttpContext): Promise<RequestAdmission<unknown>>
-    [activeMode](owner: OwnerKey): Promise<boolean>
-    [actorIdentity](ctx: HttpContext): Promise<{ id: string; incarnation: string }>
+    [admitOnce](ctx: HttpContext): Promise<RequestAdmission<unknown>>
+    [checkActiveMode](owner: OwnerKey): Promise<boolean>
+    [authenticateActorIdentity](ctx: HttpContext): Promise<{ id: string; incarnation: string }>
   }
   return Object.freeze({
     service,
@@ -235,8 +237,8 @@ export async function createRuntime(
     effectiveGuardName: wiring.effectiveGuardName,
     effectiveGuardNames: wiring.effectiveGuardNames,
     selectGuard,
-    admit: (ctx: HttpContext) => internal[admission](ctx),
-    activeMode: (owner: OwnerKey) => internal[activeMode](owner),
-    actor: (ctx: HttpContext) => internal[actorIdentity](ctx),
+    admit: (ctx: HttpContext) => internal[admitOnce](ctx),
+    activeMode: (owner: OwnerKey) => internal[checkActiveMode](owner),
+    actor: (ctx: HttpContext) => internal[authenticateActorIdentity](ctx),
   })
 }

@@ -3,7 +3,7 @@ import type { HttpContext } from '@adonisjs/core/http'
 import { test } from '@japa/runner'
 import AccountKitBlocker, { AccountKitAccountBlocker } from '../account_kit/middleware.js'
 import { MasqueradeError } from '../src/errors.js'
-import { activeMode } from '../src/active_mode.js'
+import { checkActiveMode } from '../src/active_mode.js'
 import { fixture } from './helpers/core.js'
 
 async function host() {
@@ -42,8 +42,10 @@ async function host() {
             activeMode: async (owner: typeof f.owner) => {
               calls.reads++
               return (
-                service as typeof service & { [activeMode](key: typeof f.owner): Promise<boolean> }
-              )[activeMode](owner)
+                service as typeof service & {
+                  [checkActiveMode](key: typeof f.owner): Promise<boolean>
+                }
+              )[checkActiveMode](owner)
             },
           }
         throw new Error(`unexpected binding: ${key}`)

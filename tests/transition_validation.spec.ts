@@ -1,6 +1,6 @@
 import { test } from '@japa/runner'
 import { assertValidTransition } from '../src/transition_validation.js'
-import { validateControlOutcome } from '../src/control_outcome_validation.js'
+import { assertControlOutcome } from '../src/control_outcome_validation.js'
 import type { ActiveModeRow, CompareAndSetInput, ControlOutcomeEvent } from '../src/types.js'
 
 const owner = { namespace: 'test', actorId: 'a', actorIncarnation: 'a' }
@@ -84,10 +84,10 @@ for (const [name, change] of [
 test('control outcomes accept only outcome kinds', ({ assert }) => {
   const event = { ...owner, id: 'x', at, outcomeCode: 'idle', revision: 0 }
   for (const kind of ['start_denied', 'stop_denied', 'control_noop'] as const)
-    assert.doesNotThrow(() => validateControlOutcome({ ...event, kind }))
+    assert.doesNotThrow(() => assertControlOutcome({ ...event, kind }))
   for (const kind of ['started', 'stopped', 'expired', 'invalidated', 'other'])
     assert.throws(
-      () => validateControlOutcome({ ...event, kind } as unknown as ControlOutcomeEvent),
+      () => assertControlOutcome({ ...event, kind } as unknown as ControlOutcomeEvent),
       'Masquerade is unavailable'
     )
 })

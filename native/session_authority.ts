@@ -51,7 +51,7 @@ export function sessionAuthority<User>(
   const incarnation = options.incarnation === 'id' ? 'id' : options.incarnation.bind(options)
   const securityStamp = options.securityStamp.bind(options)
   const isActive = options.isActive.bind(options)
-  function subject(user: User, identifier: unknown): Subject<User> {
+  function buildSubject(user: User, identifier: unknown): Subject<User> {
     if (!(
       typeof identifier === 'string' ||
       typeof identifier === 'bigint' ||
@@ -76,7 +76,7 @@ export function sessionAuthority<User>(
       const active = await isActive(user)
       if (typeof active !== 'boolean') throw createUnavailableError()
       return {
-        subject: subject(user, account.getId()),
+        subject: buildSubject(user, account.getId()),
         active,
         securityStamp: await securityStamp(user),
       }
@@ -103,7 +103,7 @@ export function sessionAuthority<User>(
       }
       try {
         const account = await provider.createUserForGuard(user)
-        return subject(user, account.getId())
+        return buildSubject(user, account.getId())
       } catch {
         throw createUnavailableError()
       }

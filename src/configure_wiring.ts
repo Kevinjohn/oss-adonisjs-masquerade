@@ -151,7 +151,7 @@ function is<T extends AstNode>(node: AstNode | undefined, kind: string): node is
   return node?.getKindName() === kind
 }
 
-function property(object: ObjectNode, name: string): PropertyNode | undefined {
+function getPropertyAssignment(object: ObjectNode, name: string): PropertyNode | undefined {
   const found = object.getProperty(name)
   return is<PropertyNode>(found, 'PropertyAssignment') ? found : undefined
 }
@@ -162,7 +162,7 @@ function call(node: AstNode | undefined, callee: string): CallNode | undefined {
     : undefined
 }
 
-function soleObjectArgument(node: CallNode | undefined): ObjectNode | undefined {
+function extractSoleObjectArgument(node: CallNode | undefined): ObjectNode | undefined {
   const args = node?.getArguments() ?? []
   return args.length === 1 && is<ObjectNode>(args[0], 'ObjectLiteralExpression')
     ? args[0]
@@ -201,19 +201,19 @@ function isConfiguredEffectiveGuard(
   guard: string,
   effective: string
 ): boolean {
-  const raw = property(guards, guard)
-  const wrapped = property(guards, effective)
+  const raw = getPropertyAssignment(guards, guard)
+  const wrapped = getPropertyAssignment(guards, effective)
   const rawName = raw?.getInitializer()?.getText()
   const wrapper = call(wrapped?.getInitializer(), 'effectiveSessionGuard')
   const wrappedName = wrapper?.getArguments()[0]?.getText()
   if (!rawName || wrappedName !== rawName || !/^[$A-Z_a-z][$\w]*$/.test(rawName)) return false
-  const options = soleObjectArgument(
+  const options = extractSoleObjectArgument(
     call(file.getVariableDeclaration(rawName)?.getInitializer(), 'sessionGuard')
   )
   if (
     !wrapped ||
     !options ||
-    property(options, 'provider')?.getInitializer()?.getText() !== 'userProvider' ||
+    getPropertyAssignment(options, 'provider')?.getInitializer()?.getText() !== 'userProvider' ||
     !hasNamedImportBinding(file, '@adonisjs/auth/session', 'sessionGuard') ||
     !hasNamedImportBinding(file, '#services/masquerade_user_provider', 'userProvider') ||
     !hasNamedImportBinding(file, '@kevinjohn/adonisjs-masquerade/auth', 'effectiveSessionGuard')
@@ -338,14 +338,14 @@ export async function wireAuthGuards(
   const file = project.addSourceFileAtPathIfExists(authPath)
   if (!file) return 'skipped'
   const declaration = file.getVariableDeclaration('authConfig')
-  const config = soleObjectArgument(
+  const config = extractSoleObjectArgument(
     call(declaration?.getInitializer() as AstNode | undefined, 'defineConfig')
   )
   if (!declaration || !config || !hasNamedImportBinding(file, '@adonisjs/auth', 'defineConfig'))
     return 'skipped'
   const effective = `${guard}_effective`
-  const defaultGuard = property(config, 'default')
-  const guards = property(config, 'guards')?.getInitializer()
+  const defaultGuard = getPropertyAssignment(config, 'default')
+  const guards = getPropertyAssignment(config, 'guards')?.getInitializer()
   if (!defaultGuard || !is<ObjectNode>(guards, 'ObjectLiteralExpression')) return 'skipped'
   const defaultName = defaultGuard.getInitializer()?.getText()
   if (defaultName === `'${effective}'`)
@@ -358,13 +358,13 @@ export async function wireAuthGuards(
   )
     return 'skipped'
 
-  const raw = property(guards, guard)
-  const rawOptions = soleObjectArgument(call(raw?.getInitializer(), 'sessionGuard'))
-  const provider = rawOptions && property(rawOptions, 'provider')
-  const providerOptions = soleObjectArgument(
+  const raw = getPropertyAssignment(guards, guard)
+  const rawOptions = extractSoleObjectArgument(call(raw?.getInitializer(), 'sessionGuard'))
+  const provider = rawOptions && getPropertyAssignment(rawOptions, 'provider')
+  const providerOptions = extractSoleObjectArgument(
     call(provider?.getInitializer(), 'sessionUserProvider')
   )
-  const model = providerOptions && property(providerOptions, 'model')
+  const model = providerOptions && getPropertyAssignment(providerOptions, 'model')
   if (
     !raw ||
     !provider ||

@@ -39,7 +39,7 @@ export async function configure(command: Configure): Promise<void> {
   }
 
   // Every generated provider, config and limiter imports the starter kits' user model.
-  const userModel = await userModelPath(command)
+  const userModel = await resolveUserModelPath(command)
   if (
     !(await fileExists(command.app.makePath(`${userModel}.ts`))) &&
     !(await fileExists(command.app.makePath(`${userModel}.js`)))
@@ -73,7 +73,7 @@ export async function configure(command: Configure): Promise<void> {
     return
   }
 
-  const migrationFolders = await migrationsFolders(command)
+  const migrationFolders = await resolveMigrationFolders(command)
   const migration = await resolveMigrationPathOrReport(command, migrationFolders)
   if (!migration) return
   const migrationDestination = command.app.relativePath(migration.path)
@@ -268,12 +268,12 @@ async function readOption(command: Configure, key: 'namespace' | 'guard', label:
   const value = command.parsedFlags[key]
   if (typeof value === 'string') return value
   // Ace parses numeric flag values: --namespace=2024 arrives as 2024, and --namespace=1e3 as 1000.
-  if (typeof value === 'number') return rawFlag(key) ?? String(value)
+  if (typeof value === 'number') return readRawFlag(key) ?? String(value)
   return command.prompt.ask(label)
 }
 
 /** A flag's value as typed on the command line. */
-function rawFlag(name: string): string | undefined {
+function readRawFlag(name: string): string | undefined {
   const argv = process.argv
   for (const [index, argument] of argv.entries()) {
     if (argument === `--${name}`) return argv[index + 1]
@@ -288,11 +288,11 @@ type DatabaseConfig = {
 }
 
 /** The default connection's migration directories, resolved as Lucid resolves them. */
-async function migrationsFolders(command: Configure): Promise<[string, ...string[]]> {
+async function resolveMigrationFolders(command: Configure): Promise<[string, ...string[]]> {
   // Configure runs before the application boots, so config/database.ts is read directly.
   const database =
     command.app.config?.get<DatabaseConfig | undefined>('database', undefined) ??
-    (await databaseConfig(command))
+    (await loadDatabaseConfig(command))
   const paths = database?.connection
     ? database.connections?.[database.connection]?.migrations?.paths
     : undefined
@@ -309,7 +309,7 @@ async function migrationsFolders(command: Configure): Promise<[string, ...string
 }
 
 /** Where the host's `#models/*` import maps `#models/user`, without an extension. */
-async function userModelPath(command: Configure): Promise<string> {
+async function resolveUserModelPath(command: Configure): Promise<string> {
   let text: string | undefined
   try {
     text = await readFile(command.app.makePath('package.json'), 'utf8')
@@ -328,7 +328,7 @@ async function userModelPath(command: Configure): Promise<string> {
 }
 
 /** `config/database.ts`, or `undefined` when the app has none. A file that fails to load throws. */
-async function databaseConfig(command: Configure): Promise<DatabaseConfig | undefined> {
+async function loadDatabaseConfig(command: Configure): Promise<DatabaseConfig | undefined> {
   try {
     const module = (await command.app.import(
       pathToFileURL(command.app.configPath('database.ts')).href

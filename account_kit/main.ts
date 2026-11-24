@@ -7,7 +7,7 @@ import type { NativeAuthority, Subject } from '../src/types.js'
 import { isBoundedString } from '../src/bounded_string.js'
 import { MasqueradeError } from '../src/errors.js'
 import { createUnavailableError } from '../src/error_helpers.js'
-import { accountOwner, canonicalId } from './account_owner.js'
+import { resolveAccountOwner, requireCanonicalId } from './account_owner.js'
 
 /** An account or token identifier as Account Kit reports it; Masquerade compares canonical strings. */
 export type AccountKitIdentifier = string | number | bigint
@@ -165,8 +165,8 @@ export function accountKitAuthority<User>(
     })
   ) as AccountKitManagedGuard
   const incarnation = options.incarnation === 'id' ? 'id' : options.incarnation.bind(options)
-  const subject = (user: User, idValue: unknown): Subject<User> => ({
-    ...accountOwner(incarnation, user, idValue),
+  const buildAccountSubject = (user: User, idValue: unknown): Subject<User> => ({
+    ...resolveAccountOwner(incarnation, user, idValue),
     user,
   })
   const authority: NativeAuthority<User> = Object.freeze({
@@ -192,17 +192,17 @@ export function accountKitAuthority<User>(
           return null
         throw error
       }
-      const canonical = canonicalId(snapshot.account.id)
+      const canonical = requireCanonicalId(snapshot.account.id)
       // A database may coerce a non-canonical ID such as "02" to an existing account. Answer with
       // the generic denial, as for a missing account, so the response does not reveal existence.
       if (canonical !== id) return null
       const account = await provider.findById(canonical)
       if (!account) return null
-      if (canonicalId(account.getId()) !== canonical) throw createUnavailableError()
+      if (requireCanonicalId(account.getId()) !== canonical) throw createUnavailableError()
       const user = account.getOriginal()
       if (!user || typeof user !== 'object') throw createUnavailableError()
       return {
-        subject: subject(user, canonical),
+        subject: buildAccountSubject(user, canonical),
         active: snapshot.account.active,
         securityStamp: stamp(snapshot.revision),
       }
@@ -244,10 +244,10 @@ export function accountKitAuthority<User>(
         const service = await kit()
         const account = await service.authentication.current(input)
         const providerAccount = await provider.createUserForGuard(user)
-        const id = canonicalId(providerAccount.getId())
-        if (canonicalId(account.id) !== id || canonicalId(input.userId) !== id)
+        const id = requireCanonicalId(providerAccount.getId())
+        if (requireCanonicalId(account.id) !== id || requireCanonicalId(input.userId) !== id)
           throw createUnavailableError()
-        return subject(user, id)
+        return buildAccountSubject(user, id)
       } catch (error) {
         if (error instanceof errors.E_UNAUTHORIZED_ACCESS) throw error
         if (await isKitDenial(error, 'InvalidSessionError', 'E_ACCOUNT_KIT_INVALID_SESSION'))

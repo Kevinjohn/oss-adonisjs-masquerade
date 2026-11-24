@@ -1,13 +1,13 @@
 import type { HttpContext } from '@adonisjs/core/http'
 import { MasqueradeError } from '../src/errors.js'
 import { createUnavailableError } from '../src/error_helpers.js'
-import { accountOwner } from './account_owner.js'
-import { runtimeFor } from '../src/integration/runtime.js'
+import { resolveAccountOwner } from './account_owner.js'
+import { resolveRuntime } from '../src/integration/runtime.js'
 import { classifyAccountKitRoute } from '../src/integration/account_kit_route_classification.js'
 import type { AccountKitAdapter } from './main.js'
 import type { GuardContract } from '@adonisjs/auth/types'
 import { assertManagedRouteRegistration } from './route_validation.js'
-import { managedRegistration } from './registration.js'
+import { readManagedRegistration } from './registration.js'
 
 /** Opt-in blocker for host-owned native account routes. Keep logout and CSRF outside its group. */
 export class AccountKitAccountBlocker {
@@ -30,12 +30,12 @@ export class AccountKitAccountBlocker {
       const user = raw.user
       if (!user) throw createUnavailableError()
       const account = await adapter.provider.createUserForGuard(user)
-      const { id: actorId, incarnation } = accountOwner(
+      const { id: actorId, incarnation } = resolveAccountOwner(
         adapter.authority.incarnation,
         user,
         account.getId()
       )
-      const runtime = await runtimeFor(ctx)
+      const runtime = await resolveRuntime(ctx)
       if (
         await runtime.activeMode({
           namespace: adapter.authority.namespace,
@@ -61,7 +61,7 @@ export class AccountKitBlocker extends AccountKitAccountBlocker {
   async handle(ctx: HttpContext, next: () => Promise<unknown>): Promise<unknown> {
     if (classifyAccountKitRoute(ctx.route?.name) !== 'managed') return next()
     const router = await ctx.containerResolver.make('router')
-    assertManagedRouteRegistration(router.toJSON(), await managedRegistration(router))
+    assertManagedRouteRegistration(router.toJSON(), await readManagedRegistration(router))
     return super.handle(ctx, next)
   }
 }

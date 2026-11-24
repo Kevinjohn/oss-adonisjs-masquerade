@@ -1,7 +1,7 @@
 import { AccountKitAccountBlocker } from '../../account_kit/middleware.js'
 
 /** Compare the actual named middleware export without constructing or running middleware. */
-export async function hasRegisteredAccountKitBlocker(
+export async function checkAccountKitBlockerRegistration(
   entries: Iterable<unknown>,
   imports: Map<Function, Promise<boolean>>
 ): Promise<boolean> {

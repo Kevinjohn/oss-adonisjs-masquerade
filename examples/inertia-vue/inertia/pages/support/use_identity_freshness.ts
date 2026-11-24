@@ -20,7 +20,7 @@ export function useIdentityFreshness(mode: Mode, expiresAt: string) {
     return true
   }
 
-  async function validate() {
+  async function refreshIdentity() {
     if (expireIfDue()) return
     const current = ++generation
     controller?.abort()
@@ -52,11 +52,11 @@ export function useIdentityFreshness(mode: Mode, expiresAt: string) {
   }
 
   function onVisibilityChange() {
-    if (document.visibilityState === 'visible') void validate()
+    if (document.visibilityState === 'visible') void refreshIdentity()
   }
 
   onMounted(() => {
-    void validate()
+    void refreshIdentity()
     document.addEventListener('visibilitychange', onVisibilityChange)
     const remaining = Date.parse(expiresAt) - Date.now()
     timer = setTimeout(expireIfDue, Math.max(0, remaining))

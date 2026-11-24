@@ -2,6 +2,9 @@ import type { HttpContext } from '@adonisjs/core/http'
 
 const BODY_LIMIT = 8 * 1024
 
+/** A valid-shape token that can never match: idle tokens have 64 hex characters, rows have revision >= 1. */
+const rejectedContextToken = `0.${'0'.repeat(32)}`
+
 /** Options for the control input parsers. */
 type ControlInputOptions = {
   /** Accept only an `application/x-www-form-urlencoded` body. */
@@ -17,7 +20,8 @@ export function parseStartControlOrInvalidMarker(
   { formOnly = false }: ControlInputOptions = {}
 ): Record<string, unknown> {
   const body = readControlBody(ctx)
-  if (!body || (formOnly && !isForm(ctx)) || !isWithinBodyLimit(ctx)) return invalidInputMarker()
+  if (!body || (formOnly && !isForm(ctx)) || !isWithinBodyLimit(ctx))
+    return buildInvalidInputMarker()
   if (
     Object.keys(body).some(
       (key) =>
@@ -31,17 +35,18 @@ export function parseStartControlOrInvalidMarker(
         ].includes(key)
     )
   )
-    return invalidInputMarker()
-  const expectedContext = controlToken(ctx, body)
-  const durationSeconds = formDuration(ctx, body.durationSeconds)
+    return buildInvalidInputMarker()
+  const expectedContext = resolveControlToken(ctx, body)
+  const durationSeconds = coerceFormDuration(ctx, body.durationSeconds)
   // The body parser turns blank form fields into null; a blank optional field takes its default.
   // JSON null stays explicit input, which core validation rejects.
-  const absent = (value: unknown) => value === undefined || (value === null && isForm(ctx))
+  const isAbsentControlValue = (value: unknown) =>
+    value === undefined || (value === null && isForm(ctx))
   return {
     targetId: body.targetId,
     reason: body.reason,
-    ...(absent(body.access) ? {} : { access: body.access }),
-    ...(absent(body.durationSeconds) ? {} : { durationSeconds }),
+    ...(isAbsentControlValue(body.access) ? {} : { access: body.access }),
+    ...(isAbsentControlValue(body.durationSeconds) ? {} : { durationSeconds }),
     expectedContext: expectedContext ?? '',
   }
 }
@@ -52,10 +57,11 @@ export function parseStopControlOrInvalidMarker(
   { formOnly = false }: ControlInputOptions = {}
 ): Record<string, unknown> {
   const body = readControlBody(ctx)
-  if (!body || (formOnly && !isForm(ctx)) || !isWithinBodyLimit(ctx)) return invalidInputMarker()
+  if (!body || (formOnly && !isForm(ctx)) || !isWithinBodyLimit(ctx))
+    return buildInvalidInputMarker()
   if (Object.keys(body).some((key) => !['_masqueradeContext', '_csrf'].includes(key)))
-    return invalidInputMarker()
-  return { expectedContext: controlToken(ctx, body) ?? '' }
+    return buildInvalidInputMarker()
+  return { expectedContext: resolveControlToken(ctx, body) ?? '' }
 }
 
 function isWithinBodyLimit(ctx: HttpContext): boolean {
@@ -81,7 +87,7 @@ function isForm(ctx: HttpContext): boolean {
 }
 
 /** Form parsers expose numbers as strings; accept only canonical safe integer strings. */
-function formDuration(ctx: HttpContext, value: unknown): unknown {
+function coerceFormDuration(ctx: HttpContext, value: unknown): unknown {
   if (!isForm(ctx) || typeof value !== 'string' || !/^(0|[1-9][0-9]*)$/.test(value))
     // Preserve noncanonical and JSON values so core runtime validation rejects them unchanged.
     return value
@@ -94,21 +100,15 @@ function readControlBody(ctx: HttpContext): Record<string, unknown> | null {
   return body && typeof body === 'object' && !Array.isArray(body) ? body : null
 }
 
-function controlToken(ctx: HttpContext, body: Record<string, unknown>): string | undefined {
+function resolveControlToken(ctx: HttpContext, body: Record<string, unknown>): string | undefined {
   const header = ctx.request.header('X-Masquerade-Context')
   const hidden = body._masqueradeContext
-  if (header !== undefined && hidden !== undefined && header !== hidden)
-    return rejectedContextToken()
+  if (header !== undefined && hidden !== undefined && header !== hidden) return rejectedContextToken
   const token = header ?? hidden
   return typeof token === 'string' ? token : undefined
 }
 
-/** A valid-shape token that can never match: idle tokens have 64 hex characters, rows have revision >= 1. */
-function rejectedContextToken(): string {
-  return `0.${'0'.repeat(32)}`
-}
-
 /** Deliberately malformed core input makes the service write its normal denied-outcome audit. */
-function invalidInputMarker(): Record<string, unknown> {
+function buildInvalidInputMarker(): Record<string, unknown> {
   return { __invalidHttpInput: true }
 }

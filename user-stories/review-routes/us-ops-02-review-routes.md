@@ -45,7 +45,7 @@ flowchart TD
     V -->|Yes| X["Label blocked while active or exempt"]
     V -->|No| U["Label UNCLASSIFIED with missing or unverified blocker note"]
     Q -->|Host| E["Resolve registered account blocker, routeGuards and routeMarkers"]
-    E --> F["isPackageControl and host-control checks"]
+    E --> F["classifyPackageControl and host-control checks"]
     X --> G["Group and label route lines"]
     U --> G
     F --> G

@@ -9,7 +9,7 @@ import type {
   CasOutcome,
 } from '../src/types.js'
 import { assertValidTransition } from '../src/transition_validation.js'
-import { validateControlOutcome } from '../src/control_outcome_validation.js'
+import { assertControlOutcome } from '../src/control_outcome_validation.js'
 import { requireValidModeRow } from '../src/row_validation.js'
 
 function key(owner: OwnerKey): string {
@@ -41,7 +41,7 @@ export class MemoryControlStore implements ControlStore {
     return { status: 'applied', transitionId: event.id }
   }
   async recordControlOutcome(event: ControlOutcomeEvent): Promise<void> {
-    validateControlOutcome(event)
+    assertControlOutcome(event)
     if (this.#events.some((existing) => existing.id === event.id))
       throw new Error('Duplicate audit event ID')
     this.#events.push(structuredClone(event))

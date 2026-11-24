@@ -1,8 +1,8 @@
 import { test } from '@japa/runner'
 import { errorCode, fixture } from './helpers/core.js'
-import { createRuntime, runtimeConfiguration } from '../src/integration/runtime_factory.js'
+import { createRuntime, resolveRuntimeConfiguration } from '../src/integration/runtime_factory.js'
 import { markEffectiveFactory } from '../src/integration/guard_registration.js'
-import { contextToken } from '../src/context_token.js'
+import { buildContextToken } from '../src/context_token.js'
 import { masqueradeContext } from '../http/context_middleware.js'
 import { EffectiveSessionGuard } from '../auth/effective_session_guard.js'
 import { MasqueradeCallbackRegistry } from '../src/callback_registry.js'
@@ -51,7 +51,7 @@ test('runtime accepts one authority across raw guards and maps every effective f
   const guards = f.auth.config.guards
   guards.api = raw
   guards.api_effective = effective('api', 'access_tokens')
-  const wiring = await runtimeConfiguration(f.app as never)
+  const wiring = await resolveRuntimeConfiguration(f.app as never)
   assert.equal(wiring.effectiveRawGuards.alias, 'web')
   assert.equal(wiring.effectiveRawGuards.api_effective, 'api')
   assert.strictEqual(wiring.rawAdapters.api, token)
@@ -63,7 +63,7 @@ test('runtime rejects missing raw or unmapped effective factories at configurati
 }) => {
   const f = configuration({}, { web_effective: effective('web'), api_effective: effective('api') })
   await assert.rejects(
-    () => runtimeConfiguration(f.app as never),
+    () => resolveRuntimeConfiguration(f.app as never),
     'Effective masquerade guard api_effective has no registered raw adapter'
   )
   const g = configuration(
@@ -71,7 +71,7 @@ test('runtime rejects missing raw or unmapped effective factories at configurati
     { web_effective: effective('web'), api: raw, api_effective: effective('api') }
   )
   await assert.rejects(
-    () => runtimeConfiguration(g.app as never),
+    () => resolveRuntimeConfiguration(g.app as never),
     'Native masquerade adapter map is invalid'
   )
 })
@@ -85,14 +85,14 @@ test('boot rejects an effective guard whose transport differs from its raw adapt
     { web_effective: markEffectiveFactory(driver('access_tokens'), 'web', 'access_tokens') }
   )
   await assert.rejects(
-    () => runtimeConfiguration(f.app as never),
+    () => resolveRuntimeConfiguration(f.app as never),
     'Effective masquerade guard web_effective wraps the access_tokens driver, but the adapter registered for raw guard web declares the session driver'
   )
   const g = configuration(
     {},
     { web_effective: markEffectiveFactory(driver('session'), 'web', 'session') }
   )
-  const wiring = await runtimeConfiguration(g.app as never)
+  const wiring = await resolveRuntimeConfiguration(g.app as never)
   assert.equal(wiring.effectiveRawGuards.web_effective, 'web')
 })
 
@@ -115,7 +115,7 @@ test('a raw guard whose driver differs from agreeing metadata boots and refuses 
       return { id: 'a', incarnation: 'a', user: f.fixture.users.get('a')! }
     },
   }
-  const wiring = await runtimeConfiguration(f.app as never)
+  const wiring = await resolveRuntimeConfiguration(f.app as never)
   const runtime = await createRuntime(
     {
       nodeEnvironment: 'test',
@@ -169,7 +169,7 @@ test('guard factories only run on a live request; cross-wired guards fail before
       return { id: 'a', incarnation: 'a', user: f.fixture.users.get('a')! }
     },
   }
-  const wiring = await runtimeConfiguration(f.app as never)
+  const wiring = await resolveRuntimeConfiguration(f.app as never)
   assert.equal(constructions, 0)
   const runtime = await createRuntime(
     {
@@ -222,7 +222,7 @@ test('a cross-wired or failing guard on a live request is logged before the unch
     {},
     { web_effective: markEffectiveFactory(() => session(), 'web', 'session'), web: session }
   )
-  const wiring = await runtimeConfiguration(f.app as never)
+  const wiring = await resolveRuntimeConfiguration(f.app as never)
   const runtime = await createRuntime(
     {
       nodeEnvironment: 'test',
@@ -327,11 +327,11 @@ test('runtime service uses route-selected token actor despite a conflicting cook
   const noRouteStatus = await runtime.service.status({} as never)
   assert.equal(
     tokenStatus.contextToken,
-    contextToken({ namespace: 'test', actorId: 'b', actorIncarnation: 'b' }, null)
+    buildContextToken({ namespace: 'test', actorId: 'b', actorIncarnation: 'b' }, null)
   )
   assert.equal(
     noRouteStatus.contextToken,
-    contextToken({ namespace: 'test', actorId: 'a', actorIncarnation: 'a' }, null)
+    buildContextToken({ namespace: 'test', actorId: 'a', actorIncarnation: 'a' }, null)
   )
 })
 

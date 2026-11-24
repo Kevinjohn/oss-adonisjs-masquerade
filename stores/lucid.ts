@@ -3,7 +3,7 @@ import type { QueryClientContract, TransactionClientContract } from '@adonisjs/l
 import { createUnavailableError } from '../src/error_helpers.js'
 import { isValidInstant, requireValidModeRow } from '../src/row_validation.js'
 import { assertValidTransition } from '../src/transition_validation.js'
-import { validateControlOutcome } from '../src/control_outcome_validation.js'
+import { assertControlOutcome } from '../src/control_outcome_validation.js'
 import type {
   CasOutcome,
   CompareAndSetInput,
@@ -39,7 +39,7 @@ export interface LucidControlStoreOptions {
   /** Delay between those retries in milliseconds; defaults to 10. */
   sqliteBusyDelayMs?: number
 }
-function busy(error: unknown): boolean {
+function isBusyError(error: unknown): boolean {
   return (
     typeof error === 'object' &&
     error !== null &&
@@ -47,8 +47,8 @@ function busy(error: unknown): boolean {
     ['SQLITE_BUSY', 'SQLITE_BUSY_SNAPSHOT', 'SQLITE_LOCKED'].includes(String(error.code))
   )
 }
-function definiteCommitFailure(error: unknown): boolean {
-  if (busy(error)) return true
+function isDefiniteCommitFailure(error: unknown): boolean {
+  if (isBusyError(error)) return true
   const code =
     typeof error === 'object' && error !== null && 'code' in error ? String(error.code) : ''
   return (
@@ -57,12 +57,12 @@ function definiteCommitFailure(error: unknown): boolean {
   )
 }
 /** PostgreSQL serialization failure or deadlock: a concurrent change won, so the CAS lost. */
-function serializationFailure(error: unknown): boolean {
+function isSerializationFailure(error: unknown): boolean {
   const code =
     typeof error === 'object' && error !== null && 'code' in error ? String(error.code) : ''
   return code === '40001' || code === '40P01'
 }
-function batch(input: { limit: number }, instant: Instant): void {
+function assertBatchInput(input: { limit: number }, instant: Instant): void {
   if (!Number.isSafeInteger(input.limit) || input.limit < 1 || !isValidInstant(instant))
     throw createUnavailableError()
 }
@@ -161,7 +161,7 @@ export class LucidControlStore implements ControlStore {
         if (!outcome.ok) throw outcome.error
         return { status: 'applied', transitionId: transitionInput.event.id }
       } catch (error) {
-        const unknownCommit = committing && !definiteCommitFailure(error)
+        const unknownCommit = committing && !isDefiniteCommitFailure(error)
         try {
           if (transaction && !transaction.isCompleted()) {
             rollingBack = true
@@ -203,9 +203,13 @@ export class LucidControlStore implements ControlStore {
           return { status: 'indeterminate', transitionId: transitionInput.event.id }
         // Under REPEATABLE READ or SERIALIZABLE defaults, a lost race fails with 40001/40P01
         // after a clean rollback; it is the same outcome as a revision mismatch.
-        if (this.#client.dialect.name === 'postgres' && serializationFailure(error))
+        if (this.#client.dialect.name === 'postgres' && isSerializationFailure(error))
           return { status: 'conflict' }
-        if (!(this.#client.dialect.name !== 'postgres' && busy(error) && attempt < this.#retries))
+        if (!(
+          this.#client.dialect.name !== 'postgres' &&
+          isBusyError(error) &&
+          attempt < this.#retries
+        ))
           throw error
       } finally {
         try {
@@ -226,12 +230,12 @@ export class LucidControlStore implements ControlStore {
   }
   async recordControlOutcome(event: ControlOutcomeEvent): Promise<void> {
     this.#assertAvailable()
-    validateControlOutcome(event)
+    assertControlOutcome(event)
     await this.#client.knexQuery().table('masquerade_events').insert(buildAuditRecord(event))
   }
   async expiredBatch(input: { now: Instant; limit: number }): Promise<ModeRow[]> {
     this.#assertAvailable()
-    batch(input, input.now)
+    assertBatchInput(input, input.now)
     const rows = await this.#client
       .knexQuery()
       .from('masquerade_modes')
@@ -256,7 +260,7 @@ export class LucidControlStore implements ControlStore {
   }
   async pruneEvents(input: { before: Instant; limit: number }): Promise<number> {
     this.#assertAvailable()
-    batch(input, input.before)
+    assertBatchInput(input, input.before)
     // One statement avoids double-counting events deleted by a concurrent pruner.
     const selected = this.#client
       .knexQuery()

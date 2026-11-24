@@ -19,19 +19,19 @@ export class UnknownCommit extends MasqueradeError {
   }
 }
 
-export function nextRevision(row: ModeRow | null): number {
+export function advanceRevision(row: ModeRow | null): number {
   if (row?.revision === Number.MAX_SAFE_INTEGER) throw createUnavailableError()
   return (row?.revision ?? 0) + 1
 }
 
-export function idleAfterTransition(row: ActiveModeRow, event: AuditEvent): IdleModeRow {
+export function createIdleRowAfterTransition(row: ActiveModeRow, event: AuditEvent): IdleModeRow {
   return {
     namespace: row.namespace,
     actorId: row.actorId,
     actorIncarnation: row.actorIncarnation,
     state: 'idle',
     access: null,
-    revision: nextRevision(row),
+    revision: advanceRevision(row),
     revisionNonce: randomBytes(16).toString('hex'),
     modeId: row.modeId,
     lastTransitionId: event.id,

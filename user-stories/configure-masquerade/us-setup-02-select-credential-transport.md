@@ -30,7 +30,7 @@ flowchart TD
 
 ```mermaid
 flowchart TD
-    P["runtimeConfiguration checks registered guards and declared transport metadata"] --> V{"Valid wiring?"}
+    P["resolveRuntimeConfiguration checks registered guards and declared transport metadata"] --> V{"Valid wiring?"}
     V -->|No| W["Fail boot"]
     V -->|Yes| A["runtime.selectGuard on live request"]
     A --> Q{"Single mapped native transport?"}

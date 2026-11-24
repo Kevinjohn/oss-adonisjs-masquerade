@@ -115,7 +115,7 @@ export function accessTokensAuthority<User>(
         const active = await isActive(user)
         if (typeof active !== 'boolean') throw createUnavailableError()
         return {
-          subject: subject(user, account.getId(), incarnation),
+          subject: buildSubject(user, account.getId(), incarnation),
           active,
           securityStamp: await securityStamp(user),
         }
@@ -126,7 +126,7 @@ export function accessTokensAuthority<User>(
 
   const incarnation: 'id' | ((user: User) => string) =
     authority.incarnation === 'id' ? 'id' : authority.incarnation.bind(authority)
-  function subject(
+  function buildSubject(
     user: User,
     identifier: unknown,
     configuredIncarnation: 'id' | ((user: User) => string) = incarnation
@@ -176,7 +176,7 @@ export function accessTokensAuthority<User>(
 
       try {
         const account = await provider.createUserForGuard(user)
-        return subject(user, account.getId())
+        return buildSubject(user, account.getId())
       } catch {
         throw createUnavailableError()
       }
