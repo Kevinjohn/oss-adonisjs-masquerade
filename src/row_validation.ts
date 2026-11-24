@@ -1,4 +1,4 @@
-import { createUnavailableError } from './error_helpers.js'
+import { E_MASQUERADE_UNAVAILABLE } from './errors.js'
 import { isBoundedString } from './bounded_string.js'
 import { normalizeReason } from './reason.js'
 import type { ModeRow, OwnerKey } from './types.js'
@@ -30,9 +30,9 @@ export function requireValidModeRow(row: ModeRow | null, owner: OwnerKey): ModeR
     !uuid.test(row.lastTransitionId) ||
     !isValidInstant(row.updatedAt)
   )
-    throw createUnavailableError()
+    throw new E_MASQUERADE_UNAVAILABLE()
   if (row.state === 'idle') {
-    if (row.access !== null) throw createUnavailableError()
+    if (row.access !== null) throw new E_MASQUERADE_UNAVAILABLE()
     for (const value of [
       row.targetId,
       row.targetIncarnation,
@@ -42,7 +42,7 @@ export function requireValidModeRow(row: ModeRow | null, owner: OwnerKey): ModeR
       row.startedAt,
       row.expiresAt,
     ])
-      if (value !== null) throw createUnavailableError()
+      if (value !== null) throw new E_MASQUERADE_UNAVAILABLE()
   } else if (row.state === 'active') {
     if (
       (row.access !== 'view' && row.access !== 'edit') ||
@@ -57,13 +57,13 @@ export function requireValidModeRow(row: ModeRow | null, owner: OwnerKey): ModeR
       row.expiresAt <= row.startedAt ||
       Date.parse(row.expiresAt) - Date.parse(row.startedAt) > 3600000
     )
-      throw createUnavailableError()
+      throw new E_MASQUERADE_UNAVAILABLE()
     try {
       if (row.reason !== null && normalizeReason(row.reason) !== row.reason)
-        throw createUnavailableError()
+        throw new E_MASQUERADE_UNAVAILABLE()
     } catch {
-      throw createUnavailableError()
+      throw new E_MASQUERADE_UNAVAILABLE()
     }
-  } else throw createUnavailableError()
+  } else throw new E_MASQUERADE_UNAVAILABLE()
   return row
 }

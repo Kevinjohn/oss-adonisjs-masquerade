@@ -22,7 +22,7 @@ expired-mode candidates are examined, and, when event retention is configured, a
 old events are deleted. A pass does not keep fetching batches until all eligible work is gone.
 Concurrent changes can also make an expiry candidate ineligible before it is updated.
 
-Pruning preserves `MasqueradeSetupError` and its field when the resolved store is missing or
+Pruning preserves `errors.E_MASQUERADE_INVALID_STORE` and its field when the resolved store is missing or
 lacks a required method. A throwing store factory remains operational
 `E_MASQUERADE_UNAVAILABLE`. Fix the reported configuration before rerunning a setup failure;
 check the service or database when the factory is unavailable. This distinction applies to
@@ -30,7 +30,7 @@ pruning; it does not change the existing list or stop response contracts.
 
 When a housekeeping operation fails during the pass, Ace exits with code 1 and prints one progress diagnostic with the failed phase and the confirmed counts of expired modes and deleted events. The diagnostic flags any operation that may have committed despite an uncertain acknowledgement. The confirmed counts exclude that operation. Inspect the store before deciding whether to rerun the pass. A later pass can continue from the persisted state.
 
-Ace reports argument or setup failures through its usual error output. Programmatic callers using `Kernel.exec` can read the typed `PruneProgressError` and exit code 1 from the returned command.
+Ace reports argument or setup failures through its usual error output. Programmatic callers using `Kernel.exec` can read the exception and exit code 1 from the returned command. Match the exception with `instanceof errors.E_MASQUERADE_PRUNE_PROGRESS`. Its code remains `E_MASQUERADE_UNAVAILABLE`.
 
 Expired modes are checked during every pass, regardless of event-retention mode. The command
 re-reads each candidate and uses a conditional transition, so it will not clear a newer mode. A

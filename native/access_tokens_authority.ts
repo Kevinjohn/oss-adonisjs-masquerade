@@ -1,3 +1,4 @@
+import { E_MASQUERADE_NOT_ALLOWED, E_MASQUERADE_UNAVAILABLE } from '../src/errors.js'
 import { errors } from '@adonisjs/auth'
 import { InvalidArgumentsException } from '@adonisjs/core/exceptions'
 import type { AccessTokensUserProviderContract } from '@adonisjs/auth/types/access_tokens'
@@ -6,8 +7,6 @@ import type { HttpContext } from '@adonisjs/core/http'
 import type { NativeRuntimeAdapter } from '../src/integration/native_binding.js'
 import type { NativeAuthority, Subject } from '../src/types.js'
 import { isBoundedString } from '../src/bounded_string.js'
-import { MasqueradeError } from '../src/errors.js'
-import { createUnavailableError } from '../src/error_helpers.js'
 
 interface AccessTokensAuthorityBase<User> {
   guard: string
@@ -48,13 +47,39 @@ export interface NativeAccessTokensAdapter<User = unknown> extends NativeRuntime
   /**
    * Authenticate through the raw access-tokens guard; `E_UNAUTHORIZED_ACCESS` passes through.
    *
-   * @throws {MasqueradeError} `E_MASQUERADE_NOT_ALLOWED` when the token lacks the ability, or
+   * @throws `E_MASQUERADE_NOT_ALLOWED` when the token lacks the ability, or
    *   `E_MASQUERADE_UNAVAILABLE`.
+   *
+   * @example
+   * ```ts
+   * const actor = await adapter.authenticateActor(ctx)
+   * ```
    */
   authenticateActor(ctx: HttpContext): Promise<Subject<User>>
 }
 
-/** Authenticate native opaque tokens while sharing account-global authority state. */
+/**
+ * Authenticate native opaque tokens while sharing account-global authority state.
+ *
+ * @example
+ * ```ts
+ * import { accessTokensAuthority, type NativeSessionAdapter } from '@kevinjohn/adonisjs-masquerade/native'
+ * import type { AccessTokensUserProviderContract } from '@adonisjs/auth/types/access_tokens'
+ *
+ * type Account = { id: string }
+ * export function apiAuthority(
+ *   web: NativeSessionAdapter<Account>,
+ *   provider: AccessTokensUserProviderContract<Account>
+ * ) {
+ *   return accessTokensAuthority({
+ *     guard: 'api',
+ *     provider,
+ *     ability: 'support:masquerade',
+ *     authority: web.authority,
+ *   })
+ * }
+ * ```
+ */
 export function accessTokensAuthority<User>(
   options: AccessTokensAuthorityOptions<User>
 ): NativeAccessTokensAdapter<User> {
@@ -113,7 +138,7 @@ export function accessTokensAuthority<User>(
         if (!account) return null
         const user = account.getOriginal()
         const active = await isActive(user)
-        if (typeof active !== 'boolean') throw createUnavailableError()
+        if (typeof active !== 'boolean') throw new E_MASQUERADE_UNAVAILABLE()
         return {
           subject: buildSubject(user, account.getId(), incarnation),
           active,
@@ -136,11 +161,11 @@ export function accessTokensAuthority<User>(
       typeof identifier !== 'bigint' &&
       !(typeof identifier === 'number' && Number.isSafeInteger(identifier))
     )
-      throw createUnavailableError()
+      throw new E_MASQUERADE_UNAVAILABLE()
     const id = String(identifier)
     const accountIncarnation = configuredIncarnation === 'id' ? id : configuredIncarnation(user)
     if (!isBoundedString(id, 255) || !isBoundedString(accountIncarnation, 128))
-      throw createUnavailableError()
+      throw new E_MASQUERADE_UNAVAILABLE()
     return { id, incarnation: accountIncarnation, user }
   }
 
@@ -155,30 +180,30 @@ export function accessTokensAuthority<User>(
           User & { currentAccessToken?: { allows(ability: string): unknown } }
         >
       } catch {
-        throw createUnavailableError()
+        throw new E_MASQUERADE_UNAVAILABLE()
       }
-      if (raw.driverName !== 'access_tokens') throw createUnavailableError()
+      if (raw.driverName !== 'access_tokens') throw new E_MASQUERADE_UNAVAILABLE()
       let user: User & { currentAccessToken?: { allows(ability: string): unknown } }
       try {
         user = await raw.authenticate()
       } catch (error) {
         if (error instanceof errors.E_UNAUTHORIZED_ACCESS) throw error
-        throw createUnavailableError()
+        throw new E_MASQUERADE_UNAVAILABLE()
       }
 
       let allowed = false
       try {
         allowed = user.currentAccessToken?.allows(ability) === true
       } catch {
-        throw createUnavailableError()
+        throw new E_MASQUERADE_UNAVAILABLE()
       }
-      if (!allowed) throw new MasqueradeError('E_MASQUERADE_NOT_ALLOWED')
+      if (!allowed) throw new E_MASQUERADE_NOT_ALLOWED()
 
       try {
         const account = await provider.createUserForGuard(user)
         return buildSubject(user, account.getId())
       } catch {
-        throw createUnavailableError()
+        throw new E_MASQUERADE_UNAVAILABLE()
       }
     },
   })

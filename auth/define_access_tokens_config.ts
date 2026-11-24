@@ -7,7 +7,25 @@ import type { AccessTokensUserProviderContract } from '@adonisjs/auth/types/acce
 import { markEffectiveFactory } from '../src/integration/guard_registration.js'
 import { EffectiveAccessTokensGuard } from './effective_access_tokens_guard.js'
 
-/** Pair a native opaque token guard with an effective-user facade. */
+/**
+ * Pair a native opaque token guard with an effective-user facade.
+ *
+ * @example
+ * ```ts
+ * import { effectiveAccessTokensGuard } from '@kevinjohn/adonisjs-masquerade/auth'
+ * import { defineConfig } from '@adonisjs/auth'
+ * import { tokensGuard } from '@adonisjs/auth/access_tokens'
+ * import type { AccessTokensUserProviderContract } from '@adonisjs/auth/types/access_tokens'
+ *
+ * export function supportAuth(provider: AccessTokensUserProviderContract<{ id: string }>) {
+ *   const api = tokensGuard({ provider })
+ *   return defineConfig({
+ *     default: 'api',
+ *     guards: { api, api_effective: effectiveAccessTokensGuard(api, { guard: 'api' }) },
+ *   })
+ * }
+ * ```
+ */
 export function effectiveAccessTokensGuard<
   Provider extends AccessTokensUserProviderContract<unknown>,
 >(

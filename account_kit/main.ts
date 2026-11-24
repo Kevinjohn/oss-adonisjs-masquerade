@@ -1,3 +1,4 @@
+import { E_MASQUERADE_NOT_ALLOWED, E_MASQUERADE_UNAVAILABLE } from '../src/errors.js'
 import { errors } from '@adonisjs/auth'
 import { InvalidArgumentsException } from '@adonisjs/core/exceptions'
 import type { HttpContext } from '@adonisjs/core/http'
@@ -5,8 +6,6 @@ import type { GuardContract } from '@adonisjs/auth/types'
 import type { NativeRuntimeAdapter } from '../src/integration/native_binding.js'
 import type { NativeAuthority, Subject } from '../src/types.js'
 import { isBoundedString } from '../src/bounded_string.js'
-import { MasqueradeError } from '../src/errors.js'
-import { createUnavailableError } from '../src/error_helpers.js'
 import { resolveAccountOwner, requireCanonicalId } from './account_owner.js'
 
 /** An account or token identifier as Account Kit reports it; Masquerade compares canonical strings. */
@@ -108,31 +107,50 @@ export interface AccountKitAdapter<User> extends NativeRuntimeAdapter {
   readonly kit: AccountKitAuthorityOptions<User>['kit']
   /** The user provider the managed guard uses. */
   readonly provider: AccountKitUserProvider<User>
-  /** Authenticate the actor through the managed guard and Account Kit. */
+  /**
+   * Authenticate the actor through the managed guard and Account Kit.
+   *
+   * @example
+   * ```ts
+   * const actor = await adapter.authenticateActor(ctx)
+   * ```
+   */
   authenticateActor(ctx: HttpContext): Promise<Subject<User>>
 }
 
-async function isKitDenial(error: unknown, name: string, code: string): Promise<boolean> {
-  if (!error || typeof error !== 'object') return false
-  if ((error as { code?: unknown }).code === code) return true
-  try {
-    // Only an Account Kit error path resolves the optional peer; core and construction stay lazy.
-    const path = '@kevinjohn/adonisjs-account-kit/errors'
-    const kitErrors = (await import(path)) as Record<string, unknown>
-    const errorClass = kitErrors[name]
-    return typeof errorClass === 'function' && error instanceof errorClass
-  } catch {
-    return false
-  }
+function isKitDenial(error: unknown, code: string): boolean {
+  return error !== null && typeof error === 'object' && (error as { code?: unknown }).code === code
 }
 
 function stamp(revision: string | null): string {
   if (revision === null) return 'account-kit:null'
-  if (typeof revision !== 'string' || !revision) throw createUnavailableError()
+  if (typeof revision !== 'string' || !revision) throw new E_MASQUERADE_UNAVAILABLE()
   return `account-kit:revision:${revision}`
 }
 
-/** One Account Kit credential transport and one coherent account authority. */
+/**
+ * One Account Kit credential transport and one coherent account authority.
+ *
+ * @example
+ * ```ts
+ * import {
+ *   accountKitAuthority,
+ *   type AccountKitAuthorityOptions,
+ * } from '@kevinjohn/adonisjs-masquerade/account-kit'
+ *
+ * type Account = { id: string }
+ * type SessionOptions = Extract<AccountKitAuthorityOptions<Account>, { ability?: never }>
+ * export function supportNative({ kit, provider, managedGuard }: SessionOptions) {
+ *   return accountKitAuthority({
+ *     namespace: 'users',
+ *     incarnation: 'id',
+ *     kit,
+ *     provider,
+ *     managedGuard,
+ *   })
+ * }
+ * ```
+ */
 export function accountKitAuthority<User>(
   options: AccountKitAuthorityOptions<User>
 ): AccountKitAdapter<User> {
@@ -182,14 +200,7 @@ export function accountKitAuthority<User>(
           requireActive: true,
         })
       } catch (error) {
-        if (
-          await isKitDenial(
-            error,
-            'AccountAccessDeniedError',
-            'E_ACCOUNT_KIT_ACCOUNT_ACCESS_DENIED'
-          )
-        )
-          return null
+        if (isKitDenial(error, 'E_ACCOUNT_KIT_ACCOUNT_ACCESS_DENIED')) return null
         throw error
       }
       const canonical = requireCanonicalId(snapshot.account.id)
@@ -198,9 +209,9 @@ export function accountKitAuthority<User>(
       if (canonical !== id) return null
       const account = await provider.findById(canonical)
       if (!account) return null
-      if (requireCanonicalId(account.getId()) !== canonical) throw createUnavailableError()
+      if (requireCanonicalId(account.getId()) !== canonical) throw new E_MASQUERADE_UNAVAILABLE()
       const user = account.getOriginal()
-      if (!user || typeof user !== 'object') throw createUnavailableError()
+      if (!user || typeof user !== 'object') throw new E_MASQUERADE_UNAVAILABLE()
       return {
         subject: buildAccountSubject(user, canonical),
         active: snapshot.account.active,
@@ -220,24 +231,24 @@ export function accountKitAuthority<User>(
       try {
         raw = ctx.auth.use(guard as never) as typeof raw
       } catch {
-        throw createUnavailableError()
+        throw new E_MASQUERADE_UNAVAILABLE()
       }
-      if (raw.driverName !== strategy) throw createUnavailableError()
+      if (raw.driverName !== strategy) throw new E_MASQUERADE_UNAVAILABLE()
       let user: User & { currentAccessToken?: { allows(ability: string): unknown } }
       try {
         user = await raw.authenticate()
       } catch (error) {
         if (error instanceof errors.E_UNAUTHORIZED_ACCESS) throw error
-        throw createUnavailableError()
+        throw new E_MASQUERADE_UNAVAILABLE()
       }
       if (ability) {
         let allowed = false
         try {
           allowed = user.currentAccessToken?.allows(ability) === true
         } catch {
-          throw createUnavailableError()
+          throw new E_MASQUERADE_UNAVAILABLE()
         }
-        if (!allowed) throw new MasqueradeError('E_MASQUERADE_NOT_ALLOWED')
+        if (!allowed) throw new E_MASQUERADE_NOT_ALLOWED()
       }
       try {
         const input = await managedGuard.current(ctx)
@@ -246,15 +257,15 @@ export function accountKitAuthority<User>(
         const providerAccount = await provider.createUserForGuard(user)
         const id = requireCanonicalId(providerAccount.getId())
         if (requireCanonicalId(account.id) !== id || requireCanonicalId(input.userId) !== id)
-          throw createUnavailableError()
+          throw new E_MASQUERADE_UNAVAILABLE()
         return buildAccountSubject(user, id)
       } catch (error) {
         if (error instanceof errors.E_UNAUTHORIZED_ACCESS) throw error
-        if (await isKitDenial(error, 'InvalidSessionError', 'E_ACCOUNT_KIT_INVALID_SESSION'))
+        if (isKitDenial(error, 'E_ACCOUNT_KIT_INVALID_SESSION'))
           throw new errors.E_UNAUTHORIZED_ACCESS('Invalid session', {
             guardDriverName: strategy,
           })
-        throw createUnavailableError()
+        throw new E_MASQUERADE_UNAVAILABLE()
       }
     },
   })

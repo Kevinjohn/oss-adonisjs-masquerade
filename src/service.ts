@@ -1,11 +1,18 @@
+import { MasqueradeRequestException } from './request_exception.js'
+import {
+  E_MASQUERADE_ALREADY_ACTIVE,
+  E_MASQUERADE_CONTEXT_CHANGED,
+  E_MASQUERADE_INVALID_INPUT,
+  E_MASQUERADE_NOT_ALLOWED,
+  E_MASQUERADE_UNAVAILABLE,
+  E_MASQUERADE_UNKNOWN_COMMIT,
+} from './errors.js'
 import { randomBytes, randomUUID } from 'node:crypto'
 import { InvalidArgumentsException } from '@adonisjs/core/exceptions'
 import { completeConfig, defineConfig } from './define_config.js'
 import type { CompleteMasqueradeConfig } from './define_config.js'
 import { buildContextToken, requireContext } from './context_token.js'
 import { buildAdmittedProjection, buildModeView } from './mode_projection.js'
-import { MasqueradeError } from './errors.js'
-import { createInvalidInputError, createUnavailableError } from './error_helpers.js'
 import { openControlStore } from './control_store.js'
 import { requireStartSelection } from './start_input.js'
 import { requireControlFields } from './control_fields.js'
@@ -17,7 +24,6 @@ import {
   commitTransition,
   createIdleRowAfterTransition,
   advanceRevision,
-  UnknownCommit,
 } from './mode_transition.js'
 import { admitOnce } from './request_admission.js'
 import { checkActiveMode } from './active_mode.js'
@@ -52,10 +58,25 @@ import type {
  * bounded diagnostics (I09, I11); `clock` replaces `new Date()` for expiry (§7.3); `environment`
  * decides whether a test-only store may open.
  *
- * @throws {MasqueradeSetupError} `E_MASQUERADE_INVALID_CONFIGURATION` for an invalid config, or
+ * @throws `E_MASQUERADE_INVALID_CONFIGURATION` for an invalid config, or
  *   `E_MASQUERADE_INVALID_STORE` for a store that is missing methods or test-only outside tests.
- * @throws {MasqueradeError} `E_MASQUERADE_UNAVAILABLE` when the store factory throws.
+ * @throws `E_MASQUERADE_UNAVAILABLE` when the store factory throws.
  * @throws {InvalidArgumentsException} When `authenticateActor` or an observer or diagnostic port is missing.
+ *
+ * @example
+ * ```ts
+ * import { createMasqueradeService } from '@kevinjohn/adonisjs-masquerade'
+ * import type { MasqueradeConfig, ServiceDependencies } from '@kevinjohn/adonisjs-masquerade/types'
+ * import type { HttpContext } from '@adonisjs/core/http'
+ *
+ * type Account = { id: string; role: string }
+ * export async function buildSupportService(
+ *   config: MasqueradeConfig<Account, HttpContext>,
+ *   dependencies: ServiceDependencies<Account, HttpContext>
+ * ) {
+ *   return createMasqueradeService(config, dependencies)
+ * }
+ * ```
  */
 export async function createMasqueradeService<User, Request extends object>(
   config: MasqueradeConfig<User, Request, RequestControlStore>,
@@ -114,7 +135,7 @@ type ControlOutcomeInput = {
  * the edit checks. Each comment below names the invariant or transition row its check enforces.
  */
 class CoreService<User, Request extends object> implements MasqueradeService<Request> {
-  #viewsAfterInvalidation = new WeakMap<MasqueradeError, ModeView>()
+  #viewsAfterInvalidation = new WeakMap<MasqueradeRequestException, ModeView>()
   #admissionsByRequest = new WeakMap<Request, Promise<RequestAdmission<User>>>()
   constructor(
     private config: CompleteMasqueradeConfig<User, Request, RequestControlStore>,
@@ -125,10 +146,10 @@ class CoreService<User, Request extends object> implements MasqueradeService<Req
     try {
       const date = (this.dependencies.clock ?? (() => new Date()))()
       const value = date.toISOString()
-      if (!/^\d{4}-/.test(value)) throw createUnavailableError()
+      if (!/^\d{4}-/.test(value)) throw new E_MASQUERADE_UNAVAILABLE()
       return value
     } catch {
-      throw createUnavailableError()
+      throw new E_MASQUERADE_UNAVAILABLE()
     }
   }
   private async authenticateActor(request: Request): Promise<Subject<User>> {
@@ -137,7 +158,7 @@ class CoreService<User, Request extends object> implements MasqueradeService<Req
     try {
       return requireValidSubject(subject, this.config.authority)
     } catch {
-      throw createUnavailableError()
+      throw new E_MASQUERADE_UNAVAILABLE()
     }
   }
   private buildOwnerKey(actor: Subject<User>): OwnerKey {
@@ -152,7 +173,7 @@ class CoreService<User, Request extends object> implements MasqueradeService<Req
       return requireValidModeRow(await this.store.read(owner), owner)
     } catch {
       reportDiagnostic(this.dependencies, 'store', 'read', 'E_MASQUERADE_UNAVAILABLE')
-      throw createUnavailableError()
+      throw new E_MASQUERADE_UNAVAILABLE()
     }
   }
   async [checkActiveMode](owner: OwnerKey): Promise<boolean> {
@@ -161,7 +182,7 @@ class CoreService<User, Request extends object> implements MasqueradeService<Req
       typeof owner.actorId !== 'string' ||
       typeof owner.actorIncarnation !== 'string'
     )
-      throw createUnavailableError()
+      throw new E_MASQUERADE_UNAVAILABLE()
     const row = await this.read(owner)
     return row?.state === 'active' && this.readCurrentTimestamp() < row.expiresAt
   }
@@ -216,7 +237,7 @@ class CoreService<User, Request extends object> implements MasqueradeService<Req
         'record_control_outcome',
         'E_MASQUERADE_UNAVAILABLE'
       )
-      throw createUnavailableError()
+      throw new E_MASQUERADE_UNAVAILABLE()
     }
   }
   private async commit(
@@ -234,13 +255,13 @@ class CoreService<User, Request extends object> implements MasqueradeService<Req
         event,
       })
     } catch (error) {
-      if (!(error instanceof UnknownCommit))
+      if (!(error instanceof E_MASQUERADE_UNKNOWN_COMMIT))
         reportDiagnostic(this.dependencies, 'store', 'compare_and_set', 'E_MASQUERADE_UNAVAILABLE')
       throw error
     }
     if (outcome === 'conflict') {
       await this.read(owner)
-      throw new MasqueradeError('E_MASQUERADE_CONTEXT_CHANGED')
+      throw new E_MASQUERADE_CONTEXT_CHANGED()
     }
   }
   private async clear(
@@ -260,7 +281,7 @@ class CoreService<User, Request extends object> implements MasqueradeService<Req
       const snapshot = await this.config.authority.inspectAccount(id)
       if (!snapshot) return null
       requireValidSubject(snapshot.subject, this.config.authority)
-      if (typeof snapshot.active !== 'boolean') throw createUnavailableError()
+      if (typeof snapshot.active !== 'boolean') throw new E_MASQUERADE_UNAVAILABLE()
       return snapshot
     } catch {
       reportDiagnostic(
@@ -269,7 +290,7 @@ class CoreService<User, Request extends object> implements MasqueradeService<Req
         'inspect_account',
         'E_MASQUERADE_UNAVAILABLE'
       )
-      throw createUnavailableError()
+      throw new E_MASQUERADE_UNAVAILABLE()
     }
   }
   private isEligibleActor(
@@ -301,7 +322,7 @@ class CoreService<User, Request extends object> implements MasqueradeService<Req
       return allowed
     } catch {
       reportDiagnostic(this.dependencies, 'policy', 'can_masquerade', 'E_MASQUERADE_UNAVAILABLE')
-      throw createUnavailableError()
+      throw new E_MASQUERADE_UNAVAILABLE()
     }
   }
   private async assertRequestPermission(
@@ -315,11 +336,11 @@ class CoreService<User, Request extends object> implements MasqueradeService<Req
       allowed = await this.config.policy.canUseRequest({ actor, target, request })
     } catch {
       reportDiagnostic(this.dependencies, 'policy', 'can_use_request', 'E_MASQUERADE_UNAVAILABLE')
-      throw createUnavailableError()
+      throw new E_MASQUERADE_UNAVAILABLE()
     }
     if (allowed !== true) {
       reportDiagnostic(this.dependencies, 'policy', 'can_use_request', 'E_MASQUERADE_NOT_ALLOWED')
-      throw new MasqueradeError('E_MASQUERADE_NOT_ALLOWED')
+      throw new E_MASQUERADE_NOT_ALLOWED()
     }
   }
   private async checkEditPermission(
@@ -341,7 +362,7 @@ class CoreService<User, Request extends object> implements MasqueradeService<Req
       return allowed
     } catch {
       reportDiagnostic(this.dependencies, 'policy', 'can_edit', 'E_MASQUERADE_UNAVAILABLE')
-      throw createUnavailableError()
+      throw new E_MASQUERADE_UNAVAILABLE()
     }
   }
   async status(request: Request): Promise<ModeView> {
@@ -388,10 +409,10 @@ class CoreService<User, Request extends object> implements MasqueradeService<Req
       if (row?.state === 'active' && this.readCurrentTimestamp() >= row.expiresAt) {
         // The denial is recorded against the idle row this request committed.
         row = await this.clear(owner, row, 'expired', 'expired')
-        throw new MasqueradeError('E_MASQUERADE_CONTEXT_CHANGED')
+        throw new E_MASQUERADE_CONTEXT_CHANGED()
       }
       // §6.4 Active: any second start is 409 with no replacement or extension (I02).
-      if (row?.state === 'active') throw new MasqueradeError('E_MASQUERADE_ALREADY_ACTIVE')
+      if (row?.state === 'active') throw new E_MASQUERADE_ALREADY_ACTIVE()
       // §7.1 step 3 reason requirement, §14.1 access and the duration bounds.
       const { targetId, reason, duration, access } = requireStartSelection(fields, {
         actorId: actor.id,
@@ -405,10 +426,10 @@ class CoreService<User, Request extends object> implements MasqueradeService<Req
       const currentActor = await this.inspect(actor.id)
       const target = await this.inspect(targetId)
       // §7.3: self-targeting is invalid input.
-      if (target?.subject.id === actor.id) throw createInvalidInputError()
+      if (target?.subject.id === actor.id) throw new E_MASQUERADE_INVALID_INPUT()
       // §7.1 step 2: a missing or ineligible actor or target gets the generic denial.
       if (!this.isEligibleActor(currentActor, actor) || !target?.active)
-        throw new MasqueradeError('E_MASQUERADE_NOT_ALLOWED')
+        throw new E_MASQUERADE_NOT_ALLOWED()
       // §6.4 Absent/idle: start requires canMasquerade to return true (§7.1 step 3).
       if (
         !(await this.checkMasqueradePermission(
@@ -418,7 +439,7 @@ class CoreService<User, Request extends object> implements MasqueradeService<Req
           reason ?? undefined
         ))
       )
-        throw new MasqueradeError('E_MASQUERADE_NOT_ALLOWED')
+        throw new E_MASQUERADE_NOT_ALLOWED()
       // §14.1: an edit start needs canEdit true, after canMasquerade and before canUseRequest.
       if (
         access === 'edit' &&
@@ -429,7 +450,7 @@ class CoreService<User, Request extends object> implements MasqueradeService<Req
           reason ?? undefined
         ))
       )
-        throw new MasqueradeError('E_MASQUERADE_NOT_ALLOWED')
+        throw new E_MASQUERADE_NOT_ALLOWED()
       // §7.1 step 3: canUseRequest when configured.
       await this.assertRequestPermission(currentActor.subject, target.subject, request)
       // §7.1 step 3, I11: only the stamp hashes are kept.
@@ -445,7 +466,7 @@ class CoreService<User, Request extends object> implements MasqueradeService<Req
           'security_stamp',
           'E_MASQUERADE_UNAVAILABLE'
         )
-        throw createUnavailableError()
+        throw new E_MASQUERADE_UNAVAILABLE()
       }
       const event = this.createAuditEvent({
         owner,
@@ -483,22 +504,23 @@ class CoreService<User, Request extends object> implements MasqueradeService<Req
       return buildModeView(owner, next)
     } catch (error) {
       // I09: an indeterminate commit may have applied, so it records no denial.
-      if (error instanceof UnknownCommit) throw error
+      if (error instanceof E_MASQUERADE_UNKNOWN_COMMIT) throw error
       // §6.4: every refused start records one start_denied outcome; I07: other errors are 503.
       reportDiagnostic(
         this.dependencies,
         'control',
         'start',
-        error instanceof MasqueradeError ? error.code : 'E_MASQUERADE_UNAVAILABLE'
+        error instanceof MasqueradeRequestException ? error.code : 'E_MASQUERADE_UNAVAILABLE'
       )
       await this.recordControlOutcome({
         owner,
         row,
         kind: 'start_denied',
-        outcomeCode: error instanceof MasqueradeError ? error.code : 'E_MASQUERADE_UNAVAILABLE',
+        outcomeCode:
+          error instanceof MasqueradeRequestException ? error.code : 'E_MASQUERADE_UNAVAILABLE',
         attempted,
       })
-      throw error instanceof MasqueradeError ? error : createUnavailableError()
+      throw error instanceof MasqueradeRequestException ? error : new E_MASQUERADE_UNAVAILABLE()
     }
   }
   async stop(request: Request, input: unknown): Promise<ModeView> {
@@ -528,7 +550,7 @@ class CoreService<User, Request extends object> implements MasqueradeService<Req
       return buildModeView(owner, await this.clear(owner, row, 'stopped', 'stopped'))
     } catch (error) {
       // I09: an indeterminate commit may have applied, so it records no denial.
-      if (error instanceof UnknownCommit) throw error
+      if (error instanceof E_MASQUERADE_UNKNOWN_COMMIT) throw error
       // A failed control_noop record is not also a denial.
       if (idleOutcomeAttempted) throw error
       // §6.4: every refused stop records one stop_denied outcome; I07: other errors are 503.
@@ -536,15 +558,16 @@ class CoreService<User, Request extends object> implements MasqueradeService<Req
         this.dependencies,
         'control',
         'stop',
-        error instanceof MasqueradeError ? error.code : 'E_MASQUERADE_UNAVAILABLE'
+        error instanceof MasqueradeRequestException ? error.code : 'E_MASQUERADE_UNAVAILABLE'
       )
       await this.recordControlOutcome({
         owner,
         row,
         kind: 'stop_denied',
-        outcomeCode: error instanceof MasqueradeError ? error.code : 'E_MASQUERADE_UNAVAILABLE',
+        outcomeCode:
+          error instanceof MasqueradeRequestException ? error.code : 'E_MASQUERADE_UNAVAILABLE',
       })
-      throw error instanceof MasqueradeError ? error : createUnavailableError()
+      throw error instanceof MasqueradeRequestException ? error : new E_MASQUERADE_UNAVAILABLE()
     }
   }
   /** §7.2 business admission through admit(), once per request (I10). */
@@ -557,7 +580,7 @@ class CoreService<User, Request extends object> implements MasqueradeService<Req
       const admitted = await this[admitOnce](request)
       return admitted.view
     } catch (error) {
-      if (error instanceof MasqueradeError) {
+      if (error instanceof MasqueradeRequestException) {
         const view = this.#viewsAfterInvalidation.get(error)
         if (view) return view
       }
@@ -571,7 +594,7 @@ class CoreService<User, Request extends object> implements MasqueradeService<Req
     code: string
   ): Promise<never> {
     const idle = await this.clear(owner, row, kind, code)
-    const error = new MasqueradeError('E_MASQUERADE_CONTEXT_CHANGED')
+    const error = new E_MASQUERADE_CONTEXT_CHANGED()
     this.#viewsAfterInvalidation.set(error, buildModeView(owner, idle))
     throw error
   }
@@ -589,7 +612,7 @@ class CoreService<User, Request extends object> implements MasqueradeService<Req
     // §7.2 step 1: read the owner row on every request; no cross-request allow cache.
     const row = await this.read(owner)
     // §6.4 Any: a revision at Number.MAX_SAFE_INTEGER fails closed.
-    if (row?.revision === Number.MAX_SAFE_INTEGER) throw createUnavailableError()
+    if (row?.revision === Number.MAX_SAFE_INTEGER) throw new E_MASQUERADE_UNAVAILABLE()
     // §7.2 step 2: an idle request runs as the actor.
     let effective = actor
     if (row?.state === 'active') {
@@ -621,7 +644,7 @@ class CoreService<User, Request extends object> implements MasqueradeService<Req
             'security_stamp',
             'E_MASQUERADE_UNAVAILABLE'
           )
-          throw createUnavailableError()
+          throw new E_MASQUERADE_UNAVAILABLE()
         }
         if (
           !invalid &&

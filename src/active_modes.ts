@@ -1,5 +1,5 @@
+import { E_MASQUERADE_UNAVAILABLE } from './errors.js'
 import { defineConfig } from './define_config.js'
-import { createUnavailableError } from './error_helpers.js'
 import { isBoundedString } from './bounded_string.js'
 import { openControlStore } from './control_store.js'
 import { requireValidModeRow } from './row_validation.js'
@@ -44,12 +44,12 @@ export function requireActiveCandidate(candidate: ModeRow): ActiveModeRow {
       !isBoundedString(owner.actorId, 255) ||
       !isBoundedString(owner.actorIncarnation, 128)
     )
-      throw createUnavailableError()
+      throw new E_MASQUERADE_UNAVAILABLE()
     const row = requireValidModeRow(candidate, owner)
-    if (row?.state !== 'active') throw createUnavailableError()
+    if (row?.state !== 'active') throw new E_MASQUERADE_UNAVAILABLE()
     return row
   } catch {
-    throw createUnavailableError()
+    throw new E_MASQUERADE_UNAVAILABLE()
   }
 }
 
@@ -62,7 +62,7 @@ export async function openOperatorStore<User, Request, K extends keyof ControlSt
   try {
     return await openControlStore(validated.store, environment, required)
   } catch {
-    throw createUnavailableError()
+    throw new E_MASQUERADE_UNAVAILABLE()
   }
 }
 
@@ -74,14 +74,15 @@ export async function listActiveModes<User, Request>(
 ): Promise<ActiveModeSummary[]> {
   const limit = options.limit ?? DEFAULT_ACTIVE_MODE_LIMIT
   if (!Number.isSafeInteger(limit) || limit < 1 || limit > MAX_ACTIVE_MODE_LIMIT)
-    throw createUnavailableError()
+    throw new E_MASQUERADE_UNAVAILABLE()
   const store = await openOperatorStore(config, dependencies.environment, ['activeBatch'])
   let candidates: ModeRow[]
   try {
     candidates = await store.activeBatch({ limit })
-    if (!Array.isArray(candidates) || candidates.length > limit) throw createUnavailableError()
+    if (!Array.isArray(candidates) || candidates.length > limit)
+      throw new E_MASQUERADE_UNAVAILABLE()
   } catch {
-    throw createUnavailableError()
+    throw new E_MASQUERADE_UNAVAILABLE()
   }
   return candidates.map((candidate) => {
     const row = requireActiveCandidate(candidate)

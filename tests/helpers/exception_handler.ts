@@ -1,14 +1,14 @@
-import { MasqueradeError } from '../../src/errors.js'
+import type { HttpContext } from '@adonisjs/core/http'
+import { renderMasqueradeError } from '../../http/main.js'
 
-/** Run an operation and render a MasqueradeError as the AdonisJS default exception handler does. */
+/** Run an operation and render a request exception as the AdonisJS default exception handler does. */
 export async function handleWithDefaultExceptionHandler(
-  ctx: Parameters<MasqueradeError['handle']>[1],
+  ctx: HttpContext,
   operation: () => Promise<void>
 ): Promise<void> {
   try {
     await operation()
   } catch (error) {
-    if (!(error instanceof MasqueradeError)) throw error
-    error.handle(error, ctx)
+    if (!renderMasqueradeError(ctx, error)) throw error
   }
 }

@@ -8,6 +8,14 @@ export interface NativeAuthorityComposition<Primary extends NativeRuntimeAdapter
   readonly authority: Primary['authority']
   readonly guard?: string
   readonly adapters: Readonly<Record<string, NativeRuntimeAdapter>>
+  /**
+   * Authenticate using the primary native adapter.
+   *
+   * @example
+   * ```ts
+   * const actor = await composition.authenticateActor(ctx)
+   * ```
+   */
   authenticateActor: Primary['authenticateActor']
 }
 
@@ -20,7 +28,33 @@ function requireAdapterGuard(adapter: NativeRuntimeAdapter): string {
   return guard
 }
 
-/** Compose native guards that share the exact same account authority. */
+/**
+ * Compose native guards that share the exact same account authority.
+ *
+ * @example
+ * ```ts
+ * import {
+ *   accessTokensAuthority,
+ *   nativeAuthorities,
+ *   type NativeSessionAdapter,
+ * } from '@kevinjohn/adonisjs-masquerade/native'
+ * import type { AccessTokensUserProviderContract } from '@adonisjs/auth/types/access_tokens'
+ *
+ * type Account = { id: string }
+ * export function supportNative(
+ *   web: NativeSessionAdapter<Account>,
+ *   provider: AccessTokensUserProviderContract<Account>
+ * ) {
+ *   const api = accessTokensAuthority({
+ *     guard: 'api',
+ *     provider,
+ *     ability: 'support:masquerade',
+ *     authority: web.authority,
+ *   })
+ *   return nativeAuthorities(web, [api])
+ * }
+ * ```
+ */
 export function nativeAuthorities<Primary extends NativeRuntimeAdapter>(
   primary: Primary,
   additional: readonly NativeRuntimeAdapter[] = []

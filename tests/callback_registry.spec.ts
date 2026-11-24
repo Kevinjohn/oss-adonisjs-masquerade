@@ -1,5 +1,5 @@
 import { test } from '@japa/runner'
-import { MasqueradeCallbackRegistry, MasqueradeSetupError } from '../index.js'
+import { MasqueradeCallbackRegistry, errors } from '../index.js'
 import { MemoryControlStore } from '../testing/main.js'
 import type { ControlStore, MasqueradePolicy } from '../src/types.js'
 import type { User } from './helpers/core.js'
@@ -116,9 +116,15 @@ test.group('Masquerade callback registry', () => {
     })
     try {
       const error = await noPolicy.app.boot().catch((caught: unknown) => caught)
-      assert.instanceOf(error, MasqueradeSetupError)
-      assert.equal((error as MasqueradeSetupError).code, 'E_MASQUERADE_INVALID_CONFIGURATION')
-      assert.equal((error as MasqueradeSetupError).field, 'policy')
+      assert.instanceOf(error, errors.E_MASQUERADE_INVALID_CONFIGURATION)
+      assert.equal(
+        (error as InstanceType<typeof errors.E_MASQUERADE_INVALID_CONFIGURATION>).code,
+        'E_MASQUERADE_INVALID_CONFIGURATION'
+      )
+      assert.equal(
+        (error as InstanceType<typeof errors.E_MASQUERADE_INVALID_CONFIGURATION>).field,
+        'policy'
+      )
     } finally {
       await noPolicy.app.terminate()
     }

@@ -2,7 +2,7 @@ import { rejects } from 'node:assert/strict'
 import type { HttpContext } from '@adonisjs/core/http'
 import { test } from '@japa/runner'
 import AccountKitBlocker, { AccountKitAccountBlocker } from '../account_kit/middleware.js'
-import { MasqueradeError } from '../src/errors.js'
+import { errors } from '../index.js'
 import { checkActiveMode } from '../src/active_mode.js'
 import { fixture } from './helpers/core.js'
 
@@ -75,8 +75,8 @@ test.group('Account Kit host account blocker', () => {
       // Host routes need neither a name nor an effective guard to opt in.
       h.ctx.route = undefined
       await rejects(h.request, (error: unknown) => {
-        assert.instanceOf(error, MasqueradeError)
-        const blocked = error as MasqueradeError
+        assert.instanceOf(error, errors.E_MASQUERADE_ACTION_BLOCKED)
+        const blocked = error as InstanceType<typeof errors.E_MASQUERADE_ACTION_BLOCKED>
         assert.equal(blocked.code, 'E_MASQUERADE_ACTION_BLOCKED')
         assert.equal(blocked.status, 403)
         assert.equal(blocked.blockedBy, 'sensitive')
@@ -141,8 +141,8 @@ test.group('Account Kit host account blocker', () => {
           throw new Error('store down')
         }
       await rejects(h.request, (error: unknown) => {
-        assert.instanceOf(error, MasqueradeError)
-        const unavailable = error as MasqueradeError
+        assert.instanceOf(error, errors.E_MASQUERADE_UNAVAILABLE)
+        const unavailable = error as InstanceType<typeof errors.E_MASQUERADE_UNAVAILABLE>
         assert.equal(unavailable.code, 'E_MASQUERADE_UNAVAILABLE')
         assert.equal(unavailable.status, 503)
         return true

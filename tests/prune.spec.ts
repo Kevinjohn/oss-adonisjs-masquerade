@@ -1,7 +1,7 @@
 import { test } from '@japa/runner'
-import { pruneMasquerade, PruneProgressError } from '../src/prune.js'
+import { pruneMasquerade } from '../src/prune.js'
 import { createMasqueradeService } from '../src/service.js'
-import { MasqueradeSetupError } from '../src/errors.js'
+import { errors } from '../index.js'
 import { fixture, errorCode } from './helpers/core.js'
 
 test("prune expiry event carries the row's access", async ({ assert }) => {
@@ -40,15 +40,21 @@ test.group('pruneMasquerade', () => {
     const status = await service.status({ actorId: 'a' })
     assert.isTrue(status.isMasquerading)
     const error = await pruneMasquerade(config, f.dependencies).catch((caught: unknown) => caught)
-    assert.instanceOf(error, MasqueradeSetupError)
-    assert.equal((error as MasqueradeSetupError).field, 'store.expiredBatch')
+    assert.instanceOf(error, errors.E_MASQUERADE_INVALID_STORE)
+    assert.equal(
+      (error as InstanceType<typeof errors.E_MASQUERADE_INVALID_STORE>).field,
+      'store.expiredBatch'
+    )
     const testOnly = { ...requestStore, testOnly: true }
     const production = await createMasqueradeService(
       { ...config, store: async () => testOnly },
       { ...f.dependencies, environment: 'production' }
     ).catch((caught: unknown) => caught)
-    assert.instanceOf(production, MasqueradeSetupError)
-    assert.equal((production as MasqueradeSetupError).field, 'store.testOnly')
+    assert.instanceOf(production, errors.E_MASQUERADE_INVALID_STORE)
+    assert.equal(
+      (production as InstanceType<typeof errors.E_MASQUERADE_INVALID_STORE>).field,
+      'store.testOnly'
+    )
   })
 
   test('reports completed deletion and expiry before a definite later failure', async ({
@@ -67,10 +73,13 @@ test.group('pruneMasquerade', () => {
       return read(owner)
     }
     const error = await pruneMasquerade(f.config, f.dependencies).catch((caught: unknown) => caught)
-    assert.instanceOf(error, PruneProgressError)
-    assert.equal((error as PruneProgressError).phase, 'read')
-    assert.deepEqual((error as PruneProgressError).completed, { expired: 1, eventsDeleted: 1 })
-    assert.isFalse((error as PruneProgressError).indeterminate)
+    assert.instanceOf(error, errors.E_MASQUERADE_PRUNE_PROGRESS)
+    assert.equal((error as InstanceType<typeof errors.E_MASQUERADE_PRUNE_PROGRESS>).phase, 'read')
+    assert.deepEqual((error as InstanceType<typeof errors.E_MASQUERADE_PRUNE_PROGRESS>).completed, {
+      expired: 1,
+      eventsDeleted: 1,
+    })
+    assert.isFalse((error as InstanceType<typeof errors.E_MASQUERADE_PRUNE_PROGRESS>).indeterminate)
     const persisted = await read(f.owner)
     assert.equal(persisted?.state, 'idle')
     f.store.read = read
@@ -85,18 +94,27 @@ test.group('pruneMasquerade', () => {
       { ...f.config, store: async () => null as never },
       f.dependencies
     ).catch((caught: unknown) => caught)
-    assert.instanceOf(error, MasqueradeSetupError)
-    assert.equal((error as MasqueradeSetupError).code, 'E_MASQUERADE_INVALID_STORE')
-    assert.equal((error as MasqueradeSetupError).field, 'store')
+    assert.instanceOf(error, errors.E_MASQUERADE_INVALID_STORE)
+    assert.equal(
+      (error as InstanceType<typeof errors.E_MASQUERADE_INVALID_STORE>).code,
+      'E_MASQUERADE_INVALID_STORE'
+    )
+    assert.equal((error as InstanceType<typeof errors.E_MASQUERADE_INVALID_STORE>).field, 'store')
   })
 
   test('preserves a missing store capability as a setup error', async ({ assert }) => {
     const f = fixture()
     f.store.expiredBatch = undefined as never
     const error = await pruneMasquerade(f.config, f.dependencies).catch((caught: unknown) => caught)
-    assert.instanceOf(error, MasqueradeSetupError)
-    assert.equal((error as MasqueradeSetupError).code, 'E_MASQUERADE_INVALID_STORE')
-    assert.equal((error as MasqueradeSetupError).field, 'store.expiredBatch')
+    assert.instanceOf(error, errors.E_MASQUERADE_INVALID_STORE)
+    assert.equal(
+      (error as InstanceType<typeof errors.E_MASQUERADE_INVALID_STORE>).code,
+      'E_MASQUERADE_INVALID_STORE'
+    )
+    assert.equal(
+      (error as InstanceType<typeof errors.E_MASQUERADE_INVALID_STORE>).field,
+      'store.expiredBatch'
+    )
   })
 
   test('normalizes a throwing store factory as operational unavailability', async ({ assert }) => {
@@ -110,7 +128,7 @@ test.group('pruneMasquerade', () => {
       },
       f.dependencies
     ).catch((caught: unknown) => caught)
-    assert.notInstanceOf(error, MasqueradeSetupError)
+    assert.notInstanceOf(error, errors.E_MASQUERADE_INVALID_STORE)
     assert.equal((error as { code: string }).code, 'E_MASQUERADE_UNAVAILABLE')
   })
 
@@ -336,11 +354,20 @@ test.group('pruneMasquerade', () => {
       return { status: 'indeterminate', transitionId: input.event.id }
     }
     const error = await pruneMasquerade(f.config, f.dependencies).catch((caught: unknown) => caught)
-    assert.instanceOf(error, PruneProgressError)
-    assert.equal((error as PruneProgressError).code, 'E_MASQUERADE_UNAVAILABLE')
-    assert.equal((error as PruneProgressError).phase, 'expiry_commit')
-    assert.deepEqual((error as PruneProgressError).completed, { expired: 0, eventsDeleted: 0 })
-    assert.isTrue((error as PruneProgressError).indeterminate)
+    assert.instanceOf(error, errors.E_MASQUERADE_PRUNE_PROGRESS)
+    assert.equal(
+      (error as InstanceType<typeof errors.E_MASQUERADE_PRUNE_PROGRESS>).code,
+      'E_MASQUERADE_UNAVAILABLE'
+    )
+    assert.equal(
+      (error as InstanceType<typeof errors.E_MASQUERADE_PRUNE_PROGRESS>).phase,
+      'expiry_commit'
+    )
+    assert.deepEqual((error as InstanceType<typeof errors.E_MASQUERADE_PRUNE_PROGRESS>).completed, {
+      expired: 0,
+      eventsDeleted: 0,
+    })
+    assert.isTrue((error as InstanceType<typeof errors.E_MASQUERADE_PRUNE_PROGRESS>).indeterminate)
     const row = await f.store.read(f.owner)
     assert.equal(row?.state, 'idle')
     assert.deepEqual(

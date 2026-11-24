@@ -7,6 +7,17 @@ export type StampField = string | number | boolean | bigint | null
 /**
  * Build a stable security stamp from the host-selected account fields.
  * Date-like values must be converted to a stable string by the selector.
+ *
+ * @example
+ * ```ts
+ * import { stampFrom } from '@kevinjohn/adonisjs-masquerade/native'
+ *
+ * const securityStamp = stampFrom((user: { securityRevision: number; role: string }) => [
+ *   user.securityRevision,
+ *   user.role,
+ * ])
+ * const stamp = securityStamp({ securityRevision: 3, role: 'customer' })
+ * ```
  */
 export function stampFrom<User>(
   select: (user: User) => readonly [StampField, ...StampField[]]

@@ -1,13 +1,27 @@
+import { MasqueradeRequestException } from '../src/request_exception.js'
+import { E_MASQUERADE_ACTION_BLOCKED, E_MASQUERADE_CONTEXT_CHANGED } from '../src/errors.js'
 import type { HttpContext } from '@adonisjs/core/http'
 import type { NextFn } from '@adonisjs/core/types/http'
 import { errors } from '@adonisjs/auth'
-import { MasqueradeError } from '../src/errors.js'
 import { requireContext } from '../src/context_token.js'
 import { resolveRuntime } from '../src/integration/runtime.js'
 import { markContextEnforced } from '../src/integration/context_enforcement.js'
 import { hasAuthMiddleware, routeGuards, routeMarkers } from '../src/integration/route_metadata.js'
 
-/** Register after initialize_auth and before silent_auth on the host router. */
+/**
+ * Register after initialize_auth and before silent_auth on the host router.
+ *
+ * @example
+ * ```ts
+ * import { MasqueradeContextMiddleware } from '@kevinjohn/adonisjs-masquerade/http'
+ * import router from '@adonisjs/core/services/router'
+ *
+ * router.use([
+ *   () => import('@adonisjs/auth/initialize_auth_middleware'),
+ *   async () => ({ default: MasqueradeContextMiddleware }),
+ * ])
+ * ```
+ */
 export class MasqueradeContextMiddleware {
   /** Enforce the same context marker and route requirements as `masqueradeContext`. */
   handle(ctx: HttpContext, next: NextFn) {
@@ -16,7 +30,22 @@ export class MasqueradeContextMiddleware {
 }
 export default MasqueradeContextMiddleware
 
-/** Enforce context freshness and active-mode route policy on effective-guard routes. */
+/**
+ * Enforce context freshness and active-mode route policy on effective-guard routes.
+ *
+ * @example
+ * ```ts
+ * import { masqueradeContext } from '@kevinjohn/adonisjs-masquerade/http'
+ * import type { HttpContext } from '@adonisjs/core/http'
+ * import type { NextFn } from '@adonisjs/core/types/http'
+ *
+ * export default class SupportContextMiddleware {
+ *   handle(ctx: HttpContext, next: NextFn) {
+ *     return masqueradeContext(ctx, next)
+ *   }
+ * }
+ * ```
+ */
 export async function masqueradeContext(
   ctx: HttpContext,
   next: () => Promise<unknown>
@@ -59,12 +88,12 @@ export async function masqueradeContext(
     const mismatch =
       headerToken !== undefined && formToken !== undefined && headerToken !== formToken
     const token = headerToken ?? formToken
-    let contextError: MasqueradeError | undefined
+    let contextError: MasqueradeRequestException | undefined
     try {
-      if (mismatch) throw new MasqueradeError('E_MASQUERADE_CONTEXT_CHANGED')
+      if (mismatch) throw new E_MASQUERADE_CONTEXT_CHANGED()
       requireContext(token, context.contextToken)
     } catch (error) {
-      if (!(error instanceof MasqueradeError)) throw error
+      if (!(error instanceof MasqueradeRequestException)) throw error
       contextError = error
     }
     if (contextError) {
@@ -79,16 +108,11 @@ export async function masqueradeContext(
 
   if (context.isMasquerading) {
     const markers = routeMarkers(ctx)
-    if (markers.sensitive)
-      throw new MasqueradeError('E_MASQUERADE_ACTION_BLOCKED', {
-        blockedBy: 'sensitive',
-      })
+    if (markers.sensitive) throw new E_MASQUERADE_ACTION_BLOCKED('sensitive')
     if (isUnsafe(method) && context.access !== 'edit')
-      throw new MasqueradeError('E_MASQUERADE_ACTION_BLOCKED', { blockedBy: 'view_only' })
+      throw new E_MASQUERADE_ACTION_BLOCKED('view_only')
     if (isUnsafe(method) && !markers.allowMutation)
-      throw new MasqueradeError('E_MASQUERADE_ACTION_BLOCKED', {
-        blockedBy: 'mutation_not_allowed',
-      })
+      throw new E_MASQUERADE_ACTION_BLOCKED('mutation_not_allowed')
   }
   await next()
 }

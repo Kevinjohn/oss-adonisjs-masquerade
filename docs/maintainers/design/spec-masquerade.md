@@ -571,7 +571,7 @@ The view-only check MUST use `access !== 'edit'`, so a missing or unknown access
 ### 14.4 Error contract and JSON
 
 - Export `MasqueradeBlockedBy = 'sensitive' | 'view_only' | 'mutation_not_allowed'` from the package root.
-- `new MasqueradeError('E_MASQUERADE_ACTION_BLOCKED', { blockedBy })` requires `blockedBy`. `new MasqueradeError(code)` remains the constructor form for every other code and takes no second argument.
+- `new errors.E_MASQUERADE_ACTION_BLOCKED(blockedBy)` requires the route cause. Each other request exception is constructed by its code from the root `errors` namespace. Setup exceptions take the relevant field.
 - For `E_MASQUERADE_ACTION_BLOCKED`, `handle()` emits `{ errors: [{ code, message, blockedBy }] }`. Other errors remain `{ errors: [{ code, message }] }`. `message` is looked up through `ctx.i18n` using the stable `errors.<code>` identifier and the English message for that code as fallback; if the context has no i18n instance, English is returned. The lookup key and fallback do not use `error.message` or an overridden identifier. The package ships no translation catalog, loader or locale setting.
 
 ### 14.5 Transition and test obligations

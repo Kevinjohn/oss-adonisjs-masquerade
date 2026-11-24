@@ -1,7 +1,7 @@
 import app from '@adonisjs/core/services/app'
 import { type HttpContext, ExceptionHandler } from '@adonisjs/core/http'
 import type { StatusPageRange, StatusPageRenderer } from '@adonisjs/core/types/http'
-import { MasqueradeError } from '@kevinjohn/adonisjs-masquerade'
+import { errors } from '@kevinjohn/adonisjs-masquerade'
 import { errors as limiterErrors } from '@adonisjs/limiter'
 
 export default class HttpExceptionHandler extends ExceptionHandler {
@@ -39,8 +39,7 @@ export default class HttpExceptionHandler extends ExceptionHandler {
     const path = ctx.request.url()
     const acceptsHtml = ctx.request.accepts(['html', 'json']) === 'html'
     const supportPath = path === '/dashboard' || path === '/support' || path.startsWith('/support/')
-    const status =
-      error instanceof MasqueradeError ? error.status : (error as { status?: number })?.status
+    const status = (error as { status?: number })?.status
     if (acceptsHtml && supportPath && [403, 409, 422, 428, 429, 503].includes(status ?? 0)) {
       if (error instanceof limiterErrors.E_TOO_MANY_REQUESTS) {
         const headers = error.headers || error.getDefaultHeaders()
@@ -67,7 +66,6 @@ export default class HttpExceptionHandler extends ExceptionHandler {
 }
 
 function supportErrorDetails(status: number, error: unknown) {
-  const code = error instanceof MasqueradeError ? error.code : undefined
   if (status === 503) {
     return {
       title: 'Support status is unavailable',
@@ -89,8 +87,8 @@ function supportErrorDetails(status: number, error: unknown) {
         'Another tab or session may have changed the mode, or its deadline passed. Check status and rebuild the action from the current customer page. The old action was not replayed.',
     }
   }
-  if (code === 'E_MASQUERADE_ACTION_BLOCKED') {
-    const blockedBy = (error as MasqueradeError).blockedBy
+  if (error instanceof errors.E_MASQUERADE_ACTION_BLOCKED) {
+    const blockedBy = error.blockedBy
     if (blockedBy === 'view_only') {
       return {
         title: 'View-only support mode',

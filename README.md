@@ -92,6 +92,12 @@ runtime was built throws.
 | SQLite (better-sqlite3) | yes                | yes                                     |
 | PostgreSQL 16           | yes                | yes                                     |
 
+## Errors
+
+Import `errors` from `@kevinjohn/adonisjs-masquerade` and check a request or setup exception with
+`instanceof errors.E_MASQUERADE_…`. JSON clients can continue matching the same stable `code`.
+See [Recover from errors](docs/guide/errors.md) for the constructors and response contract.
+
 ## Documentation
 
 The [four released starter apps](https://github.com/Kevinjohn/oss-adonisjs-starter-examples/tree/v0.15.5/apps) show Masquerade with Account Kit and Access Control. Follow the [shared integration recipes](https://github.com/Kevinjohn/oss-adonisjs-starter-examples/tree/v0.15.5/docs/cookbook) for the tested route and guard setup.

@@ -1,10 +1,10 @@
-import { createInvalidInputError } from './error_helpers.js'
+import { E_MASQUERADE_INVALID_INPUT } from './errors.js'
 
 /** Whether a start must carry a reason; set by the `reason` configuration key. */
 export type ReasonRequirement = 'optional' | 'required'
 
 export function normalizeReason(value: unknown): string {
-  if (typeof value !== 'string') throw createInvalidInputError()
+  if (typeof value !== 'string') throw new E_MASQUERADE_INVALID_INPUT()
   const reason = value.trim().replace(/\r\n/g, '\n')
   if (
     !reason ||
@@ -19,7 +19,7 @@ export function normalizeReason(value: unknown): string {
     [...reason].length > 500 ||
     Buffer.byteLength(reason) > 2000
   )
-    throw createInvalidInputError()
+    throw new E_MASQUERADE_INVALID_INPUT()
   return reason
 }
 

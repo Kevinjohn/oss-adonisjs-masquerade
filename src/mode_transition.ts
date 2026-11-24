@@ -1,6 +1,5 @@
+import { E_MASQUERADE_UNAVAILABLE, E_MASQUERADE_UNKNOWN_COMMIT } from './errors.js'
 import { randomBytes } from 'node:crypto'
-import { MasqueradeError } from './errors.js'
-import { createUnavailableError } from './error_helpers.js'
 import { observe, reportUnknown } from './observers.js'
 import type { ObserverDependencies } from './observers.js'
 import type {
@@ -12,15 +11,8 @@ import type {
   ModeRow,
 } from './types.js'
 
-/** Keep uncertain commits distinct so callers cannot record a false denial. */
-export class UnknownCommit extends MasqueradeError {
-  constructor() {
-    super('E_MASQUERADE_UNAVAILABLE')
-  }
-}
-
 export function advanceRevision(row: ModeRow | null): number {
-  if (row?.revision === Number.MAX_SAFE_INTEGER) throw createUnavailableError()
+  if (row?.revision === Number.MAX_SAFE_INTEGER) throw new E_MASQUERADE_UNAVAILABLE()
   return (row?.revision ?? 0) + 1
 }
 
@@ -56,12 +48,12 @@ export async function commitTransition(
   try {
     outcome = await store.compareAndSet(input)
   } catch {
-    throw createUnavailableError()
+    throw new E_MASQUERADE_UNAVAILABLE()
   }
   if (outcome?.status === 'conflict') return 'conflict'
   if (outcome?.status !== 'applied' || outcome.transitionId !== input.event.id) {
     reportUnknown(dependencies, input.event.id)
-    throw new UnknownCommit()
+    throw new E_MASQUERADE_UNKNOWN_COMMIT()
   }
   observe(dependencies, input.event)
   return 'applied'

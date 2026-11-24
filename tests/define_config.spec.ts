@@ -1,6 +1,6 @@
 import { test } from '@japa/runner'
 import { InvalidArgumentsException, RuntimeException } from '@adonisjs/core/exceptions'
-import { createMasqueradeService, defineConfig, MasqueradeSetupError } from '../index.js'
+import { createMasqueradeService, defineConfig, errors } from '../index.js'
 import { fixture } from './helpers/core.js'
 
 test('accepts optional canEdit and rejects a non-function as policy.canEdit', ({ assert }) => {
@@ -14,8 +14,11 @@ test('accepts optional canEdit and rejects a non-function as policy.canEdit', ({
   } catch (caught) {
     error = caught
   }
-  assert.instanceOf(error, MasqueradeSetupError)
-  assert.equal((error as MasqueradeSetupError).field, 'policy.canEdit')
+  assert.instanceOf(error, errors.E_MASQUERADE_INVALID_CONFIGURATION)
+  assert.equal(
+    (error as InstanceType<typeof errors.E_MASQUERADE_INVALID_CONFIGURATION>).field,
+    'policy.canEdit'
+  )
 })
 
 test('validates config synchronously and freezes copied configuration', ({ assert }) => {
@@ -40,9 +43,15 @@ test('invalid service configuration logs a safe diagnostic and preserves startup
   const error = await createMasqueradeService(invalid, f.dependencies).catch(
     (caught: unknown) => caught
   )
-  assert.instanceOf(error, MasqueradeSetupError)
-  assert.equal((error as MasqueradeSetupError).code, 'E_MASQUERADE_INVALID_CONFIGURATION')
-  assert.equal((error as MasqueradeSetupError).field, 'durationSeconds')
+  assert.instanceOf(error, errors.E_MASQUERADE_INVALID_CONFIGURATION)
+  assert.equal(
+    (error as InstanceType<typeof errors.E_MASQUERADE_INVALID_CONFIGURATION>).code,
+    'E_MASQUERADE_INVALID_CONFIGURATION'
+  )
+  assert.equal(
+    (error as InstanceType<typeof errors.E_MASQUERADE_INVALID_CONFIGURATION>).field,
+    'durationSeconds'
+  )
   assert.equal((error as Error).message, 'Invalid masquerade configuration')
   assert.deepEqual(f.diagnostics, [
     { category: 'configuration', operation: 'validate', code: 'E_MASQUERADE_UNAVAILABLE' },
@@ -92,8 +101,11 @@ test('accepts a config without authority and policy; the service still requires 
     const error = await createMasqueradeService(missing, f.dependencies).catch(
       (caught: unknown) => caught
     )
-    assert.instanceOf(error, MasqueradeSetupError)
-    assert.equal((error as MasqueradeSetupError).field, field)
+    assert.instanceOf(error, errors.E_MASQUERADE_INVALID_CONFIGURATION)
+    assert.equal(
+      (error as InstanceType<typeof errors.E_MASQUERADE_INVALID_CONFIGURATION>).field,
+      field
+    )
   }
 })
 
@@ -107,9 +119,15 @@ test('rejects test store outside explicit test environment even when store facto
   } catch (caught) {
     error = caught
   }
-  assert.instanceOf(error, MasqueradeSetupError)
-  assert.equal((error as MasqueradeSetupError).code, 'E_MASQUERADE_INVALID_STORE')
-  assert.equal((error as MasqueradeSetupError).field, 'store.testOnly')
+  assert.instanceOf(error, errors.E_MASQUERADE_INVALID_STORE)
+  assert.equal(
+    (error as InstanceType<typeof errors.E_MASQUERADE_INVALID_STORE>).code,
+    'E_MASQUERADE_INVALID_STORE'
+  )
+  assert.equal(
+    (error as InstanceType<typeof errors.E_MASQUERADE_INVALID_STORE>).field,
+    'store.testOnly'
+  )
   const narrowed = defineConfig({
     ...f.config,
     durationSeconds: 60,
@@ -185,7 +203,7 @@ test('reports safe, stable field categories for invalid configuration', ({ asser
     } catch (caught) {
       error = caught
     }
-    assert.instanceOf(error, MasqueradeSetupError)
+    assert.instanceOf(error, errors.E_MASQUERADE_INVALID_CONFIGURATION)
     assert.instanceOf(error, RuntimeException)
     assert.equal((error as { code?: string }).code, 'E_MASQUERADE_INVALID_CONFIGURATION')
     assert.equal((error as { field?: string }).field, field)

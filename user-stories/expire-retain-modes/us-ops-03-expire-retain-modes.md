@@ -46,14 +46,14 @@ flowchart TD
     D -->|Retention enabled| E["store.pruneEvents"]
     D -->|Host-managed retention| F["store.expiredBatch"]
     E -->|Retention succeeds| F
-    E -->|Retention fails| X["Throw PruneProgressError with phase, confirmed counts and uncertainty"]
+    E -->|Retention fails| X["Throw E_MASQUERADE_PRUNE_PROGRESS with phase, confirmed counts and uncertainty"]
     F -->|Batch fails| X
     F --> G["Read candidate and compare-and-set clear per owner"]
     G --> H["Return expired and eventsDeleted counts, skipping conflicts"]
     G -->|Candidate, read or commit fails| X
     H --> I["Log result"]
     X --> Y
-    Y --> Z{"PruneCommand.completed sees PruneProgressError?"}
+    Y --> Z{"PruneCommand.completed sees E_MASQUERADE_PRUNE_PROGRESS?"}
     Z -->|Yes| P["Log progress once and return true"]
     Z -->|No| Q["Return false so Ace renders the error"]
 ```

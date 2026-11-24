@@ -1,5 +1,5 @@
+import { E_MASQUERADE_INVALID_INPUT } from './errors.js'
 import { isBoundedString } from './bounded_string.js'
-import { createInvalidInputError } from './error_helpers.js'
 import { requireStartReason } from './reason.js'
 import type { ReasonRequirement } from './reason.js'
 import type { ModeAccess } from './types.js'
@@ -21,9 +21,10 @@ export function requireStartSelection(
     typeof input.targetId === 'string' ||
     (typeof input.targetId === 'number' && Number.isSafeInteger(input.targetId))
   ))
-    throw createInvalidInputError()
+    throw new E_MASQUERADE_INVALID_INPUT()
   const targetId = String(input.targetId)
-  if (!isBoundedString(targetId, 255) || targetId === actorId) throw createInvalidInputError()
+  if (!isBoundedString(targetId, 255) || targetId === actorId)
+    throw new E_MASQUERADE_INVALID_INPUT()
   const duration = input.durationSeconds === undefined ? defaultDuration : input.durationSeconds
   if (
     typeof duration !== 'number' ||
@@ -31,8 +32,8 @@ export function requireStartSelection(
     duration < 60 ||
     duration > maxDuration
   )
-    throw createInvalidInputError()
+    throw new E_MASQUERADE_INVALID_INPUT()
   const access = input.access === undefined ? 'view' : input.access
-  if (access !== 'view' && access !== 'edit') throw createInvalidInputError()
+  if (access !== 'view' && access !== 'edit') throw new E_MASQUERADE_INVALID_INPUT()
   return { targetId, reason, duration, access }
 }

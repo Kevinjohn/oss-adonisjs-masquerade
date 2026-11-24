@@ -6,7 +6,7 @@ import { AccountKitAccountBlocker as PackageAccountKitAccountBlocker } from '../
 import { masqueradeRoutes } from '../http/control_routes.js'
 import { MasqueradeController } from '../http/controllers.js'
 import { selectRouteGuard } from '../src/integration/route_guard_selection.js'
-import { MasqueradeError } from '../src/errors.js'
+import { errors } from '../index.js'
 import { fixture } from './helpers/core.js'
 import { requestContext } from './helpers/http_context.js'
 
@@ -156,8 +156,11 @@ test.group('masqueradeRoutes', () => {
       } catch (error) {
         failure = error
       }
-      assert.instanceOf(failure, MasqueradeError)
-      assert.equal((failure as MasqueradeError).code, 'E_MASQUERADE_UNAVAILABLE')
+      assert.instanceOf(failure, errors.E_MASQUERADE_UNAVAILABLE)
+      assert.equal(
+        (failure as InstanceType<typeof errors.E_MASQUERADE_UNAVAILABLE>).code,
+        'E_MASQUERADE_UNAVAILABLE'
+      )
       assert.equal(f.state.authenticateCount, authenticationCount)
       const stillActive = await service.status({ actorId: 'a' })
       assert.isTrue(stillActive.isMasquerading)

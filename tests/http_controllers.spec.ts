@@ -1,3 +1,4 @@
+import { isMasqueradeRequestError } from '../http/main.js'
 import { test } from '@japa/runner'
 import { handleWithDefaultExceptionHandler } from './helpers/exception_handler.js'
 import { IncomingMessage } from 'node:http'
@@ -7,7 +8,7 @@ import { RequestFactory } from '@adonisjs/core/factories/http'
 import { fixture } from './helpers/core.js'
 import { controlRequestContext as requestContext } from './helpers/http_context.js'
 import { MasqueradeController } from '../http/controllers.js'
-import { MasqueradeError } from '../src/errors.js'
+import { errors } from '../index.js'
 
 test.group('masquerade HTTP boundary', () => {
   test('routes malformed control input through core auditing and renders the public error', async ({
@@ -111,10 +112,13 @@ test.group('masquerade HTTP boundary', () => {
       received = error
     }
 
-    assert.instanceOf(received, MasqueradeError)
-    assert.equal((received as MasqueradeError).code, 'E_MASQUERADE_INVALID_INPUT')
+    assert.instanceOf(received, errors.E_MASQUERADE_INVALID_INPUT)
+    assert.equal(
+      (received as InstanceType<typeof errors.E_MASQUERADE_INVALID_INPUT>).code,
+      'E_MASQUERADE_INVALID_INPUT'
+    )
 
-    ;(received as MasqueradeError).handle(received, ctx)
+    ;(received as InstanceType<typeof errors.E_MASQUERADE_INVALID_INPUT>).handle(received, ctx)
     assert.equal(responseState.status, 422)
     assert.deepEqual(responseState.json, {
       errors: [{ code: 'E_MASQUERADE_INVALID_INPUT', message: 'Invalid masquerade input' }],
@@ -131,7 +135,7 @@ test.group('masquerade HTTP boundary', () => {
     try {
       await new MasqueradeController().start(ctx)
     } catch (error) {
-      if (!(error instanceof MasqueradeError)) throw error
+      if (!isMasqueradeRequestError(error)) throw error
       hostReceived = true
       ;(ctx as HttpContext).response
         .status(error.status)

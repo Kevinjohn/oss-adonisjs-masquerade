@@ -4,7 +4,7 @@ import type {
   MasqueradeSetupErrorCode,
   MasqueradeSetupErrorField,
 } from '../../src/types.js'
-import type * as root from '../../index.js'
+import * as root from '../../index.js'
 
 // The ./types entry carries the same error types as the root, which keeps its own exports.
 const code: MasqueradeErrorCode = 'E_MASQUERADE_UNAVAILABLE'
@@ -20,3 +20,15 @@ const rootField: root.MasqueradeSetupErrorField = field
 const unknown: MasqueradeErrorCode = 'E_MASQUERADE_UNKNOWN'
 
 void [rootCode, rootBlockedBy, rootSetupCode, rootField, unknown]
+
+// @ts-expect-error The blocked-action constructor requires the route cause.
+new root.errors.E_MASQUERADE_ACTION_BLOCKED()
+// @ts-expect-error The blocked-action constructor rejects unknown causes.
+new root.errors.E_MASQUERADE_ACTION_BLOCKED('unknown')
+// @ts-expect-error Other exceptions accept no blockedBy option.
+new root.errors.E_MASQUERADE_NOT_ALLOWED({ blockedBy: 'sensitive' })
+// @ts-expect-error Exception codes cannot be overridden through constructor options.
+new root.errors.E_MASQUERADE_NOT_ALLOWED({ code: 'E_OTHER' })
+const blocked = new root.errors.E_MASQUERADE_ACTION_BLOCKED('sensitive')
+// @ts-expect-error The route cause is read-only.
+blocked.blockedBy = 'view_only'

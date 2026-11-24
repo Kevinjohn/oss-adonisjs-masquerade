@@ -31,6 +31,14 @@ export class EffectiveSessionGuard<User> implements GuardContract<User> {
       throw new InvalidArgumentsException('Masquerade requires a native session guard')
     this.driverName = raw.driverName
   }
+  /**
+   * Get the effective user after the route authenticates.
+   *
+   * @example
+   * ```ts
+   * const customer = guard.getUserOrFail()
+   * ```
+   */
   getUserOrFail(): User {
     if (!this.isAuthenticated || this.user === undefined) {
       if (this.authenticationAttempted) {
@@ -42,6 +50,14 @@ export class EffectiveSessionGuard<User> implements GuardContract<User> {
     }
     return this.user
   }
+  /**
+   * Authenticate the raw credential and resolve the effective user for this route.
+   *
+   * @example
+   * ```ts
+   * const customer = await guard.authenticate()
+   * ```
+   */
   async authenticate(): Promise<User> {
     this.authenticationAttempted = true
     this.isAuthenticated = false
@@ -69,6 +85,14 @@ export class EffectiveSessionGuard<User> implements GuardContract<User> {
     this.isAuthenticated = true
     return this.user
   }
+  /**
+   * Check whether the request authenticates; operational failures reject.
+   *
+   * @example
+   * ```ts
+   * const signedIn = await guard.check()
+   * ```
+   */
   async check(): Promise<boolean> {
     try {
       await this.authenticate()
@@ -78,6 +102,14 @@ export class EffectiveSessionGuard<User> implements GuardContract<User> {
       throw error
     }
   }
+  /**
+   * Delegate test-client authentication to the native guard.
+   *
+   * @example
+   * ```ts
+   * const credential = await guard.authenticateAsClient(operator)
+   * ```
+   */
   authenticateAsClient(user: User, ...args: unknown[]) {
     return this.raw.authenticateAsClient(user, ...args)
   }

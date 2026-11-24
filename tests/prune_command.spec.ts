@@ -1,8 +1,9 @@
+import { errors } from '../index.js'
 import { Kernel } from '@adonisjs/core/ace'
 import { test } from '@japa/runner'
 import { IgnitorFactory } from '@adonisjs/core/factories'
 import { getCommand, getMetaData } from '../commands/main.js'
-import { pruneMasquerade, PruneProgressError } from '../src/prune.js'
+import { pruneMasquerade } from '../src/prune.js'
 import { fixture } from './helpers/core.js'
 
 function createIgnitor(config: ReturnType<typeof fixture>['config']) {
@@ -157,8 +158,8 @@ test.group('masquerade:prune Ace command', () => {
     })
 
     assert.equal(command.exitCode, 1)
-    assert.instanceOf(command.error, PruneProgressError)
-    const error = command.error as PruneProgressError
+    assert.instanceOf(command.error, errors.E_MASQUERADE_PRUNE_PROGRESS)
+    const error = command.error as InstanceType<typeof errors.E_MASQUERADE_PRUNE_PROGRESS>
     assert.equal(error.code, 'E_MASQUERADE_UNAVAILABLE')
     assert.equal(error.phase, 'expiry_commit')
     assert.deepEqual(error.completed, { expired: 0, eventsDeleted: 0 })

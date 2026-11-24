@@ -9,7 +9,7 @@ import { test } from '@japa/runner'
 import AccountKitProvider from '../account_kit/provider.js'
 import AccountKitBlocker from '../account_kit/middleware.js'
 import { inspectRouteCoverage } from '../commands/routes.js'
-import { MasqueradeError } from '../src/errors.js'
+import { errors } from '../index.js'
 import { hasVerifiedAccountKitBlocker } from '../src/integration/account_kit_status.js'
 
 function canLoadKit(): boolean {
@@ -406,7 +406,7 @@ test.group('Account Kit provider', () => {
         if (label === 'blocked while active') {
           await assert.rejects(
             attempt.call,
-            MasqueradeError,
+            errors.E_MASQUERADE_ACTION_BLOCKED,
             'Action is blocked while masquerading'
           )
           assert.lengthOf(attempt.reads, 1, name)

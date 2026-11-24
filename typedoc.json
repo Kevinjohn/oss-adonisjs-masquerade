@@ -35,7 +35,11 @@
     "SharedAuthorityOptions",
     "StandaloneAuthorityOptions",
     "RouteGuardSelection",
-    "MarkedMiddleware"
+    "MarkedMiddleware",
+    "MasqueradeRequestException",
+    "StopPhase",
+    "PrunePhase",
+    "PruneResult"
   ],
   "externalSymbolLinkMappings": {
     "@adonisjs/ace": {

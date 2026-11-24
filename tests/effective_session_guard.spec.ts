@@ -155,7 +155,7 @@ test('getUserOrFail preserves native session unauthorized behavior after a faile
 
 import { Authenticator } from '@adonisjs/auth'
 import { HttpContextFactory } from '@adonisjs/core/factories/http'
-import { MasqueradeError } from '../src/errors.js'
+import { errors as masqueradeErrors } from '../index.js'
 import { markContextEnforced } from '../src/integration/context_enforcement.js'
 
 test('business guard owns the facade while the raw guard retains actor identity; failures never fall back', async ({
@@ -178,7 +178,7 @@ test('business guard owns the facade while the raw guard retains actor identity;
     getUserOrFail: () => actor,
     authenticateAsClient: async () => ({}),
   }
-  let failure: MasqueradeError | undefined
+  let failure: InstanceType<typeof masqueradeErrors.E_MASQUERADE_CONTEXT_CHANGED> | undefined
   ctx.containerResolver.bindValue('masquerade.runtime', {
     selectGuard,
     admit: async () => {
@@ -212,7 +212,7 @@ test('business guard owns the facade while the raw guard retains actor identity;
   assert.isFalse(await auth.check())
   assert.isUndefined(auth.use('web_effective').user)
   raw.isAuthenticated = true
-  failure = new MasqueradeError('E_MASQUERADE_CONTEXT_CHANGED')
+  failure = new masqueradeErrors.E_MASQUERADE_CONTEXT_CHANGED()
   await assert.rejects(() => auth.check(), 'Masquerade context changed')
   assert.isUndefined(auth.use('web_effective').user)
   assert.isFalse(auth.use('web_effective').isAuthenticated)

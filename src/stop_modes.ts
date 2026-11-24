@@ -1,8 +1,11 @@
+import {
+  E_MASQUERADE_INVALID_INPUT,
+  E_MASQUERADE_STOP_PROGRESS,
+  E_MASQUERADE_UNAVAILABLE,
+} from './errors.js'
 import { randomUUID } from 'node:crypto'
-import { MasqueradeError } from './errors.js'
-import { createUnavailableError } from './error_helpers.js'
 import { isBoundedString } from './bounded_string.js'
-import { commitTransition, createIdleRowAfterTransition, UnknownCommit } from './mode_transition.js'
+import { commitTransition, createIdleRowAfterTransition } from './mode_transition.js'
 import { requireValidModeRow } from './row_validation.js'
 import { requireActiveCandidate, openOperatorStore } from './active_modes.js'
 import type { ObserverDependencies } from './observers.js'
@@ -35,35 +38,19 @@ export interface StopModesResult {
   drained?: boolean
 }
 
-type StopPhase = 'active_batch' | 'candidate' | 'read' | 'stop_commit'
-
-/** Progress confirmed before a bulk stop failed. */
-export class StopProgressError extends MasqueradeError {
-  constructor(
-    readonly phase: StopPhase,
-    readonly stopped: number,
-    override readonly cause: unknown
-  ) {
-    super('E_MASQUERADE_UNAVAILABLE')
-    this.name = 'StopProgressError'
-  }
-
-  get indeterminate(): boolean {
-    return this.phase === 'stop_commit' && this.cause instanceof UnknownCommit
-  }
-}
+export type StopPhase = 'active_batch' | 'candidate' | 'read' | 'stop_commit'
 
 function readCurrentTimestamp(dependencies: StopModesDependencies): string {
   try {
     const value = (dependencies.clock ?? (() => new Date()))()
     if (!(value instanceof Date) || !Number.isFinite(value.getTime()))
-      throw createUnavailableError()
+      throw new E_MASQUERADE_UNAVAILABLE()
     const instant = value.toISOString()
     // Instants compare as text, which holds only for four-digit years.
-    if (!/^\d{4}-/.test(instant)) throw createUnavailableError()
+    if (!/^\d{4}-/.test(instant)) throw new E_MASQUERADE_UNAVAILABLE()
     return instant
   } catch {
-    throw createUnavailableError()
+    throw new E_MASQUERADE_UNAVAILABLE()
   }
 }
 
@@ -108,16 +95,16 @@ async function read(store: RequestControlStore, owner: OwnerKey): Promise<ModeRo
   try {
     return requireValidModeRow(await store.read(owner), owner)
   } catch {
-    throw createUnavailableError()
+    throw new E_MASQUERADE_UNAVAILABLE()
   }
 }
 
 /** Errors thrown because the authority has no current account for the actor, not bad input. */
-const unknownAccounts = new WeakSet<MasqueradeError>()
+const unknownAccounts = new WeakSet<InstanceType<typeof E_MASQUERADE_INVALID_INPUT>>()
 
 /** Whether `stopActiveModes` threw because the actor's account could not be found. */
 export function isUnknownAccount(error: unknown): boolean {
-  return error instanceof MasqueradeError && unknownAccounts.has(error)
+  return error instanceof E_MASQUERADE_INVALID_INPUT && unknownAccounts.has(error)
 }
 
 async function resolveIncarnation<User, Request>(
@@ -133,11 +120,11 @@ async function resolveIncarnation<User, Request>(
   try {
     snapshot = await config.authority.inspectAccount(actorId)
   } catch {
-    throw createUnavailableError()
+    throw new E_MASQUERADE_UNAVAILABLE()
   }
   // A deleted or reused account has no current incarnation; the operator names the row's.
   if (!snapshot || snapshot.subject.id !== actorId) {
-    const error = new MasqueradeError('E_MASQUERADE_INVALID_INPUT')
+    const error = new E_MASQUERADE_INVALID_INPUT()
     unknownAccounts.add(error)
     throw error
   }
@@ -162,15 +149,13 @@ export async function stopActiveModes<User, Request>(
   ])
   if ('actorId' in selection) {
     // Bound the operator's input before it reaches the host authority.
-    if (!isBoundedString(selection.actorId, 255))
-      throw new MasqueradeError('E_MASQUERADE_INVALID_INPUT')
+    if (!isBoundedString(selection.actorId, 255)) throw new E_MASQUERADE_INVALID_INPUT()
     const actorIncarnation = await resolveIncarnation(
       config,
       selection.actorId,
       selection.actorIncarnation
     )
-    if (!isBoundedString(actorIncarnation, 128))
-      throw new MasqueradeError('E_MASQUERADE_INVALID_INPUT')
+    if (!isBoundedString(actorIncarnation, 128)) throw new E_MASQUERADE_INVALID_INPUT()
     const owner = {
       namespace: config.authority.namespace,
       actorId: selection.actorId,
@@ -187,21 +172,21 @@ export async function stopActiveModes<User, Request>(
       )
       if (outcome !== 'conflict') return { stopped: outcome === 'applied' ? 1 : 0 }
     }
-    throw createUnavailableError()
+    throw new E_MASQUERADE_UNAVAILABLE()
   }
 
   const batchSize = selection.batchSize ?? DEFAULT_STOP_BATCH_SIZE
   if (!Number.isSafeInteger(batchSize) || batchSize < 1 || batchSize > 1000)
-    throw createUnavailableError()
+    throw new E_MASQUERADE_UNAVAILABLE()
   let stoppedCount = 0
   for (;;) {
     let candidates: ModeRow[]
     try {
       candidates = await store.activeBatch({ limit: batchSize })
       if (!Array.isArray(candidates) || candidates.length > batchSize)
-        throw createUnavailableError()
+        throw new E_MASQUERADE_UNAVAILABLE()
     } catch (error) {
-      throw new StopProgressError('active_batch', stoppedCount, error)
+      throw new E_MASQUERADE_STOP_PROGRESS('active_batch', stoppedCount, error)
     }
     if (candidates.length === 0) return { stopped: stoppedCount, drained: true }
     let progressed = false
@@ -210,20 +195,20 @@ export async function stopActiveModes<User, Request>(
       try {
         row = requireActiveCandidate(candidate)
       } catch (error) {
-        throw new StopProgressError('candidate', stoppedCount, error)
+        throw new E_MASQUERADE_STOP_PROGRESS('candidate', stoppedCount, error)
       }
       let current: ModeRow | null
       try {
         current = requireValidModeRow(await store.read(row), row)
       } catch (error) {
-        throw new StopProgressError('read', stoppedCount, error)
+        throw new E_MASQUERADE_STOP_PROGRESS('read', stoppedCount, error)
       }
       if (current?.state !== 'active' || current.revision !== row.revision) continue
       let outcome
       try {
         outcome = await invalidate(store, dependencies, current, readCurrentTimestamp(dependencies))
       } catch (error) {
-        throw new StopProgressError('stop_commit', stoppedCount, error)
+        throw new E_MASQUERADE_STOP_PROGRESS('stop_commit', stoppedCount, error)
       }
       if (outcome === 'applied') stoppedCount++
       if (outcome !== 'conflict') progressed = true

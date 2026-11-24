@@ -25,6 +25,18 @@ export interface MasqueradeRoutesOptions<Guard extends string> {
 /**
  * Mount `GET /`, `POST /start` and `POST /stop` on the package controller behind the raw guard,
  * with separate start and stop limiters. Returns the group so the host can add middleware.
+ *
+ * @example
+ * ```ts
+ * import { masqueradeRoutes, type MasqueradeRoutesOptions } from '@kevinjohn/adonisjs-masquerade/http'
+ * import router from '@adonisjs/core/services/router'
+ *
+ * export function mountSupportControls(
+ *   middleware: Pick<MasqueradeRoutesOptions<'web'>, 'auth' | 'startLimiter' | 'stopLimiter'>
+ * ) {
+ *   return masqueradeRoutes(router, { ...middleware, guard: 'web', prefix: '/support/modes' })
+ * }
+ * ```
  */
 export function masqueradeRoutes<Guard extends string>(
   router: Router,

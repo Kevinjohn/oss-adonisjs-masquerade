@@ -7,11 +7,39 @@ type Factory = () =>
 /** Package-internal reader; not part of the public registry API. */
 export const resolveCallbacks = Symbol('masquerade.callbacks.resolve')
 
-/** The `masquerade.callbacks` binding: an application provider registers one callback factory. */
+/**
+ * The `masquerade.callbacks` binding: an application provider registers one callback factory.
+ *
+ * @example
+ * ```ts
+ * import { MasqueradeCallbackRegistry } from '@kevinjohn/adonisjs-masquerade'
+ * import type { MasqueradeCallbacks } from '@kevinjohn/adonisjs-masquerade/types'
+ *
+ * export function supportRegistry(
+ *   callbacks: MasqueradeCallbacks<{ id: string }, object>
+ * ) {
+ *   const registry = new MasqueradeCallbackRegistry()
+ *   registry.register(() => callbacks)
+ *   return registry
+ * }
+ * ```
+ */
 export class MasqueradeCallbackRegistry {
   #factory?: Factory
   #resolved?: Promise<MasqueradeCallbacks<unknown, unknown> | undefined>
-  /** Store the factory; it runs once, when the package first needs the callbacks. */
+  /**
+   * Store the factory; it runs once, when the package first needs the callbacks.
+   *
+   * @example
+   * ```ts
+   * registry.register(() => ({
+   *   policy: {
+   *     canMasquerade: ({ actor, target }) =>
+   *       actor.id === 'support-operator' && target.id === 'customer-42',
+   *   },
+   * }))
+   * ```
+   */
   register<User, Request>(
     factory: () => MasqueradeCallbacks<User, Request> | Promise<MasqueradeCallbacks<User, Request>>
   ): void {

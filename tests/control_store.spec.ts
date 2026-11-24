@@ -1,6 +1,6 @@
 import { test } from '@japa/runner'
 import { RuntimeException } from '@adonisjs/core/exceptions'
-import { createMasqueradeService, MasqueradeSetupError } from '../index.js'
+import { createMasqueradeService, errors } from '../index.js'
 import { fixture } from './helpers/core.js'
 
 test('reports an invalid store contract without exposing store values', async ({ assert }) => {
@@ -17,7 +17,7 @@ test('reports an invalid store contract without exposing store values', async ({
     error = caught
   }
 
-  assert.instanceOf(error, MasqueradeSetupError)
+  assert.instanceOf(error, errors.E_MASQUERADE_INVALID_STORE)
   assert.instanceOf(error, RuntimeException)
   assert.equal((error as { code?: string }).code, 'E_MASQUERADE_INVALID_STORE')
   assert.equal((error as { field?: string }).field, 'store.compareAndSet')

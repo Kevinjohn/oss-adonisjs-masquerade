@@ -1,3 +1,4 @@
+import { E_MASQUERADE_UNAVAILABLE } from '../src/errors.js'
 import { errors } from '@adonisjs/auth'
 import { InvalidArgumentsException } from '@adonisjs/core/exceptions'
 import type { HttpContext } from '@adonisjs/core/http'
@@ -6,7 +7,6 @@ import type { GuardContract } from '@adonisjs/auth/types'
 import type { SessionUserProviderContract } from '@adonisjs/auth/types/session'
 import type { NativeAuthority, Subject } from '../src/types.js'
 import { isBoundedString } from '../src/bounded_string.js'
-import { createUnavailableError } from '../src/error_helpers.js'
 
 /** Options for `sessionAuthority`. */
 export interface SessionAuthorityOptions<User> {
@@ -31,10 +31,37 @@ export interface NativeSessionAdapter<User = unknown> {
    * effective-route request.
    */
   readonly driverName?: 'session'
-  /** Authenticate through the raw session guard; `E_UNAUTHORIZED_ACCESS` passes through unchanged. */
+  /**
+   * Authenticate through the raw session guard; `E_UNAUTHORIZED_ACCESS` passes through unchanged.
+   *
+   * @example
+   * ```ts
+   * const actor = await adapter.authenticateActor(ctx)
+   * ```
+   */
   authenticateActor(ctx: HttpContext): Promise<Subject<User>>
 }
-/** Use the same public user provider as the raw native session guard. */
+/**
+ * Use the same public user provider as the raw native session guard.
+ *
+ * @example
+ * ```ts
+ * import { sessionAuthority, stampFrom } from '@kevinjohn/adonisjs-masquerade/native'
+ * import type { SessionUserProviderContract } from '@adonisjs/auth/types/session'
+ *
+ * type Account = { id: string; active: boolean; securityRevision: number }
+ * export function webAuthority(provider: SessionUserProviderContract<Account>) {
+ *   return sessionAuthority({
+ *     namespace: 'users',
+ *     guard: 'web',
+ *     provider,
+ *     incarnation: 'id',
+ *     securityStamp: stampFrom((user: Account) => [user.securityRevision]),
+ *     isActive: (user) => user.active,
+ *   })
+ * }
+ * ```
+ */
 export function sessionAuthority<User>(
   options: SessionAuthorityOptions<User>
 ): NativeSessionAdapter<User> {
@@ -57,11 +84,11 @@ export function sessionAuthority<User>(
       typeof identifier === 'bigint' ||
       (typeof identifier === 'number' && Number.isSafeInteger(identifier))
     ))
-      throw createUnavailableError()
+      throw new E_MASQUERADE_UNAVAILABLE()
     const id = String(identifier)
     const accountIncarnation = incarnation === 'id' ? id : incarnation(user)
     if (!isBoundedString(id, 255) || !isBoundedString(accountIncarnation, 128))
-      throw createUnavailableError()
+      throw new E_MASQUERADE_UNAVAILABLE()
     return { id, incarnation: accountIncarnation, user }
   }
   const authority: NativeAuthority<User> = {
@@ -74,7 +101,7 @@ export function sessionAuthority<User>(
       if (!account) return null
       const user = account.getOriginal()
       const active = await isActive(user)
-      if (typeof active !== 'boolean') throw createUnavailableError()
+      if (typeof active !== 'boolean') throw new E_MASQUERADE_UNAVAILABLE()
       return {
         subject: buildSubject(user, account.getId()),
         active,
@@ -91,21 +118,21 @@ export function sessionAuthority<User>(
         raw = ctx.auth.use(guard as never) as GuardContract<User>
       } catch (error) {
         if (error instanceof errors.E_UNAUTHORIZED_ACCESS) throw error
-        throw createUnavailableError()
+        throw new E_MASQUERADE_UNAVAILABLE()
       }
-      if (raw.driverName !== 'session') throw createUnavailableError()
+      if (raw.driverName !== 'session') throw new E_MASQUERADE_UNAVAILABLE()
       let user: User
       try {
         user = await raw.authenticate()
       } catch (error) {
         if (error instanceof errors.E_UNAUTHORIZED_ACCESS) throw error
-        throw createUnavailableError()
+        throw new E_MASQUERADE_UNAVAILABLE()
       }
       try {
         const account = await provider.createUserForGuard(user)
         return buildSubject(user, account.getId())
       } catch {
-        throw createUnavailableError()
+        throw new E_MASQUERADE_UNAVAILABLE()
       }
     },
   })

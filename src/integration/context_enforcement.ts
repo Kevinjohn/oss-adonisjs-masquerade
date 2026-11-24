@@ -1,5 +1,5 @@
+import { E_MASQUERADE_UNAVAILABLE } from '../errors.js'
 import type { HttpContext } from '@adonisjs/core/http'
-import { MasqueradeError } from '../errors.js'
 
 const enforced = new WeakSet<HttpContext>()
 
@@ -22,5 +22,5 @@ export function assertContextEnforced(
     { code: 'E_MASQUERADE_UNAVAILABLE', component: 'context_middleware' },
     'Masquerade context middleware did not run before effective authentication'
   )
-  throw new MasqueradeError('E_MASQUERADE_UNAVAILABLE')
+  throw new E_MASQUERADE_UNAVAILABLE()
 }
