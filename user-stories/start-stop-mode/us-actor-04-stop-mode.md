@@ -26,7 +26,7 @@ The [raw controls and optional HTML adapter](us-actor-01-start-stop-mode.md#raw-
 
 ```mermaid
 flowchart TD
-    A["Actor submits stop with rendered context and CSRF"] --> B{"Context still current?"}
+    A["Actor submits stop with current context; cookie clients include CSRF"] --> B{"Context still current?"}
     B -->|No| C["Refresh status and rebuild the intended action"]
     B -->|Yes| D["Stop active mode"]
     D --> E{"Stop succeeds?"}
@@ -36,7 +36,7 @@ flowchart TD
 
 ## Code flow
 
-Scope: active-mode scenario through the raw-guarded stop control, service transition and response; idle/absent success is a no-op.
+Scope: active-mode scenario through the raw-guarded stop control, service transition and response; idle/absent success is a no-op. An unknown commit returns unavailable; inspect authoritative status before a new action.
 
 ```mermaid
 flowchart TD
@@ -45,12 +45,13 @@ flowchart TD
     C --> D["parseStopControlOrInvalidMarker(ctx)"]
     D --> E["runtime.service.stop(ctx, input); authenticate actor and read row"]
     E --> F{"Input and context valid?"}
-    F -->|No| H["Masquerade request exception response path"]
+    F -->|No| H["Record stop_denied, then propagate refusal; audit failure returns unavailable"]
     F -->|Yes| Q{"Row active?"}
     Q -->|No| K["Record control_noop; return unchanged idle context"]
-    K -->|Audit write failure| H
+    K -->|Audit write failure| V["Return unavailable; do not record a second denial"]
     Q -->|Yes| G["Commit idle transition; expired if lapsed, otherwise stopped"]
-    G -->|Failure| H
+    G -->|Known failure| H
+    G -->|Unknown commit| U["Outcome uncertain; inspect status before a new action"]
     G -->|Applied| I["Return idle ModeView with rotated contextToken"]
 ```
 

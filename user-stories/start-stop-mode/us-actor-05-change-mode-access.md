@@ -18,7 +18,7 @@ As a signed-in actor, I want to restart my support mode with a different access 
 
 - Access level remains fixed until the mode stops. To change it, stop then start a new mode; the target and policy are re-evaluated.
 - `edit` is accepted only when `canEdit` returns literal `true`; absent, false, non-boolean or throwing policy does not grant edit.
-- A stale context or failed restart policy is refused; an old action must not be replayed with a freshly fetched token.
+- A stale context or failed restart policy is refused; an old action must not be replayed with a freshly fetched token. If a transition has an unknown commit outcome, inspect authoritative status before choosing another action.
 
 ## User flow
 
@@ -32,7 +32,7 @@ flowchart TD
     Q -->|Yes| E{"Requested access is edit?"}
     E -->|No| F["Request view mode because view was selected or omitted"]
     E -->|Yes| G{"Does canEdit return literal true?"}
-    G -->|No| H["Refuse requested edit; operator remains idle"]
+    G -->|No| H["Refuse requested edit; this request does not start a mode"]
     G -->|Yes| I["Request edit mode until stopped"]
     F --> X{"Remaining checks and commit succeed?"}
     I --> X
@@ -46,9 +46,9 @@ Scope: separate stop/start transitions; the service exposes no in-place access m
 
 ```mermaid
 flowchart TD
-    A["MasqueradeController.stop"] --> B["MasqueradeService.stop commits idle transition and rotates context"]
-    B -->|Stop fails| R
-    B --> C["MasqueradeController.status reads current ModeView"]
+    A["MasqueradeController.stop"] --> B["MasqueradeService.stop attempts idle transition"]
+    B -->|Stop fails or outcome uncertain| R
+    B -->|Committed; context rotated| C["MasqueradeController.status reads current ModeView"]
     C -->|Status fails| R
     C --> D["MasqueradeController.start parses new input"]
     D --> E["MasqueradeService.start checks context, idle row, selection and canMasquerade"]
@@ -56,12 +56,14 @@ flowchart TD
     E --> F{"Requested access is edit?"}
     F -->|No| G["Check request-local policy and stamps; CAS view mode"]
     F -->|Yes| H{"canEdit returns literal true?"}
-    H -->|No| I["Refuse start; actor remains idle"]
+    H -->|No| I["Refuse start; this request does not start a mode"]
     H -->|Yes| J["Check request-local policy and stamps; CAS edit mode"]
     G -->|Applied| K["Return mode and rotated context"]
     J -->|Applied| K
     G -->|Refused or failed| R
     J -->|Refused or failed| R
+    G -->|Unknown commit| U["Inspect authoritative status before another action"]
+    J -->|Unknown commit| U
 ```
 
 **Code references:** [service start/stop](../../src/service.ts), [control parser](../../http/control_input.ts), [access contract](../../docs/maintainers/design/spec-masquerade.md#14-view-only-default-and-per-start-edit-access-accepted-22-october-2026).

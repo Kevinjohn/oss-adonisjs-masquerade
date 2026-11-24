@@ -23,7 +23,8 @@ As a signed-in actor, I want to start a temporary support mode for an eligible t
 - If reason is configured as required, absent, null or blank reason is refused. A nonblank reason must also be well-formed and free of disallowed control and invisible formatting characters. A successful start stores one active mode and returns its `ModeView` with a fresh context token.
 - Input shape and the context token are checked first, so a stale token is refused with `E_MASQUERADE_CONTEXT_CHANGED` even while a mode is active. Invalid input, stale context, a failed `canMasquerade` callback or a failed `canEdit` callback refuses start; the actor remains authenticated as themselves.
 - Starting while a mode is already active is refused with `E_MASQUERADE_ALREADY_ACTIVE`; the active mode is not replaced or extended. Starting from an active row whose deadline has passed clears it to idle and then refuses with `E_MASQUERADE_CONTEXT_CHANGED`; no new mode starts from it.
-- A bearer token also needs the configured `masquerade` ability before status or start reads or changes mode state.
+- Start calls `canMasquerade` and, for edit, `canEdit` with `{ actor, target, request, reason? }`, then optional `canUseRequest` with `{ actor, target, request }`. Only literal `true` permits each configured check. Later admission rechecks global callbacks with actor and target only; it does not pass the original request or reason.
+- A bearer token also needs the configured `masquerade` ability before status or start reads or changes mode state. An unknown commit returns unavailable without a denial event; inspect authoritative status before a new action.
 
 ## Raw controls and the optional HTML adapter
 
@@ -38,7 +39,7 @@ The generated form controller uses the shared transition path for an explicit HT
 ```mermaid
 flowchart TD
     A["Actor reads GET /masquerade"] --> B["Choose target and optional reason, duration and access"]
-    B --> C["Submit POST /masquerade/start with current context and CSRF"]
+    B --> C["Submit POST /masquerade/start with current context; cookie clients include CSRF"]
     C --> V{"Input shape and context current?"}
     V -->|No| E["See refusal and refresh status before a new intent"]
     V -->|Yes| D{"Mode already active or lapsed?"}
@@ -63,14 +64,19 @@ flowchart TD
     F --> G["Validate input shape and context; mismatch throws E_MASQUERADE_CONTEXT_CHANGED"]
     G -->|Invalid| I
     G --> L{"Existing row active?"}
-    L -->|Lapsed| M["clear to idle, throw E_MASQUERADE_CONTEXT_CHANGED"]
-    L -->|Active| N["throw E_MASQUERADE_ALREADY_ACTIVE"]
+    L -->|Lapsed| M["Attempt expired transition to idle"]
+    M -->|Cleared; context changed| I
+    M -->|Other failure| I
+    M -->|Unknown commit| U
+    L -->|Active| N["refuse with E_MASQUERADE_ALREADY_ACTIVE"]
+    N --> I
     L -->|No| P["Validate selection, actor, target and policies"]
     P --> H{"Accepted, including request-local policy and stamps?"}
-    H -->|No| I["Masquerade request exception path"]
+    H -->|No| I["Record start_denied, then propagate refusal; audit failure returns unavailable"]
     H -->|Yes| K["Commit mode and audit event by CAS"]
     K -->|Applied| J["Return ModeView and rotated contextToken"]
     K -->|Conflict or unavailable| I
+    K -->|Unknown commit| U["Outcome uncertain; inspect status before a new action"]
 ```
 
 **Code references:** [route mount](../../http/control_routes.ts), [controller](../../http/controllers.ts), [parser](../../http/control_input.ts), [service start and active-row refusals](../../src/service.ts), [start guide](../../docs/guide/usage.md#read-status-and-start).

@@ -12,7 +12,7 @@ As an application developer with a custom control store, I want to run the packa
 ## Acceptance criteria
 
 - `createStore` is called once per run and must return a clean, isolated store.
-- The suite fails when the store breaks the observable contract, for example owner isolation, detached reads, one winner among competing compare-and-set calls, revision and event agreement, control outcomes that create or change a mode row, expiry and active batch ordering, or bounded event pruning. Assertions run throughout; a store's unexpected exception also fails the test.
+- The suite fails when the store breaks the observable contract, for example owner isolation, detached reads, one winner among competing compare-and-set calls, revision and event agreement, control outcomes that incorrectly create or change a mode row, expiry and active batch ordering, or bounded event pruning. Assertions run throughout; a store's unexpected exception also fails the test.
 - A pass does not prove database isolation or behaviour under independent connections; the guide asks for adapter-level tests for those.
 - `MemoryControlStore` is an in-process test utility, not a production persistence choice.
 

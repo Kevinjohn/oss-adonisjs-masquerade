@@ -4,7 +4,7 @@ Source-reviewed integration and operator journeys for Masquerade's HTTP controls
 
 “Current” records source availability under the stated configuration; it does not claim that an application journey was run.
 
-Source baseline: `origin/main` at `aca712361e2e79b1a871959fdb1d677f07e71973` (0.6.0).
+Source baseline: `4a7022eba8375424cf7b2852417ace11569713d4` (0.6.1).
 
 ## Index
 
@@ -16,7 +16,7 @@ Source baseline: `origin/main` at `aca712361e2e79b1a871959fdb1d677f07e71973` (0.
 | [US-ACTOR-03 — Make an allowed mutation during support](edit-effective-account/us-actor-03-edit-effective-account.md)                        | Make an allowed mutation during support               | Support actor with editable mode and target permission | Current  |
 | [US-ACTOR-04 — Stop the current support mode](start-stop-mode/us-actor-04-stop-mode.md)                                                      | Stop the current support mode                         | Signed-in actor                                        | Current  |
 | [US-ACTOR-05 — Change the access level of a support mode](start-stop-mode/us-actor-05-change-mode-access.md)                                 | Stop and restart with a selected access level         | Signed-in actor                                        | Current  |
-| [US-ACTOR-06 — Read support mode status and context](start-stop-mode/us-actor-06-read-mode-status.md)                                        | Read support mode status and context                  | Signed-in actor; native token ability required         | Current  |
+| [US-ACTOR-06 — Read support mode status and context](start-stop-mode/us-actor-06-read-mode-status.md)                                        | Read support mode status and context                  | Signed-in actor; token ability for bearer access       | Current  |
 | [US-CONTEXT-01 — Submit a request with the current mode context](submit-context-token/us-context-01-submit-context-token.md)                 | Submit a request with current mode context            | Authenticated actor on covered route                   | Current  |
 | [US-ACCOUNT-01 — Keep native account operations on the actor account](protect-native-account/us-account-01-protect-native-account.md)        | Protect native account operations                     | Application developer                                  | Current  |
 | [US-ACCOUNT-02 — Install the Account Kit provider and global blocker](protect-native-account/us-account-02-install-account-kit-blocker.md)   | Install provider and global blocker                   | Application developer                                  | Current  |

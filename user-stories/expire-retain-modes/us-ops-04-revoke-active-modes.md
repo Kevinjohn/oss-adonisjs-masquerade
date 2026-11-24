@@ -21,7 +21,7 @@ As a host operator, I want to stop a selected actor's mode or confirm stopping a
 - Exactly one of `--actor` or `--all` is required; incarnation is allowed only with actor.
 - `--all` prompts “End every active masquerade mode?” unless `--force`; declining reports “Nothing stopped.”
 - The command uses the configured authority when supplied. If omitted, it reads the authority from the [configured runtime](../configure-masquerade/us-setup-03-register-integration-callbacks.md).
-- A well-formed explicit owner with no active matching row returns zero; resolving an omitted incarnation may fail if the actor cannot be found. Invalid input or unavailable storage returns an error. A successful operator stop records an `invalidated` event, not `stopped`; expired rows clear with `expired` without increasing the stopped count. Contention can leave modes active after `--all`. Check status and retry remaining work.
+- A well-formed explicit owner with no active matching row returns zero; resolving an omitted incarnation may fail if the actor cannot be found. Invalid input or unavailable storage returns an error. A successful operator stop records an `invalidated` event, not `stopped`; expired rows clear with `expired` without increasing the stopped count. Bulk stop scans batches of 100 until empty or a batch makes no progress; single-actor stop retries a conflict up to three times. Contention can leave modes active after `--all`. Check status and retry remaining work. Bulk failures report the confirmed count and any indeterminate commit; `E_MASQUERADE_STOP_PROGRESS` is a class with public code `E_MASQUERADE_UNAVAILABLE`.
 
 ## User flow
 

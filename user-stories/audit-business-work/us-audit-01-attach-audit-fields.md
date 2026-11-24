@@ -22,7 +22,7 @@ As an application developer, I want the safe actor and effective identity fields
 ```mermaid
 flowchart TD
     A["Handler finishes the authorised business write"] --> B["Call masqueradeAuditFields"]
-    B --> C{"Mode active on this request?"}
+    B --> C{"Effective route admitted an active mode?"}
     C -->|Yes| D["Fields name actor, target, mode and access"]
     C -->|No| E["Fields name the actor as both identities"]
     B -->|Identity resolution fails| X["No identity fields; propagate refusal"]

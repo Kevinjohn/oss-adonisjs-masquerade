@@ -17,6 +17,7 @@ As a host operator, I want a scheduled bounded cleanup pass so that expired mode
 
 - One invocation prunes a bounded batch of eligible events first, then processes one bounded batch of expired mode rows; compare-and-set protects mode transitions. It clears expired rows to idle rather than deleting the mode rows. Ace exits with code 1 on failure. A housekeeping operation failure produces one diagnostic with the failed phase and confirmed counts, plus a notice if that operation may have committed. Ace uses its usual diagnostic for validation or setup failures.
 - Configured event retention applies to every namespace visible through the store; use a scoped store for different retention periods. `host-managed` event retention is not pruned by this command.
+- `E_MASQUERADE_PRUNE_PROGRESS` is a progress exception class whose public code is `E_MASQUERADE_UNAVAILABLE`. Counts cover this invocation only.
 - No background worker starts automatically; the host scheduler must invoke this command.
 
 ## User flow
@@ -46,7 +47,7 @@ flowchart TD
     D -->|Retention enabled| E["store.pruneEvents"]
     D -->|Host-managed retention| F["store.expiredBatch"]
     E -->|Retention succeeds| F
-    E -->|Retention fails| X["Throw E_MASQUERADE_PRUNE_PROGRESS with phase, confirmed counts and uncertainty"]
+    E -->|Retention fails| X["Throw E_MASQUERADE_PRUNE_PROGRESS class with phase, confirmed counts and uncertainty"]
     F -->|Batch fails| X
     F --> G["Read candidate and compare-and-set clear per owner"]
     G --> H["Return expired and eventsDeleted counts, skipping conflicts"]
