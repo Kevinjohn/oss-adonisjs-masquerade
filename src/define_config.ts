@@ -35,10 +35,14 @@ export function completeConfig<User, Request, Store extends RequestControlStore>
  * ```ts
  * import { defineConfig } from '@kevinjohn/adonisjs-masquerade'
  * import { LucidControlStore } from '@kevinjohn/adonisjs-masquerade/stores/lucid'
- * import db from '@adonisjs/lucid/services/db'
+ * import app from '@adonisjs/core/services/app'
+ * import { Database } from '@adonisjs/lucid/database'
  *
  * export default defineConfig({
- *   store: async () => new LucidControlStore(db.connection()),
+ *   store: async () => {
+ *     const database = await app.container.make(Database)
+ *     return new LucidControlStore(database.connection())
+ *   },
  *   contextEnforcement: 'enforce',
  *   retention: { days: 30 },
  * })
