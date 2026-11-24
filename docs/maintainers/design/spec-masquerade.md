@@ -607,7 +607,7 @@ optional, and the core package must remain usable without resolving Account Kit.
 
 For actor and target inspection, call
 `kit.authentication.inspectAccountAccess({ userId, requireActive: true })`. Map
-`AccountAccessDeniedError` to ineligible (`null`), using its code as a fallback when needed; let
+errors with code `E_ACCOUNT_KIT_ACCOUNT_ACCESS_DENIED` to ineligible (`null`); let
 other errors propagate so the core fails closed with 503. This inspection is not authentication,
 does not issue credentials, and does not evaluate Account Kit admission.
 

@@ -520,8 +520,8 @@ latest 7.6.0/10.1.0/4.0.1/22.4.2/8.3.0/6.0.3.
 
 ## V1.2 Account Kit acceptance (T-KIT and T-KIT-HTTP)
 
-**Matrix status:** The optional peer now declares scoped `@kevinjohn/adonisjs-account-kit` `0.6.1` only.
-The `0.6.1` compatibility matrix runs in the update pull request; the `compat` workflow runs on
+**Matrix status:** The optional peer now declares scoped `@kevinjohn/adonisjs-account-kit` `0.7.0` only.
+The `0.7.0` compatibility matrix runs in the update pull request; the `compat` workflow runs on
 every pull request that changes `package.json`. The `0.3.1` pin passed all 16 floor/latest cells
 against its GitHub release artifact in the
 hosted `compat` workflow ([run 42310704826](https://github.com/Kevinjohn/oss-adonisjs-masquerade/actions/runs/42310704826))
@@ -542,6 +542,10 @@ the [PRD v1.2 addendum](design/prd-masquerade.md#v12-account-kit-integration-acc
 The six deliverables are implemented in open, unmerged PRs #100–#105 for issues #94–#99.
 The authority, blocker, consumer and documentation PRs remain drafts. Independent reviews are
 complete with reported findings resolved.
+
+Account Kit `0.7.0` is pinned to the GitHub release artifact with SHA-256
+`9b3a22abc32e3d1a52bbdadd4698ff33d7efc897a8d412541ddaf9f7ab1a23bb`, built from source commit
+`7674d4c589f2d4d33c67d1ec6a2d3afe5f92140b`. Its exception constructors retain the denial codes used by Masquerade.
 
 Account Kit `0.3.4` makes its API example defaults-only and changes no package code. Scoped
 Account Kit `0.3.4` is pinned to the GitHub release artifact with SHA-256
