@@ -1,8 +1,9 @@
+import { errors } from '../index.js'
 import { test } from '@japa/runner'
 import { IgnitorFactory } from '@adonisjs/core/factories'
 import type { ApplicationService } from '@adonisjs/core/types'
 import { getCommand, getMetaData } from '../commands/main.js'
-import { OPERATOR_STOP_OUTCOME, StopProgressError } from '../src/stop_modes.js'
+import { OPERATOR_STOP_OUTCOME } from '../src/stop_modes.js'
 import { fixture } from './helpers/core.js'
 
 async function ace(
@@ -267,8 +268,11 @@ test.group('masquerade:status and masquerade:stop Ace commands', () => {
       ),
       1
     )
-    assert.instanceOf(commandError, StopProgressError)
-    assert.equal((commandError as StopProgressError).cause, failure)
+    assert.instanceOf(commandError, errors.E_MASQUERADE_STOP_PROGRESS)
+    assert.equal(
+      (commandError as InstanceType<typeof errors.E_MASQUERADE_STOP_PROGRESS>).cause,
+      failure
+    )
     assert.include(
       output.join('\n'),
       'Bulk stop failed during active_batch: confirmed stopped 1 mode(s).'

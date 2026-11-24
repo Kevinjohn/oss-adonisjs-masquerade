@@ -1,7 +1,7 @@
+import { E_MASQUERADE_INVALID_INPUT, E_MASQUERADE_STOP_PROGRESS } from '../src/errors.js'
 import { InvalidArgumentsException } from '@adonisjs/core/exceptions'
 import { BaseCommand, flags } from '@adonisjs/core/ace'
-import { MasqueradeError } from '../src/errors.js'
-import { isUnknownAccount, stopActiveModes, StopProgressError } from '../src/stop_modes.js'
+import { isUnknownAccount, stopActiveModes } from '../src/stop_modes.js'
 import type { MasqueradeConfig } from '../src/types.js'
 
 /** End one operator's active mode, or every active mode, from the server. */
@@ -76,7 +76,7 @@ export default class StopCommand extends BaseCommand {
         this.all ? { all: true } : { actorId: this.actor, actorIncarnation: this.incarnation }
       )
     } catch (error) {
-      if (error instanceof MasqueradeError && error.code === 'E_MASQUERADE_INVALID_INPUT') {
+      if (error instanceof E_MASQUERADE_INVALID_INPUT) {
         this.logger.error(
           isUnknownAccount(error)
             ? 'Unknown operator account; pass --incarnation with the value from masquerade:status.'
@@ -95,7 +95,7 @@ export default class StopCommand extends BaseCommand {
   }
 
   completed(): boolean {
-    if (!(this.error instanceof StopProgressError)) return false
+    if (!(this.error instanceof E_MASQUERADE_STOP_PROGRESS)) return false
     const { phase, stopped, indeterminate } = this.error
     this.logger.error(
       `Bulk stop failed during ${phase}: confirmed stopped ${stopped} mode(s).${indeterminate ? ' The failed transition may also have committed.' : ''}`

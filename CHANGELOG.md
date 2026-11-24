@@ -3,6 +3,20 @@
 ## Unreleased
 
 - Bind the runtime under the `MasqueradeRuntime` class as well as `masquerade.runtime`, so a host service can take it through its constructor with `@inject()`.
+- Breaking: replace the root `MasqueradeError` and `errors.MasqueradeError` constructors with
+  `errors.E_MASQUERADE_UNAUTHENTICATED`, `errors.E_MASQUERADE_NOT_ALLOWED`,
+  `errors.E_MASQUERADE_ACTION_BLOCKED`, `errors.E_MASQUERADE_ALREADY_ACTIVE`,
+  `errors.E_MASQUERADE_CONTEXT_CHANGED`, `errors.E_MASQUERADE_INVALID_INPUT`,
+  `errors.E_MASQUERADE_CONTEXT_REQUIRED` and `errors.E_MASQUERADE_UNAVAILABLE`. Pass `blockedBy`
+  directly to `errors.E_MASQUERADE_ACTION_BLOCKED`. Use `isMasqueradeRequestError` from
+  `/http` to recognise any package request exception in an application handler.
+- Breaking: replace the root `MasqueradeSetupError` and `errors.MasqueradeSetupError` constructors
+  with `errors.E_MASQUERADE_INVALID_CONFIGURATION(field)` and
+  `errors.E_MASQUERADE_INVALID_STORE(field)`.
+- The stop, prune and uncertain-commit exceptions can be matched with
+  `errors.E_MASQUERADE_STOP_PROGRESS`, `errors.E_MASQUERADE_PRUNE_PROGRESS` and
+  `errors.E_MASQUERADE_UNKNOWN_COMMIT`. Their stable code remains `E_MASQUERADE_UNAVAILABLE`.
+- Add TypeScript usage examples to public API documentation.
 
 ## 0.6.1 - 2026-11-24
 

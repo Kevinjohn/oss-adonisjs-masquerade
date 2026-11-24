@@ -1,4 +1,4 @@
-import { createUnavailableError } from './error_helpers.js'
+import { E_MASQUERADE_UNAVAILABLE } from './errors.js'
 import type { CompareAndSetInput, ModeRow } from './types.js'
 
 /** Checks that the audit record describes the state change carried by the CAS. */
@@ -24,14 +24,14 @@ export function assertValidTransition(input: CompareAndSetInput, current: ModeRo
     (event.kind !== 'started' && event.reason !== undefined) ||
     (current?.state === 'active' && next.state === 'idle' && next.modeId !== current.modeId)
   )
-    throw createUnavailableError()
+    throw new E_MASQUERADE_UNAVAILABLE()
 
   const projected = next.state === 'active' ? next : current?.state === 'active' ? current : null
-  if (event.access !== projected?.access) throw createUnavailableError()
+  if (event.access !== projected?.access) throw new E_MASQUERADE_UNAVAILABLE()
   if (
     projected &&
     (event.targetId !== projected.targetId ||
       event.targetIncarnation !== projected.targetIncarnation)
   )
-    throw createUnavailableError()
+    throw new E_MASQUERADE_UNAVAILABLE()
 }

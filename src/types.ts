@@ -44,7 +44,14 @@ export interface NativeAuthority<User> {
   incarnation: 'id' | ((user: User) => string)
   /** @deprecated Core uses the stamp returned by inspectAccount. */
   securityStamp?(user: User): string | Promise<string>
-  /** Load an account by canonical ID: `null` when missing; reject on operational failure. */
+  /**
+   * Load an account by canonical ID: `null` when missing; reject on operational failure.
+   *
+   * @example
+   * ```ts
+   * const account = await authority.inspectAccount('customer-42')
+   * ```
+   */
   inspectAccount(id: SubjectId): Promise<AccountSnapshot<User> | null>
 }
 /** Global eligibility, optional edit permission and request-local access; only literal true permits access. */
@@ -180,17 +187,68 @@ export interface CompareAndSetInput {
 export interface ControlStore {
   /** Test stores must expose this flag so production boot rejects them. */
   readonly testOnly?: boolean
-  /** Independent row snapshot for the complete owner key; null is authoritative absence. */
+  /**
+   * Independent row snapshot for the complete owner key; null is authoritative absence.
+   *
+   * @example
+   * ```ts
+   * const row = await store.read({
+   *   namespace: 'users',
+   *   actorId: 'support-operator',
+   *   actorIncarnation: '1',
+   * })
+   * ```
+   */
   read(owner: OwnerKey): Promise<ModeRow | null>
-  /** Atomically match the expected revision (null means absent), replace the row and append its event. */
+  /**
+   * Atomically match the expected revision (null means absent), replace the row and append its event.
+   *
+   * @example
+   * ```ts
+   * const outcome = await store.compareAndSet({
+   *   owner,
+   *   expected: current?.revision ?? null,
+   *   next,
+   *   event,
+   * })
+   * ```
+   */
   compareAndSet(input: CompareAndSetInput): Promise<CasOutcome>
-  /** Append a required denial/no-op outcome without changing the owner's row or revision. */
+  /**
+   * Append a required denial/no-op outcome without changing the owner's row or revision.
+   *
+   * @example
+   * ```ts
+   * await store.recordControlOutcome(deniedStart)
+   * ```
+   */
   recordControlOutcome(event: ControlOutcomeEvent): Promise<void>
-  /** At most limit expired active snapshots; pruning re-reads and uses CAS before clearing each. */
+  /**
+   * At most limit expired active snapshots; pruning re-reads and uses CAS before clearing each.
+   *
+   * @example
+   * ```ts
+   * const expired = await store.expiredBatch({ now: new Date().toISOString(), limit: 100 })
+   * ```
+   */
   expiredBatch(input: { now: Instant; limit: number }): Promise<ModeRow[]>
-  /** At most limit active snapshots, oldest update first; operator commands re-read and use CAS. */
+  /**
+   * At most limit active snapshots, oldest update first; operator commands re-read and use CAS.
+   *
+   * @example
+   * ```ts
+   * const active = await store.activeBatch({ limit: 100 })
+   * ```
+   */
   activeBatch(input: { limit: number }): Promise<ModeRow[]>
-  /** Delete at most limit events older than before. Never delete mode rows, including idle rows. */
+  /**
+   * Delete at most limit events older than before. Never delete mode rows, including idle rows.
+   *
+   * @example
+   * ```ts
+   * const deleted = await store.pruneEvents({ before: '2026-01-01T00:00:00.000Z', limit: 100 })
+   * ```
+   */
   pruneEvents(input: { before: Instant; limit: number }): Promise<number>
 }
 /** Request-serving capabilities; operator housekeeping is optional for a host store. */
@@ -267,35 +325,64 @@ export interface MasqueradeService<Request> {
   /**
    * Start a mode for the authenticated actor.
    *
-   * @throws {MasqueradeError} `E_MASQUERADE_INVALID_INPUT`, `E_MASQUERADE_CONTEXT_REQUIRED`,
+   * @throws `E_MASQUERADE_INVALID_INPUT`, `E_MASQUERADE_CONTEXT_REQUIRED`,
    *   `E_MASQUERADE_CONTEXT_CHANGED`, `E_MASQUERADE_ALREADY_ACTIVE`, `E_MASQUERADE_NOT_ALLOWED` or
    *   `E_MASQUERADE_UNAVAILABLE`.
+   *
+   * @example
+   * ```ts
+   * const started = await service.start(ctx, {
+   *   targetId: 'customer-42',
+   *   reason: 'Support ticket 42',
+   *   expectedContext: submittedContextToken,
+   * })
+   * ```
    */
   start(request: Request, input: StartInput): Promise<ModeView>
   /**
    * End the actor's mode; an idle actor gets the idle view back.
    *
-   * @throws {MasqueradeError} `E_MASQUERADE_INVALID_INPUT`, `E_MASQUERADE_CONTEXT_REQUIRED`,
+   * @throws `E_MASQUERADE_INVALID_INPUT`, `E_MASQUERADE_CONTEXT_REQUIRED`,
    *   `E_MASQUERADE_CONTEXT_CHANGED` or `E_MASQUERADE_UNAVAILABLE`.
+   *
+   * @example
+   * ```ts
+   * const idle = await service.stop(ctx, { expectedContext: submittedContextToken })
+   * ```
    */
   stop(request: Request, input: StopInput): Promise<ModeView>
   /**
    * Read the actor's mode without changing it.
    *
-   * @throws {MasqueradeError} `E_MASQUERADE_UNAVAILABLE`.
+   * @throws `E_MASQUERADE_UNAVAILABLE`.
+   *
+   * @example
+   * ```ts
+   * const mode = await service.status(ctx)
+   * ```
    */
   status(request: Request): Promise<ModeView>
   /**
    * Admit the request once and return its frozen identity. An expired or invalid mode is cleared.
    *
-   * @throws {MasqueradeError} `E_MASQUERADE_CONTEXT_CHANGED`, `E_MASQUERADE_NOT_ALLOWED` or
+   * @throws `E_MASQUERADE_CONTEXT_CHANGED`, `E_MASQUERADE_NOT_ALLOWED` or
    *   `E_MASQUERADE_UNAVAILABLE`.
+   *
+   * @example
+   * ```ts
+   * const identity = await service.resolve(ctx)
+   * ```
    */
   resolve(request: Request): Promise<ResolvedContext>
   /**
    * Get the view from this request's admitted snapshot. If this request clears its own expired or
    * invalid mode, return the committed idle view. Business admission still refuses that request.
    * A concurrent transition conflict is reported as a context change.
+   *
+   * @example
+   * ```ts
+   * const mode = await service.resolveView(ctx)
+   * ```
    */
   resolveView(request: Request): Promise<ModeView>
 }

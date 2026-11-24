@@ -1,11 +1,7 @@
+import { E_MASQUERADE_PRUNE_PROGRESS } from '../src/errors.js'
 import { InvalidArgumentsException } from '@adonisjs/core/exceptions'
 import { BaseCommand, flags } from '@adonisjs/core/ace'
-import {
-  pruneMasquerade,
-  PruneProgressError,
-  DEFAULT_PRUNE_BATCH_SIZE,
-  MAX_PRUNE_BATCH_SIZE,
-} from '../src/prune.js'
+import { pruneMasquerade, DEFAULT_PRUNE_BATCH_SIZE, MAX_PRUNE_BATCH_SIZE } from '../src/prune.js'
 import type { MasqueradeConfig } from '../src/types.js'
 
 /** Expire outdated modes and apply the configured audit-event retention policy. */
@@ -52,7 +48,7 @@ export default class PruneCommand extends BaseCommand {
   }
 
   completed(): boolean {
-    if (!(this.error instanceof PruneProgressError)) return false
+    if (!(this.error instanceof E_MASQUERADE_PRUNE_PROGRESS)) return false
     const { phase, completed, indeterminate } = this.error
     this.logger.error(
       `Prune failed during ${phase}: confirmed expired ${completed.expired} mode(s); confirmed deleted ${completed.eventsDeleted} event(s).${indeterminate ? ' The failed operation may also have committed.' : ''}`

@@ -1,55 +1,95 @@
 import { test } from '@japa/runner'
 import { Exception, RuntimeException } from '@adonisjs/core/exceptions'
-import type { MasqueradeBlockedBy } from '../index.js'
-import { MasqueradeError, MasqueradeSetupError } from '../src/errors.js'
+import { errors } from '../index.js'
+import { isMasqueradeRequestError } from '../http/main.js'
 import { fixture } from './helpers/core.js'
 import { requestContext } from './helpers/http_context.js'
 
-const allowedBlock: MasqueradeBlockedBy = 'view_only'
-void allowedBlock
-const allBlockedByValues: MasqueradeBlockedBy[] = ['sensitive', 'view_only', 'mutation_not_allowed']
-void allBlockedByValues
-
-// Type-only: the constructor also throws at runtime without a cause (tested below).
-void (() => {
-  // @ts-expect-error Every blocked action needs a cause.
-  new MasqueradeError('E_MASQUERADE_ACTION_BLOCKED')
-})
-// @ts-expect-error Other error codes do not accept blockedBy options.
-new MasqueradeError('E_MASQUERADE_NOT_ALLOWED', { blockedBy: 'sensitive' })
-const blockedError = new MasqueradeError('E_MASQUERADE_ACTION_BLOCKED', {
-  blockedBy: 'sensitive',
-})
-// @ts-expect-error blockedBy is readonly.
-blockedError.blockedBy = 'view_only'
-
-test.group('MasqueradeError', () => {
-  test('a blocked action without a known cause is a programming error', ({ assert }) => {
-    for (const options of [undefined, {}, { blockedBy: 'other' }])
-      assert.throws(
-        () => new MasqueradeError('E_MASQUERADE_ACTION_BLOCKED', options as never),
-        'E_MASQUERADE_ACTION_BLOCKED requires blockedBy'
-      )
-  })
-
+test.group('Masquerade exceptions', () => {
   test('falls back to English when ctx.i18n is present but unset', ({ assert }) => {
-    const error = new MasqueradeError('E_MASQUERADE_NOT_ALLOWED')
+    const error = new errors.E_MASQUERADE_NOT_ALLOWED()
     assert.equal(error.getResponseMessage({ i18n: undefined } as never), error.message)
   })
 
   test('uses the Adonis exception base and exposes a stable identifier', ({ assert }) => {
-    const error = new MasqueradeError('E_MASQUERADE_NOT_ALLOWED')
+    const error = new errors.E_MASQUERADE_NOT_ALLOWED()
 
     assert.instanceOf(error, Exception)
+    assert.isTrue(isMasqueradeRequestError(error))
+    assert.isFalse(isMasqueradeRequestError(new RuntimeException()))
+    assert.isFalse(isMasqueradeRequestError({ code: error.code }))
     assert.equal(error.identifier, 'errors.E_MASQUERADE_NOT_ALLOWED')
     assert.equal(error.status, 403)
     assert.equal(error.code, 'E_MASQUERADE_NOT_ALLOWED')
   })
 
+  test('exposes a distinct constructor with the previous code, status and fallback for each cause', ({
+    assert,
+  }) => {
+    const cases = [
+      [
+        new errors.E_MASQUERADE_UNAUTHENTICATED(),
+        'E_MASQUERADE_UNAUTHENTICATED',
+        401,
+        'Actor authentication required',
+      ],
+      [
+        new errors.E_MASQUERADE_NOT_ALLOWED(),
+        'E_MASQUERADE_NOT_ALLOWED',
+        403,
+        'Masquerade is not allowed',
+      ],
+      [
+        new errors.E_MASQUERADE_ACTION_BLOCKED('sensitive'),
+        'E_MASQUERADE_ACTION_BLOCKED',
+        403,
+        'Action is blocked while masquerading',
+      ],
+      [
+        new errors.E_MASQUERADE_ALREADY_ACTIVE(),
+        'E_MASQUERADE_ALREADY_ACTIVE',
+        409,
+        'Masquerade is already active',
+      ],
+      [
+        new errors.E_MASQUERADE_CONTEXT_CHANGED(),
+        'E_MASQUERADE_CONTEXT_CHANGED',
+        409,
+        'Masquerade context changed',
+      ],
+      [
+        new errors.E_MASQUERADE_INVALID_INPUT(),
+        'E_MASQUERADE_INVALID_INPUT',
+        422,
+        'Invalid masquerade input',
+      ],
+      [
+        new errors.E_MASQUERADE_CONTEXT_REQUIRED(),
+        'E_MASQUERADE_CONTEXT_REQUIRED',
+        428,
+        'Masquerade context required',
+      ],
+      [
+        new errors.E_MASQUERADE_UNAVAILABLE(),
+        'E_MASQUERADE_UNAVAILABLE',
+        503,
+        'Masquerade is unavailable',
+      ],
+    ] as const
+    assert.equal(new Set(cases.map(([error]) => error.constructor)).size, cases.length)
+    for (const [error, code, status, message] of cases) {
+      assert.equal(error.constructor, errors[code])
+      assert.equal(error.code, code)
+      assert.equal(error.status, status)
+      assert.equal(error.message, message)
+    }
+  })
+
   test('uses the Adonis runtime exception base for setup errors', ({ assert }) => {
-    const setupError = new MasqueradeSetupError('E_MASQUERADE_INVALID_CONFIGURATION', 'config')
+    const setupError = new errors.E_MASQUERADE_INVALID_CONFIGURATION('config')
 
     assert.instanceOf(setupError, RuntimeException)
+    assert.isFalse(isMasqueradeRequestError(setupError))
     assert.isFalse(setupError instanceof TypeError)
   })
 
@@ -64,7 +104,7 @@ test.group('MasqueradeError', () => {
         return 'translated'
       },
     }
-    const error = new MasqueradeError('E_MASQUERADE_CONTEXT_REQUIRED')
+    const error = new errors.E_MASQUERADE_CONTEXT_REQUIRED()
     Object.defineProperty(error, 'identifier', { value: 'errors.mutable' })
     error.message = 'mutable message'
 
@@ -81,7 +121,7 @@ test.group('MasqueradeError', () => {
 
   test('uses the English message when the context has no i18n instance', ({ assert }) => {
     const { ctx, responseState } = requestContext(fixture(), {})
-    new MasqueradeError('E_MASQUERADE_CONTEXT_REQUIRED').handle(undefined, ctx)
+    new errors.E_MASQUERADE_CONTEXT_REQUIRED().handle(undefined, ctx)
     assert.deepEqual(responseState.json, {
       errors: [{ code: 'E_MASQUERADE_CONTEXT_REQUIRED', message: 'Masquerade context required' }],
     })
@@ -89,9 +129,7 @@ test.group('MasqueradeError', () => {
 
   test('includes the blocked cause and preserves no-store cache headers', ({ assert }) => {
     const { ctx, responseState } = requestContext(fixture(), {})
-    const error = new MasqueradeError('E_MASQUERADE_ACTION_BLOCKED', {
-      blockedBy: 'mutation_not_allowed',
-    })
+    const error = new errors.E_MASQUERADE_ACTION_BLOCKED('mutation_not_allowed')
 
     error.handle(error, ctx)
 
@@ -110,7 +148,7 @@ test.group('MasqueradeError', () => {
 
   test('keeps other error payloads unchanged and omits blockedBy', ({ assert }) => {
     const { ctx, responseState } = requestContext(fixture(), {})
-    const error = new MasqueradeError('E_MASQUERADE_CONTEXT_REQUIRED')
+    const error = new errors.E_MASQUERADE_CONTEXT_REQUIRED()
     Object.defineProperty(error, 'blockedBy', { value: 'sensitive' })
     error.handle(error, ctx)
 

@@ -1,5 +1,5 @@
+import { E_MASQUERADE_CONTEXT_CHANGED, E_MASQUERADE_CONTEXT_REQUIRED } from './errors.js'
 import { createHash } from 'node:crypto'
-import { MasqueradeError } from './errors.js'
 import type { ModeRow, OwnerKey } from './types.js'
 
 export function buildContextToken(owner: OwnerKey, row: ModeRow | null): string {
@@ -16,6 +16,6 @@ export function requireContext(value: unknown, current: string): void {
     !/^(0|[1-9]\d{0,15})\.[0-9a-f]{32}(?:[0-9a-f]{32})?$/.test(value) ||
     !Number.isSafeInteger(Number(value.split('.')[0]))
   )
-    throw new MasqueradeError('E_MASQUERADE_CONTEXT_REQUIRED')
-  if (value !== current) throw new MasqueradeError('E_MASQUERADE_CONTEXT_CHANGED')
+    throw new E_MASQUERADE_CONTEXT_REQUIRED()
+  if (value !== current) throw new E_MASQUERADE_CONTEXT_CHANGED()
 }

@@ -5,7 +5,27 @@ import type { MasqueradeConfig } from '../src/types.js'
 import { markEffectiveFactory } from '../src/integration/guard_registration.js'
 import { EffectiveSessionGuard } from './effective_session_guard.js'
 
-/** Reuse the same raw session configuration for its normal and effective guards. */
+/**
+ * Reuse the same raw session configuration for its normal and effective guards.
+ *
+ * Select the raw `web` guard explicitly on masquerade control routes.
+ *
+ * @example
+ * ```ts
+ * import { effectiveSessionGuard } from '@kevinjohn/adonisjs-masquerade/auth'
+ * import { defineConfig } from '@adonisjs/auth'
+ * import { sessionGuard } from '@adonisjs/auth/session'
+ * import type { SessionUserProviderContract } from '@adonisjs/auth/types/session'
+ *
+ * export function supportAuth(provider: SessionUserProviderContract<{ id: string }>) {
+ *   const web = sessionGuard({ provider, useRememberMeTokens: false })
+ *   return defineConfig({
+ *     default: 'web_effective',
+ *     guards: { web, web_effective: effectiveSessionGuard(web) },
+ *   })
+ * }
+ * ```
+ */
 export function effectiveSessionGuard<User>(
   raw: GuardConfigProvider<(ctx: HttpContext) => GuardContract<User>>
 ): GuardConfigProvider<(ctx: HttpContext) => EffectiveSessionGuard<User>> {

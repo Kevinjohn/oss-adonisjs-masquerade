@@ -2,7 +2,7 @@ import { mkdir, readFile, rm, writeFile } from 'node:fs/promises'
 import { join } from 'node:path'
 import { pathToFileURL } from 'node:url'
 import { test } from '@japa/runner'
-import { MasqueradeError } from '../src/errors.js'
+import { errors } from '../index.js'
 import { fixture } from './helpers/core.js'
 import { controlRequestContext } from './helpers/http_context.js'
 import { handleWithDefaultExceptionHandler } from './helpers/exception_handler.js'
@@ -89,7 +89,7 @@ test.group('generated form controller', (group) => {
     await new Controller().start(ctx)
     assert.isFalse(started)
     assert.deepEqual(state.flash, {
-      masquerade: { type: 'error', code: new MasqueradeError('E_MASQUERADE_UNAVAILABLE').code },
+      masquerade: { type: 'error', code: new errors.E_MASQUERADE_UNAVAILABLE().code },
     })
   })
 

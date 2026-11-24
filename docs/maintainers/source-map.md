@@ -35,8 +35,8 @@ pages suppress source edit links; authored guides retain them.
 
 ## Deliberate compatibility differences
 
-Masquerade's request-error union, `MasqueradeError`, `MasqueradeSetupError` and root `errors`
-namespace model its own request and setup boundaries. Account Kit's descriptive account errors
+Masquerade's root `errors` namespace exposes a constructor by stable code for each request and
+setup failure. `src/request_exception.ts` owns the shared request response and translation policy. Account Kit's descriptive account errors
 and Soft Delete's lifecycle exceptions serve different domains. Keep existing error aliases and
 published imports; this package has no separate `./errors` entry or `./types/*` wildcard.
 Add a public alias only for a concrete compatibility use case. Preserve fallback message wording

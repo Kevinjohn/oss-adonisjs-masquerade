@@ -1,9 +1,9 @@
 import { test } from '@japa/runner'
 import router from '@adonisjs/core/services/router'
-import { MasqueradeError } from '@kevinjohn/adonisjs-masquerade'
+import { errors } from '@kevinjohn/adonisjs-masquerade'
 
 router.get('/__test/masquerade-errors/:language', async (ctx) => {
-  const error = new MasqueradeError('E_MASQUERADE_CONTEXT_REQUIRED')
+  const error = new errors.E_MASQUERADE_CONTEXT_REQUIRED()
   error.message = 'Private diagnostic detail'
   if (ctx.params.language === 'host') {
     Object.assign(ctx, {

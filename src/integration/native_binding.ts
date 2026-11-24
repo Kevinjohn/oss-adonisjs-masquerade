@@ -10,7 +10,14 @@ export interface NativeRuntimeAdapter {
   readonly driverName?: 'session' | 'access_tokens'
   /** Native adapters keyed by their raw Auth guard name when multiple transports share an authority. */
   readonly adapters?: Readonly<Record<string, NativeRuntimeAdapter>>
-  /** Authenticate the actor through this adapter's raw guard. */
+  /**
+   * Authenticate the actor through this adapter's raw guard.
+   *
+   * @example
+   * ```ts
+   * const actor = await adapter.authenticateActor(ctx)
+   * ```
+   */
   authenticateActor(ctx: HttpContext): Promise<Subject<unknown>>
 }
 declare module '@adonisjs/core/types' {

@@ -1,6 +1,6 @@
+import { E_MASQUERADE_INVALID_CONFIGURATION } from './errors.js'
 import type { ControlStore, MasqueradeConfig, RequestControlStore } from './types.js'
 import { isBoundedString } from './bounded_string.js'
-import { MasqueradeSetupError } from './errors.js'
 import type { MasqueradeSetupErrorField } from './errors.js'
 
 /** One hundred years; a longer window has no prunable cutoff on every supported store. */
@@ -15,7 +15,7 @@ export type CompleteMasqueradeConfig<
   Required<Pick<MasqueradeConfig<User, Request, Store>, 'authority' | 'policy'>>
 
 const fail = (field: MasqueradeSetupErrorField): never => {
-  throw new MasqueradeSetupError('E_MASQUERADE_INVALID_CONFIGURATION', field)
+  throw new E_MASQUERADE_INVALID_CONFIGURATION(field)
 }
 
 /** Require the fields `masquerade.callbacks` or the native adapter may supply. */
@@ -30,6 +30,23 @@ export function completeConfig<User, Request, Store extends RequestControlStore>
 /**
  * Validate synchronously; resolving the store is deferred to service creation. `authority` and
  * `policy` may be left out when the native adapter and `masquerade.callbacks` supply them.
+ *
+ * @example
+ * ```ts
+ * import { defineConfig } from '@kevinjohn/adonisjs-masquerade'
+ * import { LucidControlStore } from '@kevinjohn/adonisjs-masquerade/stores/lucid'
+ * import app from '@adonisjs/core/services/app'
+ * import { Database } from '@adonisjs/lucid/database'
+ *
+ * export default defineConfig({
+ *   store: async () => {
+ *     const database = await app.container.make(Database)
+ *     return new LucidControlStore(database.connection())
+ *   },
+ *   contextEnforcement: 'enforce',
+ *   retention: { days: 30 },
+ * })
+ * ```
  */
 export function defineConfig<User, Request, Store extends RequestControlStore = ControlStore>(
   config: MasqueradeConfig<User, Request, Store> &

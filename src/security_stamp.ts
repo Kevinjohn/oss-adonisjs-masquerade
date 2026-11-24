@@ -1,5 +1,5 @@
+import { E_MASQUERADE_UNAVAILABLE } from './errors.js'
 import { createHash } from 'node:crypto'
-import { createUnavailableError } from './error_helpers.js'
 
 export function hashSecurityStamp(value: unknown): string {
   if (
@@ -8,6 +8,6 @@ export function hashSecurityStamp(value: unknown): string {
     value.length === 0 ||
     Buffer.byteLength(value) > 512
   )
-    throw createUnavailableError()
+    throw new E_MASQUERADE_UNAVAILABLE()
   return createHash('sha256').update(value).digest('hex')
 }

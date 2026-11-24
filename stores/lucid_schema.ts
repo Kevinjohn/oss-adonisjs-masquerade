@@ -3,6 +3,18 @@ import type { QueryClientContract } from '@adonisjs/lucid/types/database'
 /**
  * Create the v1 tables. Keep this contract fixed for existing migrations.
  * UTC instants use canonical ISO text for millisecond precision and identical ordering on both engines.
+ *
+ * @example
+ * ```ts
+ * import { createMasqueradeSchemaV1 } from '@kevinjohn/adonisjs-masquerade/stores/lucid'
+ * import { BaseSchema } from '@adonisjs/lucid/schema'
+ *
+ * export default class MasqueradeTables extends BaseSchema {
+ *   async up() {
+ *     createMasqueradeSchemaV1(this.schema)
+ *   }
+ * }
+ * ```
  */
 export function createMasqueradeSchemaV1(
   schema: QueryClientContract['schema']
@@ -51,7 +63,21 @@ export function createMasqueradeSchemaV1(
       table.index(['at', 'id'], 'masquerade_events_retention_index')
     })
 }
-/** Roll back the v1 tables. Keep this contract fixed for existing migrations. */
+/**
+ * Roll back the v1 tables. Keep this contract fixed for existing migrations.
+ *
+ * @example
+ * ```ts
+ * import { dropMasqueradeSchemaV1 } from '@kevinjohn/adonisjs-masquerade/stores/lucid'
+ * import { BaseSchema } from '@adonisjs/lucid/schema'
+ *
+ * export default class MasqueradeTables extends BaseSchema {
+ *   async down() {
+ *     dropMasqueradeSchemaV1(this.schema)
+ *   }
+ * }
+ * ```
+ */
 export function dropMasqueradeSchemaV1(
   schema: QueryClientContract['schema']
 ): QueryClientContract['schema'] {

@@ -1,6 +1,6 @@
+import { E_MASQUERADE_UNAVAILABLE } from '../src/errors.js'
 import type { HttpContext } from '@adonisjs/core/http'
 import { resolveRuntime } from '../src/integration/runtime.js'
-import { MasqueradeError } from '../src/errors.js'
 import {
   parseStartControlOrInvalidMarker,
   parseStopControlOrInvalidMarker,
@@ -15,7 +15,22 @@ type RawControlService = MasqueradeService<HttpContext> & {
   stop(ctx: HttpContext, input: unknown): Promise<ModeView>
 }
 
-/** Opt-in controller for GET /masquerade, POST /start, and POST /stop. */
+/**
+ * Opt-in controller for GET /masquerade, POST /start, and POST /stop.
+ *
+ * @example
+ * ```ts
+ * import { MasqueradeController } from '@kevinjohn/adonisjs-masquerade/http'
+ * import type { HttpContext } from '@adonisjs/core/http'
+ *
+ * export default class SupportController extends MasqueradeController {
+ *   override async status(ctx: HttpContext) {
+ *     ctx.response.header('X-Support-Controls', 'enabled')
+ *     return super.status(ctx)
+ *   }
+ * }
+ * ```
+ */
 export class MasqueradeController {
   /** `GET /`: the actor's current `ModeView`. */
   async status(ctx: HttpContext): Promise<void> {
@@ -47,8 +62,7 @@ export class MasqueradeController {
 
   private async requireRawRuntime(ctx: HttpContext) {
     const runtime = await resolveRuntime(ctx)
-    if (runtime.selectGuard(ctx).kind !== 'raw')
-      throw new MasqueradeError('E_MASQUERADE_UNAVAILABLE')
+    if (runtime.selectGuard(ctx).kind !== 'raw') throw new E_MASQUERADE_UNAVAILABLE()
     return runtime
   }
 

@@ -56,7 +56,8 @@ See [releasing](releasing.md) for the release procedure and local dry-run comman
   mode; it grants neither edit access nor target authorization. Billing and other sensitive routes
   must use `sensitive()`, which overrides access and the mutation marker. URL or route-name
   heuristics are not allowed.
-- Setup failures throw `MasqueradeSetupError` with a stable message per code and a structured
+- Setup failures throw `E_MASQUERADE_INVALID_CONFIGURATION` or `E_MASQUERADE_INVALID_STORE` with a
+  stable message and a structured
   `.field` naming the configuration field. This is deliberate: the message never carries the field
   or the rejected value, so it is safe to log and to match. Operator output that needs the field
   reads `.field`; it never changes the message.

@@ -37,12 +37,35 @@ declare module '@japa/api-client' {
     /**
      * Start a real mode for the `loginAs` actor through the host's control routes before this
      * request, send the current context token on unsafe methods, and stop the mode afterwards.
+     *
+     * @example
+     * ```ts
+     * const response = await request
+     *   .loginAs(operator)
+     *   .masquerading('customer-42', { reason: 'Support ticket 42' })
+     * ```
      */
     masquerading(target: MasqueradeTarget, options?: MasqueradingOptions): this
   }
 }
 
-/** Japa API client plugin adding `request.masquerading(target, options)`. */
+/**
+ * Japa API client plugin adding `request.masquerading(target, options)`.
+ *
+ * @example
+ * ```ts
+ * import { masqueradeApiClient } from '@kevinjohn/adonisjs-masquerade/plugins/api_client'
+ * import { apiClient } from '@japa/api-client'
+ * import { authApiClient } from '@adonisjs/auth/plugins/api_client'
+ * import app from '@adonisjs/core/services/app'
+ *
+ * export const plugins = [
+ *   apiClient(),
+ *   authApiClient(app),
+ *   masqueradeApiClient({ prefix: '/support/modes' }),
+ * ]
+ * ```
+ */
 export function masqueradeApiClient(pluginOptions: MasqueradeApiClientOptions = {}): PluginFn {
   return function () {
     ApiRequest.macro(

@@ -45,7 +45,7 @@ flowchart TD
     C --> D["parseStopControlOrInvalidMarker(ctx)"]
     D --> E["runtime.service.stop(ctx, input); authenticate actor and read row"]
     E --> F{"Input and context valid?"}
-    F -->|No| H["MasqueradeError response path"]
+    F -->|No| H["Masquerade request exception response path"]
     F -->|Yes| Q{"Row active?"}
     Q -->|No| K["Record control_noop; return unchanged idle context"]
     K -->|Audit write failure| H

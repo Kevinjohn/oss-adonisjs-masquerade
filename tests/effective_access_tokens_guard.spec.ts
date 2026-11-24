@@ -8,7 +8,7 @@ import { EffectiveAccessTokensGuard } from '../auth/effective_access_tokens_guar
 import { effectiveAccessTokensGuard } from '../auth/main.js'
 import { markContextEnforced } from '../src/integration/context_enforcement.js'
 import { errorCode } from './helpers/core.js'
-import { MasqueradeError } from '../src/errors.js'
+import { errors as masqueradeErrors } from '../index.js'
 
 test('effective token factory preserves nominal users without inferring actor token metadata', ({
   assert,
@@ -160,7 +160,7 @@ test('token facade check, getUserOrFail and failure reset match the native token
   credential = true
   assert.isTrue(await effective.check())
   assert.strictEqual(effective.getUserOrFail(), target)
-  failure = new MasqueradeError('E_MASQUERADE_CONTEXT_CHANGED')
+  failure = new masqueradeErrors.E_MASQUERADE_CONTEXT_CHANGED()
   await assert.rejects(() => effective.check(), 'Masquerade context changed')
   assert.isUndefined(effective.user)
   assert.isFalse(effective.isAuthenticated)

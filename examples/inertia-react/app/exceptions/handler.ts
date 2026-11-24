@@ -1,7 +1,7 @@
 import app from '@adonisjs/core/services/app'
 import { type HttpContext, ExceptionHandler } from '@adonisjs/core/http'
 import type { StatusPageRange, StatusPageRenderer } from '@adonisjs/core/types/http'
-import { MasqueradeError, type MasqueradeBlockedBy } from '@kevinjohn/adonisjs-masquerade'
+import { errors, type MasqueradeBlockedBy } from '@kevinjohn/adonisjs-masquerade'
 import { errors as limiterErrors } from '@adonisjs/limiter'
 
 const blockedActionPresentations: Record<MasqueradeBlockedBy, { title: string; message: string }> =
@@ -31,8 +31,7 @@ export default class HttpExceptionHandler extends ExceptionHandler {
 
   async handle(error: unknown, ctx: HttpContext) {
     const path = ctx.request.url()
-    const status =
-      error instanceof MasqueradeError ? error.status : (error as { status?: number })?.status
+    const status = (error as { status?: number })?.status
     if (path.startsWith('/support') && [403, 409, 422, 428, 429, 503].includes(status ?? 0)) {
       if (error instanceof limiterErrors.E_TOO_MANY_REQUESTS) {
         for (const [name, value] of Object.entries(error.headers || error.getDefaultHeaders()))
@@ -50,7 +49,7 @@ export default class HttpExceptionHandler extends ExceptionHandler {
               : status === 422
                 ? 'Check the customer and reason, then create a new action.'
                 : 'This action is unavailable for the current account or support mode.'
-      if (error instanceof MasqueradeError && error.code === 'E_MASQUERADE_ACTION_BLOCKED') {
+      if (error instanceof errors.E_MASQUERADE_ACTION_BLOCKED) {
         const presentation =
           blockedActionPresentations[error.blockedBy ?? 'sensitive'] ??
           blockedActionPresentations.sensitive

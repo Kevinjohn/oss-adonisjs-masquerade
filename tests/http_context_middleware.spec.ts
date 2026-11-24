@@ -1,3 +1,4 @@
+import { isMasqueradeRequestError } from '../http/main.js'
 // masqueradeContext at the HTTP boundary: guard checks, context tokens and the view/edit rule.
 // Admission values go to request_admission.spec.ts, route markers to route_metadata.spec.ts.
 // Fixtures: fixture() in tests/helpers/core.ts, requestContext() in tests/helpers/http_context.ts.
@@ -9,7 +10,7 @@ import { errors } from '@adonisjs/auth'
 import { masqueradeContext } from '../http/context_middleware.js'
 import { EffectiveSessionGuard } from '../auth/effective_session_guard.js'
 import { allowMutation, sensitive } from '../src/integration/route_metadata.js'
-import { MasqueradeError } from '../src/errors.js'
+import { errors as masqueradeErrors } from '../index.js'
 import type { RequestAdmission } from '../src/request_admission.js'
 import type { MasqueradeBlockedBy } from '../index.js'
 
@@ -152,7 +153,7 @@ test.group('masquerade HTTP boundary', () => {
         continued = true
       })
     } catch (error) {
-      if (!(error instanceof MasqueradeError)) throw error
+      if (!isMasqueradeRequestError(error)) throw error
       error.handle(error, ctx)
     }
     assert.isFalse(continued)
@@ -201,9 +202,15 @@ test.group('masquerade HTTP boundary', () => {
     }
 
     assert.isFalse(continued)
-    assert.instanceOf(received, MasqueradeError)
-    assert.equal((received as MasqueradeError).code, 'E_MASQUERADE_CONTEXT_REQUIRED')
-    ;(received as MasqueradeError).handle(received, ctx)
+    assert.instanceOf(received, masqueradeErrors.E_MASQUERADE_CONTEXT_REQUIRED)
+    assert.equal(
+      (received as InstanceType<typeof masqueradeErrors.E_MASQUERADE_CONTEXT_REQUIRED>).code,
+      'E_MASQUERADE_CONTEXT_REQUIRED'
+    )
+    ;(received as InstanceType<typeof masqueradeErrors.E_MASQUERADE_CONTEXT_REQUIRED>).handle(
+      received,
+      ctx
+    )
     assert.deepEqual(responseState.json, {
       errors: [{ code: 'E_MASQUERADE_CONTEXT_REQUIRED', message: 'Masquerade context required' }],
     })

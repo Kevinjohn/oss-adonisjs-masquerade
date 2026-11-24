@@ -29,11 +29,29 @@ if (process.env.TEST_BUILT_EXPORTS === '1') {
     assert.isFunction(apiClientPlugin.masqueradeApiClient)
     assert.equal(typeof root, 'object')
     assert.isFunction(root.configure)
-    assert.isFunction(root.MasqueradeSetupError)
     assert.isFunction(root.MasqueradeCallbackRegistry)
     assert.isFunction(root.MasqueradeRuntime)
-    assert.equal(root.errors.MasqueradeError, root.MasqueradeError)
-    assert.deepEqual(Object.keys(root.errors).sort(), ['MasqueradeError', 'MasqueradeSetupError'])
+    assert.notProperty(root, 'MasqueradeError')
+    assert.notProperty(root, 'MasqueradeSetupError')
+    assert.deepEqual(Object.keys(root.errors).sort(), [
+      'E_MASQUERADE_ACTION_BLOCKED',
+      'E_MASQUERADE_ALREADY_ACTIVE',
+      'E_MASQUERADE_CONTEXT_CHANGED',
+      'E_MASQUERADE_CONTEXT_REQUIRED',
+      'E_MASQUERADE_INVALID_CONFIGURATION',
+      'E_MASQUERADE_INVALID_INPUT',
+      'E_MASQUERADE_INVALID_STORE',
+      'E_MASQUERADE_NOT_ALLOWED',
+      'E_MASQUERADE_PRUNE_PROGRESS',
+      'E_MASQUERADE_STOP_PROGRESS',
+      'E_MASQUERADE_UNAUTHENTICATED',
+      'E_MASQUERADE_UNAVAILABLE',
+      'E_MASQUERADE_UNKNOWN_COMMIT',
+    ])
+    const blocked = new root.errors.E_MASQUERADE_ACTION_BLOCKED('sensitive')
+    assert.equal(blocked.code, 'E_MASQUERADE_ACTION_BLOCKED')
+    assert.equal(blocked.blockedBy, 'sensitive')
+    assert.isTrue(http.isMasqueradeRequestError(blocked))
     assert.isString(root.stubsRoot)
     assert.isTrue(existsSync(join(root.stubsRoot, 'migrations/create_masquerade_tables.stub')))
     assert.lengthOf(Object.keys(types), 0)

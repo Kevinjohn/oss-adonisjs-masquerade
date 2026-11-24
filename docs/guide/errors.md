@@ -40,6 +40,13 @@ Add these English entries to the host application's `errors.json` locale file if
 unauthenticated requests. Setup failures raise `E_MASQUERADE_INVALID_CONFIGURATION` or
 `E_MASQUERADE_INVALID_STORE` at boot or from Ace commands, not in HTTP responses.
 
+In server code, match the specific exception with `instanceof errors.E_MASQUERADE_…` using the
+package root's `errors` namespace. A blocked action takes its route cause directly, as in
+`new errors.E_MASQUERADE_ACTION_BLOCKED('sensitive')`. Setup exceptions take the rejected
+configuration field. Use `isMasqueradeRequestError(error)` from
+`@kevinjohn/adonisjs-masquerade/http` if a custom response needs to recognise any package request
+exception.
+
 The host can branch on `blockedBy` before its normal exception handling. This helper shows
 three presentation paths: JSON passes to the standard handler, HTML renders a host page, and
 a host workflow can choose a flash-and-redirect response. Supply your own `errors/blocked_action`
@@ -47,7 +54,7 @@ Edge template (or use `ctx.inertia.render` for a host Inertia page). The templat
 the host's explanation and should offer a link to status or stop.
 
 ```ts
-import { MasqueradeError } from '@kevinjohn/adonisjs-masquerade'
+import { errors } from '@kevinjohn/adonisjs-masquerade'
 import type { HttpContext } from '@adonisjs/core/http'
 
 export async function handleBlockedAction(
@@ -55,8 +62,7 @@ export async function handleBlockedAction(
   ctx: HttpContext,
   presentation: 'page' | 'redirect' = 'page'
 ): Promise<boolean> {
-  if (!(error instanceof MasqueradeError) || error.code !== 'E_MASQUERADE_ACTION_BLOCKED')
-    return false
+  if (!(error instanceof errors.E_MASQUERADE_ACTION_BLOCKED)) return false
   if (ctx.request.accepts(['html', 'json']) !== 'html') return false
   const explanations = {
     sensitive: 'This action is unavailable during support mode. Stop and use your own account.',
@@ -64,7 +70,7 @@ export async function handleBlockedAction(
     mutation_not_allowed:
       'This action is unavailable during support mode. Return to the customer page.',
   }
-  const explanation = explanations[error.blockedBy ?? 'sensitive']
+  const explanation = explanations[error.blockedBy]
   if (presentation === 'redirect') {
     ctx.session.flash('error', explanation)
     ctx.response.redirect().back()

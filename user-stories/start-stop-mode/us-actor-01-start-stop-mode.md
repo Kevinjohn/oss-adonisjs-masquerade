@@ -67,7 +67,7 @@ flowchart TD
     L -->|Active| N["throw E_MASQUERADE_ALREADY_ACTIVE"]
     L -->|No| P["Validate selection, actor, target and policies"]
     P --> H{"Accepted, including request-local policy and stamps?"}
-    H -->|No| I["MasqueradeError path"]
+    H -->|No| I["Masquerade request exception path"]
     H -->|Yes| K["Commit mode and audit event by CAS"]
     K -->|Applied| J["Return ModeView and rotated contextToken"]
     K -->|Conflict or unavailable| I

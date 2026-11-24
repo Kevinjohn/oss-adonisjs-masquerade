@@ -1,6 +1,6 @@
+import { E_MASQUERADE_UNAVAILABLE } from '../src/errors.js'
 import { setTimeout } from 'node:timers/promises'
 import type { QueryClientContract, TransactionClientContract } from '@adonisjs/lucid/types/database'
-import { createUnavailableError } from '../src/error_helpers.js'
 import { isValidInstant, requireValidModeRow } from '../src/row_validation.js'
 import { assertValidTransition } from '../src/transition_validation.js'
 import { assertControlOutcome } from '../src/control_outcome_validation.js'
@@ -64,16 +64,28 @@ function isSerializationFailure(error: unknown): boolean {
 }
 function assertBatchInput(input: { limit: number }, instant: Instant): void {
   if (!Number.isSafeInteger(input.limit) || input.limit < 1 || !isValidInstant(instant))
-    throw createUnavailableError()
+    throw new E_MASQUERADE_UNAVAILABLE()
 }
-/** Inject db.connection() in write mode; transaction clients and read replicas are unsupported. */
+/**
+ * Inject db.connection() in write mode; transaction clients and read replicas are unsupported.
+ *
+ * @example
+ * ```ts
+ * import { LucidControlStore } from '@kevinjohn/adonisjs-masquerade/stores/lucid'
+ * import db from '@adonisjs/lucid/services/db'
+ *
+ * export const supportStore = new LucidControlStore(db.connection(), {
+ *   sqliteBusyRetries: 5,
+ * })
+ * ```
+ */
 export class LucidControlStore implements ControlStore {
   readonly #client: LucidControlClient
   readonly #retries: number
   readonly #delay: number
   #failed = false
   #assertAvailable(): void {
-    if (this.#failed) throw createUnavailableError()
+    if (this.#failed) throw new E_MASQUERADE_UNAVAILABLE()
   }
   #retireWritePool(knex: ReturnType<LucidControlClient['getWriteClient']>): void {
     if (this.#failed) return
@@ -98,8 +110,20 @@ export class LucidControlStore implements ControlStore {
       this.#delay > 1000 ||
       client.getWriteClient().client.config.connectionPool !== undefined
     )
-      throw createUnavailableError()
+      throw new E_MASQUERADE_UNAVAILABLE()
   }
+  /**
+   * Read the latest mode row for one owner.
+   *
+   * @example
+   * ```ts
+   * const row = await store.read({
+   *   namespace: 'users',
+   *   actorId: 'support-operator',
+   *   actorIncarnation: '1',
+   * })
+   * ```
+   */
   async read(owner: OwnerKey): Promise<ModeRow | null> {
     this.#assertAvailable()
     const raw = await this.#client
@@ -109,6 +133,19 @@ export class LucidControlStore implements ControlStore {
       .first()
     return raw ? decodeRow(raw, owner) : null
   }
+  /**
+   * Replace an expected mode row and append its transition event together.
+   *
+   * @example
+   * ```ts
+   * const outcome = await store.compareAndSet({
+   *   owner,
+   *   expected: current?.revision ?? null,
+   *   next,
+   *   event,
+   * })
+   * ```
+   */
   async compareAndSet(input: CompareAndSetInput): Promise<CasOutcome> {
     this.#assertAvailable()
     requireValidModeRow(input.next, input.owner)
@@ -228,11 +265,27 @@ export class LucidControlStore implements ControlStore {
       await setTimeout(this.#delay)
     }
   }
+  /**
+   * Append a control outcome without changing the mode row.
+   *
+   * @example
+   * ```ts
+   * await store.recordControlOutcome(deniedStart)
+   * ```
+   */
   async recordControlOutcome(event: ControlOutcomeEvent): Promise<void> {
     this.#assertAvailable()
     assertControlOutcome(event)
     await this.#client.knexQuery().table('masquerade_events').insert(buildAuditRecord(event))
   }
+  /**
+   * Fetch one bounded batch of expired mode rows.
+   *
+   * @example
+   * ```ts
+   * const expired = await store.expiredBatch({ now: new Date().toISOString(), limit: 100 })
+   * ```
+   */
   async expiredBatch(input: { now: Instant; limit: number }): Promise<ModeRow[]> {
     this.#assertAvailable()
     assertBatchInput(input, input.now)
@@ -246,9 +299,17 @@ export class LucidControlStore implements ControlStore {
       .limit(input.limit)
     return rows.map((row: Record<string, unknown>) => decodeRow(row))
   }
+  /**
+   * Fetch one bounded batch of active mode rows.
+   *
+   * @example
+   * ```ts
+   * const active = await store.activeBatch({ limit: 100 })
+   * ```
+   */
   async activeBatch(input: { limit: number }): Promise<ModeRow[]> {
     this.#assertAvailable()
-    if (!Number.isSafeInteger(input.limit) || input.limit < 1) throw createUnavailableError()
+    if (!Number.isSafeInteger(input.limit) || input.limit < 1) throw new E_MASQUERADE_UNAVAILABLE()
     const rows = await this.#client
       .knexQuery()
       .from('masquerade_modes')
@@ -258,6 +319,14 @@ export class LucidControlStore implements ControlStore {
       .limit(input.limit)
     return rows.map((row: Record<string, unknown>) => decodeRow(row))
   }
+  /**
+   * Delete a bounded batch of old audit events.
+   *
+   * @example
+   * ```ts
+   * const deleted = await store.pruneEvents({ before: '2026-01-01T00:00:00.000Z', limit: 100 })
+   * ```
+   */
   async pruneEvents(input: { before: Instant; limit: number }): Promise<number> {
     this.#assertAvailable()
     assertBatchInput(input, input.before)

@@ -17,6 +17,16 @@ export interface MasqueradeAuditFields {
  * Resolve the actor and effective identity to spread into the host's own audit writer. On a route
  * that does not select an effective guard the handler runs as the actor, so both identities are
  * the actor and no mode is admitted, invalidated or reported.
+ *
+ * @example
+ * ```ts
+ * import { masqueradeAuditFields } from '@kevinjohn/adonisjs-masquerade/http'
+ * import type { HttpContext } from '@adonisjs/core/http'
+ *
+ * export async function logPreferenceUpdate(ctx: HttpContext) {
+ *   ctx.logger.info(await masqueradeAuditFields(ctx), 'Customer preference updated')
+ * }
+ * ```
  */
 export async function masqueradeAuditFields(ctx: HttpContext): Promise<MasqueradeAuditFields> {
   const runtime = await resolveRuntime(ctx)

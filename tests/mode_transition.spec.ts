@@ -1,5 +1,6 @@
+import { errors } from '../index.js'
 import { test } from '@japa/runner'
-import { commitTransition, UnknownCommit } from '../src/mode_transition.js'
+import { commitTransition } from '../src/mode_transition.js'
 import { fixture } from './helpers/core.js'
 import type { CompareAndSetInput } from '../src/types.js'
 
@@ -16,7 +17,7 @@ test('an applied outcome for another transition is an unknown commit, never appl
     const store = { compareAndSet: async () => outcome } as never
     await assert.rejects(
       () => commitTransition(store, f.dependencies, input),
-      UnknownCommit as never
+      errors.E_MASQUERADE_UNKNOWN_COMMIT as never
     )
   }
   assert.deepEqual(f.observed, [])

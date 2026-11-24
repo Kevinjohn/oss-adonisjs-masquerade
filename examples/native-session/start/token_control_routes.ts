@@ -1,5 +1,5 @@
 import { Bouncer } from '@adonisjs/bouncer'
-import { MasqueradeError } from '@kevinjohn/adonisjs-masquerade'
+import { errors } from '@kevinjohn/adonisjs-masquerade'
 import { masqueradeRoutes } from '@kevinjohn/adonisjs-masquerade/http'
 import { middleware } from '#start/kernel'
 import {
@@ -35,7 +35,7 @@ router
     const runtime = await ctx.containerResolver.make('masquerade.runtime')
     const admitted = await runtime.admit(ctx)
     if (!admitted.view.isMasquerading) {
-      throw new MasqueradeError('E_MASQUERADE_CONTEXT_CHANGED')
+      throw new errors.E_MASQUERADE_CONTEXT_CHANGED()
     }
 
     const actor = admitted.actor.user as User

@@ -1,3 +1,4 @@
+import { E_MASQUERADE_UNAVAILABLE } from '../errors.js'
 import { InvalidArgumentsException } from '@adonisjs/core/exceptions'
 import type {} from '@adonisjs/auth/auth_provider'
 import type { GuardContract } from '@adonisjs/auth/types'
@@ -22,7 +23,6 @@ import {
 import type { NativeGuardDriver } from './guard_registration.js'
 import { routeGuards } from './route_guards.js'
 import { selectRouteGuard } from './route_guard_selection.js'
-import { MasqueradeError } from '../errors.js'
 
 type TransitionName =
   'masquerade:started' | 'masquerade:stopped' | 'masquerade:expired' | 'masquerade:invalidated'
@@ -178,13 +178,13 @@ export async function createRuntime(
         selected.kind !== 'ambiguous' && Object.hasOwn(wiring.rawAdapters, selected.raw)
           ? wiring.rawAdapters[selected.raw]
           : undefined
-      if (!adapter) throw new MasqueradeError('E_MASQUERADE_UNAVAILABLE')
+      if (!adapter) throw new E_MASQUERADE_UNAVAILABLE()
       if (selected.kind === 'effective') {
         // The middleware can admit a request before named Auth runs. Construct the selected
         // facades with the real request now, and verify the actual raw guard before any store read.
         for (const name of routeGuards(ctx.route, wiring.effectiveGuardName)) {
           const driver = wiring.effectiveDrivers[name]
-          if (!driver) throw new MasqueradeError('E_MASQUERADE_UNAVAILABLE')
+          if (!driver) throw new E_MASQUERADE_UNAVAILABLE()
           const rawGuard = wiring.effectiveRawGuards[name]
           for (const guard of [name, rawGuard]) {
             const fields = {
@@ -202,14 +202,14 @@ export async function createRuntime(
                 { ...fields, error: error instanceof Error ? error.message : String(error) },
                 'Masquerade could not construct a guard for the effective route'
               )
-              throw new MasqueradeError('E_MASQUERADE_UNAVAILABLE')
+              throw new E_MASQUERADE_UNAVAILABLE()
             }
             if (actualDriver !== driver) {
               ctx.logger?.error(
                 { ...fields, expectedDriver: driver, actualDriver },
                 'Masquerade effective guard and its raw guard use different drivers'
               )
-              throw new MasqueradeError('E_MASQUERADE_UNAVAILABLE')
+              throw new E_MASQUERADE_UNAVAILABLE()
             }
           }
         }

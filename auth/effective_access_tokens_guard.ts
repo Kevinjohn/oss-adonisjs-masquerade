@@ -37,6 +37,14 @@ export class EffectiveAccessTokensGuard<RawUser> implements GuardContract<
       throw new InvalidArgumentsException('Masquerade requires a native access_tokens guard')
     this.driverName = raw.driverName
   }
+  /**
+   * Get the effective user after the route authenticates.
+   *
+   * @example
+   * ```ts
+   * const customer = guard.getUserOrFail()
+   * ```
+   */
   getUserOrFail(): EffectiveAccessTokensUser<RawUser> {
     if (this.isAuthenticated && this.user !== undefined) return this.user
     if (!this.authenticationAttempted)
@@ -45,6 +53,14 @@ export class EffectiveAccessTokensGuard<RawUser> implements GuardContract<
       guardDriverName: this.driverName,
     })
   }
+  /**
+   * Authenticate the raw credential and resolve the effective user for this route.
+   *
+   * @example
+   * ```ts
+   * const customer = await guard.authenticate()
+   * ```
+   */
   async authenticate(): Promise<EffectiveAccessTokensUser<RawUser>> {
     this.authenticationAttempted = true
     this.isAuthenticated = false
@@ -69,6 +85,14 @@ export class EffectiveAccessTokensGuard<RawUser> implements GuardContract<
     this.isAuthenticated = true
     return this.user
   }
+  /**
+   * Check whether the request authenticates; operational failures reject.
+   *
+   * @example
+   * ```ts
+   * const signedIn = await guard.check()
+   * ```
+   */
   async check(): Promise<boolean> {
     try {
       await this.authenticate()
@@ -78,6 +102,14 @@ export class EffectiveAccessTokensGuard<RawUser> implements GuardContract<
       throw error
     }
   }
+  /**
+   * Delegate test-client authentication to the native guard.
+   *
+   * @example
+   * ```ts
+   * const credential = await guard.authenticateAsClient(operator)
+   * ```
+   */
   authenticateAsClient(user: EffectiveAccessTokensUser<RawUser>, ...args: unknown[]) {
     return this.raw.authenticateAsClient(user as RawUser, ...args)
   }

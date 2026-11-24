@@ -1,4 +1,4 @@
-import { createUnavailableError } from '../src/error_helpers.js'
+import { E_MASQUERADE_UNAVAILABLE } from '../src/errors.js'
 import { isBoundedString } from '../src/bounded_string.js'
 import { requireValidModeRow } from '../src/row_validation.js'
 import type { AuditEvent, ModeRow, OwnerKey } from '../src/types.js'
@@ -48,7 +48,7 @@ export function buildAuditRecord(event: AuditEvent) {
 export function requireRevision(value: unknown): number {
   if (typeof value === 'string' && /^[1-9][0-9]*$/.test(value)) value = Number(value)
   if (typeof value !== 'number' || !Number.isSafeInteger(value) || value < 1)
-    throw createUnavailableError()
+    throw new E_MASQUERADE_UNAVAILABLE()
   return value
 }
 export function decodeRow(raw: Record<string, unknown>, owner?: OwnerKey): ModeRow {
@@ -62,7 +62,7 @@ export function decodeRow(raw: Record<string, unknown>, owner?: OwnerKey): ModeR
     !isBoundedString(key.actorId, 255) ||
     !isBoundedString(key.actorIncarnation, 128)
   )
-    throw createUnavailableError()
+    throw new E_MASQUERADE_UNAVAILABLE()
   const row = {
     ...key,
     revision: requireRevision(raw.revision),

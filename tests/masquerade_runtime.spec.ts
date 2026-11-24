@@ -1,6 +1,6 @@
 import { test } from '@japa/runner'
 import { HttpContextFactory } from '@adonisjs/core/factories/http'
-import { MasqueradeRuntime, MasqueradeSetupError } from '../index.js'
+import { errors, MasqueradeRuntime } from '../index.js'
 import { nativeRuntimeFixture } from './helpers/native_runtime.js'
 import { masqueradeRoutes } from '../http/control_routes.js'
 import { sqlFixture } from './helpers/sql_store.js'
@@ -18,9 +18,15 @@ test('configured provider validates native binding and rejects test-only store d
     } catch (caught) {
       error = caught
     }
-    assert.instanceOf(error, MasqueradeSetupError)
-    assert.equal((error as MasqueradeSetupError).code, 'E_MASQUERADE_INVALID_STORE')
-    assert.equal((error as MasqueradeSetupError).field, 'store.testOnly')
+    assert.instanceOf(error, errors.E_MASQUERADE_INVALID_STORE)
+    assert.equal(
+      (error as InstanceType<typeof errors.E_MASQUERADE_INVALID_STORE>).code,
+      'E_MASQUERADE_INVALID_STORE'
+    )
+    assert.equal(
+      (error as InstanceType<typeof errors.E_MASQUERADE_INVALID_STORE>).field,
+      'store.testOnly'
+    )
     assert.equal(f.storeCreations(), 1)
   } finally {
     await f.app.terminate()

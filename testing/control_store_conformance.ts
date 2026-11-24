@@ -8,7 +8,22 @@ import type {
   TransitionEvent,
 } from '../src/types.js'
 
-/** Run against a fresh, isolated store. SQL connection/race and rollback tests supplement this contract. */
+/**
+ * Run against a fresh, isolated store. SQL connection/race and rollback tests supplement this contract.
+ *
+ * @example
+ * ```ts
+ * import {
+ *   assertControlStoreConformance,
+ *   MemoryControlStore,
+ * } from '@kevinjohn/adonisjs-masquerade/testing'
+ * import { test } from '@japa/runner'
+ *
+ * test('isolated support store contract', async () => {
+ *   await assertControlStoreConformance(async () => new MemoryControlStore())
+ * })
+ * ```
+ */
 export async function assertControlStoreConformance(
   createStore: () => Promise<ControlStore>
 ): Promise<void> {

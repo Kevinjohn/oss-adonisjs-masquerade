@@ -8,12 +8,38 @@ type MarkedMiddleware = ((ctx: HttpContext, next: () => Promise<unknown>) => Pro
   [marker]?: MarkerName
 }
 
-/** Mark a route or route group as always blocked while a masquerade is active. */
+/**
+ * Mark a route or route group as always blocked while a masquerade is active.
+ *
+ * @example
+ * ```ts
+ * import { sensitive } from '@kevinjohn/adonisjs-masquerade/http'
+ * import router from '@adonisjs/core/services/router'
+ * import type { HttpContext } from '@adonisjs/core/http'
+ *
+ * export function mountBilling(updateBilling: (ctx: HttpContext) => Promise<void>) {
+ *   router.post('/billing', updateBilling).use(sensitive())
+ * }
+ * ```
+ */
 export function sensitive(): MarkedMiddleware {
   return createMarker('sensitive')
 }
 
-/** Mark unsafe actions as allowed in edit mode, except on sensitive routes. */
+/**
+ * Mark unsafe actions as allowed in edit mode, except on sensitive routes.
+ *
+ * @example
+ * ```ts
+ * import { allowMutation } from '@kevinjohn/adonisjs-masquerade/http'
+ * import router from '@adonisjs/core/services/router'
+ * import type { HttpContext } from '@adonisjs/core/http'
+ *
+ * export function mountPreferences(updatePreferences: (ctx: HttpContext) => Promise<void>) {
+ *   router.patch('/preferences', updatePreferences).use(allowMutation())
+ * }
+ * ```
+ */
 export function allowMutation(): MarkedMiddleware {
   return createMarker('allowMutation')
 }

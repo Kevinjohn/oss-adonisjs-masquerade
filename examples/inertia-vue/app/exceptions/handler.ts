@@ -1,7 +1,7 @@
 import app from '@adonisjs/core/services/app'
 import { type HttpContext, ExceptionHandler } from '@adonisjs/core/http'
 import type { StatusPageRange, StatusPageRenderer } from '@adonisjs/core/types/http'
-import { MasqueradeError, type MasqueradeBlockedBy } from '@kevinjohn/adonisjs-masquerade'
+import { errors, type MasqueradeBlockedBy } from '@kevinjohn/adonisjs-masquerade'
 import { errors as limiterErrors } from '@adonisjs/limiter'
 
 const blockedActionMessages: Record<MasqueradeBlockedBy, { title: string; message: string }> = {
@@ -29,8 +29,7 @@ export default class HttpExceptionHandler extends ExceptionHandler {
   }
 
   async handle(error: unknown, ctx: HttpContext) {
-    const status =
-      error instanceof MasqueradeError ? error.status : (error as { status?: number })?.status
+    const status = (error as { status?: number })?.status
     if (
       ctx.request.url().startsWith('/support') &&
       [403, 409, 422, 428, 429, 503].includes(status ?? 0)
@@ -42,7 +41,7 @@ export default class HttpExceptionHandler extends ExceptionHandler {
       }
       ctx.response.header('Cache-Control', 'private, no-store')
       const blockedAction =
-        error instanceof MasqueradeError && error.code === 'E_MASQUERADE_ACTION_BLOCKED'
+        error instanceof errors.E_MASQUERADE_ACTION_BLOCKED
           ? blockedActionMessages[error.blockedBy ?? 'sensitive']
           : undefined
       const message =

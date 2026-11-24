@@ -7,11 +7,45 @@ type Factory = () =>
 /** Package-internal reader; not part of the public registry API. */
 export const resolveCallbacks = Symbol('masquerade.callbacks.resolve')
 
-/** The `masquerade.callbacks` binding: an application provider registers one callback factory. */
+/**
+ * The `masquerade.callbacks` binding: an application provider registers one callback factory.
+ * List the application provider before the Masquerade provider in `adonisrc.ts`.
+ *
+ * @example
+ * ```ts
+ * import { MasqueradeCallbackRegistry } from '@kevinjohn/adonisjs-masquerade'
+ * import type { ApplicationService } from '@adonisjs/core/types'
+ *
+ * export default class SupportCallbacksProvider {
+ *   constructor(protected app: ApplicationService) {}
+ *
+ *   async boot() {
+ *     const registry = await this.app.container.make(MasqueradeCallbackRegistry)
+ *     registry.register(async () => {
+ *       const { nativeAdapter, masqueradePolicy } =
+ *         await import('../app/services/auth/masquerade_authority.js')
+ *       return { native: nativeAdapter, policy: masqueradePolicy }
+ *     })
+ *   }
+ * }
+ * ```
+ */
 export class MasqueradeCallbackRegistry {
   #factory?: Factory
   #resolved?: Promise<MasqueradeCallbacks<unknown, unknown> | undefined>
-  /** Store the factory; it runs once, when the package first needs the callbacks. */
+  /**
+   * Store the factory; it runs once, when the package first needs the callbacks.
+   *
+   * @example
+   * ```ts
+   * registry.register(() => ({
+   *   policy: {
+   *     canMasquerade: ({ actor, target }) =>
+   *       actor.id === 'support-operator' && target.id === 'customer-42',
+   *   },
+   * }))
+   * ```
+   */
   register<User, Request>(
     factory: () => MasqueradeCallbacks<User, Request> | Promise<MasqueradeCallbacks<User, Request>>
   ): void {
