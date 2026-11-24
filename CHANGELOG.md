@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+- Bind the runtime under the `MasqueradeRuntime` class as well as `masquerade.runtime`, so a host service can take it through its constructor with `@inject()`.
+
 ## 0.6.1 - 2026-11-24
 
 - Provide fixed v1 schema helpers for fresh migrations and preserve existing migration files during forced configure.
