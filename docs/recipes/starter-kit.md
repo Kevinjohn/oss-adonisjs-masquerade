@@ -201,14 +201,18 @@ router
 
 ```ts
 import User from '#models/user'
+import { inject } from '@adonisjs/core'
 import type { HttpContext } from '@adonisjs/core/http'
+import { MasqueradeRuntime } from '@kevinjohn/adonisjs-masquerade'
 
+@inject()
 export default class SupportController {
+  constructor(protected runtime: MasqueradeRuntime) {}
+
   /** The operator's support page: current mode, customer chooser and start form. */
   async index(ctx: HttpContext) {
     const operator = ctx.auth.use('web').getUserOrFail()
-    const runtime = await ctx.containerResolver.make('masquerade.runtime')
-    const mode = await runtime.service.status(ctx)
+    const mode = await this.runtime.service.status(ctx)
 
     // Offer only accounts the policy would accept. The policy still checks the submitted ID.
     const customers = operator.masqueradeOperator
@@ -223,6 +227,9 @@ export default class SupportController {
   }
 }
 ```
+
+Where there is no constructor, such as a route closure or a middleware factory, resolve the same
+runtime with `ctx.containerResolver.make('masquerade.runtime')`.
 
 `resources/views/pages/support.edge`:
 

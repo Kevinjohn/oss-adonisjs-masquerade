@@ -31,6 +31,7 @@ if (process.env.TEST_BUILT_EXPORTS === '1') {
     assert.isFunction(root.configure)
     assert.isFunction(root.MasqueradeSetupError)
     assert.isFunction(root.MasqueradeCallbackRegistry)
+    assert.isFunction(root.MasqueradeRuntime)
     assert.equal(root.errors.MasqueradeError, root.MasqueradeError)
     assert.deepEqual(Object.keys(root.errors).sort(), ['MasqueradeError', 'MasqueradeSetupError'])
     assert.isString(root.stubsRoot)

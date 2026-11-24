@@ -4,6 +4,7 @@ import { listControlRouteGuards } from '../src/integration/control_route_guards.
 import { createRuntime, resolveRuntimeConfiguration } from '../src/integration/runtime_factory.js'
 import type { RuntimeConfiguration } from '../src/integration/runtime_factory.js'
 import { MasqueradeCallbackRegistry, resolveCallbacks } from '../src/callback_registry.js'
+import { MasqueradeRuntime } from '../src/integration/runtime.js'
 // A side-effect import is retained in the emitted declaration, unlike a type-only empty import.
 import '../src/integration/events.js'
 
@@ -12,8 +13,9 @@ export default class MasqueradeProvider {
   #wiring?: Promise<RuntimeConfiguration>
   constructor(protected app: ApplicationService) {}
   /**
-   * Bind `masquerade.callbacks`, `masquerade.runtime` as a lazy singleton and, unless the
-   * application binds it, `masquerade.native` from the registered callbacks.
+   * Bind `masquerade.callbacks`, `masquerade.runtime` as a lazy singleton that `MasqueradeRuntime`
+   * also resolves to and, unless the application binds it, `masquerade.native` from the registered
+   * callbacks.
    */
   register(): void {
     this.app.container.singleton(MasqueradeCallbackRegistry, () => new MasqueradeCallbackRegistry())
@@ -32,6 +34,8 @@ export default class MasqueradeProvider {
       this.#wiring ??= resolveRuntimeConfiguration(this.app)
       return createRuntime(this.app, await this.#wiring)
     })
+    // Resolve the class through the key, so a runtime bound under `masquerade.runtime` wins for both.
+    this.app.container.bind(MasqueradeRuntime, (resolver) => resolver.make('masquerade.runtime'))
   }
   /** Build the runtime at boot when `config/masquerade.ts` exists, so a bad config fails early. */
   async boot(): Promise<void> {
@@ -56,7 +60,7 @@ export default class MasqueradeProvider {
         throw new InvalidArgumentsException(`masqueradeRoutes guard ${guard} has no native adapter`)
   }
 }
-export type { MasqueradeRuntime } from '../src/integration/runtime.js'
+export { MasqueradeRuntime } from '../src/integration/runtime.js'
 
 declare module '@adonisjs/core/types' {
   interface ContainerBindings {
