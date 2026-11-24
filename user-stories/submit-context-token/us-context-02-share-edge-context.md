@@ -37,7 +37,7 @@ Scope: the `shareMasquerade` helper and the generated status middleware; form ha
 
 ```mermaid
 flowchart TD
-    A["shareMasquerade(ctx)"] --> B["runtimeFor(ctx)"]
+    A["shareMasquerade(ctx)"] --> B["resolveRuntime(ctx)"]
     B --> C{"runtime.selectGuard(ctx).kind is effective?"}
     C -->|Yes| D["runtime.admit(ctx) and use admitted.view"]
     C -->|No| E["runtime.service.status(ctx)"]

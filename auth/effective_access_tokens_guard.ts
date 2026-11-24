@@ -2,7 +2,7 @@ import { errors, symbols } from '@adonisjs/auth'
 import { InvalidArgumentsException, RuntimeException } from '@adonisjs/core/exceptions'
 import type { GuardContract } from '@adonisjs/auth/types'
 import type { HttpContext } from '@adonisjs/core/http'
-import { runtimeFor } from '../src/integration/runtime.js'
+import { resolveRuntime } from '../src/integration/runtime.js'
 import { assertContextEnforced } from '../src/integration/context_enforcement.js'
 import type { ResolvedContext } from '../src/types.js'
 
@@ -50,7 +50,7 @@ export class EffectiveAccessTokensGuard<RawUser> implements GuardContract<
     this.isAuthenticated = false
     this.#context = undefined
     this.user = undefined
-    const runtime = await runtimeFor(this.ctx)
+    const runtime = await resolveRuntime(this.ctx)
     const selected = runtime.selectGuard(this.ctx)
     if (selected.kind === 'effective') {
       const admitted = await runtime.admit(this.ctx)

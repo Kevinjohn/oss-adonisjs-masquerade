@@ -39,7 +39,7 @@ Scope: effective session or access-token guard through cached service admission;
 
 ```mermaid
 flowchart TD
-    A["EffectiveSessionGuard or EffectiveAccessTokensGuard.authenticate clears context and user"] --> B["runtimeFor(ctx) and runtime.selectGuard(ctx)"]
+    A["EffectiveSessionGuard or EffectiveAccessTokensGuard.authenticate clears context and user"] --> B["resolveRuntime(ctx) and runtime.selectGuard(ctx)"]
     B --> C{"Effective alias selected?"}
     C -->|No| D["Authenticate raw guard; context stays undefined"]
     C -->|Yes| E["runtime.admit(ctx) calls MasqueradeService admission"]

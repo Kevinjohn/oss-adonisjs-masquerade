@@ -48,7 +48,7 @@ Scope: raw-guarded control route through the service status response.
 flowchart TD
     A["masqueradeRoutes mounts GET /"] --> B["MasqueradeController.status"]
     B --> C["MasqueradeController.control"]
-    C --> D["runtimeFor(ctx)"]
+    C --> D["resolveRuntime(ctx)"]
     D --> E["runtime.service.status(ctx) resolves actor and native token ability before row read"]
     E --> F["ctx.response.status(200).json(result)"]
 ```

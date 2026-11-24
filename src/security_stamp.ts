@@ -1,7 +1,7 @@
 import { createHash } from 'node:crypto'
 import { createUnavailableError } from './error_helpers.js'
 
-export function stampHash(value: unknown): string {
+export function hashSecurityStamp(value: unknown): string {
   if (
     typeof value !== 'string' ||
     !value.isWellFormed() ||

@@ -37,7 +37,7 @@ flowchart TD
  C --> D["MasqueradeService.status resolves actor including native token ability, then reads stored row"]
  C -->|Non-raw selection| X["Propagate unavailable"]
  D -->|Authentication, ability or store failure| Y["Propagate refusal"]
- D --> E["modeView projects idle/active fields and context token"]
+ D --> E["buildModeView projects idle/active fields and context token"]
  E --> F["Return ModeView without a mode write or target admission policy check"]
 ```
 

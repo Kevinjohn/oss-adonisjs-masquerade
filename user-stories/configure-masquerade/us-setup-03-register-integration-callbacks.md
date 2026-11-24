@@ -37,7 +37,7 @@ Scope: provider and container resolution up to the configured service.
 flowchart TD
     A["MasqueradeProvider.register binds registry and runtime; adds native fallback binding when absent"] --> B["Earlier host boot calls registry.register"]
     B -->|Duplicate or late| X["Throw InvalidArgumentsException"]
-    B -->|Accepted| C["MasqueradeProvider.boot with config starts runtimeConfiguration"]
+    B -->|Accepted| C["MasqueradeProvider.boot with config starts resolveRuntimeConfiguration"]
     C --> D["defineConfig validates supplied values; resolve and cache callback factory"]
     D -->|Validation or factory fails| Y["Boot fails"]
     D -->|Success| E["Resolve masquerade.native from host binding or registry fallback"]

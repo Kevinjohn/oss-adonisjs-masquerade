@@ -4,11 +4,11 @@ import { MasqueradeController } from '../http/controllers.js'
 import type { MasqueradeConfig } from '../src/types.js'
 import { routeGuards, routeMarkers } from '../src/integration/route_metadata.js'
 import {
-  effectiveFactoryRawGuard,
+  getEffectiveFactoryRawGuard,
   isEffectiveFactory,
 } from '../src/integration/guard_registration.js'
 import { hasVerifiedAccountKitBlocker } from '../src/integration/account_kit_status.js'
-import { hasRegisteredAccountKitBlocker } from '../src/integration/account_kit_blocker_registration.js'
+import { checkAccountKitBlockerRegistration } from '../src/integration/account_kit_blocker_registration.js'
 import { classifyAccountKitRoute } from '../src/integration/account_kit_route_classification.js'
 
 /** Print a route coverage report from the router's committed route definitions. */
@@ -28,7 +28,7 @@ export default class RoutesCommand extends BaseCommand {
       .map(([name]) => name)
     const effectiveRawGuards: Record<string, string> = Object.create(null)
     for (const [name, factory] of Object.entries(auth.config.guards)) {
-      const raw = effectiveFactoryRawGuard(factory)
+      const raw = getEffectiveFactoryRawGuard(factory)
       if (raw) effectiveRawGuards[name] = raw
     }
     router.commit()
@@ -94,7 +94,7 @@ export function inspectRouteCoverage(
           else grouped.set(group, [line])
           continue
         }
-        const blockerRegistered = await hasRegisteredAccountKitBlocker(
+        const blockerRegistered = await checkAccountKitBlockerRegistration(
           route.middleware.all(),
           blockerImports
         )
@@ -114,7 +114,10 @@ export function inspectRouteCoverage(
           ).size > 1
         const markers = routeMarkers({ route })
         const methods = route.methods.join(',')
-        const packageControl = await isPackageControl(route.handler, controllerResultsByFunction)
+        const packageControl = await classifyPackageControl(
+          route.handler,
+          controllerResultsByFunction
+        )
         const isControlInferredFromName = !packageControl.control && isHostControl(route.name)
         const effectiveGuardedControl = packageControl.control && hasEffectiveGuard
         for (const declaredGuard of labels) {
@@ -163,7 +166,7 @@ export function inspectRouteCoverage(
 
 type ControllerResult = { control: boolean; unresolved: boolean }
 
-async function isPackageControl(
+async function classifyPackageControl(
   handler: unknown,
   cache: Map<Function, Promise<ControllerResult>>
 ): Promise<ControllerResult> {

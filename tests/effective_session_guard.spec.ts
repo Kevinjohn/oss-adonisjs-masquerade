@@ -333,7 +333,7 @@ test('a guard built by Account Kit accountKitSessionGuard passes the effective d
 }) => {
   const { accountKitSessionGuard } = await import('@kevinjohn/adonisjs-account-kit/auth')
   const { effectiveSessionGuard } = await import('../auth/define_config.js')
-  const { effectiveFactoryDriver } = await import('../src/integration/guard_registration.js')
+  const { getEffectiveGuardDriver } = await import('../src/integration/guard_registration.js')
   const raw = accountKitSessionGuard({ provider: {} as never })
   const app = {
     config: { get: () => ({ authority: { guard: 'web' } }) },
@@ -344,7 +344,7 @@ test('a guard built by Account Kit accountKitSessionGuard passes the effective d
   // Runtime wiring constructs factories without a live request; the guard must not touch it.
   const ctx = Object.freeze({}) as unknown as HttpContext
   // The request-time check compares the raw guard's driver with the effective factory's driver.
-  assert.equal(rawFactory(ctx).driverName, effectiveFactoryDriver(factory))
+  assert.equal(rawFactory(ctx).driverName, getEffectiveGuardDriver(factory))
   // The effective guard's constructor refuses a raw guard whose driver is not 'session'.
   assert.equal(factory(ctx).driverName, 'session')
 })

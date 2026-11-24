@@ -9,6 +9,6 @@ export function recordControlRouteGuard(router: object, guard: string): void {
 }
 
 /** The guards `masqueradeRoutes` mounted control routes on for this router. */
-export function controlRouteGuards(router: object): readonly string[] {
+export function listControlRouteGuards(router: object): readonly string[] {
   return [...(guardsByRouter.get(router) ?? [])]
 }

@@ -1,2 +1,2 @@
 /** Internal, read-only managed-route check. */
-export const activeMode = Symbol('activeMode')
+export const checkActiveMode = Symbol('activeMode')

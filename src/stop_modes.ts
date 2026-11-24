@@ -2,7 +2,7 @@ import { randomUUID } from 'node:crypto'
 import { MasqueradeError } from './errors.js'
 import { createUnavailableError } from './error_helpers.js'
 import { isBoundedString } from './bounded_string.js'
-import { commitTransition, idleAfterTransition, UnknownCommit } from './mode_transition.js'
+import { commitTransition, createIdleRowAfterTransition, UnknownCommit } from './mode_transition.js'
 import { requireValidModeRow } from './row_validation.js'
 import { requireActiveCandidate, openOperatorStore } from './active_modes.js'
 import type { ObserverDependencies } from './observers.js'
@@ -53,7 +53,7 @@ export class StopProgressError extends MasqueradeError {
   }
 }
 
-function now(dependencies: StopModesDependencies): string {
+function readCurrentTimestamp(dependencies: StopModesDependencies): string {
   try {
     const value = (dependencies.clock ?? (() => new Date()))()
     if (!(value instanceof Date) || !Number.isFinite(value.getTime()))
@@ -98,7 +98,7 @@ async function invalidate(
   const outcome = await commitTransition(store, dependencies, {
     owner,
     expected: current.revision,
-    next: idleAfterTransition(current, event),
+    next: createIdleRowAfterTransition(current, event),
     event,
   })
   return outcome === 'applied' && lapsed ? 'expired' : outcome
@@ -179,7 +179,12 @@ export async function stopActiveModes<User, Request>(
     for (let attempt = 0; attempt < CONFLICT_RETRIES; attempt++) {
       const current = await read(store, owner)
       if (current?.state !== 'active') return { stopped: 0 }
-      const outcome = await invalidate(store, dependencies, current, now(dependencies))
+      const outcome = await invalidate(
+        store,
+        dependencies,
+        current,
+        readCurrentTimestamp(dependencies)
+      )
       if (outcome !== 'conflict') return { stopped: outcome === 'applied' ? 1 : 0 }
     }
     throw createUnavailableError()
@@ -216,7 +221,7 @@ export async function stopActiveModes<User, Request>(
       if (current?.state !== 'active' || current.revision !== row.revision) continue
       let outcome
       try {
-        outcome = await invalidate(store, dependencies, current, now(dependencies))
+        outcome = await invalidate(store, dependencies, current, readCurrentTimestamp(dependencies))
       } catch (error) {
         throw new StopProgressError('stop_commit', stoppedCount, error)
       }

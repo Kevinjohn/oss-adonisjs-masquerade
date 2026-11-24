@@ -4,7 +4,7 @@ import { defineConfig } from './define_config.js'
 import { createUnavailableError } from './error_helpers.js'
 import { openControlStore } from './control_store.js'
 import { requireActiveCandidate } from './active_modes.js'
-import { commitTransition, idleAfterTransition, UnknownCommit } from './mode_transition.js'
+import { commitTransition, createIdleRowAfterTransition, UnknownCommit } from './mode_transition.js'
 import { requireValidModeRow } from './row_validation.js'
 import type { ObserverDependencies } from './observers.js'
 import type { MasqueradeConfig, ModeRow, RequestControlStore, TransitionEvent } from './types.js'
@@ -82,7 +82,7 @@ export async function pruneMasquerade<User, Request>(
   // Event retention runs first, so a row that blocks expiry never blocks retention.
   let eventsDeleted = 0
   let expired = 0
-  const failed = (phase: PrunePhase, indeterminate = false): never => {
+  const throwPruneFailure = (phase: PrunePhase, indeterminate = false): never => {
     throw new PruneProgressError(phase, { expired, eventsDeleted }, indeterminate)
   }
   if (validated.retention !== 'host-managed') {
@@ -94,7 +94,7 @@ export async function pruneMasquerade<User, Request>(
         throw createUnavailableError()
       eventsDeleted = deleted
     } catch {
-      return failed('event_retention', true)
+      return throwPruneFailure('event_retention', true)
     }
   }
   let candidates: ModeRow[]
@@ -102,7 +102,7 @@ export async function pruneMasquerade<User, Request>(
     candidates = await store.expiredBatch({ now, limit: batchSize })
     if (!Array.isArray(candidates) || candidates.length > batchSize) throw createUnavailableError()
   } catch {
-    return failed('expired_batch')
+    return throwPruneFailure('expired_batch')
   }
 
   for (const candidate of candidates) {
@@ -110,7 +110,7 @@ export async function pruneMasquerade<User, Request>(
     try {
       candidateRow = requireActiveCandidate(candidate)
     } catch {
-      return failed('candidate')
+      return throwPruneFailure('candidate')
     }
     const owner = {
       namespace: candidateRow.namespace,
@@ -121,7 +121,7 @@ export async function pruneMasquerade<User, Request>(
     try {
       current = requireValidModeRow(await store.read(owner), owner)
     } catch {
-      return failed('read')
+      return throwPruneFailure('read')
     }
     if (
       current?.state !== 'active' ||
@@ -146,9 +146,9 @@ export async function pruneMasquerade<User, Request>(
     }
     let next
     try {
-      next = idleAfterTransition(current, event)
+      next = createIdleRowAfterTransition(current, event)
     } catch {
-      return failed('expiry_commit')
+      return throwPruneFailure('expiry_commit')
     }
     try {
       const outcome = await commitTransition(store, dependencies, {
@@ -159,7 +159,7 @@ export async function pruneMasquerade<User, Request>(
       })
       if (outcome === 'conflict') continue
     } catch (error) {
-      return failed('expiry_commit', error instanceof UnknownCommit)
+      return throwPruneFailure('expiry_commit', error instanceof UnknownCommit)
     }
     expired++
   }

@@ -4,9 +4,9 @@ import { AccountKitBlocker } from './middleware.js'
 import type { AccountKitAdapter } from './main.js'
 import { assertManagedRouteRegistration } from './route_validation.js'
 import { recordAccountKitBlocker } from '../src/integration/account_kit_status.js'
-import { managedRegistration } from './registration.js'
+import { readManagedRegistration } from './registration.js'
 
-async function installed(
+async function checkManagedBlockerCoverage(
   domains: Record<string, { name?: string; middleware: { all(): Set<unknown> } }[]>
 ): Promise<boolean> {
   const managed = Object.values(domains)
@@ -59,7 +59,7 @@ export default class AccountKitProvider {
       throw new InvalidArgumentsException('Account Kit managed HTTP service required')
     kit.managedHttp.assertGuard(adapter.managedGuard)
     const router = await this.app.container.make('router')
-    const registration = await managedRegistration(router)
+    const registration = await readManagedRegistration(router)
     // Only the console lifecycle reaches ready before the router has committed. HTTP and test
     // lifecycles commit later themselves; committing early there would drop routes a test
     // registers after boot.
@@ -73,7 +73,7 @@ export default class AccountKitProvider {
       .flat()
       .some((route) => route.name?.startsWith('accountKit.'))
     if (!mounted) return
-    if (!(await installed(domains)))
+    if (!(await checkManagedBlockerCoverage(domains)))
       throw new InvalidArgumentsException('Account Kit blocker middleware is missing')
     recordAccountKitBlocker(this.app)
   }

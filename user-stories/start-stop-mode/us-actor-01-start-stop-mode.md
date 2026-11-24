@@ -57,7 +57,7 @@ Scope: raw-guarded control handler through the service start transition and resp
 flowchart TD
     A["masqueradeRoutes mounts POST /start"] --> B["MasqueradeController.start"]
     B --> C["MasqueradeController.control"]
-    C --> D["runtimeFor and raw-guard check"]
+    C --> D["resolveRuntime and raw-guard check"]
     D --> E["parseStartControlOrInvalidMarker(ctx)"]
     E --> F["runtime.service.start(ctx, input); authenticate actor and read row"]
     F --> G["Validate input shape and context; mismatch throws E_MASQUERADE_CONTEXT_CHANGED"]

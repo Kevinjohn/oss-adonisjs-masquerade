@@ -29,7 +29,7 @@ export function useWorkspaceFreshness(mode: Mode, beforeDeadline: boolean) {
     return true
   }
 
-  async function validate() {
+  async function refreshWorkspaceIdentity() {
     ready.value = false
     failed.value = false
     if (expireIfDue()) return
@@ -62,15 +62,15 @@ export function useWorkspaceFreshness(mode: Mode, beforeDeadline: boolean) {
   }
 
   function onVisibilityChange() {
-    if (document.visibilityState === 'visible') void validate()
+    if (document.visibilityState === 'visible') void refreshWorkspaceIdentity()
   }
 
   function onPageShow(event: PageTransitionEvent) {
-    if (event.persisted) void validate()
+    if (event.persisted) void refreshWorkspaceIdentity()
   }
 
   onMounted(() => {
-    void validate()
+    void refreshWorkspaceIdentity()
     document.addEventListener('visibilitychange', onVisibilityChange)
     window.addEventListener('pageshow', onPageShow)
     if (mode.isMasquerading && beforeDeadline && mode.expiresAt) {

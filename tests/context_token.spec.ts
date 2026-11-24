@@ -1,18 +1,18 @@
 import { test } from '@japa/runner'
-import { contextToken, requireContext } from '../src/context_token.js'
+import { buildContextToken, requireContext } from '../src/context_token.js'
 import { errorCode, fixture } from './helpers/core.js'
 
 test('absent tokens are deterministic and length-framed owner-bound', ({ assert }) => {
   const owner = fixture().owner
-  const token = contextToken(owner, null)
-  assert.equal(contextToken(owner, null), token)
+  const token = buildContextToken(owner, null)
+  assert.equal(buildContextToken(owner, null), token)
   for (const alternative of [
     { ...owner, actorId: 'b' },
     { ...owner, namespace: 'other' },
     { ...owner, actorIncarnation: 'new' },
     { namespace: 'te', actorId: 'sta', actorIncarnation: 'a' },
   ])
-    assert.notEqual(contextToken(alternative, null), token)
+    assert.notEqual(buildContextToken(alternative, null), token)
 })
 
 test('bounded malformed tokens require context while valid wrong owner tokens are stale', async ({
@@ -37,7 +37,7 @@ test('bounded malformed tokens require context while valid wrong owner tokens ar
     )
   }
   assert.throws(
-    () => requireContext(contextToken({ ...f.owner, actorId: 'b' }, null), idle.contextToken),
+    () => requireContext(buildContextToken({ ...f.owner, actorId: 'b' }, null), idle.contextToken),
     'Masquerade context changed'
   )
 })

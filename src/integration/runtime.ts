@@ -27,6 +27,6 @@ declare module '@adonisjs/core/types' {
   }
 }
 
-export function runtimeFor(ctx: HttpContext): Promise<MasqueradeRuntime> {
+export function resolveRuntime(ctx: HttpContext): Promise<MasqueradeRuntime> {
   return ctx.containerResolver.make('masquerade.runtime')
 }

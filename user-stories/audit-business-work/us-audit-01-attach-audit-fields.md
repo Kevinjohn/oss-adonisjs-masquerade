@@ -36,7 +36,7 @@ Scope: field resolution only; the host audit writer is application-owned.
 
 ```mermaid
 flowchart TD
-    A["masqueradeAuditFields(ctx)"] --> B["runtimeFor(ctx)"]
+    A["masqueradeAuditFields(ctx)"] --> B["resolveRuntime(ctx)"]
     B --> C{"runtime.selectGuard(ctx).kind is effective?"}
     C -->|No| D["runtime.actor(ctx); actor as both identities"]
     C -->|Yes| E["runtime.service.resolve(ctx) runs memoised admission"]

@@ -1,5 +1,5 @@
 import { test } from '@japa/runner'
-import { admission } from '../src/request_admission.js'
+import { admitOnce } from '../src/request_admission.js'
 import type { RequestAdmission } from '../src/request_admission.js'
 import { fixture } from './helpers/core.js'
 import type { User } from './helpers/core.js'
@@ -8,13 +8,13 @@ test('admitted context and view carry access only while active', async ({ assert
   const f = fixture()
   const service = await f.create()
   const internal = service as unknown as {
-    [admission](request: object): Promise<RequestAdmission<User>>
+    [admitOnce](request: object): Promise<RequestAdmission<User>>
   }
-  const idle = await internal[admission]({})
+  const idle = await internal[admitOnce]({})
   assert.notProperty(idle.context, 'access')
   assert.notProperty(idle.view, 'access')
   await f.start(service, {}, 'edit')
-  const active = await internal[admission]({})
+  const active = await internal[admitOnce]({})
   assert.equal(active.context.access, 'edit')
   assert.equal(active.view.isMasquerading && active.view.access, 'edit')
 })
@@ -44,9 +44,9 @@ test('internal admission preserves Subject properties exposed by prototype gette
   const service = await f.create()
   await f.start(service)
   const internal = service as unknown as {
-    [admission](request: object): Promise<RequestAdmission<User>>
+    [admitOnce](request: object): Promise<RequestAdmission<User>>
   }
-  const snapshot = await internal[admission]({})
+  const snapshot = await internal[admitOnce]({})
   for (const [subject, id] of [
     [snapshot.actor, 'a'],
     [snapshot.effective, 'b'],
@@ -68,9 +68,9 @@ test('internal admission freezes copied Subject shells and preserves native mode
   const service = await f.create()
   await f.start(service)
   const internal = service as unknown as {
-    [admission](request: object): Promise<RequestAdmission<User>>
+    [admitOnce](request: object): Promise<RequestAdmission<User>>
   }
-  const snapshot = await internal[admission]({})
+  const snapshot = await internal[admitOnce]({})
   assert.isTrue(Object.isFrozen(snapshot))
   for (const subject of [snapshot.actor, snapshot.effective]) {
     assert.isTrue(Object.isFrozen(subject))
@@ -95,16 +95,16 @@ test('the admitted mode view retains its token and deadline after another reques
   const service = await f.create()
   const active = await f.start(service)
   const internal = service as unknown as {
-    [admission](request: object): Promise<RequestAdmission<User>>
+    [admitOnce](request: object): Promise<RequestAdmission<User>>
   }
   const request = {}
-  const admitted = await internal[admission](request)
+  const admitted = await internal[admitOnce](request)
   assert.deepEqual(admitted.view, active)
   await service.stop({}, { expectedContext: active.contextToken })
-  const repeated = await internal[admission](request)
+  const repeated = await internal[admitOnce](request)
   assert.deepEqual(repeated.view, active)
   assert.isTrue(Object.isFrozen(admitted.view))
-  const fresh = await internal[admission]({})
+  const fresh = await internal[admitOnce]({})
   const status = await service.status({})
   assert.deepEqual(fresh.view, status)
   assert.notDeepEqual(fresh.view, active)

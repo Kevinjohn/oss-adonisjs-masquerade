@@ -1,9 +1,9 @@
-import { contextToken } from './context_token.js'
+import { buildContextToken } from './context_token.js'
 import type { RequestAdmission } from './request_admission.js'
 import type { ModeRow, ModeView, OwnerKey, ResolvedContext, Subject } from './types.js'
 
-export function modeView(owner: OwnerKey, row: ModeRow | null): ModeView {
-  const token = contextToken(owner, row)
+export function buildModeView(owner: OwnerKey, row: ModeRow | null): ModeView {
+  const token = buildContextToken(owner, row)
   return Object.freeze(
     row?.state === 'active'
       ? {
@@ -28,14 +28,14 @@ export function buildAdmittedProjection<User>(
     ...owner,
     effectiveId: effective.id,
     effectiveIncarnation: effective.incarnation,
-    contextToken: contextToken(owner, row),
+    contextToken: buildContextToken(owner, row),
     ...(row?.state === 'active'
       ? { isMasquerading: true as const, modeId: row.modeId, access: row.access }
       : { isMasquerading: false as const }),
   })
   return Object.freeze({
     context,
-    view: modeView(owner, row),
+    view: buildModeView(owner, row),
     actor: Object.freeze({ id: actor.id, incarnation: actor.incarnation, user: actor.user }),
     effective: Object.freeze({
       id: effective.id,

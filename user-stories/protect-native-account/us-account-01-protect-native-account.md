@@ -39,8 +39,8 @@ flowchart TD
     B --> C["raw.check()"]
     C --> D{"Authenticated?"}
     D -->|No| E["next()"]
-    D -->|Yes| F["provider.createUserForGuard and accountOwner"]
-    F --> G["runtimeFor(ctx).activeMode"]
+    D -->|Yes| F["provider.createUserForGuard and resolveAccountOwner"]
+    F --> G["resolveRuntime(ctx).activeMode"]
     G --> H{"Mode active and not expired?"}
     H -->|Yes| I["Throw E_MASQUERADE_ACTION_BLOCKED"]
     H -->|No| E

@@ -1,7 +1,7 @@
 import { test } from '@japa/runner'
 import { assertManagedRouteRegistration } from '../account_kit/route_validation.js'
 import { inspectRouteCoverage } from '../commands/routes.js'
-import { activeMode } from '../src/active_mode.js'
+import { checkActiveMode } from '../src/active_mode.js'
 import { fixture } from './helpers/core.js'
 
 const managed = {
@@ -78,8 +78,8 @@ test.group('Account Kit managed route coverage', () => {
     const f = fixture()
     const service = await f.create()
     const check = (owner: typeof f.owner) =>
-      (service as typeof service & { [activeMode](owner: typeof f.owner): Promise<boolean> })[
-        activeMode
+      (service as typeof service & { [checkActiveMode](owner: typeof f.owner): Promise<boolean> })[
+        checkActiveMode
       ](owner)
     assert.isFalse(await check(f.owner))
     await f.start(service)
@@ -106,8 +106,8 @@ test.group('Account Kit managed route coverage', () => {
     const events = f.store.events
     assert.equal(before?.state, 'idle')
     const active = await (
-      service as typeof service & { [activeMode](owner: typeof f.owner): Promise<boolean> }
-    )[activeMode](f.owner)
+      service as typeof service & { [checkActiveMode](owner: typeof f.owner): Promise<boolean> }
+    )[checkActiveMode](f.owner)
     assert.isFalse(active)
     assert.deepEqual(await f.store.read(f.owner), before)
     assert.deepEqual(f.store.events, events)
@@ -124,9 +124,9 @@ test.group('Account Kit managed route coverage', () => {
       f.config.store = async () => Object.assign(Object.create(f.store), { read: badRead })
       const service = await f.create()
       const check = () =>
-        (service as typeof service & { [activeMode](owner: typeof f.owner): Promise<boolean> })[
-          activeMode
-        ](f.owner)
+        (
+          service as typeof service & { [checkActiveMode](owner: typeof f.owner): Promise<boolean> }
+        )[checkActiveMode](f.owner)
       await assert.rejects(check, 'Masquerade is unavailable')
       assert.deepEqual(f.store.events, [])
     }

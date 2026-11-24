@@ -18,12 +18,12 @@ export function markEffectiveFactory<Factory extends (...args: never[]) => unkno
  * Transport recorded when the effective guard factory was defined, or `undefined` for a factory
  * without that metadata, which boot rejects.
  */
-export function effectiveFactoryDriver(factory: unknown): NativeGuardDriver | undefined {
+export function getEffectiveGuardDriver(factory: unknown): NativeGuardDriver | undefined {
   return typeof factory === 'function' ? driversByFactory.get(factory) : undefined
 }
 export function isEffectiveFactory(factory: unknown): boolean {
   return typeof factory === 'function' && effectiveFactories.has(factory)
 }
-export function effectiveFactoryRawGuard(factory: unknown): string | undefined {
+export function getEffectiveFactoryRawGuard(factory: unknown): string | undefined {
   return typeof factory === 'function' ? rawGuardsByFactory.get(factory) : undefined
 }

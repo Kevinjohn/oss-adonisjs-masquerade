@@ -11,7 +11,7 @@ export interface NativeAuthorityComposition<Primary extends NativeRuntimeAdapter
   authenticateActor: Primary['authenticateActor']
 }
 
-function adapterGuard(adapter: NativeRuntimeAdapter): string {
+function requireAdapterGuard(adapter: NativeRuntimeAdapter): string {
   if (!adapter || !adapter.authority || typeof adapter.authenticateActor !== 'function')
     throw new InvalidArgumentsException('Invalid native adapter guard')
   const guard = adapter.guard ?? adapter.authority.guard
@@ -38,7 +38,7 @@ export function nativeAuthorities<Primary extends NativeRuntimeAdapter>(
     throw new InvalidArgumentsException('Native adapter compositions cannot be nested')
 
   for (const adapter of [primary, ...additional]) {
-    const guard = adapterGuard(adapter)
+    const guard = requireAdapterGuard(adapter)
     if (adapter !== primary && adapter.authority !== authority)
       throw new InvalidArgumentsException(
         'Additional native adapters must share the primary authority'

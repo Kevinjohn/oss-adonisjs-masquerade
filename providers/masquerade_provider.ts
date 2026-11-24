@@ -1,7 +1,7 @@
 import { InvalidArgumentsException } from '@adonisjs/core/exceptions'
 import type { ApplicationService } from '@adonisjs/core/types'
-import { controlRouteGuards } from '../src/integration/control_route_guards.js'
-import { createRuntime, runtimeConfiguration } from '../src/integration/runtime_factory.js'
+import { listControlRouteGuards } from '../src/integration/control_route_guards.js'
+import { createRuntime, resolveRuntimeConfiguration } from '../src/integration/runtime_factory.js'
 import type { RuntimeConfiguration } from '../src/integration/runtime_factory.js'
 import { MasqueradeCallbackRegistry, resolveCallbacks } from '../src/callback_registry.js'
 // A side-effect import is retained in the emitted declaration, unlike a type-only empty import.
@@ -29,20 +29,20 @@ export default class MasqueradeProvider {
         return callbacks.native
       })
     this.app.container.singleton('masquerade.runtime', async () => {
-      this.#wiring ??= runtimeConfiguration(this.app)
+      this.#wiring ??= resolveRuntimeConfiguration(this.app)
       return createRuntime(this.app, await this.#wiring)
     })
   }
   /** Build the runtime at boot when `config/masquerade.ts` exists, so a bad config fails early. */
   async boot(): Promise<void> {
     if (this.app.config.get('masquerade') === undefined) return
-    this.#wiring ??= runtimeConfiguration(this.app)
+    this.#wiring ??= resolveRuntimeConfiguration(this.app)
     await this.app.container.make('masquerade.runtime')
   }
   /** Refuse control routes mounted on an effective guard: every control request would fail. */
   async ready(): Promise<void> {
     if (this.app.config.get('masquerade') === undefined) return
-    const guards = controlRouteGuards(await this.app.container.make('router'))
+    const guards = listControlRouteGuards(await this.app.container.make('router'))
     if (guards.length === 0) return
     const runtime = await this.app.container.make('masquerade.runtime')
     const native = await this.app.container.make('masquerade.native')

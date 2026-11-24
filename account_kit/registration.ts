@@ -3,7 +3,7 @@ export interface ManagedRegistration {
 }
 
 /** Resolve the optional peer lazily from the host's installed package instance. */
-export async function managedRegistration(
+export async function readManagedRegistration(
   router: unknown
 ): Promise<ManagedRegistration | undefined> {
   const packagePath = '@kevinjohn/adonisjs-account-kit/http'

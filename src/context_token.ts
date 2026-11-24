@@ -2,7 +2,7 @@ import { createHash } from 'node:crypto'
 import { MasqueradeError } from './errors.js'
 import type { ModeRow, OwnerKey } from './types.js'
 
-export function contextToken(owner: OwnerKey, row: ModeRow | null): string {
+export function buildContextToken(owner: OwnerKey, row: ModeRow | null): string {
   if (row) return `${row.revision}.${row.revisionNonce}`
   const tuple = [owner.namespace, owner.actorId, owner.actorIncarnation]
     .map((part) => `${Buffer.byteLength(part)}:${part}`)
