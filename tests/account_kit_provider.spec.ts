@@ -347,7 +347,7 @@ test.group('Account Kit provider', () => {
         await attempt.call()
         assert.fail('expected active route to block')
       } catch (error) {
-        assert.equal((error as { code: string }).code, 'E_MASQUERADE_ACTION_BLOCKED')
+        assert.equal((error as { code: string }).code, 'E_MASQUERADE_SENSITIVE_ACTION_BLOCKED')
         assert.equal((error as { blockedBy: string }).blockedBy, 'sensitive')
         assert.equal((error as { status: number }).status, 403)
       }
@@ -406,7 +406,7 @@ test.group('Account Kit provider', () => {
         if (label === 'blocked while active') {
           await assert.rejects(
             attempt.call,
-            errors.E_MASQUERADE_ACTION_BLOCKED,
+            errors.E_MASQUERADE_SENSITIVE_ACTION_BLOCKED,
             'Action is blocked while masquerading'
           )
           assert.lengthOf(attempt.reads, 1, name)

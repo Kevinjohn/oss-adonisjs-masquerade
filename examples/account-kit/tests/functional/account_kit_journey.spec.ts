@@ -126,7 +126,7 @@ test.group('packed Account Kit and Masquerade HTTP journey', (group) => {
     )
     assert.equal(blocked.status, 403)
     const blockedBody = await body(blocked)
-    assert.equal(blockedBody.errors[0].code, 'E_MASQUERADE_ACTION_BLOCKED')
+    assert.equal(blockedBody.errors[0].code, 'E_MASQUERADE_SENSITIVE_ACTION_BLOCKED')
     assert.equal(blockedBody.errors[0].blockedBy, 'sensitive')
 
     if (tokenStrategy) {
@@ -138,7 +138,10 @@ test.group('packed Account Kit and Masquerade HTTP journey', (group) => {
         { authorization: `Bearer ${noAbility.value!.release()}` }
       )
       assert.equal(noAbilityResponse.status, 403)
-      assert.equal((await body(noAbilityResponse)).errors[0].code, 'E_MASQUERADE_ACTION_BLOCKED')
+      assert.equal(
+        (await body(noAbilityResponse)).errors[0].code,
+        'E_MASQUERADE_SENSITIVE_ACTION_BLOCKED'
+      )
     } else {
       const allowedCsrf = await http.csrf()
       assert.isString(allowedCsrf)

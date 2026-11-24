@@ -4,8 +4,8 @@
 
 - Breaking: the shared `MasqueradeError` and `MasqueradeSetupError` constructors, including their
   `errors` namespace exports, are replaced by cause-specific constructors under `errors`. Match
-  `errors.E_MASQUERADE_INVALID_CONFIGURATION(field)` or `errors.E_MASQUERADE_INVALID_STORE(field)`
-  for setup failures. Pass the route cause directly to `errors.E_MASQUERADE_ACTION_BLOCKED`.
+  `errors.E_MASQUERADE_INVALID_CONFIGURATION(field)` or the specific store setup exception.
+  Blocked actions and self-target refusals also have their own constructors and HTTP codes.
 - Breaking: operational failures, token ability denials, and mode expiry, invalidation and
   transition conflicts return cause-specific codes. `E_MASQUERADE_UNAVAILABLE` and
   `E_MASQUERADE_NOT_ALLOWED` remain HTTP response codes for protected wiring and eligibility denials.

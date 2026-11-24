@@ -49,7 +49,11 @@ export default class HttpExceptionHandler extends ExceptionHandler {
               : status === 422
                 ? 'Check the customer and reason, then create a new action.'
                 : 'This action is unavailable for the current account or support mode.'
-      if (error instanceof errors.E_MASQUERADE_ACTION_BLOCKED) {
+      if (
+        error instanceof errors.E_MASQUERADE_SENSITIVE_ACTION_BLOCKED ||
+        error instanceof errors.E_MASQUERADE_VIEW_ONLY_ACTION_BLOCKED ||
+        error instanceof errors.E_MASQUERADE_UNMARKED_MUTATION_BLOCKED
+      ) {
         const presentation =
           blockedActionPresentations[error.blockedBy ?? 'sensitive'] ??
           blockedActionPresentations.sensitive

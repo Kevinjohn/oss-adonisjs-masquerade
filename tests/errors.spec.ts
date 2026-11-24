@@ -40,8 +40,8 @@ test.group('Masquerade exceptions', () => {
         'The token lacks the ability required to control masquerade',
       ],
       [
-        new errors.E_MASQUERADE_ACTION_BLOCKED('sensitive'),
-        'E_MASQUERADE_ACTION_BLOCKED',
+        new errors.E_MASQUERADE_SENSITIVE_ACTION_BLOCKED(),
+        'E_MASQUERADE_SENSITIVE_ACTION_BLOCKED',
         403,
         'Action is blocked while masquerading',
       ],
@@ -87,9 +87,8 @@ test.group('Masquerade exceptions', () => {
 
   test('each exported constructor exposes its own raw code and status', ({ assert }) => {
     const argumentsByCode = {
-      E_MASQUERADE_ACTION_BLOCKED: ['sensitive'],
       E_MASQUERADE_INVALID_CONFIGURATION: ['config'],
-      E_MASQUERADE_INVALID_STORE: ['store'],
+      E_MASQUERADE_STORE_METHOD_MISSING: ['read'],
       E_MASQUERADE_STOP_PROGRESS: ['stop_commit', 0, new errors.E_MASQUERADE_UNKNOWN_COMMIT()],
       E_MASQUERADE_PRUNE_PROGRESS: ['expiry_commit', { expired: 0, eventsDeleted: 0 }, true],
     } satisfies {
@@ -133,7 +132,7 @@ test.group('Masquerade exceptions', () => {
     const service = await f.create()
     const idle = await service.status({})
     for (const [targetId, expected] of [
-      ['missing', errors.E_MASQUERADE_TARGET_INELIGIBLE],
+      ['missing', errors.E_MASQUERADE_TARGET_MISSING],
       ['b', errors.E_MASQUERADE_START_DENIED],
     ] as const) {
       f.state.policy = false
@@ -198,14 +197,14 @@ test.group('Masquerade exceptions', () => {
 
   test('includes the blocked cause and preserves no-store cache headers', ({ assert }) => {
     const { ctx, responseState } = requestContext(fixture(), {})
-    const error = new errors.E_MASQUERADE_ACTION_BLOCKED('mutation_not_allowed')
+    const error = new errors.E_MASQUERADE_UNMARKED_MUTATION_BLOCKED()
 
     error.handle(error, ctx)
 
     assert.deepEqual(responseState.json, {
       errors: [
         {
-          code: 'E_MASQUERADE_ACTION_BLOCKED',
+          code: 'E_MASQUERADE_UNMARKED_MUTATION_BLOCKED',
           message: 'Action is blocked while masquerading',
           blockedBy: 'mutation_not_allowed',
         },

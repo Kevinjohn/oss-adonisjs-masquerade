@@ -143,7 +143,7 @@ test.group('Account Kit demo profile', (group) => {
     const blocked = await update('Blocked update')
     assert.equal(blocked.status, 403)
     const blockedBody = (await blocked.json()) as { errors: { code: string }[] }
-    assert.equal(blockedBody.errors[0]?.code, 'E_MASQUERADE_ACTION_BLOCKED')
+    assert.equal(blockedBody.errors[0]?.code, 'E_MASQUERADE_SENSITIVE_ACTION_BLOCKED')
     assert.deepEqual(await db.from('users').where('id', actor.id).first(), activeRow)
     assert.deepEqual(await db.from('users').where('id', target.id).first(), beforeCustomer)
     const active = await http.request('/masquerade', { headers: { accept: 'application/json' } })

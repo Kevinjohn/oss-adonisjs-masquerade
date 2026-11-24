@@ -203,6 +203,7 @@ export interface ControlStore {
   read(owner: OwnerKey): Promise<ModeRow | null>
   /**
    * Atomically match the expected revision (null means absent), replace the row and append its event.
+   * @throws {AggregateError} The default Lucid store can report transaction and cleanup failures in order.
    *
    * @example
    * ```ts
@@ -327,7 +328,7 @@ export interface MasqueradeService<Request> {
    * Start a mode for the authenticated actor.
    *
    * @throws `E_MASQUERADE_INVALID_INPUT`, `E_MASQUERADE_CONTEXT_REQUIRED`,
-   *   `E_MASQUERADE_CONTEXT_CHANGED`, `E_MASQUERADE_ALREADY_ACTIVE` or a named permission, authority or store exception.
+   *   `E_MASQUERADE_CONTEXT_CHANGED`, `E_MASQUERADE_ALREADY_ACTIVE`, `E_MASQUERADE_SELF_TARGET` or a named permission, authority or store exception.
    *
    * @example
    * ```ts

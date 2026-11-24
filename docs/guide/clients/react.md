@@ -48,7 +48,7 @@ mode. Edit starts require the host's `canEdit` callback to return exactly `true`
 admission checks it again. A route's `allowMutation()` marker alone does not grant edit, and a bearer
 ability does not grant edit or target authorisation.
 
-`E_MASQUERADE_ACTION_BLOCKED` includes `blockedBy` in its error item:
+A blocked action includes `blockedBy` in its error item:
 
 ```ts
 type MasqueradeBlockedBy = 'sensitive' | 'view_only' | 'mutation_not_allowed'

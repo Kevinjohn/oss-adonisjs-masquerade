@@ -174,7 +174,7 @@ const originalContext = props.context
 </template>
 ```
 
-Shield's CSRF token is separate. A start request may send `access: 'view' | 'edit'`; omission defaults to view. Active `ModeView` props include `access`, which stays fixed until stop. For `E_MASQUERADE_ACTION_BLOCKED`, the error item also contains `blockedBy: 'sensitive' | 'view_only' | 'mutation_not_allowed'`; the host chooses its own message and recovery page. Do not replace an old form's context token after a props refresh. A 409 or 428 rejects the old intent; render a recovery page and ask the operator to inspect current status and deliberately create a new action. A 503 may leave the result of a transition unknown; inspect raw status without replaying the transition.
+Shield's CSRF token is separate. A start request may send `access: 'view' | 'edit'`; omission defaults to view. Active `ModeView` props include `access`, which stays fixed until stop. For a blocked action, the error item also contains `blockedBy: 'sensitive' | 'view_only' | 'mutation_not_allowed'`; the host chooses its own message and recovery page. Do not replace an old form's context token after a props refresh. A 409 or 428 rejects the old intent; render a recovery page and ask the operator to inspect current status and deliberately create a new action. A 503 may leave the result of a transition unknown; inspect raw status without replaying the transition.
 
 ## Refresh and protect restored pages
 

@@ -1,4 +1,4 @@
-import { E_MASQUERADE_INVALID_INPUT } from './errors.js'
+import { E_MASQUERADE_INVALID_INPUT, E_MASQUERADE_SELF_TARGET } from './errors.js'
 import { isBoundedString } from './bounded_string.js'
 import { requireStartReason } from './reason.js'
 import type { ReasonRequirement } from './reason.js'
@@ -23,8 +23,8 @@ export function requireStartSelection(
   ))
     throw new E_MASQUERADE_INVALID_INPUT()
   const targetId = String(input.targetId)
-  if (!isBoundedString(targetId, 255) || targetId === actorId)
-    throw new E_MASQUERADE_INVALID_INPUT()
+  if (!isBoundedString(targetId, 255)) throw new E_MASQUERADE_INVALID_INPUT()
+  if (targetId === actorId) throw new E_MASQUERADE_SELF_TARGET()
   const duration = input.durationSeconds === undefined ? defaultDuration : input.durationSeconds
   if (
     typeof duration !== 'number' ||

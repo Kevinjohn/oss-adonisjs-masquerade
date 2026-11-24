@@ -314,7 +314,7 @@ The tested artifact hashes and matrix are recorded in the
 
 With an active mode, the global blocker prevents Account Kit's own password, identity, recovery,
 session and other managed account operations from changing the operator's account while the UI
-shows a target. It returns `403 E_MASQUERADE_ACTION_BLOCKED` with `blockedBy: 'sensitive'` before the
+shows a target. It returns `403 E_MASQUERADE_SENSITIVE_ACTION_BLOCKED` with `blockedBy: 'sensitive'` before the
 handler. This also applies to an authenticated raw-guard actor whose token lacks the Masquerade
 ability. The blocker reads the existing Masquerade row; a store failure returns 503.
 
@@ -377,7 +377,7 @@ An active mode returns the same `403` JSON error as the managed blocker:
 {
   "errors": [
     {
-      "code": "E_MASQUERADE_ACTION_BLOCKED",
+      "code": "E_MASQUERADE_SENSITIVE_ACTION_BLOCKED",
       "message": "Action is blocked while masquerading",
       "blockedBy": "sensitive"
     }

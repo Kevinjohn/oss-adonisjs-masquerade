@@ -40,9 +40,9 @@ test.group('pruneMasquerade', () => {
     const status = await service.status({ actorId: 'a' })
     assert.isTrue(status.isMasquerading)
     const error = await pruneMasquerade(config, f.dependencies).catch((caught: unknown) => caught)
-    assert.instanceOf(error, errors.E_MASQUERADE_INVALID_STORE)
+    assert.instanceOf(error, errors.E_MASQUERADE_STORE_METHOD_MISSING)
     assert.equal(
-      (error as InstanceType<typeof errors.E_MASQUERADE_INVALID_STORE>).field,
+      (error as InstanceType<typeof errors.E_MASQUERADE_STORE_METHOD_MISSING>).field,
       'store.expiredBatch'
     )
     const testOnly = { ...requestStore, testOnly: true }
@@ -50,9 +50,9 @@ test.group('pruneMasquerade', () => {
       { ...config, store: async () => testOnly },
       { ...f.dependencies, environment: 'production' }
     ).catch((caught: unknown) => caught)
-    assert.instanceOf(production, errors.E_MASQUERADE_INVALID_STORE)
+    assert.instanceOf(production, errors.E_MASQUERADE_TEST_STORE_FORBIDDEN)
     assert.equal(
-      (production as InstanceType<typeof errors.E_MASQUERADE_INVALID_STORE>).field,
+      (production as InstanceType<typeof errors.E_MASQUERADE_TEST_STORE_FORBIDDEN>).field,
       'store.testOnly'
     )
   })
@@ -94,25 +94,25 @@ test.group('pruneMasquerade', () => {
       { ...f.config, store: async () => null as never },
       f.dependencies
     ).catch((caught: unknown) => caught)
-    assert.instanceOf(error, errors.E_MASQUERADE_INVALID_STORE)
+    assert.instanceOf(error, errors.E_MASQUERADE_STORE_MISSING)
     assert.equal(
-      (error as InstanceType<typeof errors.E_MASQUERADE_INVALID_STORE>).code,
-      'E_MASQUERADE_INVALID_STORE'
+      (error as InstanceType<typeof errors.E_MASQUERADE_STORE_MISSING>).code,
+      'E_MASQUERADE_STORE_MISSING'
     )
-    assert.equal((error as InstanceType<typeof errors.E_MASQUERADE_INVALID_STORE>).field, 'store')
+    assert.equal((error as InstanceType<typeof errors.E_MASQUERADE_STORE_MISSING>).field, 'store')
   })
 
   test('preserves a missing store capability as a setup error', async ({ assert }) => {
     const f = fixture()
     f.store.expiredBatch = undefined as never
     const error = await pruneMasquerade(f.config, f.dependencies).catch((caught: unknown) => caught)
-    assert.instanceOf(error, errors.E_MASQUERADE_INVALID_STORE)
+    assert.instanceOf(error, errors.E_MASQUERADE_STORE_METHOD_MISSING)
     assert.equal(
-      (error as InstanceType<typeof errors.E_MASQUERADE_INVALID_STORE>).code,
-      'E_MASQUERADE_INVALID_STORE'
+      (error as InstanceType<typeof errors.E_MASQUERADE_STORE_METHOD_MISSING>).code,
+      'E_MASQUERADE_STORE_METHOD_MISSING'
     )
     assert.equal(
-      (error as InstanceType<typeof errors.E_MASQUERADE_INVALID_STORE>).field,
+      (error as InstanceType<typeof errors.E_MASQUERADE_STORE_METHOD_MISSING>).field,
       'store.expiredBatch'
     )
   })
@@ -128,7 +128,7 @@ test.group('pruneMasquerade', () => {
       },
       f.dependencies
     ).catch((caught: unknown) => caught)
-    assert.notInstanceOf(error, errors.E_MASQUERADE_INVALID_STORE)
+    assert.notInstanceOf(error, errors.E_MASQUERADE_STORE_MISSING)
     assert.equal((error as { code: string }).code, 'E_MASQUERADE_STORE_OPEN_FAILED')
   })
 

@@ -248,7 +248,7 @@ test.group('real HTTP masquerade context and actions', (group) => {
     formControl.assertStatus(409)
     const rejected = await mutation(client, actor, token, '/business/denied-mutation')
     rejected.assertStatus(403)
-    assert.equal(rejected.body().errors[0].code, 'E_MASQUERADE_ACTION_BLOCKED')
+    assert.equal(rejected.body().errors[0].code, 'E_MASQUERADE_UNMARKED_MUTATION_BLOCKED')
     const fakeRead = await mutation(client, actor, token, '/business/read-marked-mutation')
     fakeRead.assertStatus(403)
     const allowed = await mutation(client, actor, token, '/business/mutate')
@@ -262,7 +262,7 @@ test.group('real HTTP masquerade context and actions', (group) => {
     for (const path of ['/business/sensitive', '/business/billing']) {
       const blocked = await mutation(client, actor, token, path)
       blocked.assertStatus(403)
-      assert.equal(blocked.body().errors[0].code, 'E_MASQUERADE_ACTION_BLOCKED')
+      assert.equal(blocked.body().errors[0].code, 'E_MASQUERADE_SENSITIVE_ACTION_BLOCKED')
     }
   })
 
@@ -290,7 +290,7 @@ test.group('real HTTP masquerade context and actions', (group) => {
       .form({ emailUpdates: '1', _masqueradeContext: viewToken })
       .loginAs(actor)
     blocked.assertStatus(403)
-    assert.equal(blocked.body().errors[0].code, 'E_MASQUERADE_ACTION_BLOCKED')
+    assert.equal(blocked.body().errors[0].code, 'E_MASQUERADE_VIEW_ONLY_ACTION_BLOCKED')
     assert.equal(blocked.body().errors[0].blockedBy, 'view_only')
     assert.isNull(await db.from('demo_preferences').where('user_id', target.id).first())
     const stopped = await client

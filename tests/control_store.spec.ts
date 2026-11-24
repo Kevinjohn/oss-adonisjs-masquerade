@@ -17,10 +17,10 @@ test('reports an invalid store contract without exposing store values', async ({
     error = caught
   }
 
-  assert.instanceOf(error, errors.E_MASQUERADE_INVALID_STORE)
+  assert.instanceOf(error, errors.E_MASQUERADE_STORE_METHOD_MISSING)
   assert.instanceOf(error, RuntimeException)
-  assert.equal((error as { code?: string }).code, 'E_MASQUERADE_INVALID_STORE')
+  assert.equal((error as { code?: string }).code, 'E_MASQUERADE_STORE_METHOD_MISSING')
   assert.equal((error as { field?: string }).field, 'store.compareAndSet')
-  assert.equal((error as Error).message, 'Invalid masquerade store for environment')
+  assert.equal((error as Error).message, 'The masquerade store lacks a required method')
   assert.notInclude(JSON.stringify(error), 'store-secret')
 })

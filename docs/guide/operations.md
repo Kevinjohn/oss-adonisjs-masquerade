@@ -22,8 +22,8 @@ expired-mode candidates are examined, and, when event retention is configured, a
 old events are deleted. A pass does not keep fetching batches until all eligible work is gone.
 Concurrent changes can also make an expiry candidate ineligible before it is updated.
 
-Pruning preserves `errors.E_MASQUERADE_INVALID_STORE` and its field when the resolved store is missing or
-lacks a required method. A throwing store factory remains operational
+Pruning preserves setup exceptions and their fields for a missing store, a test-only store
+outside tests, or a missing required method. A throwing store factory remains operational
 `E_MASQUERADE_STORE_OPEN_FAILED`. Fix the reported configuration before rerunning a setup failure.
 Check the service or database when the factory is unavailable.
 

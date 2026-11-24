@@ -148,7 +148,7 @@ test.group('packed Account Kit eligibility inspection', (group) => {
       const events = await actorEvents(actor.id)
       assert.lengthOf(events, 1)
       assert.equal(events[0].kind, 'start_denied')
-      assert.equal(events[0].outcome_code, 'E_MASQUERADE_TARGET_INELIGIBLE')
+      assert.equal(events[0].outcome_code, 'E_MASQUERADE_TARGET_MISSING')
       // The denial records the requested target, and no inspected incarnation.
       assert.equal(events[0].target_id, String(requested))
       assert.isNull(events[0].target_incarnation)

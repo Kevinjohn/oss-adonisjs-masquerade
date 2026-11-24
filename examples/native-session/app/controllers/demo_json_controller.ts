@@ -73,7 +73,7 @@ export default class DemoJsonController {
   async sensitive(ctx: HttpContext) {
     noStore(ctx)
     return ctx.response.forbidden({
-      code: 'E_MASQUERADE_ACTION_BLOCKED',
+      code: 'E_MASQUERADE_SENSITIVE_ACTION_BLOCKED',
       message: 'Sensitive account actions are unavailable in support mode.',
     })
   }

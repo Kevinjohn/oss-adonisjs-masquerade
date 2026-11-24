@@ -5,6 +5,7 @@ import {
   MasqueradeRequestException,
 } from './request_exception.js'
 import type { PrunePhase, PruneResult } from './prune.js'
+import type { ControlStore } from './types.js'
 import type { StopPhase } from './stop_modes.js'
 
 /** Stable request exception codes exposed to server callers. */
@@ -17,12 +18,15 @@ export type MasqueradeErrorCode = Exclude<
 export type MasqueradeResponseCode =
   MasqueradeErrorCode | 'E_MASQUERADE_NOT_ALLOWED' | 'E_MASQUERADE_UNAVAILABLE'
 
-/** The route rule behind `E_MASQUERADE_ACTION_BLOCKED`. */
+/** The route rule reported by a blocked action. */
 export type MasqueradeBlockedBy = 'sensitive' | 'view_only' | 'mutation_not_allowed'
 
 /** Stable boot-time configuration error codes. */
 export type MasqueradeSetupErrorCode =
-  'E_MASQUERADE_INVALID_CONFIGURATION' | 'E_MASQUERADE_INVALID_STORE'
+  | 'E_MASQUERADE_INVALID_CONFIGURATION'
+  | 'E_MASQUERADE_STORE_MISSING'
+  | 'E_MASQUERADE_TEST_STORE_FORBIDDEN'
+  | 'E_MASQUERADE_STORE_METHOD_MISSING'
 
 /** The configuration field named by a setup exception. */
 export type MasqueradeSetupErrorField =
@@ -59,21 +63,6 @@ class UnauthenticatedException extends MasqueradeRequestException {
 
   constructor() {
     super()
-  }
-}
-
-class ActionBlockedException extends MasqueradeRequestException {
-  static code = 'E_MASQUERADE_ACTION_BLOCKED' as const
-  static status = 403
-  static message = 'Action is blocked while masquerading'
-
-  constructor(readonly blockedBy: MasqueradeBlockedBy) {
-    super()
-  }
-
-  /** @internal */
-  protected override responseDetails() {
-    return { blockedBy: this.blockedBy }
   }
 }
 
@@ -121,16 +110,6 @@ class InvalidConfigurationException extends RuntimeException {
   static code = 'E_MASQUERADE_INVALID_CONFIGURATION' as const
   static status = 500
   static message = 'Invalid masquerade configuration'
-
-  constructor(readonly field: MasqueradeSetupErrorField) {
-    super()
-  }
-}
-
-class InvalidStoreException extends RuntimeException {
-  static code = 'E_MASQUERADE_INVALID_STORE' as const
-  static status = 500
-  static message = 'Invalid masquerade store for environment'
 
   constructor(readonly field: MasqueradeSetupErrorField) {
     super()
@@ -187,12 +166,6 @@ class PruneProgressException extends MasqueradeRequestException {
 export const E_MASQUERADE_UNAUTHENTICATED = UnauthenticatedException
 
 /**
- * Action is blocked while masquerading.
- * @class
- */
-export const E_MASQUERADE_ACTION_BLOCKED = ActionBlockedException
-
-/**
  * Masquerade is already active.
  * @class
  */
@@ -221,12 +194,6 @@ export const E_MASQUERADE_CONTEXT_REQUIRED = ContextRequiredException
  * @class
  */
 export const E_MASQUERADE_INVALID_CONFIGURATION = InvalidConfigurationException
-
-/**
- * Invalid masquerade store for environment.
- * @class
- */
-export const E_MASQUERADE_INVALID_STORE = InvalidStoreException
 
 /**
  * A transition whose commit could not be confirmed.
@@ -453,38 +420,6 @@ class BlockerAdapterUnavailableException extends GuardWiringException {
  * @class
  */
 export const E_MASQUERADE_BLOCKER_ADAPTER_UNAVAILABLE = BlockerAdapterUnavailableException
-
-class ActorIneligibleException extends EligibilityException {
-  static code = 'E_MASQUERADE_ACTOR_INELIGIBLE' as const
-  static status = 403
-  static message = 'The actor is not eligible to start masquerade'
-
-  constructor() {
-    super()
-  }
-}
-
-/**
- * The actor is not eligible to start masquerade.
- * @class
- */
-export const E_MASQUERADE_ACTOR_INELIGIBLE = ActorIneligibleException
-
-class TargetIneligibleException extends EligibilityException {
-  static code = 'E_MASQUERADE_TARGET_INELIGIBLE' as const
-  static status = 403
-  static message = 'The requested account is not eligible for masquerade'
-
-  constructor() {
-    super()
-  }
-}
-
-/**
- * The requested account is not eligible for masquerade.
- * @class
- */
-export const E_MASQUERADE_TARGET_INELIGIBLE = TargetIneligibleException
 
 class StartDeniedException extends EligibilityException {
   static code = 'E_MASQUERADE_START_DENIED' as const
@@ -1157,3 +1092,218 @@ class ModeInvalidatedException extends MasqueradeRequestException {
  * @class
  */
 export const E_MASQUERADE_MODE_INVALIDATED = ModeInvalidatedException
+
+abstract class BlockedActionException<
+  Reason extends MasqueradeBlockedBy,
+> extends MasqueradeRequestException {
+  abstract readonly blockedBy: Reason
+
+  /** @internal */
+  protected override responseDetails() {
+    return { blockedBy: this.blockedBy }
+  }
+}
+
+class SensitiveActionBlockedException extends BlockedActionException<'sensitive'> {
+  static code = 'E_MASQUERADE_SENSITIVE_ACTION_BLOCKED' as const
+  static status = 403
+  static message = 'Action is blocked while masquerading'
+  readonly blockedBy = 'sensitive' as const
+
+  constructor() {
+    super()
+  }
+}
+
+/**
+ * Action is blocked while masquerading.
+ * @class
+ */
+export const E_MASQUERADE_SENSITIVE_ACTION_BLOCKED = SensitiveActionBlockedException
+
+class ViewOnlyActionBlockedException extends BlockedActionException<'view_only'> {
+  static code = 'E_MASQUERADE_VIEW_ONLY_ACTION_BLOCKED' as const
+  static status = 403
+  static message = 'Action is blocked while masquerading'
+  readonly blockedBy = 'view_only' as const
+
+  constructor() {
+    super()
+  }
+}
+
+/**
+ * Action is blocked while masquerading.
+ * @class
+ */
+export const E_MASQUERADE_VIEW_ONLY_ACTION_BLOCKED = ViewOnlyActionBlockedException
+
+class UnmarkedMutationBlockedException extends BlockedActionException<'mutation_not_allowed'> {
+  static code = 'E_MASQUERADE_UNMARKED_MUTATION_BLOCKED' as const
+  static status = 403
+  static message = 'Action is blocked while masquerading'
+  readonly blockedBy = 'mutation_not_allowed' as const
+
+  constructor() {
+    super()
+  }
+}
+
+/**
+ * Action is blocked while masquerading.
+ * @class
+ */
+export const E_MASQUERADE_UNMARKED_MUTATION_BLOCKED = UnmarkedMutationBlockedException
+
+class ActorMissingException extends EligibilityException {
+  static code = 'E_MASQUERADE_ACTOR_MISSING' as const
+  static status = 403
+  static message = 'The authority did not return the authenticated actor'
+
+  constructor() {
+    super()
+  }
+}
+
+/**
+ * The authority did not return the authenticated actor.
+ * @class
+ */
+export const E_MASQUERADE_ACTOR_MISSING = ActorMissingException
+
+class ActorInactiveException extends EligibilityException {
+  static code = 'E_MASQUERADE_ACTOR_INACTIVE' as const
+  static status = 403
+  static message = 'The authenticated actor is inactive'
+
+  constructor() {
+    super()
+  }
+}
+
+/**
+ * The authenticated actor is inactive.
+ * @class
+ */
+export const E_MASQUERADE_ACTOR_INACTIVE = ActorInactiveException
+
+class ActorIdentityMismatchException extends EligibilityException {
+  static code = 'E_MASQUERADE_ACTOR_IDENTITY_MISMATCH' as const
+  static status = 403
+  static message = 'The inspected account does not match the authenticated actor'
+
+  constructor() {
+    super()
+  }
+}
+
+/**
+ * The inspected account does not match the authenticated actor.
+ * @class
+ */
+export const E_MASQUERADE_ACTOR_IDENTITY_MISMATCH = ActorIdentityMismatchException
+
+class TargetMissingException extends EligibilityException {
+  static code = 'E_MASQUERADE_TARGET_MISSING' as const
+  static status = 403
+  static message = 'The authority did not return the requested account'
+
+  constructor() {
+    super()
+  }
+}
+
+/**
+ * The authority did not return the requested account.
+ * @class
+ */
+export const E_MASQUERADE_TARGET_MISSING = TargetMissingException
+
+class TargetInactiveException extends EligibilityException {
+  static code = 'E_MASQUERADE_TARGET_INACTIVE' as const
+  static status = 403
+  static message = 'The requested account is inactive'
+
+  constructor() {
+    super()
+  }
+}
+
+/**
+ * The requested account is inactive.
+ * @class
+ */
+export const E_MASQUERADE_TARGET_INACTIVE = TargetInactiveException
+
+class SelfTargetException extends MasqueradeRequestException {
+  static code = 'E_MASQUERADE_SELF_TARGET' as const
+  static status = 422
+  static message = 'The actor cannot masquerade as themselves'
+
+  constructor() {
+    super()
+  }
+}
+
+/**
+ * The actor cannot masquerade as themselves.
+ * @class
+ */
+export const E_MASQUERADE_SELF_TARGET = SelfTargetException
+
+class StoreMissingException extends RuntimeException {
+  static code = 'E_MASQUERADE_STORE_MISSING' as const
+  static status = 500
+  static message = 'The masquerade store factory returned no store'
+  readonly field = 'store' as const
+  declare readonly code: 'E_MASQUERADE_STORE_MISSING'
+
+  constructor() {
+    super()
+  }
+}
+
+/**
+ * The masquerade store factory returned no store.
+ * @class
+ */
+export const E_MASQUERADE_STORE_MISSING = StoreMissingException
+
+class TestStoreForbiddenException extends RuntimeException {
+  static code = 'E_MASQUERADE_TEST_STORE_FORBIDDEN' as const
+  static status = 500
+  static message = 'A test-only masquerade store requires a test environment'
+  readonly field = 'store.testOnly' as const
+  declare readonly code: 'E_MASQUERADE_TEST_STORE_FORBIDDEN'
+
+  constructor() {
+    super()
+  }
+}
+
+/**
+ * A test-only masquerade store requires a test environment.
+ * @class
+ */
+export const E_MASQUERADE_TEST_STORE_FORBIDDEN = TestStoreForbiddenException
+
+class StoreMethodMissingException extends RuntimeException {
+  static code = 'E_MASQUERADE_STORE_METHOD_MISSING' as const
+  static status = 500
+  static message = 'The masquerade store lacks a required method'
+  declare readonly code: 'E_MASQUERADE_STORE_METHOD_MISSING'
+
+  get field(): MasqueradeSetupErrorField {
+    return `store.${this.method}`
+  }
+
+  constructor(readonly method: keyof ControlStore) {
+    super()
+  }
+}
+
+/**
+ * The masquerade store lacks a required method.
+ * @class
+ */
+export const E_MASQUERADE_STORE_METHOD_MISSING = StoreMethodMissingException

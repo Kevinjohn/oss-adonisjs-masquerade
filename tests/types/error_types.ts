@@ -21,15 +21,13 @@ const unknown: MasqueradeErrorCode = 'E_MASQUERADE_UNKNOWN'
 
 void [rootCode, rootBlockedBy, rootSetupCode, rootField, unknown]
 
-// @ts-expect-error The blocked-action constructor requires the route cause.
-new root.errors.E_MASQUERADE_ACTION_BLOCKED()
-// @ts-expect-error The blocked-action constructor rejects unknown causes.
-new root.errors.E_MASQUERADE_ACTION_BLOCKED('unknown')
+// @ts-expect-error The blocked-action constructor fixes its cause.
+new root.errors.E_MASQUERADE_SENSITIVE_ACTION_BLOCKED('unknown')
 // @ts-expect-error Other exceptions accept no blockedBy option.
 new root.errors.E_MASQUERADE_TOKEN_ABILITY_REQUIRED({ blockedBy: 'sensitive' })
 // @ts-expect-error Exception codes cannot be overridden through constructor options.
 new root.errors.E_MASQUERADE_TOKEN_ABILITY_REQUIRED({ code: 'E_OTHER' })
-const blocked = new root.errors.E_MASQUERADE_ACTION_BLOCKED('sensitive')
+const blocked = new root.errors.E_MASQUERADE_SENSITIVE_ACTION_BLOCKED()
 // @ts-expect-error The route cause is read-only.
 blocked.blockedBy = 'view_only'
 

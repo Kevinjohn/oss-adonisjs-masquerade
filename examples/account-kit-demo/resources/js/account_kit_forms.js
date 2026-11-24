@@ -54,7 +54,7 @@ function enable(form) {
         })
         if (!response.ok) {
           form.querySelector('[data-kit-stop]').hidden =
-            issue.code !== 'E_MASQUERADE_ACTION_BLOCKED'
+            issue.code !== 'E_MASQUERADE_SENSITIVE_ACTION_BLOCKED'
           throw new Error(
             issue.message ?? issue.title ?? 'The display name could not be saved. Please retry.'
           )

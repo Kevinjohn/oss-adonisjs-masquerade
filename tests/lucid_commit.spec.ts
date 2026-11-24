@@ -208,8 +208,9 @@ if (process.env.DB_CLIENT === 'pg') {
     try {
       await reader.from('masquerade_modes')
       const knex = f.second.getWriteClient()
-      const releaseFailure = new Error('native checkout release failure')
       const rollbackFailure = new Error('native rollback connection failure')
+      // These are independent operations even when they throw the same object.
+      const releaseFailure = rollbackFailure
       let rollbackFailed = false
       const client = new Proxy(knex.client, {
         get(target, property, receiver) {

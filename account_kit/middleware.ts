@@ -1,6 +1,6 @@
 import {
   E_MASQUERADE_ACCOUNT_USER_INVALID,
-  E_MASQUERADE_ACTION_BLOCKED,
+  E_MASQUERADE_SENSITIVE_ACTION_BLOCKED,
   E_MASQUERADE_BLOCKER_ADAPTER_UNAVAILABLE,
   E_MASQUERADE_BLOCKER_AUTHENTICATION_FAILED,
   E_MASQUERADE_BLOCKER_MODE_CHECK_FAILED,
@@ -40,7 +40,7 @@ import { readManagedRegistration } from './registration.js'
  * ```
  */
 export class AccountKitAccountBlocker {
-  /** Refuse the route with `E_MASQUERADE_ACTION_BLOCKED` (`sensitive`) while a mode is active. */
+  /** Refuse the route with `E_MASQUERADE_SENSITIVE_ACTION_BLOCKED` (`sensitive`) while a mode is active. */
   async handle(ctx: HttpContext, next: () => Promise<unknown>): Promise<unknown> {
     let adapter: AccountKitAdapter<unknown>
     let raw: GuardContract<unknown>
@@ -82,7 +82,7 @@ export class AccountKitAccountBlocker {
           actorIncarnation: incarnation,
         })
       )
-        throw new E_MASQUERADE_ACTION_BLOCKED('sensitive')
+        throw new E_MASQUERADE_SENSITIVE_ACTION_BLOCKED()
     } catch (error) {
       if (error instanceof MasqueradeRequestException) throw error
       throw new E_MASQUERADE_BLOCKER_MODE_CHECK_FAILED(error)

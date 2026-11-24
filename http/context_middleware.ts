@@ -1,5 +1,10 @@
 import { MasqueradeRequestException } from '../src/request_exception.js'
-import { E_MASQUERADE_ACTION_BLOCKED, E_MASQUERADE_CONTEXT_CHANGED } from '../src/errors.js'
+import {
+  E_MASQUERADE_SENSITIVE_ACTION_BLOCKED,
+  E_MASQUERADE_VIEW_ONLY_ACTION_BLOCKED,
+  E_MASQUERADE_UNMARKED_MUTATION_BLOCKED,
+  E_MASQUERADE_CONTEXT_CHANGED,
+} from '../src/errors.js'
 import type { HttpContext } from '@adonisjs/core/http'
 import type { NextFn } from '@adonisjs/core/types/http'
 import { errors } from '@adonisjs/auth'
@@ -108,11 +113,11 @@ export async function masqueradeContext(
 
   if (context.isMasquerading) {
     const markers = routeMarkers(ctx)
-    if (markers.sensitive) throw new E_MASQUERADE_ACTION_BLOCKED('sensitive')
+    if (markers.sensitive) throw new E_MASQUERADE_SENSITIVE_ACTION_BLOCKED()
     if (isUnsafe(method) && context.access !== 'edit')
-      throw new E_MASQUERADE_ACTION_BLOCKED('view_only')
+      throw new E_MASQUERADE_VIEW_ONLY_ACTION_BLOCKED()
     if (isUnsafe(method) && !markers.allowMutation)
-      throw new E_MASQUERADE_ACTION_BLOCKED('mutation_not_allowed')
+      throw new E_MASQUERADE_UNMARKED_MUTATION_BLOCKED()
   }
   await next()
 }

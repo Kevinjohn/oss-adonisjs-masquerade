@@ -263,12 +263,7 @@ export class LucidControlStore implements ControlStore {
         try {
           await knex.client.releaseConnection(connection)
         } catch (cleanupError) {
-          if (
-            workFailure &&
-            cleanupError !== workFailure.error &&
-            !workFailure.cleanup.includes(cleanupError)
-          )
-            workFailure.cleanup.push(cleanupError)
+          if (workFailure) workFailure.cleanup.push(cleanupError)
           this.#retireWritePool(knex)
           // Report cleanup independently so it cannot change the transaction result.
           void Promise.resolve()

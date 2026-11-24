@@ -324,22 +324,22 @@ interface ControlStore {
 - Control, status and effective-user responses send `Cache-Control: no-store` and appropriate `Vary`.
 - Input: reject unknown fields, oversized bodies (8 KiB), fractional or out-of-range durations, and client-supplied expiry. The optional `access` field is specified in §14; this start-body clause is superseded by [§14](#14-view-only-default-and-per-start-edit-access-accepted-22-october-2026).
 - Reason normalization order (for a supplied reason, or any reason in required mode): trim with `String.prototype.trim()`, replace `\r\n` with `\n`, reject any C0 or C1 control except `\n` and `\t`, then require 1–500 Unicode code points and at most 2,000 UTF-8 bytes. Persist the normalized value; never truncate. Acceptable: `Ticket 4821: cannot see invoices`. Unacceptable: a tab-only string, or text containing `\u0007`.
-- JSON errors are `{ errors: [{ code, message }] }` with stable codes, except §14 defines the `blockedBy` field for `E_MASQUERADE_ACTION_BLOCKED`. `message` is looked up as `errors.<code>` through the request's `@adonisjs/i18n` instance when the application has one, and uses English otherwise. No JSON:API negotiation.
+- JSON errors are `{ errors: [{ code, message }] }` with stable codes, except §14 defines the `blockedBy` field for blocked actions. `message` is looked up as `errors.<code>` through the request's `@adonisjs/i18n` instance when the application has one, and uses English otherwise. No JSON:API negotiation.
 
-| HTTP | Code                                                                                             | Meaning                                                                       |
-| ---- | ------------------------------------------------------------------------------------------------ | ----------------------------------------------------------------------------- |
-| 401  | `E_UNAUTHORIZED_ACCESS` (host)                                                                   | Native actor authentication is missing; host negotiation may redirect instead |
-| 403  | `E_MASQUERADE_NOT_ALLOWED`                                                                       | Policy or eligibility denial; no target disclosure                            |
-| 403  | `E_MASQUERADE_ACTION_BLOCKED`                                                                    | Sensitive route or mutation denied while active; §14 supplies `blockedBy`     |
-| 409  | `E_MASQUERADE_ALREADY_ACTIVE`                                                                    | Cannot nest, replace or renew                                                 |
-| 409  | `E_MASQUERADE_CONTEXT_CHANGED`                                                                   | Stale or conflicting token                                                    |
-| 422  | `E_MASQUERADE_INVALID_INPUT`                                                                     | Invalid control input or self-target                                          |
-| 428  | `E_MASQUERADE_CONTEXT_REQUIRED`                                                                  | Covered unsafe request lacks a token                                          |
-| 409  | `E_MASQUERADE_MODE_EXPIRED`, `E_MASQUERADE_MODE_INVALIDATED`, `E_MASQUERADE_TRANSITION_CONFLICT` | Refresh status after expiry, invalidation or a concurrent transition          |
-| 403  | `E_MASQUERADE_TOKEN_ABILITY_REQUIRED`                                                            | The native token lacks the configured ability                                 |
-| 503  | `E_MASQUERADE_UNKNOWN_COMMIT`                                                                    | A transition could not be confirmed                                           |
-| 503  | `E_MASQUERADE_UNAVAILABLE`                                                                       | A protected wiring fault                                                      |
-| 503  | Cause-specific exception code                                                                    | An operational store, authority, policy or credential failure                 |
+| HTTP | Code                                                                                                                          | Meaning                                                                       |
+| ---- | ----------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------- |
+| 401  | `E_UNAUTHORIZED_ACCESS` (host)                                                                                                | Native actor authentication is missing; host negotiation may redirect instead |
+| 403  | `E_MASQUERADE_NOT_ALLOWED`                                                                                                    | Policy or eligibility denial; no target disclosure                            |
+| 403  | `E_MASQUERADE_SENSITIVE_ACTION_BLOCKED`, `E_MASQUERADE_VIEW_ONLY_ACTION_BLOCKED`, or `E_MASQUERADE_UNMARKED_MUTATION_BLOCKED` | §14 supplies `blockedBy` for each blocked action.                             |
+| 409  | `E_MASQUERADE_ALREADY_ACTIVE`                                                                                                 | Cannot nest, replace or renew                                                 |
+| 409  | `E_MASQUERADE_CONTEXT_CHANGED`                                                                                                | Stale or conflicting token                                                    |
+| 422  | `E_MASQUERADE_INVALID_INPUT` or `E_MASQUERADE_SELF_TARGET`                                                                    | Invalid control input or self-target                                          |
+| 428  | `E_MASQUERADE_CONTEXT_REQUIRED`                                                                                               | Covered unsafe request lacks a token                                          |
+| 409  | `E_MASQUERADE_MODE_EXPIRED`, `E_MASQUERADE_MODE_INVALIDATED`, `E_MASQUERADE_TRANSITION_CONFLICT`                              | Refresh status after expiry, invalidation or a concurrent transition          |
+| 403  | `E_MASQUERADE_TOKEN_ABILITY_REQUIRED`                                                                                         | The native token lacks the configured ability                                 |
+| 503  | `E_MASQUERADE_UNKNOWN_COMMIT`                                                                                                 | A transition could not be confirmed                                           |
+| 503  | `E_MASQUERADE_UNAVAILABLE`                                                                                                    | A protected wiring fault                                                      |
+| 503  | Cause-specific exception code                                                                                                 | An operational store, authority, policy or credential failure                 |
 
 Native authentication failures are outside the package JSON envelope: the exception code is
 `E_UNAUTHORIZED_ACCESS`, ordinary JSON may include only a message, JSON:API may include a code,
@@ -563,20 +563,20 @@ This additive contract changes D09/I12 and the related route, admission and star
 
 After active admission and context-token validation, apply these rules in order:
 
-| Condition                                          | Result                                                                 |
-| -------------------------------------------------- | ---------------------------------------------------------------------- |
-| Route is `sensitive()` (any method)                | 403 `E_MASQUERADE_ACTION_BLOCKED`, `blockedBy: 'sensitive'`            |
-| Method is unsafe and `access !== 'edit'`           | 403 `E_MASQUERADE_ACTION_BLOCKED`, `blockedBy: 'view_only'`            |
-| Method is unsafe and route lacks `allowMutation()` | 403 `E_MASQUERADE_ACTION_BLOCKED`, `blockedBy: 'mutation_not_allowed'` |
-| Otherwise                                          | Continue; ordinary Bouncer authorization runs as the target            |
+| Condition                                          | Result                                                                            |
+| -------------------------------------------------- | --------------------------------------------------------------------------------- |
+| Route is `sensitive()` (any method)                | 403 `E_MASQUERADE_SENSITIVE_ACTION_BLOCKED`, `blockedBy: 'sensitive'`             |
+| Method is unsafe and `access !== 'edit'`           | 403 `E_MASQUERADE_VIEW_ONLY_ACTION_BLOCKED`, `blockedBy: 'view_only'`             |
+| Method is unsafe and route lacks `allowMutation()` | 403 `E_MASQUERADE_UNMARKED_MUTATION_BLOCKED`, `blockedBy: 'mutation_not_allowed'` |
+| Otherwise                                          | Continue; ordinary Bouncer authorization runs as the target                       |
 
 The view-only check MUST use `access !== 'edit'`, so a missing or unknown access value fails closed. In view mode, an unsafe route without `allowMutation()` still returns `blockedBy: 'view_only'`; it MUST NOT reveal route configuration. `sensitive()` always takes precedence. Safe methods continue under ordinary target authorization; this is not a guarantee that handlers have no side effects.
 
 ### 14.4 Error contract and JSON
 
 - Export `MasqueradeBlockedBy = 'sensitive' | 'view_only' | 'mutation_not_allowed'` from the package root.
-- `new errors.E_MASQUERADE_ACTION_BLOCKED(blockedBy)` requires the route cause. Each other request exception is constructed by its code from the root `errors` namespace. Setup exceptions take the relevant field.
-- For `E_MASQUERADE_ACTION_BLOCKED`, `handle()` emits `{ errors: [{ code, message, blockedBy }] }`. Other errors remain `{ errors: [{ code, message }] }`. `message` is looked up through `ctx.i18n` using the stable `errors.<code>` identifier and the English message for that code as fallback; if the context has no i18n instance, English is returned. The lookup key and fallback do not use `error.message` or an overridden identifier. The package ships no translation catalog, loader or locale setting.
+- Each blocked action has its own exception constructor and a fixed `blockedBy` value. Request exceptions are constructed by code from the root `errors` namespace.
+- For blocked actions, `handle()` emits `{ errors: [{ code, message, blockedBy }] }`. Other errors remain `{ errors: [{ code, message }] }`. `message` is looked up through `ctx.i18n` using the stable `errors.<code>` identifier and the English message for that code as fallback; if the context has no i18n instance, English is returned. The lookup key and fallback do not use `error.message` or an overridden identifier. The package ships no translation catalog, loader or locale setting.
 
 ### 14.5 Transition and test obligations
 
@@ -650,7 +650,7 @@ re-evaluated on each active admission and denial follows the existing `policy_de
 The host installs the adapter global router middleware after session and `initialize_auth`
 middleware, in `start/kernel.ts`. It identifies managed requests by route name beginning `accountKit.`. While a mode is
 active, it blocks every such route except `accountKit.account.logout` and
-`accountKit.auth.csrf`, returning `E_MASQUERADE_ACTION_BLOCKED` with `blockedBy: 'sensitive'` before
+`accountKit.auth.csrf`, returning `E_MASQUERADE_SENSITIVE_ACTION_BLOCKED` with `blockedBy: 'sensitive'` before
 the handler. This applies to each HTTP method and to custom prefixes or excluded endpoints.
 
 The global blocker passes non-Account-Kit routes without a store read. The two exemptions pass
@@ -710,7 +710,7 @@ managed blocker's exact raw-actor active-mode check to its own native account ro
 managed blocker reuses this implementation; owner-row validation, clock and failure semantics remain
 those in §15.4. The named middleware requires neither a managed route name nor registration and does
 not require the Masquerade token ability, effective admission or a context token. Active view and
-edit modes both return 403 `E_MASQUERADE_ACTION_BLOCKED` with `blockedBy: 'sensitive'`.
+edit modes both return 403 `E_MASQUERADE_SENSITIVE_ACTION_BLOCKED` with `blockedBy: 'sensitive'`.
 
 The host selects account routes explicitly and keeps native logout, CSRF bootstrap and Masquerade
 controls outside the blocked groups. The named middleware has no automatic route-name exemptions.

@@ -43,7 +43,11 @@ export function createIdleRowAfterTransition(row: ActiveModeRow, event: AuditEve
   }
 }
 
-/** Apply one audited transition; callers decide what a conflict means. */
+/**
+ * Apply one audited transition. Callers decide what a conflict means.
+ * @throws `E_MASQUERADE_STORE_COMMIT_FAILED` for an unexpected store failure, including a Lucid aggregate as its cause.
+ * @throws `E_MASQUERADE_UNKNOWN_COMMIT` when the store cannot confirm the outcome.
+ */
 export async function commitTransition(
   store: RequestControlStore,
   dependencies: ObserverDependencies,

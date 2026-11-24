@@ -211,7 +211,7 @@ test('start denies false and truthy nonboolean policy; policy throws unavailable
 test('self-targeting, missing and ineligible targets are denied without target enumeration', async ({
   assert,
 }) => {
-  for (const kind of ['self', 'missing', 'ineligible']) {
+  for (const kind of ['self', 'missing', 'ineligible'] as const) {
     const f = fixture()
     if (kind === 'missing') f.users.delete('b')
     if (kind === 'ineligible') {
@@ -235,7 +235,11 @@ test('self-targeting, missing and ineligible targets are denied without target e
           }
         )
       ),
-      kind === 'self' ? 'E_MASQUERADE_INVALID_INPUT' : 'E_MASQUERADE_TARGET_INELIGIBLE'
+      {
+        self: 'E_MASQUERADE_SELF_TARGET',
+        missing: 'E_MASQUERADE_TARGET_MISSING',
+        ineligible: 'E_MASQUERADE_TARGET_INACTIVE',
+      }[kind]
     )
     assert.isNull(await f.store.read(f.owner))
     // A parsed request records the requested target and access, never an inspected incarnation;
@@ -367,7 +371,7 @@ test('concurrent admission of one request authenticates and reads authoritative 
   assert.equal(f.state.authenticateCount, count + 1)
 })
 
-test('canonical provider self-target is invalid input without core ID coercion', async ({
+test('canonical provider self-target has the same refusal as direct self-targeting without core ID coercion', async ({
   assert,
 }) => {
   const f = fixture()
@@ -379,7 +383,7 @@ test('canonical provider self-target is invalid input without core ID coercion',
     await errorCode(() =>
       service.start({}, { targetId: 'alias', reason: 'case', expectedContext: idle.contextToken })
     ),
-    'E_MASQUERADE_INVALID_INPUT'
+    'E_MASQUERADE_SELF_TARGET'
   )
 })
 
@@ -461,17 +465,31 @@ async function startResult(f: ReturnType<typeof fixture>, request: Request = {})
 test('start refuses an operator whose inspected account is inactive or a different account', async ({
   assert,
 }) => {
-  for (const change of [{ active: false }, { id: 'c' }, { incarnation: 'replaced' }] as const) {
+  for (const change of [
+    { missing: true },
+    { active: false },
+    { id: 'c' },
+    { incarnation: 'replaced' },
+  ] as const) {
     const f = fixture()
     const inspect = f.config.authority.inspectAccount
     f.config.authority.inspectAccount = async (id) => {
       const result = await inspect(id)
       if (id !== 'a' || !result) return result
+      if ('missing' in change) return null
       if ('active' in change) return { ...result, active: false }
       const user = { ...result.subject.user, ...change }
       return { ...result, subject: { id: user.id, incarnation: user.incarnation, user } }
     }
-    assert.equal(await startResult(f), 'E_MASQUERADE_ACTOR_INELIGIBLE', JSON.stringify(change))
+    assert.equal(
+      await startResult(f),
+      'missing' in change
+        ? 'E_MASQUERADE_ACTOR_MISSING'
+        : 'active' in change
+          ? 'E_MASQUERADE_ACTOR_INACTIVE'
+          : 'E_MASQUERADE_ACTOR_IDENTITY_MISMATCH',
+      JSON.stringify(change)
+    )
     assert.isNull(await f.store.read(f.owner))
   }
 })

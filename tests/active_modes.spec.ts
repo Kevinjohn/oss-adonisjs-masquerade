@@ -64,7 +64,7 @@ test.group('active mode listing', () => {
     Object.defineProperty(f.store, 'activeBatch', { value: undefined })
     assert.equal(
       await errorCode(() => listActiveModes(f.config, f.dependencies)),
-      'E_MASQUERADE_INVALID_STORE'
+      'E_MASQUERADE_STORE_METHOD_MISSING'
     )
   })
 })

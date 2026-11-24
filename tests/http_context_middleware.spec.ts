@@ -161,7 +161,7 @@ test.group('masquerade HTTP boundary', () => {
     assert.deepEqual(responseState.json, {
       errors: [
         {
-          code: 'E_MASQUERADE_ACTION_BLOCKED',
+          code: 'E_MASQUERADE_UNMARKED_MUTATION_BLOCKED',
           message: 'Action is blocked while masquerading',
           blockedBy: cause,
         },
@@ -179,7 +179,7 @@ test.group('masquerade HTTP boundary', () => {
     assert.deepEqual(sensitiveResponse.json, {
       errors: [
         {
-          code: 'E_MASQUERADE_ACTION_BLOCKED',
+          code: 'E_MASQUERADE_SENSITIVE_ACTION_BLOCKED',
           message: 'Action is blocked while masquerading',
           blockedBy: 'sensitive',
         },
@@ -233,7 +233,7 @@ test.group('masquerade HTTP boundary', () => {
     assert.deepEqual(responseState.json, {
       errors: [
         {
-          code: 'E_MASQUERADE_ACTION_BLOCKED',
+          code: 'E_MASQUERADE_VIEW_ONLY_ACTION_BLOCKED',
           message: 'Action is blocked while masquerading',
           blockedBy: 'view_only',
         },

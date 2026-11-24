@@ -17,13 +17,13 @@ test('configured provider validates native binding and rejects test-only store d
     } catch (caught) {
       error = caught
     }
-    assert.instanceOf(error, errors.E_MASQUERADE_INVALID_STORE)
+    assert.instanceOf(error, errors.E_MASQUERADE_TEST_STORE_FORBIDDEN)
     assert.equal(
-      (error as InstanceType<typeof errors.E_MASQUERADE_INVALID_STORE>).code,
-      'E_MASQUERADE_INVALID_STORE'
+      (error as InstanceType<typeof errors.E_MASQUERADE_TEST_STORE_FORBIDDEN>).code,
+      'E_MASQUERADE_TEST_STORE_FORBIDDEN'
     )
     assert.equal(
-      (error as InstanceType<typeof errors.E_MASQUERADE_INVALID_STORE>).field,
+      (error as InstanceType<typeof errors.E_MASQUERADE_TEST_STORE_FORBIDDEN>).field,
       'store.testOnly'
     )
     assert.equal(f.storeCreations(), 1)

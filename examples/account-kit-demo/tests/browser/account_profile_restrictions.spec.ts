@@ -65,7 +65,7 @@ test.group('Account Kit profile write restrictions browser journey', (group) => 
         operator.password
       )
       assert.equal(blocked.status, 403)
-      assert.equal(blocked.issue.code, 'E_MASQUERADE_ACTION_BLOCKED')
+      assert.equal(blocked.issue.code, 'E_MASQUERADE_SENSITIVE_ACTION_BLOCKED')
       await waitForProfileErrorUi(page)
       assert.equal(await page.getByRole('alert').isVisible(), true)
       const blockedAlert = await page.getByRole('alert').innerText()

@@ -35,7 +35,7 @@ test.group('native access-token authority', (group) => {
       .header('X-Masquerade-Context', started.body().contextToken)
       .json({})
     blocked.assertStatus(403)
-    assert.equal(blocked.body().errors[0].code, 'E_MASQUERADE_ACTION_BLOCKED')
+    assert.equal(blocked.body().errors[0].code, 'E_MASQUERADE_VIEW_ONLY_ACTION_BLOCKED')
     assert.equal(blocked.body().errors[0].blockedBy, 'view_only')
   })
 

@@ -41,7 +41,9 @@ export default class HttpExceptionHandler extends ExceptionHandler {
       }
       ctx.response.header('Cache-Control', 'private, no-store')
       const blockedAction =
-        error instanceof errors.E_MASQUERADE_ACTION_BLOCKED
+        error instanceof errors.E_MASQUERADE_SENSITIVE_ACTION_BLOCKED ||
+        error instanceof errors.E_MASQUERADE_VIEW_ONLY_ACTION_BLOCKED ||
+        error instanceof errors.E_MASQUERADE_UNMARKED_MUTATION_BLOCKED
           ? blockedActionMessages[error.blockedBy ?? 'sensitive']
           : undefined
       const message =

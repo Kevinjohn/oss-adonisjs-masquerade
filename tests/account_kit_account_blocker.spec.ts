@@ -78,9 +78,9 @@ test.group('Account Kit host account blocker', () => {
       // Host routes need neither a name nor an effective guard to opt in.
       h.ctx.route = undefined
       await rejects(h.request, (error: unknown) => {
-        assert.instanceOf(error, errors.E_MASQUERADE_ACTION_BLOCKED)
-        const blocked = error as InstanceType<typeof errors.E_MASQUERADE_ACTION_BLOCKED>
-        assert.equal(blocked.code, 'E_MASQUERADE_ACTION_BLOCKED')
+        assert.instanceOf(error, errors.E_MASQUERADE_SENSITIVE_ACTION_BLOCKED)
+        const blocked = error as InstanceType<typeof errors.E_MASQUERADE_SENSITIVE_ACTION_BLOCKED>
+        assert.equal(blocked.code, 'E_MASQUERADE_SENSITIVE_ACTION_BLOCKED')
         assert.equal(blocked.status, 403)
         assert.equal(blocked.blockedBy, 'sensitive')
         return true

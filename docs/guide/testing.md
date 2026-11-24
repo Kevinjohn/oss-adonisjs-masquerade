@@ -30,7 +30,7 @@ test('a support agent viewing a customer cannot change billing', async ({ client
 
   response.assertStatus(403)
   response.assertBodyContains({
-    errors: [{ code: 'E_MASQUERADE_ACTION_BLOCKED', blockedBy: 'view_only' }],
+    errors: [{ code: 'E_MASQUERADE_VIEW_ONLY_ACTION_BLOCKED', blockedBy: 'view_only' }],
   })
 })
 ```

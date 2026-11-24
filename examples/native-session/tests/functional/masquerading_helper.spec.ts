@@ -43,7 +43,7 @@ test.group('masquerading() API client helper', (group) => {
       .masquerading(target, { access: 'view' })
     denied.assertStatus(403)
     assert.deepInclude(denied.body().errors[0], {
-      code: 'E_MASQUERADE_ACTION_BLOCKED',
+      code: 'E_MASQUERADE_VIEW_ONLY_ACTION_BLOCKED',
       blockedBy: 'view_only',
     })
   })
@@ -58,7 +58,7 @@ test.group('masquerading() API client helper', (group) => {
       .masquerading(target, { access: 'edit', reason: 'Ticket 42' })
     denied.assertStatus(403)
     assert.deepInclude(denied.body().errors[0], {
-      code: 'E_MASQUERADE_ACTION_BLOCKED',
+      code: 'E_MASQUERADE_SENSITIVE_ACTION_BLOCKED',
       blockedBy: 'sensitive',
     })
   })

@@ -30,12 +30,12 @@ router
 
 During a mode, these routes answer:
 
-| Request                         | Response                                                             |
-| ------------------------------- | -------------------------------------------------------------------- |
-| Any write in view mode          | `403 E_MASQUERADE_ACTION_BLOCKED`, `blockedBy: view_only`            |
-| Refund in edit mode (no marker) | `403 E_MASQUERADE_ACTION_BLOCKED`, `blockedBy: mutation_not_allowed` |
-| Password in any mode            | `403 E_MASQUERADE_ACTION_BLOCKED`, `blockedBy: sensitive`            |
-| Order note in edit mode         | Your handler runs as the customer                                    |
+| Request                         | Response                                                                        |
+| ------------------------------- | ------------------------------------------------------------------------------- |
+| Any write in view mode          | `403 E_MASQUERADE_VIEW_ONLY_ACTION_BLOCKED`, `blockedBy: view_only`             |
+| Refund in edit mode (no marker) | `403 E_MASQUERADE_UNMARKED_MUTATION_BLOCKED`, `blockedBy: mutation_not_allowed` |
+| Password in any mode            | `403 E_MASQUERADE_SENSITIVE_ACTION_BLOCKED`, `blockedBy: sensitive`             |
+| Order note in edit mode         | Your handler runs as the customer                                               |
 
 The markers change nothing for a customer using their own account. Your handler's normal checks
 still apply: `auth.user` and Bouncer see the customer, so support can never do more than the
@@ -124,7 +124,7 @@ test('support cannot change a customer password', async ({ client }) => {
 
   response.assertStatus(403)
   response.assertBodyContains({
-    errors: [{ code: 'E_MASQUERADE_ACTION_BLOCKED', blockedBy: 'sensitive' }],
+    errors: [{ code: 'E_MASQUERADE_SENSITIVE_ACTION_BLOCKED', blockedBy: 'sensitive' }],
   })
 })
 ```

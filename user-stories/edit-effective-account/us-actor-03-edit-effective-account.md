@@ -46,7 +46,7 @@ flowchart TD
     D --> X{"Context accepted or report mode?"}
     X -->|No| Y["Throw context error"]
     X -->|Yes| E{"Active mode and routeMarkers(ctx).sensitive?"}
-    E -->|Yes, any method| F["Throw E_MASQUERADE_ACTION_BLOCKED"]
+    E -->|Yes, any method| F["Throw E_MASQUERADE_SENSITIVE_ACTION_BLOCKED"]
     E -->|No| G{"Active mode and unsafe method?"}
     G -->|No| H["next() to host authorisation and handler"]
     G -->|Yes| I{"Edit access and allowMutation marker?"}

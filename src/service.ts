@@ -1,15 +1,19 @@
 import {
   E_MASQUERADE_ACCOUNT_ELIGIBILITY_INVALID,
   E_MASQUERADE_ACCOUNT_INSPECTION_FAILED,
-  E_MASQUERADE_ACTOR_INELIGIBLE,
+  E_MASQUERADE_ACTOR_MISSING,
+  E_MASQUERADE_ACTOR_INACTIVE,
+  E_MASQUERADE_ACTOR_IDENTITY_MISMATCH,
   E_MASQUERADE_ALREADY_ACTIVE,
   E_MASQUERADE_AUDIT_WRITE_FAILED,
   E_MASQUERADE_CLOCK_INVALID,
   E_MASQUERADE_CONTROL_OPERATION_FAILED,
   E_MASQUERADE_EDIT_DENIED,
   E_MASQUERADE_EDIT_POLICY_FAILED,
-  E_MASQUERADE_INVALID_INPUT,
-  E_MASQUERADE_INVALID_STORE,
+  E_MASQUERADE_SELF_TARGET,
+  E_MASQUERADE_STORE_MISSING,
+  E_MASQUERADE_TEST_STORE_FORBIDDEN,
+  E_MASQUERADE_STORE_METHOD_MISSING,
   E_MASQUERADE_MODE_EXPIRED,
   E_MASQUERADE_MODE_INVALIDATED,
   E_MASQUERADE_MODE_OWNER_INVALID,
@@ -23,7 +27,8 @@ import {
   E_MASQUERADE_STORE_COMMIT_FAILED,
   E_MASQUERADE_STORE_OPEN_FAILED,
   E_MASQUERADE_STORE_READ_FAILED,
-  E_MASQUERADE_TARGET_INELIGIBLE,
+  E_MASQUERADE_TARGET_MISSING,
+  E_MASQUERADE_TARGET_INACTIVE,
   E_MASQUERADE_TRANSITION_CONFLICT,
   E_MASQUERADE_UNKNOWN_COMMIT,
 } from './errors.js'
@@ -80,7 +85,8 @@ import type {
  * decides whether a test-only store may open.
  *
  * @throws `E_MASQUERADE_INVALID_CONFIGURATION` for an invalid config, or
- *   `E_MASQUERADE_INVALID_STORE` for a store that is missing methods or test-only outside tests.
+ *   `E_MASQUERADE_STORE_MISSING`, `E_MASQUERADE_STORE_METHOD_MISSING` or
+ *   `E_MASQUERADE_TEST_STORE_FORBIDDEN` for unusable stores.
  * @throws `E_MASQUERADE_STORE_OPEN_FAILED` when the store factory throws.
  * @throws {InvalidArgumentsException} When `authenticateActor` or an observer or diagnostic port is missing.
  *
@@ -136,8 +142,10 @@ export async function createMasqueradeService<User, Request extends object>(
       dependencies,
       'store',
       'open',
-      error instanceof E_MASQUERADE_INVALID_STORE
-        ? E_MASQUERADE_INVALID_STORE.code
+      error instanceof E_MASQUERADE_STORE_MISSING ||
+        error instanceof E_MASQUERADE_TEST_STORE_FORBIDDEN ||
+        error instanceof E_MASQUERADE_STORE_METHOD_MISSING
+        ? error.code
         : E_MASQUERADE_STORE_OPEN_FAILED.code
     )
     throw error
@@ -497,11 +505,18 @@ class CoreService<User, Request extends object> implements MasqueradeService<Req
       // §7.1 step 2: both accounts come from inspectAccount; a throw is 503.
       const currentActor = await this.inspect(actor.id)
       const target = await this.inspect(targetId)
-      // §7.3: self-targeting is invalid input.
-      if (target?.subject.id === actor.id) throw new E_MASQUERADE_INVALID_INPUT()
+      // §7.3: the authority may canonicalise a target ID to the actor.
+      if (target?.subject.id === actor.id) throw new E_MASQUERADE_SELF_TARGET()
       // §7.1 step 2: a missing or ineligible actor or target gets the generic denial.
-      if (!this.isEligibleActor(currentActor, actor)) throw new E_MASQUERADE_ACTOR_INELIGIBLE()
-      if (!target?.active) throw new E_MASQUERADE_TARGET_INELIGIBLE()
+      if (!currentActor) throw new E_MASQUERADE_ACTOR_MISSING()
+      if (!currentActor.active) throw new E_MASQUERADE_ACTOR_INACTIVE()
+      if (
+        currentActor.subject.id !== actor.id ||
+        currentActor.subject.incarnation !== actor.incarnation
+      )
+        throw new E_MASQUERADE_ACTOR_IDENTITY_MISMATCH()
+      if (!target) throw new E_MASQUERADE_TARGET_MISSING()
+      if (!target.active) throw new E_MASQUERADE_TARGET_INACTIVE()
       // §6.4 Absent/idle: start requires canMasquerade to return true (§7.1 step 3).
       if (
         !(await this.checkMasqueradePermission(

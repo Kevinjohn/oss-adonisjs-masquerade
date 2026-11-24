@@ -96,7 +96,7 @@ test.group('packed Account Kit managed route blocker', (group) => {
       const response = await requestManaged(session, path, route.method)
       assert.equal(response.status, 403, `${route.name} ${route.method} ${path}`)
       const result = await json(response)
-      assert.equal(result.errors?.[0]?.code, 'E_MASQUERADE_ACTION_BLOCKED', route.name)
+      assert.equal(result.errors?.[0]?.code, 'E_MASQUERADE_SENSITIVE_ACTION_BLOCKED', route.name)
       assert.equal(result.errors?.[0]?.blockedBy, 'sensitive', route.name)
       assert.deepEqual(await controlState(actor.id), before, route.name)
     }

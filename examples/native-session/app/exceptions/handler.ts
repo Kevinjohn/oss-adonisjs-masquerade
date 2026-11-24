@@ -87,7 +87,11 @@ function supportErrorDetails(status: number, error: unknown) {
         'Another tab or session may have changed the mode, or its deadline passed. Check status and rebuild the action from the current customer page. The old action was not replayed.',
     }
   }
-  if (error instanceof errors.E_MASQUERADE_ACTION_BLOCKED) {
+  if (
+    error instanceof errors.E_MASQUERADE_SENSITIVE_ACTION_BLOCKED ||
+    error instanceof errors.E_MASQUERADE_VIEW_ONLY_ACTION_BLOCKED ||
+    error instanceof errors.E_MASQUERADE_UNMARKED_MUTATION_BLOCKED
+  ) {
     const blockedBy = error.blockedBy
     if (blockedBy === 'view_only') {
       return {

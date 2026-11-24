@@ -43,8 +43,8 @@ if (process.env.TEST_BUILT_EXPORTS === '1') {
     }
     assert.notProperty(root.errors, 'E_MASQUERADE_NOT_ALLOWED')
     assert.notProperty(root.errors, 'E_MASQUERADE_UNAVAILABLE')
-    const blocked = new root.errors.E_MASQUERADE_ACTION_BLOCKED('sensitive')
-    assert.equal(blocked.code, 'E_MASQUERADE_ACTION_BLOCKED')
+    const blocked = new root.errors.E_MASQUERADE_SENSITIVE_ACTION_BLOCKED()
+    assert.equal(blocked.code, 'E_MASQUERADE_SENSITIVE_ACTION_BLOCKED')
     assert.equal(blocked.blockedBy, 'sensitive')
     assert.isTrue(http.isMasqueradeRequestError(blocked))
     assert.isString(root.stubsRoot)
