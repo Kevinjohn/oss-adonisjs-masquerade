@@ -10,6 +10,8 @@ import { EffectiveAccessTokensGuard } from './effective_access_tokens_guard.js'
 /**
  * Pair a native opaque token guard with an effective-user facade.
  *
+ * Select the raw `api` guard explicitly on masquerade control routes.
+ *
  * @example
  * ```ts
  * import { effectiveAccessTokensGuard } from '@kevinjohn/adonisjs-masquerade/auth'
@@ -20,7 +22,7 @@ import { EffectiveAccessTokensGuard } from './effective_access_tokens_guard.js'
  * export function supportAuth(provider: AccessTokensUserProviderContract<{ id: string }>) {
  *   const api = tokensGuard({ provider })
  *   return defineConfig({
- *     default: 'api',
+ *     default: 'api_effective',
  *     guards: { api, api_effective: effectiveAccessTokensGuard(api, { guard: 'api' }) },
  *   })
  * }

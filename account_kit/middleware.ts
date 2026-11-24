@@ -15,17 +15,20 @@ import { readManagedRegistration } from './registration.js'
  * @example
  * ```ts
  * import { AccountKitAccountBlocker } from '@kevinjohn/adonisjs-masquerade/account-kit/middleware'
- * import router from '@adonisjs/core/services/router'
- * import type { HttpContext } from '@adonisjs/core/http'
+ * import type { HttpContext, Router } from '@adonisjs/core/http'
  *
  * export function mountNativeAccountRoutes(
+ *   router: Router,
  *   updateEmail: (ctx: HttpContext) => Promise<void>
  * ) {
+ *   const middleware = router.named({
+ *     accountKitAccountBlocker: async () => ({ default: AccountKitAccountBlocker }),
+ *   })
  *   router
  *     .group(() => {
  *       router.post('/account/email', updateEmail)
  *     })
- *     .use(async () => ({ default: AccountKitAccountBlocker }))
+ *     .use(middleware.accountKitAccountBlocker())
  * }
  * ```
  */

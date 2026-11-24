@@ -94,6 +94,10 @@ runtime was built throws.
 
 ## Errors
 
+The constructor API below is unreleased. If you installed the tarball above, see the
+[Masquerade v0.6.1 README](https://github.com/Kevinjohn/oss-adonisjs-masquerade/blob/v0.6.1/README.md)
+and [v0.6.1 error guide](https://github.com/Kevinjohn/oss-adonisjs-masquerade/blob/v0.6.1/docs/guide/errors.md).
+
 Import `errors` from `@kevinjohn/adonisjs-masquerade` and check a request or setup exception with
 `instanceof errors.E_MASQUERADE_…`. JSON clients can continue matching the same stable `code`.
 See [Recover from errors](docs/guide/errors.md) for the constructors and response contract.

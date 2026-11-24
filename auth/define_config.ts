@@ -8,6 +8,8 @@ import { EffectiveSessionGuard } from './effective_session_guard.js'
 /**
  * Reuse the same raw session configuration for its normal and effective guards.
  *
+ * Select the raw `web` guard explicitly on masquerade control routes.
+ *
  * @example
  * ```ts
  * import { effectiveSessionGuard } from '@kevinjohn/adonisjs-masquerade/auth'
@@ -18,7 +20,7 @@ import { EffectiveSessionGuard } from './effective_session_guard.js'
  * export function supportAuth(provider: SessionUserProviderContract<{ id: string }>) {
  *   const web = sessionGuard({ provider, useRememberMeTokens: false })
  *   return defineConfig({
- *     default: 'web',
+ *     default: 'web_effective',
  *     guards: { web, web_effective: effectiveSessionGuard(web) },
  *   })
  * }

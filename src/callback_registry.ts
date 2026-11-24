@@ -9,18 +9,24 @@ export const resolveCallbacks = Symbol('masquerade.callbacks.resolve')
 
 /**
  * The `masquerade.callbacks` binding: an application provider registers one callback factory.
+ * List the application provider before the Masquerade provider in `adonisrc.ts`.
  *
  * @example
  * ```ts
  * import { MasqueradeCallbackRegistry } from '@kevinjohn/adonisjs-masquerade'
- * import type { MasqueradeCallbacks } from '@kevinjohn/adonisjs-masquerade/types'
+ * import type { ApplicationService } from '@adonisjs/core/types'
  *
- * export function supportRegistry(
- *   callbacks: MasqueradeCallbacks<{ id: string }, object>
- * ) {
- *   const registry = new MasqueradeCallbackRegistry()
- *   registry.register(() => callbacks)
- *   return registry
+ * export default class SupportCallbacksProvider {
+ *   constructor(protected app: ApplicationService) {}
+ *
+ *   async boot() {
+ *     const registry = await this.app.container.make(MasqueradeCallbackRegistry)
+ *     registry.register(async () => {
+ *       const { nativeAdapter, masqueradePolicy } =
+ *         await import('../app/services/auth/masquerade_authority.js')
+ *       return { native: nativeAdapter, policy: masqueradePolicy }
+ *     })
+ *   }
  * }
  * ```
  */
