@@ -42,6 +42,10 @@ async function fixture(options: FixtureOptions = {}): Promise<Fixture> {
     path.join(root, 'bin/helpers/owned_process.ts'),
     await readFile(path.join(repoRoot, 'bin/helpers/owned_process.ts'))
   )
+  await writeFile(
+    path.join(root, 'bin/helpers/operation_failures.ts'),
+    await readFile(path.join(repoRoot, 'bin/helpers/operation_failures.ts'))
+  )
   await writeFile(path.join(root, 'package.json'), '{"type":"module"}\n')
   await writeFile(path.join(root, 'README.md'), 'fixture baseline\n')
   await symlink(path.join(repoRoot, 'node_modules'), path.join(root, 'node_modules'), 'dir')

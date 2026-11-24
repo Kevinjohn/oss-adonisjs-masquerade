@@ -58,9 +58,13 @@ async function fixture(options: FixtureOptions = {}): Promise<DemoFixture> {
   const bin = path.join(directory, 'bin')
   await mkdir(example, { recursive: true })
   await mkdir(bin, { recursive: true })
-  await mkdir(path.join(root, 'bin'), { recursive: true })
+  await mkdir(path.join(root, 'bin/helpers'), { recursive: true })
   await mkdir(path.join(root, 'tmp'), { recursive: true })
   await writeFile(path.join(root, 'bin/demo.ts'), await readFile(launcherPath))
+  await writeFile(
+    path.join(root, 'bin/helpers/operation_failures.ts'),
+    await readFile(path.join(repoRoot, 'bin/helpers/operation_failures.ts'))
+  )
   await writeFile(path.join(root, 'pnpm-lock.yaml'), 'lockfileVersion: 9\n')
   const port = options.port ?? (await freePort())
   const envExample = `NODE_ENV=development\nPORT=${port}\nHOST=localhost\nAPP_URL=http://\${HOST}:\${PORT}\nAPP_KEY=replace_me_with_node_ace_generate_key\n`

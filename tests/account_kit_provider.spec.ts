@@ -457,7 +457,7 @@ test.group('Account Kit provider', () => {
           assert.equal(
             (error as { code: string }).code,
             failure === 'guard'
-              ? 'E_MASQUERADE_BLOCKER_AUTHENTICATION_FAILED'
+              ? 'E_MASQUERADE_GUARD_CONSTRUCTION_FAILED'
               : 'E_MASQUERADE_BLOCKER_MODE_CHECK_FAILED'
           )
           assert.equal((error as { status: number }).status, 503)

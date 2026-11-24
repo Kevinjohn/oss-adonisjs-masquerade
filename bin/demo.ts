@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-import { cleanupFailure } from './helpers/operation_failures.js'
+import { cleanupFailure, combineOperationFailure } from './helpers/operation_failures.ts'
 import { spawn, type ChildProcess } from 'node:child_process'
 import { createHash } from 'node:crypto'
 import { createServer } from 'node:net'
@@ -143,11 +143,12 @@ function processGroupExists(groupId: number): boolean {
 }
 
 /** @returns AggregateError when both the operation and cleanup failed. */
-function combineErrors(primary: unknown, cleanupErrors: unknown[]): unknown {
-  if (cleanupErrors.length === 0) return primary
+function combineErrors(primary: { error: unknown } | undefined, cleanupErrors: unknown[]): unknown {
+  if (cleanupErrors.length === 0) return primary?.error
   if (primary === undefined) return cleanupFailure(cleanupErrors, 'Demo cleanup failed.')
-  return new AggregateError(
-    [primary, ...cleanupErrors],
+  return combineOperationFailure(
+    primary.error,
+    cleanupErrors,
     'The operation failed and cleanup also failed.'
   )
 }
@@ -302,14 +303,14 @@ function run(
     abandonChildren.set(child, (error) => {
       child.unref()
       children.delete(child)
-      finish(combineErrors(new Error(`Interrupted by ${interruptedBy}`), [error]))
+      finish(combineErrors({ error: new Error(`Interrupted by ${interruptedBy}`) }, [error]))
     })
     child.once('error', async (error) => {
       children.delete(child)
       try {
         await cleanupProcessGroup(child.pid)
       } catch (cleanupError) {
-        finish(combineErrors(error, [cleanupError]))
+        finish(combineErrors({ error }, [cleanupError]))
         return
       }
       finish(error)
@@ -325,7 +326,7 @@ function run(
           commandError = new Error(
             `${path.basename(command)} ${args.join(' ')} exited ${signal ? `on ${signal}` : `with code ${code}`}.`
           )
-        finish(combineErrors(commandError, [cleanupError]))
+        finish(combineErrors({ error: commandError }, [cleanupError]))
         return
       }
       if (interruptedBy) finish(new Error(`Interrupted by ${interruptedBy}`))
@@ -487,7 +488,7 @@ async function startServer(environment: NodeJS.ProcessEnv): Promise<void> {
   } catch (error) {
     if (spawnError || child.exitCode !== null || child.signalCode !== null) {
       await exitCleanup
-      throw combineErrors(error, cleanupError === undefined ? [] : [cleanupError])
+      throw combineErrors({ error }, cleanupError === undefined ? [] : [cleanupError])
     }
     throw error
   }
@@ -507,7 +508,10 @@ async function startServer(environment: NodeJS.ProcessEnv): Promise<void> {
     exitError = new Error('The demo server stopped unexpectedly.')
   if (interruptedBy) exitError = new Error(`Interrupted by ${interruptedBy}`)
   if (exitError || cleanupError !== undefined) {
-    throw combineErrors(exitError, cleanupError === undefined ? [] : [cleanupError])
+    throw combineErrors(
+      exitError ? { error: exitError } : undefined,
+      cleanupError === undefined ? [] : [cleanupError]
+    )
   }
 }
 
@@ -601,7 +605,7 @@ if (invokedPath && realpathSync(invokedPath) === realpathSync(fileURLToPath(impo
     try {
       await cleanupOwnedProcesses()
     } catch (cleanupError) {
-      failure = combineErrors(error, [cleanupError])
+      failure = combineErrors({ error }, [cleanupError])
     }
     if (interruptedBy) process.exitCode = interruptedBy === 'SIGINT' ? 130 : 143
     else {

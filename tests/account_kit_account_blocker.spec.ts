@@ -9,7 +9,7 @@ import { fixture } from './helpers/core.js'
 async function host() {
   const f = fixture()
   const service = await f.create()
-  const calls = { reads: 0, next: 0, authenticated: true, guardFailure: false }
+  const calls = { reads: 0, next: 0, authenticated: true, guardFailure: false, checkFailure: false }
   const ctx = {
     route: { name: 'host.account.password' },
     auth: {
@@ -17,7 +17,10 @@ async function host() {
         if (name !== 'raw' || calls.guardFailure) throw new Error('raw guard unavailable')
         return {
           user: f.users.get('a'),
-          check: async () => calls.authenticated,
+          check: async () => {
+            if (calls.checkFailure) throw new Error('guard check failed')
+            return calls.authenticated
+          },
           authenticate: async () => {
             throw new Error('must not require the Masquerade ability or Account Kit current')
           },
@@ -134,16 +137,18 @@ test.group('Account Kit host account blocker', () => {
 
   test('fails closed on raw guard and store failures', async ({ assert }) => {
     const h = await host()
-    for (const failure of ['guard', 'store'] as const) {
+    for (const failure of ['guard', 'check', 'store'] as const) {
       h.calls.guardFailure = failure === 'guard'
+      h.calls.checkFailure = failure === 'check'
       if (failure === 'store')
         h.store.read = async () => {
           throw new Error('store down')
         }
-      const constructor =
-        failure === 'guard'
-          ? errors.E_MASQUERADE_BLOCKER_AUTHENTICATION_FAILED
-          : errors.E_MASQUERADE_STORE_READ_FAILED
+      const constructor = {
+        guard: errors.E_MASQUERADE_GUARD_CONSTRUCTION_FAILED,
+        check: errors.E_MASQUERADE_BLOCKER_AUTHENTICATION_FAILED,
+        store: errors.E_MASQUERADE_STORE_READ_FAILED,
+      }[failure]
       await rejects(h.request, (error: unknown) => {
         assert.instanceOf(error, constructor)
         const unavailable = error as InstanceType<typeof constructor>

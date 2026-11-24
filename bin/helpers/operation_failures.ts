@@ -5,6 +5,21 @@ export function cleanupFailure(failures: readonly unknown[], message: string): u
   return new Error([message, ...details].join('\n'), { cause: failures })
 }
 
+const combinedFailures = new WeakSet<AggregateError>()
+
+/** Retain the original operation error when a caller observes more cleanup failures. */
+export function combineOperationFailure(
+  primary: unknown,
+  cleanupFailures: readonly unknown[],
+  message: string
+): AggregateError {
+  const earlier =
+    primary instanceof AggregateError && combinedFailures.has(primary) ? primary.errors : [primary]
+  const result = new AggregateError([...earlier, ...cleanupFailures], message)
+  combinedFailures.add(result)
+  return result
+}
+
 /**
  * @throws {AggregateError} When the operation and cleanup both failed, with the operation first.
  */
@@ -15,7 +30,7 @@ export function throwIfOperationFailed(
 ): void {
   if (primary) {
     if (cleanupFailures.length)
-      throw new AggregateError([primary.error, ...cleanupFailures], message)
+      throw combineOperationFailure(primary.error, cleanupFailures, message)
     throw primary.error
   }
   if (cleanupFailures.length) throw cleanupFailure(cleanupFailures, message)

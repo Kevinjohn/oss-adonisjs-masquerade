@@ -4,6 +4,7 @@ import {
   E_MASQUERADE_BLOCKER_ADAPTER_UNAVAILABLE,
   E_MASQUERADE_BLOCKER_AUTHENTICATION_FAILED,
   E_MASQUERADE_BLOCKER_MODE_CHECK_FAILED,
+  E_MASQUERADE_GUARD_CONSTRUCTION_FAILED,
 } from '../src/errors.js'
 import { MasqueradeRequestException } from '../src/request_exception.js'
 import type { HttpContext } from '@adonisjs/core/http'
@@ -43,16 +44,22 @@ export class AccountKitAccountBlocker {
   async handle(ctx: HttpContext, next: () => Promise<unknown>): Promise<unknown> {
     let adapter: AccountKitAdapter<unknown>
     let raw: GuardContract<unknown>
+    let guardName: string
     let authenticated: boolean
     try {
       adapter = (await ctx.containerResolver.make(
         'masquerade.native'
       )) as AccountKitAdapter<unknown>
+      guardName = adapter.managedGuard.name
     } catch (error) {
       throw new E_MASQUERADE_BLOCKER_ADAPTER_UNAVAILABLE(error)
     }
     try {
-      raw = ctx.auth.use(adapter.managedGuard.name as never) as GuardContract<unknown>
+      raw = ctx.auth.use(guardName as never) as GuardContract<unknown>
+    } catch (error) {
+      throw new E_MASQUERADE_GUARD_CONSTRUCTION_FAILED(error)
+    }
+    try {
       authenticated = await raw.check()
     } catch (error) {
       throw new E_MASQUERADE_BLOCKER_AUTHENTICATION_FAILED(error)

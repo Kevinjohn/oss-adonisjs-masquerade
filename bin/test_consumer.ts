@@ -1,4 +1,4 @@
-import { throwIfOperationFailed } from './helpers/operation_failures.js'
+import { combineOperationFailure, throwIfOperationFailed } from './helpers/operation_failures.js'
 import { execFileSync } from 'node:child_process'
 import { createHash, randomUUID } from 'node:crypto'
 import { cp, mkdir, mkdtemp, readdir, readFile, rm, writeFile } from 'node:fs/promises'
@@ -442,7 +442,11 @@ try {
     try {
       await run(root, ['pg:stop'], 'postgres_stop', baseEnv, true)
     } catch (cleanupError) {
-      failure = combineFailures(failure, cleanupError)
+      failure = combineOperationFailure(
+        failure,
+        [cleanupError],
+        'The consumer operation and cleanup both failed.'
+      )
     }
   }
   console.error(`[consumer] FAILED: ${describeFailure(failure)}`)
@@ -476,11 +480,6 @@ if (process.exitCode === undefined) {
   )
   if (processRunner.interruptedBy === 'SIGINT') process.exitCode = 130
   else if (processRunner.interruptedBy === 'SIGTERM') process.exitCode = 143
-}
-
-/** @returns Both the already-observed operation and cleanup failures in that order. */
-function combineFailures(primary: unknown, cleanup: unknown): AggregateError {
-  return new AggregateError([primary, cleanup], 'The consumer operation and cleanup both failed.')
 }
 
 function describeFailure(error: unknown): string {
