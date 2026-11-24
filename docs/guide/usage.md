@@ -221,6 +221,26 @@ token that was rendered with its original user intent. If another tab changes th
 form is open, refresh status and have the operator deliberately rebuild and submit the action.
 Never fetch a fresh token in an interceptor and automatically replay an old request.
 
+## Use the runtime in a service
+
+The provider binds the runtime by class, so a service takes it through its constructor:
+
+```ts
+import { inject } from '@adonisjs/core'
+import { MasqueradeRuntime } from '@kevinjohn/adonisjs-masquerade'
+
+@inject()
+export class ViewAsService {
+  constructor(protected runtime: MasqueradeRuntime) {}
+}
+```
+
+Import `MasqueradeRuntime` with a plain `import`, not `import type`; a type-only import leaves the
+container no key to resolve. The `masquerade.runtime` key returns the same instance where there is
+no constructor. A service that your `masquerade.callbacks` factory builds in its body must not take
+`MasqueradeRuntime` through its constructor: building the runtime runs that factory, so the
+container waits on itself and nothing throws.
+
 ## Next steps
 
 - [Edge forms and host redirects](clients/edge.md): adapt the service to host-rendered forms.

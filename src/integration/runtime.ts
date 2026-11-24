@@ -3,22 +3,22 @@ import type { MasqueradeConfig, MasqueradeService, OwnerKey } from '../types.js'
 import type { RequestAdmission } from '../request_admission.js'
 import type { RouteGuardSelection } from './route_guard_selection.js'
 
-/** The `masquerade.runtime` container binding the provider registers. */
-export interface MasqueradeRuntime<User = unknown> {
-  readonly service: MasqueradeService<HttpContext>
+/** The runtime the provider registers; resolve it by this class or by `masquerade.runtime`. */
+export abstract class MasqueradeRuntime<User = unknown> {
+  declare readonly service: MasqueradeService<HttpContext>
   /** The validated configuration, with `authority` and `policy` resolved. */
-  readonly config: MasqueradeConfig<User, HttpContext> &
+  declare readonly config: MasqueradeConfig<User, HttpContext> &
     Required<Pick<MasqueradeConfig<User, HttpContext>, 'authority' | 'policy'>>
-  readonly effectiveGuardName: string
-  readonly effectiveGuardNames: readonly string[]
+  declare readonly effectiveGuardName: string
+  declare readonly effectiveGuardNames: readonly string[]
   /** Classify the matched route's auth guards as `none`, `raw`, `effective` or `ambiguous`. */
-  selectGuard(ctx: HttpContext): RouteGuardSelection
+  abstract selectGuard(ctx: HttpContext): RouteGuardSelection
   /** Admit the request once, as `MasqueradeService.resolve` does, and keep the effective subject. */
-  admit(ctx: HttpContext): Promise<RequestAdmission<User>>
+  abstract admit(ctx: HttpContext): Promise<RequestAdmission<User>>
   /** Whether the owner has an unexpired active mode, read from the store. */
-  activeMode(owner: OwnerKey): Promise<boolean>
+  abstract activeMode(owner: OwnerKey): Promise<boolean>
   /** Authenticate the actor through the route's raw guard without mode admission. */
-  actor(ctx: HttpContext): Promise<{ id: string; incarnation: string }>
+  abstract actor(ctx: HttpContext): Promise<{ id: string; incarnation: string }>
 }
 
 declare module '@adonisjs/core/types' {

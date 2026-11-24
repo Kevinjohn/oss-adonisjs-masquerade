@@ -30,6 +30,7 @@ if (process.env.TEST_BUILT_EXPORTS === '1') {
     assert.equal(typeof root, 'object')
     assert.isFunction(root.configure)
     assert.isFunction(root.MasqueradeCallbackRegistry)
+    assert.isFunction(root.MasqueradeRuntime)
     assert.notProperty(root, 'MasqueradeError')
     assert.notProperty(root, 'MasqueradeSetupError')
     assert.deepEqual(Object.keys(root.errors).sort(), [

@@ -1,10 +1,11 @@
 import { test } from '@japa/runner'
 import { HttpContextFactory } from '@adonisjs/core/factories/http'
-import { errors } from '../index.js'
+import { errors, MasqueradeRuntime } from '../index.js'
 import { nativeRuntimeFixture } from './helpers/native_runtime.js'
 import { masqueradeRoutes } from '../http/control_routes.js'
 import { sqlFixture } from './helpers/sql_store.js'
 import { markContextEnforced } from '../src/integration/context_enforcement.js'
+import { resolveRuntime } from '../src/integration/runtime.js'
 
 test('configured provider validates native binding and rejects test-only store during boot', async ({
   assert,
@@ -190,6 +191,65 @@ test('runtime includes every actual effective factory alias with immutable names
       'web' as never
     ) as import('@adonisjs/auth/types').GuardContract<unknown>
     assert.strictEqual(raw.user, f.users.get('a'))
+  } finally {
+    await f.app.terminate()
+    await sql.cleanup()
+  }
+})
+
+test('the runtime resolves by class, by its string alias, through constructor injection and from a request', async ({
+  assert,
+}) => {
+  const sql = await sqlFixture()
+  const f = await nativeRuntimeFixture({ store: sql.store })
+  // What `@inject()` writes onto a class; the test loader emits no decorator metadata.
+  class Host {
+    static containerInjections = {
+      _constructor: {
+        dependencies: [MasqueradeRuntime],
+        createError: (message: string) => new Error(message),
+      },
+    }
+    constructor(public runtime: MasqueradeRuntime) {}
+  }
+  try {
+    await f.app.boot()
+    const runtime = await f.app.container.make(MasqueradeRuntime)
+    assert.strictEqual(await f.app.container.make('masquerade.runtime'), runtime)
+    const host = await f.app.container.make(Host)
+    assert.strictEqual(host.runtime, runtime)
+    const ctx = new HttpContextFactory().create()
+    ctx.containerResolver = f.app.container.createResolver()
+    assert.strictEqual(await resolveRuntime(ctx), runtime)
+  } finally {
+    await f.app.terminate()
+    await sql.cleanup()
+  }
+})
+
+test('a runtime bound under masquerade.runtime replaces the class binding as well', async ({
+  assert,
+}) => {
+  const sql = await sqlFixture()
+  const f = await nativeRuntimeFixture({ store: sql.store })
+  class Host {
+    static containerInjections = {
+      _constructor: {
+        dependencies: [MasqueradeRuntime],
+        createError: (message: string) => new Error(message),
+      },
+    }
+    constructor(public runtime: MasqueradeRuntime) {}
+  }
+  try {
+    await f.app.boot()
+    const fake = { fake: true } as unknown as MasqueradeRuntime
+    const resolver = f.app.container.createResolver()
+    resolver.bindValue('masquerade.runtime', fake)
+    assert.strictEqual(await resolver.make('masquerade.runtime'), fake)
+    assert.strictEqual(await resolver.make(MasqueradeRuntime), fake)
+    const host = await resolver.make(Host)
+    assert.strictEqual(host.runtime, fake)
   } finally {
     await f.app.terminate()
     await sql.cleanup()
