@@ -2,8 +2,13 @@
 
 ## Unreleased
 
+## 0.6.1 - 2026-11-24
+
 - Provide fixed v1 schema helpers for fresh migrations and preserve existing migration files during forced configure.
 - Report prune progress failures once through Ace while preserving the original error and confirmed counts.
+- Align internal control, guard and route-classification names with their behaviour and update the affected story flows.
+- Share Account Kit managed route classification across the integration.
+- Require Account Kit `0.6.1` exactly. Verify its archive in the compatibility demo.
 
 ## 0.6.0 - 2026-11-23
 

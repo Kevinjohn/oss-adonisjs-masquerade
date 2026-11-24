@@ -13,7 +13,7 @@ As an application developer, I want to bind each effective guard to the intended
 
 - Register the primary raw guard and a matching adapter for each integrated raw transport. Configure an effective default guard. A missing raw factory, unbound effective factory, missing effective transport metadata or a mismatch between declared driver names fails configuration.
 - On an effective route the runtime constructs the selected guards with the live request and compares both driver names before authenticating the actor or reading the store. A cross-wired factory fails with `E_MASQUERADE_UNAVAILABLE`.
-- The Account Kit 0.6.0 raw session guard reports `driverName: 'session'` and can be wrapped by the effective session guard. An adapter can omit its driver declaration at boot; live guards must still match. [Session guard coverage](../../tests/effective_session_guard.spec.ts#L330)
+- The Account Kit 0.6.1 raw session guard reports `driverName: 'session'` and can be wrapped by the effective session guard. An adapter can omit its driver declaration at boot; live guards must still match. [Session guard coverage](../../tests/effective_session_guard.spec.ts#L330)
 - On the token route the token adapter supplies the actor even if a different actor has a session cookie. Unrelated raw guards can still serve native routes. An ambiguous or unbound raw selection cannot enter the Masquerade service.
 
 ## User flow
