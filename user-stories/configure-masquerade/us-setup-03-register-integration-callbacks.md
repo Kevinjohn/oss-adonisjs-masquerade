@@ -15,7 +15,7 @@ As an application developer, I want to register the native adapter and policy fr
 - The package uses an existing `masquerade.native` binding when supplied. Otherwise the package's binding reads `native` from the registry and errors if it is absent. If both supply native adapters, runtime validation rejects distinct adapter objects. Provide the native adapter through one path.
 - The runtime uses the authority from `config/masquerade.ts` when supplied and otherwise uses the chosen native adapter's authority. An explicit authority must match the adapter's namespace and guard. For policy, provide either config or registered `policy`; the runtime rejects both and requires one.
 - Loading the config validates supplied values and permits omitted authority and policy. Boot with Masquerade config resolves the completed runtime, including guard wiring and store construction. Calling standalone `createMasqueradeService` directly requires the completed config with both authority and policy.
-- Registration does not authenticate a request. [US-SETUP-02](us-setup-02-select-credential-transport.md) describes live guard checks.
+- The provider also exposes `MasqueradeRuntime` as a class binding resolving the same `masquerade.runtime` instance. Registration does not authenticate a request. [US-SETUP-02](us-setup-02-select-credential-transport.md) describes live guard checks.
 
 ## User flow
 
@@ -49,7 +49,7 @@ flowchart TD
     I -->|Invalid or missing| Y
     I -->|Valid| K["createRuntime opens configured service and store"]
     K -->|Error| Y
-    K -->|Success| L["masquerade.runtime available for app integration"]
+    K -->|Success| L["masquerade.runtime and MasqueradeRuntime resolve the same runtime"]
 ```
 
 **Code references:** [Host and fallback bindings](../../providers/masquerade_provider.ts#L18), [factory resolution](../../src/callback_registry.ts#L11), [runtime validation](../../src/integration/runtime_factory.ts#L40), [runtime creation](../../src/integration/runtime_factory.ts#L157), [standalone service](../../src/service.ts#L60).

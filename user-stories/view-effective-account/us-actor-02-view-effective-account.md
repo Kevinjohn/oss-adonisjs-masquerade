@@ -25,10 +25,12 @@ As an authorised support actor with an active mode, I want covered business rout
 flowchart TD
     A["Actor requests covered business data with own session or token"] --> B{"Mode state?"}
     B -->|Idle| C["Route sees actor after normal authentication"]
-    B -->|Active| D["Recheck actor, target and global mode policy"]
-    D --> E{"Expired or invalidated?"}
+    B -->|Active| E{"Mode expired?"}
     E -->|Yes| F["Clear mode and refuse this request; refresh status"]
-    E -->|No| G{"Host request-local policy allows?"}
+    E -->|No| D["Recheck actor, target and global mode policy"]
+    D --> V{"Mode invalidated?"}
+    V -->|Yes| F
+    V -->|No| G{"Host request-local policy allows?"}
     G -->|No| H["Refuse request; keep active mode"]
     G -->|Yes| I["Route sees effective target; raw credential remains actor-owned"]
 ```

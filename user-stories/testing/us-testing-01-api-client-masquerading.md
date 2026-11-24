@@ -3,7 +3,7 @@
 As an application test author, I want to exercise a real support mode through the API client so that my route tests include the host's authentication, context, policy and audit boundaries.
 
 **Status:** Current; source-reviewed Japa API-client plugin.
-**Access:** Register `masqueradeApiClient()` after auth, session and Shield API-client plugins. The same request must use `loginAs(actor)` before `masquerading(target, options)`.
+**Access:** Register `masqueradeApiClient()` after auth, session and Shield API-client plugins. The same request must have `loginAs(actor)` credentials when setup runs.
 **Entry:** In an API test, chain `.loginAs(actor).masquerading(target, options)` before sending the request.
 **Documentation:** [Testing your routes](../../docs/guide/testing.md)
 **Source:** [`plugins/api_client.ts`](../../plugins/api_client.ts)
