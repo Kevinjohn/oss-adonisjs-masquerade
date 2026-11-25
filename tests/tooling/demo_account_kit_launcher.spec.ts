@@ -593,6 +593,24 @@ function assertAlive(pid: number): void {
   assert.doesNotThrow(() => process.kill(pid, 0), `expected process ${pid} to be alive`)
 }
 
+async function assertProcessGone(pid: number, timeoutMs = 1500): Promise<void> {
+  assert.ok(Number.isInteger(pid) && pid > 1, `invalid fixture process ID: ${pid}`)
+  const deadline = Date.now() + timeoutMs
+  while (true) {
+    try {
+      process.kill(pid, 0)
+    } catch (error) {
+      assert.equal((error as NodeJS.ErrnoException).code, 'ESRCH')
+      return
+    }
+    if (Date.now() >= deadline) {
+      assert.throws(() => process.kill(pid, 0), { code: 'ESRCH' })
+      return
+    }
+    await new Promise((resolve) => setTimeout(resolve, 25))
+  }
+}
+
 function assertAliveGroup(pgid: number): void {
   assert.doesNotThrow(() => process.kill(-pgid, 0), `expected process group ${pgid} to be alive`)
 }
@@ -1010,6 +1028,33 @@ test.group('Account Kit demo launcher', (group) => {
     )
   })
 
+  test('observes delayed process exit but rejects a surviving process', async () => {
+    const child = spawn(
+      process.execPath,
+      ['-e', "process.send('ready'); process.on('message', () => process.exit(0))"],
+      {
+        stdio: ['ignore', 'ignore', 'ignore', 'ipc'],
+      }
+    )
+    const exited = once(child, 'exit')
+    try {
+      await once(child, 'message')
+      const pid = child.pid!
+      assertAlive(pid)
+      assert.throws(() => assert.throws(() => process.kill(pid, 0), { code: 'ESRCH' }), {
+        code: 'ERR_ASSERTION',
+      })
+      await assert.rejects(assertProcessGone(pid, 100), { code: 'ERR_ASSERTION' })
+      const disappearance = assertProcessGone(pid)
+      child.send('exit')
+      await disappearance
+      await exited
+    } finally {
+      if (child.exitCode === null && child.signalCode === null) child.kill('SIGKILL')
+      await exited
+    }
+  })
+
   test('reports setup failure, cleans the process group, then refuses the incomplete workspace on relaunch', async ({
     cleanup,
   }) => {
@@ -1025,8 +1070,7 @@ test.group('Account Kit demo launcher', (group) => {
     const result = await exitOf(run)
     assert.equal(result.code, 1, result.text)
     assert.match(result.text, /pnpm install --no-frozen-lockfile exited with 17/)
-    assert.throws(() => process.kill(orphanPid, 0), { code: 'ESRCH' })
-    assert.throws(() => process.kill(installPid, 0), { code: 'ESRCH' })
+    await Promise.all([assertProcessGone(orphanPid), assertProcessGone(installPid)])
     const incompleteEnv = await readFile(path.join(demo.app, '.env'), 'utf8')
     assert.match(incompleteEnv, /APP_KEY=/)
     assert.equal(
