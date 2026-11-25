@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+- Wait for demo setup fixture processes to disappear before asserting cleanup.
+
 ## 0.7.0 - 2026-11-24
 
 - Require Account Kit `0.7.0` exactly. Verify its published archive in the compatibility demo.
