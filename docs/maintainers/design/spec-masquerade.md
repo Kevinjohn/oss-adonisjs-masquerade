@@ -17,7 +17,7 @@
 ## 2. Architecture and ownership
 
 - `masquerade-core` owns the state machine, CAS semantics, policy evaluation, expiry, errors and audit contract, and depends on ports only.
-- `adonis-integration` owns the provider, request context, effective session guard, controllers, markers, context middleware and commands. `native-authority` owns actor loading, `securityStamp`, `inspectAccount` and incarnation mapping.
+- `adonisjs-integration` owns the provider, request context, effective session guard, controllers, markers, context middleware and commands. `native-authority` owns actor loading, `securityStamp`, `inspectAccount` and incarnation mapping.
 - `lucid-control-store` owns atomic persistence, the migration stub, prune and conformance behind the core store contract. The host owns policies, namespace, UI, Bouncer abilities, tenant rules, route markers, limiter and retention.
 
 Proposed exports:
@@ -233,7 +233,7 @@ Malformed rows fail closed. A reused ID with a different incarnation is a differ
 - Committed transitions write the row update and the event in one transaction. After native authentication, CSRF and the host limiter, each start or stop is inside the control-audit boundary: its denial, input failure, context conflict or idle-stop no-op is written through `recordControlOutcome` without changing revision. A failed outcome write is 503 with no state change.
 - Native authentication failures, limiter rejections, status denials and business or local denials use host diagnostics, not package events.
 - Rate limiting is the host's `@adonisjs/limiter` on the mounted routes, with separate start and stop budgets so an exhausted start budget cannot block recovery. Configure generates a host-owned `start/masquerade_limiter.ts`; the package runtime ships no limiter.
-- After commit, the service emits `masquerade:started|stopped|expired|invalidated` through the Adonis emitter and logs through the logger without awaiting. Rejections are caught and routed to the emitter error handler. No deadline, slot cap, abort signal or config hooks. This satisfies PRD FR-30 by never awaiting; delivery is best effort with event IDs for deduplication.
+- After commit, the service emits `masquerade:started|stopped|expired|invalidated` through the AdonisJS emitter and logs through the logger without awaiting. Rejections are caught and routed to the emitter error handler. No deadline, slot cap, abort signal or config hooks. This satisfies PRD FR-30 by never awaiting; delivery is best effort with event IDs for deduplication.
 
 ### 6.3 Store contract
 

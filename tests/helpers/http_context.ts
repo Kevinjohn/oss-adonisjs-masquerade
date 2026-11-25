@@ -62,7 +62,7 @@ export function requestContext(f: ReturnType<typeof fixture>, options: RequestCo
     request: {
       method: () => options.method ?? 'POST',
       body: () => (options.body === undefined ? {} : options.body),
-      // Adonis BodyParser stores the actual JSON/form wire body on Request.raw().
+      // AdonisJS BodyParser stores the actual JSON/form wire body on Request.raw().
       raw: () =>
         options.raw !== undefined
           ? options.raw

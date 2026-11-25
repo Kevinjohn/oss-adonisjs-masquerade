@@ -11,7 +11,7 @@ test.group('Masquerade exceptions', () => {
     assert.equal(error.getResponseMessage({ i18n: undefined } as never), error.message)
   })
 
-  test('uses the Adonis exception base and exposes a stable identifier', ({ assert }) => {
+  test('uses the AdonisJS exception base and exposes a stable identifier', ({ assert }) => {
     const error = new errors.E_MASQUERADE_NOT_ALLOWED()
 
     assert.instanceOf(error, Exception)
@@ -85,7 +85,7 @@ test.group('Masquerade exceptions', () => {
     }
   })
 
-  test('uses the Adonis runtime exception base for setup errors', ({ assert }) => {
+  test('uses the AdonisJS runtime exception base for setup errors', ({ assert }) => {
     const setupError = new errors.E_MASQUERADE_INVALID_CONFIGURATION('config')
 
     assert.instanceOf(setupError, RuntimeException)
