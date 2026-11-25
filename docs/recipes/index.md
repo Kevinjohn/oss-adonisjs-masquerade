@@ -5,7 +5,7 @@ ends with a test. New to the vocabulary? Read the [terms](../guide/glossary.md) 
 
 ## Start here
 
-The [four released starter apps](https://github.com/Kevinjohn/oss-adonisjs-starter-examples/tree/v0.15.5/apps) show Masquerade with Account Kit and Access Control. Follow the [shared integration recipes](https://github.com/Kevinjohn/oss-adonisjs-starter-examples/tree/v0.15.5/docs/cookbook) for the tested route and guard setup.
+The [four released starter apps](https://github.com/Kevinjohn/oss-adonisjs-starter-examples/tree/v0.17.0/apps) show Masquerade with Account Kit and Access Control. Follow the [shared integration recipes](https://github.com/Kevinjohn/oss-adonisjs-starter-examples/tree/v0.17.0/docs/cookbook) for the tested route and guard setup.
 
 **[Add support mode to a new AdonisJS app](starter-kit.md)**: from `pnpm create adonisjs` to a
 support page, a banner with Stop, and passing tests. Tested by hand against a fresh Hypermedia

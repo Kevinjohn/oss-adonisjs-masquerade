@@ -100,7 +100,7 @@ See [Recover from errors](docs/guide/errors.md) for the constructors and respons
 
 ## Documentation
 
-The [four released starter apps](https://github.com/Kevinjohn/oss-adonisjs-starter-examples/tree/v0.15.5/apps) show Masquerade with Account Kit and Access Control. Follow the [shared integration recipes](https://github.com/Kevinjohn/oss-adonisjs-starter-examples/tree/v0.15.5/docs/cookbook) for the tested route and guard setup.
+The [four released starter apps](https://github.com/Kevinjohn/oss-adonisjs-starter-examples/tree/v0.17.0/apps) show Masquerade with Account Kit and Access Control. Follow the [shared integration recipes](https://github.com/Kevinjohn/oss-adonisjs-starter-examples/tree/v0.17.0/docs/cookbook) for the tested route and guard setup.
 
 - [Add support mode to a new AdonisJS app](docs/recipes/starter-kit.md): tested, step by step
 - [Recipes by task](docs/recipes/index.md) and [terms](docs/guide/glossary.md)
