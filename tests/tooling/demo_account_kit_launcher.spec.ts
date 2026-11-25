@@ -1028,7 +1028,7 @@ test.group('Account Kit demo launcher', (group) => {
     )
   })
 
-  test('observes delayed process exit but rejects a surviving process', async () => {
+  test('observes delayed process exit but rejects a surviving process', async ({ cleanup }) => {
     const child = spawn(
       process.execPath,
       ['-e', "process.send('ready'); process.on('message', () => process.exit(0))"],
@@ -1037,22 +1037,26 @@ test.group('Account Kit demo launcher', (group) => {
       }
     )
     const exited = once(child, 'exit')
-    try {
-      await once(child, 'message')
-      const pid = child.pid!
-      assertAlive(pid)
-      assert.throws(() => assert.throws(() => process.kill(pid, 0), { code: 'ESRCH' }), {
-        code: 'ERR_ASSERTION',
-      })
-      await assert.rejects(assertProcessGone(pid, 100), { code: 'ERR_ASSERTION' })
-      const disappearance = assertProcessGone(pid)
-      child.send('exit')
-      await disappearance
-      await exited
-    } finally {
+    cleanup(async () => {
       if (child.exitCode === null && child.signalCode === null) child.kill('SIGKILL')
       await exited
-    }
+    })
+    await Promise.race([
+      once(child, 'message'),
+      exited.then(() => {
+        throw new Error('Fixture process exited before readiness')
+      }),
+    ])
+    const pid = child.pid!
+    assertAlive(pid)
+    assert.throws(() => assert.throws(() => process.kill(pid, 0), { code: 'ESRCH' }), {
+      code: 'ERR_ASSERTION',
+    })
+    await assert.rejects(assertProcessGone(pid, 100), { code: 'ERR_ASSERTION' })
+    const disappearance = assertProcessGone(pid)
+    child.send('exit')
+    await disappearance
+    await exited
   })
 
   test('reports setup failure, cleans the process group, then refuses the incomplete workspace on relaunch', async ({
