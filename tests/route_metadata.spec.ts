@@ -46,7 +46,7 @@ test.group('masquerade route metadata', () => {
     assert.deepEqual(routeMarkers(ctx([]) as never), { sensitive: false, allowMutation: false })
   })
 
-  test('reads marker and guard options from a real Adonis router route', async ({ assert }) => {
+  test('reads marker and guard options from a real AdonisJS router route', async ({ assert }) => {
     class AuthMiddleware {
       async handle(_ctx: unknown, next: () => Promise<unknown>, _options?: { guards: string[] }) {
         await next()

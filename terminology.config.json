@@ -1,0 +1,12 @@
+{
+  "allowedInFiles": [
+    {
+      "path": "docs/maintainers/conventions.md",
+      "terms": ["adonis"],
+      "reason": "the rule names the rejected word"
+    }
+  ],
+  "allowedPhrases": [
+    { "phrase": "adonis impersonate", "reason": "the name of another project's package" }
+  ]
+}
