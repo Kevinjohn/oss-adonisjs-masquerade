@@ -2,8 +2,8 @@ import { join } from 'node:path'
 
 /** Server-side account masquerade core. SQL and framework adapters are separate subpaths. */
 export * from './src/types.ts'
-export type { MasqueradeBlockedBy, MasqueradeErrorCode } from './src/errors.ts'
-export type { MasqueradeSetupErrorCode, MasqueradeSetupErrorField } from './src/errors.ts'
+export type { MasqueradeBlockedBy, MasqueradeErrorCode } from './src/types.ts'
+export type { MasqueradeSetupErrorCode, MasqueradeSetupErrorField } from './src/types.ts'
 export * as errors from './src/errors.ts'
 export { defineConfig } from './src/define_config.ts'
 export { createMasqueradeService } from './src/service.ts'

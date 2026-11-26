@@ -29,7 +29,7 @@ function stamp(revision: string | null): string {
  *
  * @example
  * ```ts
- * * import { accountKitAuthority } from '@kevinjohn/adonisjs-masquerade/account-kit'
+ * import { accountKitAuthority } from '@kevinjohn/adonisjs-masquerade/account-kit'
  * import type { AccountKitAuthorityOptions } from '@kevinjohn/adonisjs-masquerade/types'
  *
  * type Account = { id: string }
@@ -65,62 +65,77 @@ export function accountKitAuthority<User>(
   )
     throw new InvalidArgumentsException('Invalid Account Kit authority')
 
-  const { provider, kit } = options
-  const guard = options.managedGuard.name
-  const strategy = options.managedGuard.strategy
-  const ability = options.ability
-  const managedGuard = Object.freeze(
-    Object.create(options.managedGuard, {
-      name: { value: guard, enumerable: true },
-      strategy: { value: strategy, enumerable: true },
-      current: { value: options.managedGuard.current.bind(options.managedGuard), enumerable: true },
+  return Object.freeze(new AccountKitNativeAdapter(options))
+}
+
+class AccountKitNativeAdapter<User> implements AccountKitAdapter<User> {
+  readonly authority: NativeAuthority<User>
+  readonly guard: string
+  readonly driverName: AccountKitManagedGuard['strategy']
+  readonly managedGuard: AccountKitManagedGuard
+  readonly kit: AccountKitAuthorityOptions<User>['kit']
+  readonly provider: AccountKitAuthorityOptions<User>['provider']
+  readonly authenticateActor: AccountKitAdapter<User>['authenticateActor']
+
+  constructor(options: AccountKitAuthorityOptions<User>) {
+    const { provider, kit } = options
+    const guard = options.managedGuard.name
+    const strategy = options.managedGuard.strategy
+    const ability = options.ability
+    const managedGuard = Object.freeze(
+      Object.create(options.managedGuard, {
+        name: { value: guard, enumerable: true },
+        strategy: { value: strategy, enumerable: true },
+        current: {
+          value: options.managedGuard.current.bind(options.managedGuard),
+          enumerable: true,
+        },
+      })
+    ) as AccountKitManagedGuard
+    const incarnation = options.incarnation === 'id' ? 'id' : options.incarnation.bind(options)
+    const buildAccountSubject = (user: User, idValue: unknown): Subject<User> => ({
+      ...resolveAccountOwner(incarnation, user, idValue),
+      user,
     })
-  ) as AccountKitManagedGuard
-  const incarnation = options.incarnation === 'id' ? 'id' : options.incarnation.bind(options)
-  const buildAccountSubject = (user: User, idValue: unknown): Subject<User> => ({
-    ...resolveAccountOwner(incarnation, user, idValue),
-    user,
-  })
-  const authority: NativeAuthority<User> = Object.freeze({
-    namespace: options.namespace,
-    guard,
-    incarnation,
-    async inspectAccount(id: string) {
-      let snapshot: AccountKitAccessSnapshot
-      try {
-        const service = await kit()
-        snapshot = await service.authentication.inspectAccountAccess({
-          userId: id,
-          requireActive: true,
-        })
-      } catch (error) {
-        if (isKitDenial(error, 'E_ACCOUNT_KIT_ACCOUNT_ACCESS_DENIED')) return null
-        throw error
-      }
-      const canonical = requireCanonicalId(snapshot.account.id)
-      // A database may coerce a non-canonical ID such as "02" to an existing account. Answer with
-      // the generic denial, as for a missing account, so the response does not reveal existence.
-      if (canonical !== id) return null
-      const account = await provider.findById(canonical)
-      if (!account) return null
-      if (requireCanonicalId(account.getId()) !== canonical) throw new E_MASQUERADE_UNAVAILABLE()
-      const user = account.getOriginal()
-      if (!user || typeof user !== 'object') throw new E_MASQUERADE_UNAVAILABLE()
-      return {
-        subject: buildAccountSubject(user, canonical),
-        active: snapshot.account.active,
-        securityStamp: stamp(snapshot.revision),
-      }
-    },
-  })
-  return Object.freeze({
-    authority,
-    guard,
-    driverName: strategy,
-    managedGuard,
-    kit,
-    provider,
-    async authenticateActor(ctx: HttpContext) {
+    const authority: NativeAuthority<User> = Object.freeze({
+      namespace: options.namespace,
+      guard,
+      incarnation,
+      async inspectAccount(id: string) {
+        let snapshot: AccountKitAccessSnapshot
+        try {
+          const service = await kit()
+          snapshot = await service.authentication.inspectAccountAccess({
+            userId: id,
+            requireActive: true,
+          })
+        } catch (error) {
+          if (isKitDenial(error, 'E_ACCOUNT_KIT_ACCOUNT_ACCESS_DENIED')) return null
+          throw error
+        }
+        const canonical = requireCanonicalId(snapshot.account.id)
+        // A database may coerce a non-canonical ID such as "02" to an existing account. Answer with
+        // the generic denial, as for a missing account, so the response does not reveal existence.
+        if (canonical !== id) return null
+        const account = await provider.findById(canonical)
+        if (!account) return null
+        if (requireCanonicalId(account.getId()) !== canonical) throw new E_MASQUERADE_UNAVAILABLE()
+        const user = account.getOriginal()
+        if (!user || typeof user !== 'object') throw new E_MASQUERADE_UNAVAILABLE()
+        return {
+          subject: buildAccountSubject(user, canonical),
+          active: snapshot.account.active,
+          securityStamp: stamp(snapshot.revision),
+        }
+      },
+    })
+    this.authority = authority
+    this.guard = guard
+    this.driverName = strategy
+    this.managedGuard = managedGuard
+    this.kit = kit
+    this.provider = provider
+    this.authenticateActor = async (ctx: HttpContext) => {
       let raw: GuardContract<User & { currentAccessToken?: { allows(ability: string): unknown } }>
       try {
         raw = ctx.auth.use(guard as never) as typeof raw
@@ -161,6 +176,6 @@ export function accountKitAuthority<User>(
           })
         throw new E_MASQUERADE_UNAVAILABLE()
       }
-    },
-  })
+    }
+  }
 }

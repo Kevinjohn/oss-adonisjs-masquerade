@@ -108,7 +108,9 @@ test('Account Kit authority authenticates through raw guard then current; reject
       }),
     },
   } as unknown as HttpContext
-  const actor = await adapter.authenticateActor(ctx)
+  assert.isTrue(Object.isFrozen(adapter))
+  const { authenticateActor } = { ...adapter }
+  const actor = await authenticateActor(ctx)
   assert.equal(actor.id, '7')
   assert.deepEqual(calls, ['raw', 'managed', 'current'])
   reject = true

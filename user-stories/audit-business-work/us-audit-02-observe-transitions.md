@@ -6,7 +6,7 @@ As an application developer, I want to subscribe to support transitions so that 
 **Access:** Application developer
 **Entry:** Register listeners using the provider’s AdonisJS event declarations.
 **Documentation:** [Alerts](../../docs/guide/alerts.md).
-**Source:** [Observer delivery](../../src/observers.ts), [Typed event names](../../src/integration/events.ts).
+**Source:** [Observer delivery](../../src/observers.ts), [Typed event names](../../providers/masquerade_provider.ts).
 **Coverage:** [Commit and observer failures](../../tests/core_failures.spec.ts), [Alert recipe](../../tests/docs_alerts_recipe.spec.ts).
 
 ## Acceptance criteria
@@ -33,4 +33,4 @@ flowchart TD
     B --> C["Invoke emitter and logger independently without awaiting"]
 ```
 
-**Code references:** [Transition acknowledgement](../../src/mode_transition.ts#L50), [observer delivery](../../src/observers.ts#L41), [provider event types](../../src/integration/events.ts).
+**Code references:** [Transition acknowledgement](../../src/mode_transition.ts#L50), [observer delivery](../../src/observers.ts#L41), [provider event types](../../providers/masquerade_provider.ts).

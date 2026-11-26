@@ -9,7 +9,7 @@ import type {
   RequestControlStore,
 } from './types.ts'
 import { isBoundedString } from './bounded_string.ts'
-import type { MasqueradeSetupErrorField } from './errors.ts'
+import type { MasqueradeSetupErrorField } from './error_types.ts'
 
 /** One hundred years; a longer window has no prunable cutoff on every supported store. */
 export const MAX_RETENTION_DAYS = 36_500

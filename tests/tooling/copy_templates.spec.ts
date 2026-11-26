@@ -3,15 +3,29 @@ import assert from 'node:assert/strict'
 import { spawnSync } from 'node:child_process'
 import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
-import { join } from 'node:path'
+import { delimiter, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
 
-const script = fileURLToPath(new URL('../../bin/copy_templates.ts', import.meta.url))
-const run = (directory: string) =>
-  spawnSync(process.execPath, ['--import', import.meta.resolve('@poppinss/ts-exec'), script], {
+const root = fileURLToPath(new URL('../../', import.meta.url))
+const { scripts } = JSON.parse(readFileSync(join(root, 'package.json'), 'utf8'))
+
+const run = (directory: string) => {
+  writeFileSync(
+    join(directory, 'package.json'),
+    JSON.stringify({
+      private: true,
+      scripts: { 'copy:templates': scripts['copy:templates'] },
+    })
+  )
+  return spawnSync('pnpm', ['copy:templates'], {
     cwd: directory,
     encoding: 'utf8',
+    env: {
+      ...process.env,
+      PATH: `${join(root, 'node_modules/.bin')}${delimiter}${process.env.PATH}`,
+    },
   })
+}
 
 test.group('copy templates', () => {
   test('copies only stub files with their nested paths and exact contents', ({ cleanup }) => {

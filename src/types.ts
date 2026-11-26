@@ -1,5 +1,5 @@
 import type { ApplicationService } from '@adonisjs/core/types'
-import type { MasqueradeErrorCode } from './errors.ts'
+import type { MasqueradeErrorCode } from './error_types.ts'
 import type { NativeRuntimeAdapter } from './native/types.ts'
 
 export type {
@@ -7,7 +7,7 @@ export type {
   MasqueradeErrorCode,
   MasqueradeSetupErrorCode,
   MasqueradeSetupErrorField,
-} from './errors.ts'
+} from './error_types.ts'
 
 /** Canonical provider identifier. */
 export type SubjectId = string
