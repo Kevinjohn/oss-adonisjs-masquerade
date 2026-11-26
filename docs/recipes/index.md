@@ -48,4 +48,4 @@ Each example is a complete AdonisJS 7 app with tests. Its README lists the files
 | [native-session](https://github.com/Kevinjohn/oss-adonisjs-masquerade/tree/main/examples/native-session)     | Edge forms, a JSON client and a bearer-token API; `pnpm demo` |
 | [inertia-react](https://github.com/Kevinjohn/oss-adonisjs-masquerade/tree/main/examples/inertia-react)       | React 19 with Inertia, from the official React starter kit    |
 | [inertia-vue](https://github.com/Kevinjohn/oss-adonisjs-masquerade/tree/main/examples/inertia-vue)           | Vue 3 with Inertia, from the official Vue starter kit         |
-| [account-kit-demo](https://github.com/Kevinjohn/oss-adonisjs-masquerade/tree/main/examples/account-kit-demo) | Masquerade with Account Kit-managed accounts                  |
+| [account_kit_demo](https://github.com/Kevinjohn/oss-adonisjs-masquerade/tree/main/examples/account_kit_demo) | Masquerade with Account Kit-managed accounts                  |
