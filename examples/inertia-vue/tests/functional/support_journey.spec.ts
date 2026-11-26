@@ -6,6 +6,14 @@ import { cleanUsers, createUsers } from '#tests/helpers/users'
 import { setMasqueradeStoreUnavailable } from '#services/masquerade_fixture_boundary'
 
 test.group('Inertia Vue support journey', (group) => {
+  function pageData(html: string): any {
+    const encoded = html.match(
+      /<script data-page="app" type="application\/json">([\s\S]*?)<\/script>/
+    )?.[1]
+    if (!encoded) throw new Error('Missing Inertia page data')
+    return JSON.parse(encoded)
+  }
+
   group.setup(() => testUtils.db().migrate())
   group.each.teardown(async () => {
     setMasqueradeStoreUnavailable(false)
@@ -327,11 +335,3 @@ test.group('Inertia Vue support journey', (group) => {
     stop.assertStatus(302)
   })
 })
-
-function pageData(html: string): any {
-  const encoded = html.match(
-    /<script data-page="app" type="application\/json">([\s\S]*?)<\/script>/
-  )?.[1]
-  if (!encoded) throw new Error('Missing Inertia page data')
-  return JSON.parse(encoded)
-}

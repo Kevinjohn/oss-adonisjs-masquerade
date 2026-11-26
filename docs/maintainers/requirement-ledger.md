@@ -493,7 +493,7 @@ is in [section 13 of the technical specification](design/spec-masquerade.md#13-v
 ### Token-only default guard
 
 - **Acceptance obligation:** Boot token-only Auth with the effective token guard as default and complete an HTTP lifecycle.
-- **Test references:** `examples/native-session/tests/token-only/token_only_boot.spec.ts`: “boots with the token guard as default and completes a real HTTP journey”.
+- **Test references:** `examples/native-session/tests/token_only/token_only_boot.spec.ts`: “boots with the token guard as default and completes a real HTTP journey”.
 
 ### Native lifecycle and CSRF boundaries
 

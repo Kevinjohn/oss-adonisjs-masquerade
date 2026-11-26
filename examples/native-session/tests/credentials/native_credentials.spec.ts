@@ -11,6 +11,69 @@ type MasqueradeStatus = {
 }
 
 test.group('native session credential controls', (group) => {
+  async function login(jar: NativeCookieJar, email: string, remember: boolean) {
+    const page = await jar.request('/login', { headers: { accept: 'text/html' } })
+    if (page.status !== 200) throw new Error(`login form returned ${page.status}`)
+    const html = await page.text()
+    const csrfToken = html.match(/name=["']_csrf["'] value=["']([^"']+)["']/)?.[1]
+    if (!csrfToken) throw new Error('login form omitted its CSRF token')
+
+    const response = await jar.request('/login', {
+      method: 'POST',
+      headers: formHeaders(csrfToken),
+      body: new URLSearchParams({
+        email,
+        password: 'secret',
+        ...(remember ? { remember: 'on' } : {}),
+      }),
+    })
+    if (response.status !== 302) throw new Error(`native login returned ${response.status}`)
+    return { status: response.status, csrfToken }
+  }
+
+  function formHeaders(csrfToken: string) {
+    return {
+      'accept': 'application/json',
+      'content-type': 'application/x-www-form-urlencoded',
+      'x-csrf-token': csrfToken,
+    }
+  }
+
+  async function getFreshCsrfToken(jar: NativeCookieJar, path = '/login') {
+    const response = await jar.request(path, { headers: { accept: 'text/html' } })
+    if (response.status !== 200) throw new Error(`CSRF form returned ${response.status}`)
+    const html = await response.text()
+    const token = html.match(/name=["']_csrf["'] value=["']([^"']+)["']/)?.[1]
+    if (!token) throw new Error('form omitted its CSRF token')
+    return token
+  }
+
+  async function postControl(
+    jar: NativeCookieJar,
+    path: string,
+    csrf: string,
+    fields: Record<string, string>
+  ) {
+    return jar.request(path, {
+      method: 'POST',
+      headers: formHeaders(csrf),
+      body: new URLSearchParams({ ...fields, _csrf: csrf }),
+    })
+  }
+
+  async function modeRow(actorId: number) {
+    return db.from('masquerade_modes').where('actor_id', String(actorId)).first()
+  }
+
+  async function eventCount(actorId: number) {
+    const result = await db
+      .from('masquerade_events')
+      .where('actor_id', String(actorId))
+      .count('* as total')
+      .first()
+    return Number(result?.total)
+  }
+
   group.setup(() => testUtils.db().migrate())
   group.each.teardown(async () => {
     await limiter.clear(['memory'])
@@ -185,66 +248,3 @@ test.group('native session credential controls', (group) => {
     assert.equal(Number(targetRememberTokens?.total), 0)
   })
 })
-
-async function login(jar: NativeCookieJar, email: string, remember: boolean) {
-  const page = await jar.request('/login', { headers: { accept: 'text/html' } })
-  if (page.status !== 200) throw new Error(`login form returned ${page.status}`)
-  const html = await page.text()
-  const csrfToken = html.match(/name=["']_csrf["'] value=["']([^"']+)["']/)?.[1]
-  if (!csrfToken) throw new Error('login form omitted its CSRF token')
-
-  const response = await jar.request('/login', {
-    method: 'POST',
-    headers: formHeaders(csrfToken),
-    body: new URLSearchParams({
-      email,
-      password: 'secret',
-      ...(remember ? { remember: 'on' } : {}),
-    }),
-  })
-  if (response.status !== 302) throw new Error(`native login returned ${response.status}`)
-  return { status: response.status, csrfToken }
-}
-
-function formHeaders(csrfToken: string) {
-  return {
-    'accept': 'application/json',
-    'content-type': 'application/x-www-form-urlencoded',
-    'x-csrf-token': csrfToken,
-  }
-}
-
-async function getFreshCsrfToken(jar: NativeCookieJar, path = '/login') {
-  const response = await jar.request(path, { headers: { accept: 'text/html' } })
-  if (response.status !== 200) throw new Error(`CSRF form returned ${response.status}`)
-  const html = await response.text()
-  const token = html.match(/name=["']_csrf["'] value=["']([^"']+)["']/)?.[1]
-  if (!token) throw new Error('form omitted its CSRF token')
-  return token
-}
-
-async function postControl(
-  jar: NativeCookieJar,
-  path: string,
-  csrf: string,
-  fields: Record<string, string>
-) {
-  return jar.request(path, {
-    method: 'POST',
-    headers: formHeaders(csrf),
-    body: new URLSearchParams({ ...fields, _csrf: csrf }),
-  })
-}
-
-async function modeRow(actorId: number) {
-  return db.from('masquerade_modes').where('actor_id', String(actorId)).first()
-}
-
-async function eventCount(actorId: number) {
-  const result = await db
-    .from('masquerade_events')
-    .where('actor_id', String(actorId))
-    .count('* as total')
-    .first()
-  return Number(result?.total)
-}

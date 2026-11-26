@@ -18,6 +18,17 @@ type BrowserPage = Awaited<ReturnType<TestContext['browserContext']['newPage']>>
 const screenshots = resolve('tmp/browser')
 
 test.group('support workspace browser journey', (group) => {
+  async function signIn(page: BrowserPage, email: string) {
+    await page.getByLabel('Email').fill(email)
+    await page.getByLabel('Password').fill('demo-operator-2026')
+    await page.getByRole('button', { name: 'Sign in' }).press('Enter')
+    await page.waitForURL('**/dashboard')
+  }
+
+  function baseUrl() {
+    return `http://${process.env.HOST ?? '127.0.0.1'}:${process.env.PORT ?? '3391'}`
+  }
+
   group.setup(() => {
     mkdirSync(screenshots, { recursive: true })
     return testUtils.db().migrate()
@@ -119,7 +130,7 @@ test.group('support workspace browser journey', (group) => {
     await page.getByLabel('Setting').selectOption('1')
     await page.getByRole('button', { name: 'Save preference' }).press('Enter')
     await page.waitForURL('**/support/customer')
-    await page.getByText('Customer email preference saved.').waitFor()
+    await page.getByText('Customer email preference saved.', { exact: false }).waitFor()
     await page.reload()
     assert.equal(await page.locator('.support-details dd').nth(1).textContent(), 'On')
     assert.equal(await page.getByLabel('Setting').inputValue(), '1')
@@ -327,14 +338,3 @@ test.group('support workspace browser journey', (group) => {
     }
   })
 })
-
-async function signIn(page: BrowserPage, email: string) {
-  await page.getByLabel('Email').fill(email)
-  await page.getByLabel('Password').fill('demo-operator-2026')
-  await page.getByRole('button', { name: 'Sign in' }).press('Enter')
-  await page.waitForURL('**/dashboard')
-}
-
-function baseUrl() {
-  return `http://${process.env.HOST ?? '127.0.0.1'}:${process.env.PORT ?? '3391'}`
-}

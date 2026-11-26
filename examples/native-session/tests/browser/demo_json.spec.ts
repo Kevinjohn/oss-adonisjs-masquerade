@@ -11,9 +11,18 @@ import {
 } from '#services/masquerade_fixture_boundary'
 
 type Page = Awaited<ReturnType<TestContext['browserContext']['newPage']>>
-const base = () => `http://${process.env.HOST ?? '127.0.0.1'}:${process.env.PORT ?? '3391'}`
 
 test.group('JSON support browser client', (group) => {
+  const base = () => `http://${process.env.HOST ?? '127.0.0.1'}:${process.env.PORT ?? '3391'}`
+
+  async function signIn(page: Page) {
+    await page.goto(`${base()}/login`)
+    await page.getByLabel('Email').fill(demoAccounts[0].email)
+    await page.getByLabel('Password').fill(demoAccounts[0].password)
+    await page.getByRole('button', { name: 'Sign in' }).click()
+    await page.waitForURL('**/dashboard')
+  }
+
   group.setup(() => testUtils.db().migrate())
   group.each.setup(async () => {
     setMasqueradeStoreUnavailable(false)
@@ -35,14 +44,14 @@ test.group('JSON support browser client', (group) => {
     const page = await browserContext.newPage()
     await signIn(page)
     await page.goto(`${base()}/support/json`)
-    await page.getByText('Support mode is idle.').waitFor()
+    await page.getByText('Support mode is idle.', { exact: false }).waitFor()
     await page
       .getByLabel('Customer')
       .selectOption({ label: 'Customer One — customer-one@example.test' })
     await page.getByRole('radio', { name: 'Can edit' }).check()
     await page.getByLabel('Reason for access').fill('Customer requested email setting help')
     await page.getByRole('button', { name: 'Start support mode' }).click()
-    await page.getByText('Action completed.').waitFor()
+    await page.getByText('Action completed.', { exact: false }).waitFor()
     const customer = await User.findByOrFail('email', demoAccounts[1].email)
     assert.include(await page.locator('#json-customer').innerText(), customer.email)
     assert.include(await page.locator('#json-customer').innerText(), demoAccounts[0].email)
@@ -77,15 +86,15 @@ test.group('JSON support browser client', (group) => {
     assert.notInclude(rejectedCsrf.contentType, 'application/json')
     assert.isNull(await db.from('demo_preferences').where('user_id', customer.id).first())
     await page.getByRole('button', { name: 'Save preference' }).click()
-    await page.getByText('Action completed.').waitFor()
+    await page.getByText('Action completed.', { exact: false }).waitFor()
     let saved = await db.from('demo_preferences').where('user_id', customer.id).first()
     assert.equal(saved?.email_updates, 1)
     await page.getByRole('button', { name: 'Try sensitive action' }).click()
-    await page.getByText('This action is blocked').waitFor()
+    await page.getByText('This action is blocked', { exact: false }).waitFor()
     saved = await db.from('demo_preferences').where('user_id', customer.id).first()
     assert.equal(saved?.email_updates, 1)
     await page.getByRole('button', { name: 'Stop support mode' }).click()
-    await page.getByText('No support mode is active.').waitFor()
+    await page.getByText('No support mode is active.', { exact: false }).waitFor()
     assert.equal(await page.locator('#json-preference').isHidden(), true)
   })
 
@@ -96,14 +105,14 @@ test.group('JSON support browser client', (group) => {
     const page = await browserContext.newPage()
     await signIn(page)
     await page.goto(`${base()}/support/json`)
-    await page.getByText('Support mode is idle.').waitFor()
+    await page.getByText('Support mode is idle.', { exact: false }).waitFor()
     await page
       .getByLabel('Customer')
       .selectOption({ label: 'Customer One — customer-one@example.test' })
     await page.getByRole('radio', { name: 'Can edit' }).check()
     await page.getByLabel('Reason for access').fill('First customer')
     await page.getByRole('button', { name: 'Start support mode' }).click()
-    await page.getByText('Action completed.').waitFor()
+    await page.getByText('Action completed.', { exact: false }).waitFor()
     let releaseOld!: () => void
     let capturedOld!: () => void
     let deliveredOld!: () => void
@@ -130,18 +139,18 @@ test.group('JSON support browser client', (group) => {
     await oldCaptured
     const other = await browserContext.newPage()
     await other.goto(`${base()}/support/json`)
-    await other.getByText('Customer access confirmed.').waitFor()
+    await other.getByText('Customer access confirmed.', { exact: false }).waitFor()
     await other.getByRole('button', { name: 'Stop support mode' }).click()
-    await other.getByText('No support mode is active.').waitFor()
+    await other.getByText('No support mode is active.', { exact: false }).waitFor()
     await other
       .getByLabel('Customer')
       .selectOption({ label: 'Customer Two — customer-two@example.test' })
     await other.getByRole('radio', { name: 'Can edit' }).check()
     await other.getByLabel('Reason for access').fill('Second customer')
     await other.getByRole('button', { name: 'Start support mode' }).click()
-    await other.getByText('Action completed.').waitFor()
+    await other.getByText('Action completed.', { exact: false }).waitFor()
     await page.getByRole('button', { name: 'Check current status' }).click()
-    await page.getByText('Customer access confirmed.').waitFor()
+    await page.getByText('Customer access confirmed.', { exact: false }).waitFor()
     assert.include(await page.locator('#json-customer').innerText(), demoAccounts[2].email)
     releaseOld()
     await oldDelivered
@@ -159,14 +168,14 @@ test.group('JSON support browser client', (group) => {
     await page.clock.install({ time: fixed })
     await signIn(page)
     await page.goto(`${base()}/support/json`)
-    await page.getByText('Support mode is idle.').waitFor()
+    await page.getByText('Support mode is idle.', { exact: false }).waitFor()
     await page
       .getByLabel('Customer')
       .selectOption({ label: 'Customer One — customer-one@example.test' })
     await page.getByRole('radio', { name: 'Can edit' }).check()
     await page.getByLabel('Reason for access').fill('Expiry and recovery')
     await page.getByRole('button', { name: 'Start support mode' }).click()
-    await page.getByText('Action completed.').waitFor()
+    await page.getByText('Action completed.', { exact: false }).waitFor()
     const deadlineText = await page.locator('#json-deadline').innerText()
     const deadline = Date.parse(deadlineText.replace('Fixed deadline: ', ''))
     await page.clock.setFixedTime(deadline)
@@ -180,7 +189,7 @@ test.group('JSON support browser client', (group) => {
     assert.equal(await page.getByRole('button', { name: 'Stop support mode' }).isEnabled(), true)
     setMasqueradeTestTime(deadline)
     await page.getByRole('button', { name: 'Stop support mode' }).click()
-    await page.getByText('No support mode is active.').waitFor()
+    await page.getByText('No support mode is active.', { exact: false }).waitFor()
     setMasqueradeTestTime(undefined)
   })
 
@@ -191,7 +200,7 @@ test.group('JSON support browser client', (group) => {
     const page = await browserContext.newPage()
     await signIn(page)
     await page.goto(`${base()}/support/json`)
-    await page.getByText('Support mode is idle.').waitFor()
+    await page.getByText('Support mode is idle.', { exact: false }).waitFor()
     await page
       .getByLabel('Customer')
       .selectOption({ label: 'Customer One — customer-one@example.test' })
@@ -204,15 +213,7 @@ test.group('JSON support browser client', (group) => {
     assert.equal(await page.getByLabel('Reason for access').inputValue(), '')
     setMasqueradeStoreUnavailable(false)
     await page.getByRole('button', { name: 'Check current status' }).click()
-    await page.getByText('Support mode is idle.').waitFor()
+    await page.getByText('Support mode is idle.', { exact: false }).waitFor()
     assert.equal(await page.getByRole('button', { name: 'Start support mode' }).isVisible(), true)
   })
 })
-
-async function signIn(page: Page) {
-  await page.goto(`${base()}/login`)
-  await page.getByLabel('Email').fill(demoAccounts[0].email)
-  await page.getByLabel('Password').fill(demoAccounts[0].password)
-  await page.getByRole('button', { name: 'Sign in' }).click()
-  await page.waitForURL('**/dashboard')
-}

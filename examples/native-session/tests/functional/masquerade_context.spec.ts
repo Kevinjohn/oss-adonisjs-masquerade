@@ -20,6 +20,107 @@ declare module '@adonisjs/core/types' {
 }
 
 test.group('real HTTP masquerade context and actions', (group) => {
+  async function status(client: ApiClient, actor: User) {
+    const response = await client.get('/masquerade').loginAs(actor)
+    response.assertStatus(200)
+    response.assertHeader('cache-control', 'no-store')
+    return response.body() as { contextToken: string; isMasquerading?: boolean }
+  }
+
+  async function loginOverHttp(email: string): Promise<RealSession> {
+    const loginPage = await fetch(fixtureUrl('/login'))
+    const loginHtml = await loginPage.text()
+    const csrfToken = loginHtml.match(/name=["']_csrf["'] value=["']([^"']+)["']/)?.[1]
+    const initialCookie = sessionCookie(loginPage)
+    if (!csrfToken || !initialCookie) throw new Error('login page omitted CSRF or session data')
+
+    const response = await fetch(fixtureUrl('/login'), {
+      method: 'POST',
+      redirect: 'manual',
+      headers: {
+        'accept': 'text/html',
+        'content-type': 'application/x-www-form-urlencoded',
+        'cookie': initialCookie,
+        'x-csrf-token': csrfToken,
+      },
+      body: new URLSearchParams({ email, password: 'secret' }),
+    })
+    if (response.status !== 302) throw new Error(`native login returned ${response.status}`)
+    return { cookie: sessionCookie(response) ?? initialCookie, csrfToken }
+  }
+
+  function sessionCookie(response: Response): string | undefined {
+    return response.headers
+      .getSetCookie()
+      .map((value) => value.split(';', 1)[0])
+      .find((value) => value.startsWith('adonis-session='))
+  }
+
+  function fixtureUrl(path: string): URL {
+    const host = process.env.HOST ?? '127.0.0.1'
+    const port = process.env.PORT ?? '3333'
+    return new URL(path, `http://${host}:${port}`)
+  }
+
+  async function getRealStatus(session: RealSession) {
+    const response = await fetch(fixtureUrl('/masquerade'), {
+      headers: { accept: 'application/json', cookie: session.cookie },
+    })
+    if (response.status !== 200) throw new Error(`status request returned ${response.status}`)
+    return (await response.json()) as { contextToken: string; isMasquerading: boolean }
+  }
+
+  async function fetchBusiness(session: RealSession) {
+    const response = await fetchBusinessResponse(session)
+    if (response.status !== 200) throw new Error(`business request returned ${response.status}`)
+    return (await response.json()) as { actorId: number; effectiveId: number }
+  }
+
+  function fetchBusinessResponse(session: RealSession) {
+    return fetch(fixtureUrl('/business'), {
+      headers: { accept: 'application/json', cookie: session.cookie },
+      redirect: 'manual',
+    })
+  }
+
+  function startMode(
+    client: ApiClient,
+    actor: User,
+    targetId: number,
+    token: string,
+    access: 'view' | 'edit' = 'edit'
+  ) {
+    return client
+      .post('/masquerade/start')
+      .withCsrfToken()
+      .header('Accept', 'application/json')
+      .header('X-Masquerade-Context', token)
+      .json({ targetId, reason: 'support case 1042', access })
+      .loginAs(actor)
+  }
+
+  function mutation(client: ApiClient, actor: User, token?: string, path = '/business/mutate') {
+    const request = client.post(path).withCsrfToken().header('Accept', 'application/json').json({})
+    if (token) request.header('X-Masquerade-Context', token)
+    return request.loginAs(actor)
+  }
+
+  function idleTokenFor(namespace: string, actorId: number): string {
+    const parts = [namespace, String(actorId), String(actorId)]
+      .map((part) => `${Buffer.byteLength(part)}:${part}`)
+      .join('')
+    return `0.${createHash('sha256').update(parts).digest('hex')}`
+  }
+
+  async function eventCount(actorId: number) {
+    const result = await db
+      .from('masquerade_events')
+      .where('actor_id', String(actorId))
+      .count('* as total')
+      .first()
+    return Number(result?.total)
+  }
+
   group.setup(() => testUtils.db().migrate())
   group.each.teardown(async () => {
     await limiter.clear(['memory'])
@@ -481,105 +582,4 @@ test.group('real HTTP masquerade context and actions', (group) => {
   })
 })
 
-async function status(client: ApiClient, actor: User) {
-  const response = await client.get('/masquerade').loginAs(actor)
-  response.assertStatus(200)
-  response.assertHeader('cache-control', 'no-store')
-  return response.body() as { contextToken: string; isMasquerading?: boolean }
-}
-
 type RealSession = { cookie: string; csrfToken: string }
-
-async function loginOverHttp(email: string): Promise<RealSession> {
-  const loginPage = await fetch(fixtureUrl('/login'))
-  const loginHtml = await loginPage.text()
-  const csrfToken = loginHtml.match(/name=["']_csrf["'] value=["']([^"']+)["']/)?.[1]
-  const initialCookie = sessionCookie(loginPage)
-  if (!csrfToken || !initialCookie) throw new Error('login page omitted CSRF or session data')
-
-  const response = await fetch(fixtureUrl('/login'), {
-    method: 'POST',
-    redirect: 'manual',
-    headers: {
-      'accept': 'text/html',
-      'content-type': 'application/x-www-form-urlencoded',
-      'cookie': initialCookie,
-      'x-csrf-token': csrfToken,
-    },
-    body: new URLSearchParams({ email, password: 'secret' }),
-  })
-  if (response.status !== 302) throw new Error(`native login returned ${response.status}`)
-  return { cookie: sessionCookie(response) ?? initialCookie, csrfToken }
-}
-
-function sessionCookie(response: Response): string | undefined {
-  return response.headers
-    .getSetCookie()
-    .map((value) => value.split(';', 1)[0])
-    .find((value) => value.startsWith('adonis-session='))
-}
-
-function fixtureUrl(path: string): URL {
-  const host = process.env.HOST ?? '127.0.0.1'
-  const port = process.env.PORT ?? '3333'
-  return new URL(path, `http://${host}:${port}`)
-}
-
-async function getRealStatus(session: RealSession) {
-  const response = await fetch(fixtureUrl('/masquerade'), {
-    headers: { accept: 'application/json', cookie: session.cookie },
-  })
-  if (response.status !== 200) throw new Error(`status request returned ${response.status}`)
-  return (await response.json()) as { contextToken: string; isMasquerading: boolean }
-}
-
-async function fetchBusiness(session: RealSession) {
-  const response = await fetchBusinessResponse(session)
-  if (response.status !== 200) throw new Error(`business request returned ${response.status}`)
-  return (await response.json()) as { actorId: number; effectiveId: number }
-}
-
-function fetchBusinessResponse(session: RealSession) {
-  return fetch(fixtureUrl('/business'), {
-    headers: { accept: 'application/json', cookie: session.cookie },
-    redirect: 'manual',
-  })
-}
-
-function startMode(
-  client: ApiClient,
-  actor: User,
-  targetId: number,
-  token: string,
-  access: 'view' | 'edit' = 'edit'
-) {
-  return client
-    .post('/masquerade/start')
-    .withCsrfToken()
-    .header('Accept', 'application/json')
-    .header('X-Masquerade-Context', token)
-    .json({ targetId, reason: 'support case 1042', access })
-    .loginAs(actor)
-}
-
-function mutation(client: ApiClient, actor: User, token?: string, path = '/business/mutate') {
-  const request = client.post(path).withCsrfToken().header('Accept', 'application/json').json({})
-  if (token) request.header('X-Masquerade-Context', token)
-  return request.loginAs(actor)
-}
-
-function idleTokenFor(namespace: string, actorId: number): string {
-  const parts = [namespace, String(actorId), String(actorId)]
-    .map((part) => `${Buffer.byteLength(part)}:${part}`)
-    .join('')
-  return `0.${createHash('sha256').update(parts).digest('hex')}`
-}
-
-async function eventCount(actorId: number) {
-  const result = await db
-    .from('masquerade_events')
-    .where('actor_id', String(actorId))
-    .count('* as total')
-    .first()
-  return Number(result?.total)
-}
