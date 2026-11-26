@@ -26,9 +26,9 @@ These keep their published spelling, even inside British prose:
 ## Distribution
 
 Releases are distributed as GitHub prereleases with a packed tarball. The manually dispatched
-`release` workflow calls the reusable `checks`, `compat`, and `examples` workflows, then rejects
-any release target outside `main`. Its final gate checks the tag and dated changelog, builds and
-packs the package, and creates release notes with an install command and SHA-256 digest.
+`release` workflow accepts only `main` and requires every expected job in the exact commit’s
+`checks.yml` push or manual run to succeed. Its package gate checks the tag and dated changelog,
+builds and packs the package, and creates release notes with an install command and SHA-256 digest.
 See [releasing](releasing.md) for the release procedure and local dry-run command.
 
 ## Architecture and boundaries

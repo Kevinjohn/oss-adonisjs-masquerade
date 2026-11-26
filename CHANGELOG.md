@@ -2,6 +2,9 @@
 
 ## Unreleased
 
+- Releases reuse the successful `checks.yml` push or manual run for the exact commit on `main` before
+  building and validating the release archive.
+
 - Rename the package callbacks from `policy` and `MasqueradePolicy` to `permissions` and
   `MasqueradePermissions`. Resolve `MasqueradeCallbackRegistration` by class instead of
   `masquerade.callbacks`. Bind custom adapters with `NativeAdapter` from `/native` instead of
