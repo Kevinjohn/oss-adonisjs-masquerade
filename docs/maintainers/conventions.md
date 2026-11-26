@@ -136,11 +136,11 @@ the same suite directly against your server; it does not start or stop that serv
   table.
 - The `compat` workflow checks minimum and latest supported peers, packed native-session consumers
   at floor/latest on SQLite and PostgreSQL, and the Account Kit consumer matrix. It runs weekly,
-  for selected compatibility changes, and before a release.
+  on pull requests that change compatibility paths, and on manual dispatch.
 - The `checks` workflow runs the coverage suite on SQLite and PostgreSQL for every pull request.
   Its SQLite cell also runs formatting, lint, typechecking, build, and built-export tests.
-  The `examples` workflow runs the recipe, launchers, and browser journeys weekly, for selected
-  example changes, and before a release. The `docs` workflow builds the site and uploads an
+  The `examples` workflow runs the recipe, launchers, and browser journeys weekly, on pull requests
+  that change example paths, and on manual dispatch. The `docs` workflow builds the site and uploads an
   artifact on pull requests; main-branch pushes and manual dispatch can deploy Pages.
   Automatic checks remain gated for private repositories; manual dispatch runs them.
 - Do not publish, tag, merge, or rename as part of a release-candidate implementation task unless
