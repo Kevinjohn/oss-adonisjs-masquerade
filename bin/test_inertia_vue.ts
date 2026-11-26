@@ -2,7 +2,7 @@ import { spawnSync } from 'node:child_process'
 import { mkdirSync } from 'node:fs'
 import { fileURLToPath } from 'node:url'
 import { join } from 'node:path'
-import { chromiumInstallArgs } from './helpers/example_chromium.js'
+import { chromiumInstallArgs } from './helpers/example_chromium.ts'
 
 const root = fileURLToPath(new URL('../', import.meta.url))
 const example = join(root, 'examples/inertia-vue')

@@ -95,7 +95,7 @@ test('every anchor in a relative Markdown link names a heading', async ({ assert
 })
 
 test('guide navigation points to existing guide pages and sections', async ({ assert }) => {
-  const navigation = await readFile(join(repoRoot, 'docs/.vitepress/navigation.mts'), 'utf8')
+  const navigation = await readFile(join(repoRoot, 'docs/.vitepress/navigation.ts'), 'utf8')
   const links = [...navigation.matchAll(/link:\s*'([^']+)'/g)].map(([, link]) => link)
   const guideLinks = links.filter((link) => link.startsWith('/guide/'))
   const missing: string[] = []

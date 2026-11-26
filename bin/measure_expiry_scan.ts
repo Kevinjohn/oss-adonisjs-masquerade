@@ -6,7 +6,7 @@ import { performance } from 'node:perf_hooks'
 import Database from 'better-sqlite3'
 import pg from 'pg'
 import type { Client as PgClient } from 'pg'
-import { withPostgresMeasurement } from './helpers/postgres_measurement.js'
+import { withPostgresMeasurement } from './helpers/postgres_measurement.ts'
 
 type DatabaseInstance = InstanceType<typeof Database>
 
