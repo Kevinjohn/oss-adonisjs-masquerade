@@ -11,7 +11,7 @@ As an application test author, I want to exercise a real support mode through th
 
 ## Acceptance criteria
 
-- `target` is a model with an `id` or a string, number or bigint ID. Options are `access` (`view` by default or `edit`), `reason`, `durationSeconds` and `prefix`; per-request prefix overrides the plugin prefix, whose default is `/masquerade`.
+- `target` is a model with an `id` or a string, safe-integer number or bigint ID; an empty string is rejected. Options are `access` (`view` by default or `edit`), `reason`, `durationSeconds` and `prefix`; per-request prefix overrides the plugin prefix, whose default is `/masquerade`.
 - Before the requested route, the plugin uses the `loginAs` actor's credentials to read status and start through the real control routes with the current status context. The host's limiter, policy callbacks, security-stamp checks and audit path therefore run.
 - The plugin adds the active context header to unsafe methods only when the request does not already carry one; an explicitly supplied header is preserved so tests can exercise stale or mismatched context. Cookie-authenticated unsafe requests still need Shield CSRF.
 - Setup requires `loginAs`. Status and start must return HTTP 200 with a boolean `isMasquerading` and a string `contextToken`. Status accepts either state. Start must return `isMasquerading: true`. A failed check prevents the protected request.

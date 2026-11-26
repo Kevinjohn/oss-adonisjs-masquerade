@@ -11,13 +11,16 @@ As an AdonisJS application developer, I want to scaffold and finish Masquerade i
 
 ## Acceptance criteria
 
-| Input             | Control                                          | Required/default/conditions                                                    |
-| ----------------- | ------------------------------------------------ | ------------------------------------------------------------------------------ |
-| Namespace         | `--namespace` or **Masquerade namespace** prompt | Required; no default. 1–128 ASCII bytes matching `[A-Za-z0-9][A-Za-z0-9_.:-]*` |
-| Raw session guard | `--guard` or **Raw session guard name** prompt   | Required; no default. 1–128 ASCII bytes matching `[A-Za-z][A-Za-z0-9_-]*`      |
+| Input              | Control                                             | Required/default/conditions                                                    |
+| ------------------ | --------------------------------------------------- | ------------------------------------------------------------------------------ |
+| Namespace          | `--namespace` or **Masquerade namespace** prompt    | Required; no default. 1–128 ASCII bytes matching `[A-Za-z0-9][A-Za-z0-9_.:-]*` |
+| Raw session guard  | `--guard` or **Raw session guard name** prompt      | Required; no default. 1–128 ASCII bytes matching `[A-Za-z][A-Za-z0-9_-]*`      |
+| Optional scaffolds | `--banner`, `--form-controller`, `--control-routes` | Optional; omitted by default. `--control-routes` requires `config/limiter.ts`. |
+| Overwrite          | `--force`                                           | Optional; omitted by default. Preserves an existing migration.                 |
 
-- Omitted flags prompt for their values. Invalid names stop with an error before scaffolding.
+- Omitted namespace or guard flags prompt for their values. Invalid names stop with an error before scaffolding.
 - The command requires configured AdonisJS auth, a resolvable user model, assembler and Lucid. An existing `package.json` that cannot be read or is not JSON stops the command with that error before files are written; if absent, the model directory fallback is used. When no database config is already loaded, configure imports `database.ts` from the host config directory; if that file exists but fails to load, the error stops the command before files are written. Configure resolves the user model from the host import map, falling back to the `adonisrc.ts` models directory. The default Lucid connection’s migration directories take precedence over the `adonisrc.ts` migrations directory. Configure searches those directories for an existing Masquerade migration before selecting a destination. Multiple matches stop configure before it writes files. Generated services, providers, controllers, middleware, config, start files and views follow their respective host directories.
+- If `--control-routes` is requested without `config/limiter.ts`, the command reports that Limiter must be configured and stops before generating files.
 - Without `--force`, any existing generated destination stops the command with an error and exit code 1 before files are written; if a stub is nonetheless skipped, the command stops with exit code 1 before providers or commands are registered. `--force` replaces other generated files and preserves the existing migration’s path and contents. Optional `--banner`, `--form-controller` and `--control-routes` add host-owned scaffolds.
 - The command creates native-session configuration, authority/user provider and, on first setup, a migration using the fixed v1 schema helpers, registers provider and Ace commands, and prints the steps for the host's effective guard, context middleware and control routes.
 - Native opaque access-token integration is host-configured separately with an effective token guard and authority, as described in the [access-token guide](../../docs/guide/access-tokens.md). Configure does not automatically wire token authentication.
@@ -34,7 +37,9 @@ flowchart TD
     B -->|No| C["See setup error and satisfy prerequisite"]
     B -->|Yes| M{"Migration location valid and unambiguous?"}
     M -->|No| P["Resolve the reported directory problem or competing migrations"]
-    M -->|Yes| D{"Generated destination already exists?"}
+    M -->|Yes| L{"Control routes requested without Limiter config?"}
+    L -->|Yes| C
+    L -->|No| D{"Generated destination already exists?"}
     D -->|Yes without force| E["Existing files remain unchanged; review or rerun with force"]
     D -->|No| S{"Any generated path skipped?"}
     D -->|Yes with force| U["Refresh scaffolds and keep any existing migration"]
@@ -62,7 +67,9 @@ flowchart TD
     L -->|loadDatabaseConfig throws| R
     L --> M{"resolveMigrationPathOrReport resolves an unambiguous destination?"}
     M -->|No| E
-    M -->|Yes| X{"Destinations exist and no force?"}
+    M -->|Yes| T{"Control routes requested without limiter.ts?"}
+    T -->|Yes| E
+    T -->|No| X{"Destinations exist and no force?"}
     X -->|Yes| Y["Log existing-files error, exitCode 1, stop"]
     X -->|No| F["codemods.makeUsingStub for other scaffolds"]
     F --> P{"Existing migration found?"}

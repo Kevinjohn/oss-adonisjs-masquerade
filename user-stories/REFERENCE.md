@@ -2,7 +2,7 @@
 
 ## Source baseline and scope
 
-Source baseline: [`4a7022eba8375424cf7b2852417ace11569713d4`](https://github.com/Kevinjohn/oss-adonisjs-masquerade/commit/4a7022eba8375424cf7b2852417ace11569713d4). Inventory covers public package exports, setup scaffolds, HTTP control routes, effective guards, context and route markers, Account Kit blocker, Ace operator commands, guides, examples and relevant tests.
+Source baseline: [`465d34af627a6d0ad31e9a8e40c8d62f5beea2d6`](https://github.com/Kevinjohn/oss-adonisjs-masquerade/commit/465d34af627a6d0ad31e9a8e40c8d62f5beea2d6). Inventory covers public package exports, setup scaffolds, HTTP control routes, effective guards, context and route markers, Account Kit blocker, Ace operator commands, guides, examples and relevant tests.
 
 ## Roles and boundaries
 
@@ -17,7 +17,7 @@ The [package provider](../providers/masquerade_provider.ts) resolves the configu
 
 ## Availability and evidence
 
-Current means an entry exists subject to configuration, guard selection, policies and middleware order. Operator means an Ace command or deployment task outside ordinary business UI. No browser or application runtime journey was run for this documentation change; linked tests are evidence locations only.
+Current means an entry exists subject to configuration, guard selection, policies and middleware order. Operator means an Ace command or deployment task outside ordinary business UI. Demo means the journey is available in the named example application. No browser or application runtime journey was run for this documentation change; linked tests are evidence locations only.
 
 ## Source map
 
@@ -27,7 +27,7 @@ Current means an entry exists subject to configuration, guard selection, policie
 | Status/start/stop HTTP controls       | [masqueradeRoutes](../src/http/control_routes.ts), [MasqueradeController](../src/http/masquerade_controller.ts), [control_input](../src/http/control_input.ts)                      | [Usage guide](../docs/guide/usage.md)                                                                                 |
 | API-client test support               | [masqueradeApiClient](../src/plugins/api_client.ts)                                                                                                                                 | [Testing guide](../docs/guide/testing.md)                                                                             |
 | Active request identity and admission | [EffectiveSessionGuard](../src/auth/effective_session_guard.ts), [EffectiveAccessTokensGuard](../src/auth/effective_access_tokens_guard.ts), [MasqueradeService](../src/service.ts) | [Technical contract](../docs/maintainers/design/spec-masquerade.md), [security guide](../docs/guide/security.md)      |
-| Context and mutation route checks     | [masqueradeContext](../src/http/context_middleware.ts), [route markers](../src/integration/route_markers.ts)                                                                        | [Security guide](../docs/guide/security.md#context-tokens-and-browser-clients)                                        |
+| Context and mutation route checks     | [MasqueradeContextMiddleware](../src/http/context_middleware.ts), [route markers](../src/integration/route_markers.ts)                                                              | [Security guide](../docs/guide/security.md#context-tokens-and-browser-clients)                                        |
 | Account Kit managed actions           | [AccountKitBlocker and AccountKitAccountBlocker](../account_kit/middleware.ts), [AccountKitProvider](../providers/account_kit_provider.ts)                                          | [Account Kit guide](../docs/guide/account-kit.md#block-host-owned-account-routes)                                     |
 | Operator status, stop, report, prune  | [Ace commands](../commands/status.ts), [stop](../commands/stop.ts), [routes](../commands/routes.ts), [prune](../commands/prune.ts)                                                  | [Operations guide](../docs/guide/operations.md)                                                                       |
 | Authority/store integration           | [native authorities](../src/native/native_authorities.ts), [control store](../src/stores/lucid.ts), [memory store](../src/testing/memory_control_store.ts)                          | [Custom authorities](../docs/guide/custom-authorities.md), [custom stores](../docs/guide/custom-stores.md)            |

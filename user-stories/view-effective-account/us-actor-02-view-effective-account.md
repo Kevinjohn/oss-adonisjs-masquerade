@@ -4,7 +4,7 @@ As an authorised support actor with an active mode, I want covered business rout
 
 **Status:** Current; source-reviewed native-session and native access-token integrations.
 **Access:** Actor retains their raw session or opaque access token; host `canMasquerade` and per-request admission determine whether the target is effective.
-**Entry:** Business route uses `web_effective` or host-configured `api_effective` (or the configured effective alias); `masqueradeContext` runs after auth initialisation and before the effective guard authenticates.
+**Entry:** Business route uses `web_effective` or host-configured `api_effective` (or the configured effective alias); `MasqueradeContextMiddleware` runs after auth initialisation and before the effective guard authenticates.
 **Documentation:** [Use the effective customer identity](../../docs/guide/usage.md#use-the-effective-customer-identity), [security identity boundary](../../docs/guide/security.md#actor-target-and-scope).
 **Source:** [EffectiveSessionGuard](../../src/auth/effective_session_guard.ts), [EffectiveAccessTokensGuard](../../src/auth/effective_access_tokens_guard.ts), [request admission](../../src/service.ts).
 **Coverage:** [Session guard tests](../../tests/effective_session_guard.spec.ts), [access-token guard tests](../../tests/effective_access_tokens_guard.spec.ts), [route guard tests](../../tests/route_guard_selection.spec.ts).

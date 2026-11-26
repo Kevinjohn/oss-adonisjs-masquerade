@@ -12,7 +12,7 @@ As a support actor, I want to make a customer-owned mutation only when I start a
 ## Acceptance criteria
 
 - View is selected explicitly or is the omitted `access` default; an edit request without approval is refused, never silently downgraded. An edit start requires `canEdit({ actor, target, reason, request })` to return exactly `true`; active edit admission rechecks `canEdit({ actor, target })`.
-- For an active mode, `masqueradeContext` rejects sensitive routes for every HTTP method. On other unsafe requests it rejects access other than `edit` or a missing `allowMutation()` marker.
+- For an active mode, `MasqueradeContextMiddleware` rejects sensitive routes for every HTTP method. On other unsafe requests it rejects access other than `edit` or a missing `allowMutation()` marker.
 - `allowMutation()` only marks a route; it does not grant target-side permission. The handler's ordinary Bouncer or authorisation check must still allow the effective target.
 - Sensitive routes remain blocked even when a route also has `allowMutation()`.
 
@@ -54,4 +54,4 @@ flowchart TD
     I -->|Yes| H
 ```
 
-**Code references:** [allowMutation and routeMarkers](../../src/integration/route_markers.ts), [masqueradeContext](../../src/http/context_middleware.ts), [MasqueradeService.admit](../../src/service.ts), [security rules](../../docs/guide/security.md#actor-target-and-scope), [shared context flow](../submit-context-token/us-context-01-submit-context-token.md#code-flow).
+**Code references:** [allowMutation and routeMarkers](../../src/integration/route_markers.ts), [MasqueradeContextMiddleware](../../src/http/context_middleware.ts), [CoreService admission](../../src/service.ts), [security rules](../../docs/guide/security.md#actor-target-and-scope), [shared context flow](../submit-context-token/us-context-01-submit-context-token.md#code-flow).

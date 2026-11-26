@@ -57,7 +57,7 @@ Scope: raw-guarded control handler through the service start transition and resp
 ```mermaid
 flowchart TD
     A["masqueradeRoutes mounts POST /start"] --> B["MasqueradeController.start"]
-    B --> C["MasqueradeController.control"]
+    B --> C["MasqueradeController.#control"]
     C --> D["resolveRuntime and raw-guard check"]
     D --> E["parseStartControlOrInvalidMarker(ctx)"]
     E --> F["runtime.service.start(ctx, input); authenticate actor and read row"]

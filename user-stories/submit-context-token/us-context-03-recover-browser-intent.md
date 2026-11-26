@@ -2,7 +2,7 @@
 
 As a support actor, I want to revalidate the identity behind my open workspace so that a restored draft or delayed response cannot silently apply to another account.
 
-**Status:** Current under the stated integration.
+**Status:** Demo; implemented by the named example applications.
 **Access:** Signed-in example operator
 **Entry:** Native-session /support/json and the example Inertia React or Vue workspace.
 **Documentation:** [Same-origin JSON](../../docs/guide/clients/json.md), [React](../../docs/guide/clients/react.md), [Vue](../../docs/guide/clients/vue.md).

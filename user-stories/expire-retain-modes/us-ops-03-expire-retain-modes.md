@@ -41,7 +41,7 @@ Scope: one command invocation; host recurrence and alerting remain outside the p
 flowchart TD
     A["PruneCommand.run"] --> B["Validate batchSize and load config and services"]
     B --> C["pruneMasquerade(config, dependencies, options)"]
-    C --> D["defineConfig and openControlStore"]
+    C --> D["validateConfig and openControlStore"]
     B -->|Validation or setup fails| Y["Ace stores the error and sets exit code 1"]
     D -->|Setup fails| Y
     D -->|Retention enabled| E["store.pruneEvents"]

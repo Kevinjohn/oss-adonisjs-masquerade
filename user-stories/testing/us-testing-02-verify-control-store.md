@@ -22,7 +22,7 @@ As an application developer with a custom control store, I want to run the packa
 flowchart TD
     A["Author adds a conformance test with a fresh-store factory"] --> B["Run the test"]
     B --> C{"Store meets the contract?"}
-    C -->|No| D["Test fails with an assertion error; inspect the failing assertion and fix the adapter"]
+    C -->|No| D["Test fails with an assertion or store error; inspect the failure and fix the adapter"]
     C -->|Yes| E["Add adapter-level tests for database guarantees"]
 ```
 

@@ -6,7 +6,7 @@ As a signed-in actor using a covered form or client, I want to submit the contex
 **Access:** Authenticated effective-guard business routes; token is bound to the raw actor and is not a credential. Integrated API tokens additionally need the configured `masquerade` ability.
 **Entry:** `_masqueradeContext` on a form or `X-Masquerade-Context` on a client request; unsafe methods also retain the host CSRF requirement.
 **Documentation:** [Context token contract](../../docs/guide/glossary.md), [JSON client](../../docs/guide/clients/json.md), [security](../../docs/guide/security.md#context-tokens-and-browser-clients).
-**Source:** [masqueradeContext](../../src/http/context_middleware.ts), [requireContext](../../src/context_token.ts).
+**Source:** [MasqueradeContextMiddleware](../../src/http/context_middleware.ts), [requireContext](../../src/context_token.ts).
 **Coverage:** [Context middleware tests](../../tests/http_context_middleware.spec.ts), [context token tests](../../tests/context_token.spec.ts).
 
 ## Acceptance criteria
@@ -65,7 +65,7 @@ flowchart TD
 
 ## Middleware and error handling
 
-Register the default or named `MasqueradeContextMiddleware` after Auth initialisation and before silent auth. Its `handle` delegates to the exported `masqueradeContext` function. Public routes without Auth pass through. In report mode a stale or missing context on a covered unsafe business request logs a warning; active-mode restrictions still apply. In enforce mode the same context error prevents the handler from running.
+Register the default or named `MasqueradeContextMiddleware` after Auth initialisation and before silent auth. Public routes without Auth pass through. In report mode a stale or missing context on a covered unsafe business request logs a warning; active-mode restrictions still apply. In enforce mode the same context error prevents the handler from running.
 
 A host exception handler can call `renderMasqueradeError(ctx, error)`. It returns false for framework and host exceptions. A Masquerade error produces a no-store JSON response with the stable code and a host translation at `errors.<code>` when available, falling back to English. Blocked actions additionally identify the cause in `blockedBy`.
 

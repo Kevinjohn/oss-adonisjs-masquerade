@@ -4,7 +4,7 @@ Source-reviewed integration and operator journeys for Masquerade's HTTP controls
 
 “Current” records source availability under the stated configuration; it does not claim that an application journey was run.
 
-Source baseline: `4a7022eba8375424cf7b2852417ace11569713d4` (0.6.1).
+Source baseline: `465d34af627a6d0ad31e9a8e40c8d62f5beea2d6`.
 
 ## Index
 
@@ -32,7 +32,7 @@ Source baseline: `4a7022eba8375424cf7b2852417ace11569713d4` (0.6.1).
 | [US-ACCOUNT-03 — End support when an account or its permissions change](protect-native-account/us-account-03-invalidate-account-snapshot.md) | End support when an account or its permissions change | Host policy owner                                      | Current  |
 | [US-AUDIT-02 — Observe committed transitions](audit-business-work/us-audit-02-observe-transitions.md)                                        | Observe committed transitions                         | Application developer                                  | Current  |
 | [US-AUDIT-03 — Review a page of transition history](audit-business-work/us-audit-03-review-transition-history.md)                            | Review a page of transition history                   | Reviewer authorised by the host                        | Current  |
-| [US-CONTEXT-03 — Recover a stale or restored browser workspace](submit-context-token/us-context-03-recover-browser-intent.md)                | Recover a stale or restored browser workspace         | Signed-in example operator                             | Current  |
+| [US-CONTEXT-03 — Recover a stale or restored browser workspace](submit-context-token/us-context-03-recover-browser-intent.md)                | Recover a stale or restored browser workspace         | Signed-in example operator                             | Demo     |
 | [US-SETUP-03](configure-masquerade/us-setup-03-register-integration-callbacks.md)                                                            | Register integration callbacks during provider boot   | Application developer                                  | Operator |
 
 ## Catalogue records

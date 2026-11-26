@@ -38,14 +38,14 @@ flowchart TD
     A["MasqueradeProvider.register binds registry and runtime; adds native fallback binding when absent"] --> B["Earlier host boot calls registry.register"]
     B -->|Duplicate or late| X["Throw InvalidArgumentsException"]
     B -->|Accepted| C["MasqueradeProvider.boot with config starts resolveRuntimeConfiguration"]
-    C --> D["defineConfig validates supplied values; resolve and cache callback factory"]
+    C --> D["resolveMasqueradeConfig; resolve and cache callback factory"]
     D -->|Validation or factory fails| Y["Boot fails"]
     D -->|Success| E["Resolve NativeAdapter from host binding or registered callbacks"]
     E -->|Missing adapter or binding fails| Y
     E -->|Resolved| G{"Distinct native values or duplicate policy sources?"}
     G -->|Yes| X2["Reject runtime resolution"]
     G -->|No| H["Select config authority or native authority; select configured or registered policy"]
-    H --> I["defineConfig and completeConfig; validate native metadata and Auth registration"]
+    H --> I["validateConfig and completeConfig; validate native metadata and Auth registration"]
     I -->|Invalid or missing| Y
     I -->|Valid| K["createRuntime opens configured service and store"]
     K -->|Error| Y

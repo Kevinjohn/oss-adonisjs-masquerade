@@ -47,8 +47,8 @@ Scope: raw-guarded control route through the service status response.
 ```mermaid
 flowchart TD
     A["masqueradeRoutes mounts GET /"] --> B["MasqueradeController.status"]
-    B --> C["MasqueradeController.control"]
-    C --> D["resolveRuntime(ctx)"]
+    B --> C["MasqueradeController.#control"]
+    C --> D["#requireRawRuntime resolves runtime and requires a raw guard"]
     D --> E["runtime.service.status(ctx) resolves actor and native token ability before row read"]
     E --> F["ctx.response.status(200).json(result)"]
 ```

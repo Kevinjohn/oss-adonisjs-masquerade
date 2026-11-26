@@ -40,7 +40,7 @@ Scope: active-mode scenario through the raw-guarded stop control, service transi
 
 ```mermaid
 flowchart TD
-    A["MasqueradeController.stop"] --> B["MasqueradeController.control"]
+    A["MasqueradeController.stop"] --> B["MasqueradeController.#control"]
     B --> C["resolveRuntime and raw-guard check"]
     C --> D["parseStopControlOrInvalidMarker(ctx)"]
     D --> E["runtime.service.stop(ctx, input); authenticate actor and read row"]

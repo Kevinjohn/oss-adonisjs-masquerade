@@ -33,7 +33,7 @@ Scope: raw-guarded status read. It projects the stored row without expiring or r
 ```mermaid
 flowchart TD
  A["masqueradeRoutes mounts GET / with raw-auth route middleware"] --> B["MasqueradeController.status"]
- B --> C["MasqueradeController.control checks selected guard kind is raw"]
+ B --> C["MasqueradeController.#control calls #requireRawRuntime to check selected guard kind is raw"]
  C --> D["MasqueradeService.status resolves actor including native token ability, then reads stored row"]
  C -->|Non-raw selection| X["Propagate unavailable"]
  D -->|Authentication, ability or store failure| Y["Propagate refusal"]
