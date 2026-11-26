@@ -7,7 +7,7 @@ As an application developer integrating Account Kit, I want account-management r
 **Entry:** Apply `AccountKitAccountBlocker` and raw guard to native account routes; keep logout and CSRF outside the blocked group.
 **Documentation:** [Account Kit integration](../../docs/guide/account-kit.md#block-host-owned-account-routes), [security boundary](../../docs/guide/security.md#account-kit-admission-and-managed-actions).
 **Source:** [AccountKitAccountBlocker](../../account_kit/middleware.ts), [Account Kit example routes](https://github.com/Kevinjohn/oss-adonisjs-starter-examples/blob/v0.17.0/apps/hypermedia/start/routes.ts).
-**Coverage:** [Blocker tests](../../tests/account_kit_account_blocker.spec.ts), [Account Kit route tests](../../examples/account-kit/tests/functional/account_kit_routes.spec.ts).
+**Coverage:** [Blocker tests](../../tests/account_kit_account_blocker.spec.ts), [Account Kit route tests](../../examples/account_kit/tests/functional/account_kit_routes.spec.ts).
 
 ## Acceptance criteria
 

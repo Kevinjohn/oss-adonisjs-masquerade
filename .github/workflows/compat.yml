@@ -30,7 +30,7 @@ on:
       - bin/helpers/registry_version.ts
       - bin/helpers/account_kit_host_wiring.ts
       - 'examples/native-session/**'
-      - 'examples/account-kit/**'
+      - 'examples/account_kit/**'
       - .github/workflows/compat.yml
 
 permissions:

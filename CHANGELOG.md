@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+- Keep distinct Account Kit integration (`account_kit`) and browser demo (`account_kit_demo`) overlays; remove the obsolete `with_account_kit` fixture.
+
 - Read example demo settings through configuration, protect production migrations from rollback,
   and declare foreign-key targets and deletion behavior explicitly.
 

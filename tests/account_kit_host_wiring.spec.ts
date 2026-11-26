@@ -32,7 +32,7 @@ async function createHost(root: string): Promise<string> {
 }
 
 async function applyWiring(app: string, routesPatch?: { anchor: string; imports: string[] }) {
-  await overlay(join(repositoryRoot, 'examples/account-kit'), app)
+  await overlay(join(repositoryRoot, 'examples/account_kit'), app)
   await wireRoutes(app, routesPatch)
   await wireAuth(app)
   await wireSessionImports(app)
@@ -96,7 +96,7 @@ test('applies optional Account Kit host route imports and other wiring', async (
     const alternateApp = await createHost(root)
     const alternateRoutes = join(alternateApp, 'start/routes.ts')
     const alternateSource = await readFile(
-      join(repositoryRoot, 'examples/account-kit/start/account_kit_routes.ts'),
+      join(repositoryRoot, 'examples/account_kit/start/account_kit_routes.ts'),
       'utf8'
     )
     await writeFile(alternateRoutes, alternateSource)
