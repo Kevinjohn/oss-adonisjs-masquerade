@@ -44,7 +44,8 @@ client-state tests under Japa.
 
 For documentation changes, `pnpm docs:build` checks the VitePress site and generated API pages.
 The documentation specs verify exact tracked Markdown paths, heading anchors, navigation, and
-links in packed Markdown. The release workflow calls `checks`, `compat`, and `examples` before its local
+links in packed Markdown. The release workflow verifies that the `checks.yml` push or manual run
+for the exact commit on `main` succeeded before starting the
 [tag, changelog, build, and tarball gate](releasing.md). The docs build remains a separate gate.
 
 ## Consumer process cleanup

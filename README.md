@@ -108,7 +108,7 @@ See [Recover from errors](docs/guide/errors.md) for the constructors and respons
 
 AdonisJS 7 and Node 24 are supported.
 
-|                         | Every pull request | Weekly and before each release          |
+|                         | Every pull request | Weekly, matching PRs, and manual runs   |
 | ----------------------- | ------------------ | --------------------------------------- |
 | Node.js                 | 24                 | 24                                      |
 | AdonisJS core           | locked version     | lowest supported (7.0.0) and latest 7.x |

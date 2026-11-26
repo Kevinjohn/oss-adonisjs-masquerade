@@ -55,7 +55,7 @@ Use `@kevinjohn/adonisjs-masquerade/testing` and `@kevinjohn/adonisjs-masquerade
 
 ## Tested against
 
-|                         | Every pull request | Weekly and before each release          |
+|                         | Every pull request | Weekly, matching PRs, and manual runs   |
 | ----------------------- | ------------------ | --------------------------------------- |
 | Node.js                 | 24                 | 24                                      |
 | AdonisJS core           | locked version     | lowest supported (7.0.0) and latest 7.x |
