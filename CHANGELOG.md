@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+- Keep optional Lucid types under `/types/lucid`, use class instances for native adapters, and align public examples and setup with the package conventions. Rename logger diagnostics to `DiagnosticEntry`.
+
 - Read example demo settings through configuration, protect production migrations from rollback,
   and declare foreign-key targets and deletion behavior explicitly.
 

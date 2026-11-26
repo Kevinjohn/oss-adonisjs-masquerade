@@ -12,6 +12,7 @@ import { errors as masqueradeErrors } from '../index.ts'
 
 test('effective token factory preserves nominal users without inferring actor token metadata', ({
   assert,
+  expectTypeOf,
 }) => {
   class User {
     #id = 'target'
@@ -31,6 +32,7 @@ test('effective token factory preserves nominal users without inferring actor to
     void user.currentAccessToken
     return user
   }
+  expectTypeOf<EffectiveUser>().toEqualTypeOf<User>()
   assert.equal(acceptsEffectiveUser(new User()).id, 'target')
 })
 

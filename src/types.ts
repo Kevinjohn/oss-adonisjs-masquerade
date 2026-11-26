@@ -163,7 +163,7 @@ export type DiagnosticOperation =
   | 'stop'
   | 'error_reporter'
 /** A bounded diagnostic for `logger.error`; it carries no reason, user ID or stamp. */
-export interface DiagnosticEvent {
+export interface DiagnosticEntry {
   readonly category: DiagnosticCategory
   readonly operation: DiagnosticOperation
   readonly code: MasqueradeErrorCode
@@ -413,7 +413,7 @@ export interface ServiceDependencies<User, Request> {
     /** Receives each committed event. */
     info(event: ObserverEvent): unknown
     /** Receives bounded diagnostics. */
-    error(event: DiagnosticEvent): unknown
+    error(event: DiagnosticEntry): unknown
   }
   /** Receives errors thrown by observers; they never change a committed result. */
   observerErrorHandler: (error: unknown) => unknown
@@ -422,5 +422,4 @@ export interface ServiceDependencies<User, Request> {
 export type * from './native/types.ts'
 export type * from './account_kit/types.ts'
 export type * from './http/types.ts'
-export type * from './stores/types.ts'
 export type * from './plugins/types.ts'

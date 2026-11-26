@@ -8,6 +8,7 @@ if (process.env.TEST_BUILT_EXPORTS === '1') {
   test('loads every built public export', async ({ assert }) => {
     const root = await import('@kevinjohn/adonisjs-masquerade')
     const types = await import('@kevinjohn/adonisjs-masquerade/types')
+    const lucidTypes = await import('@kevinjohn/adonisjs-masquerade/types/lucid')
     const provider = await import('@kevinjohn/adonisjs-masquerade/masquerade_provider')
     const retiredProviderPath = '@kevinjohn/adonisjs-masquerade/providers/masquerade_provider'
     await rejects(() => import(retiredProviderPath), { code: 'ERR_PACKAGE_PATH_NOT_EXPORTED' })
@@ -59,6 +60,7 @@ if (process.env.TEST_BUILT_EXPORTS === '1') {
     assert.isString(root.stubsRoot)
     assert.isTrue(existsSync(join(root.stubsRoot, 'make/migration/create_masquerade_tables.stub')))
     assert.lengthOf(Object.keys(types), 0)
+    assert.lengthOf(Object.keys(lucidTypes), 0)
     assert.isFunction(provider.default)
     assert.isFunction(auth.effectiveSessionGuard)
     assert.isFunction(auth.effectiveAccessTokensGuard)
