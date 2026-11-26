@@ -1,0 +1,81 @@
+{
+  "departures": {
+    "file": "DECISIONS.md",
+    "heading": "Departures",
+    "entries": [
+      {
+        "entry": 1,
+        "item": "PKG-7"
+      },
+      {
+        "entry": 2,
+        "item": "PKG-1"
+      },
+      {
+        "entry": 3,
+        "item": "IMP-5",
+        "path": "examples/account-kit/"
+      },
+      {
+        "entry": 3,
+        "item": "IMP-5",
+        "path": "examples/account-kit-demo/"
+      },
+      {
+        "entry": 3,
+        "item": "IMP-5",
+        "path": "examples/with_account_kit/"
+      },
+      {
+        "entry": 3,
+        "item": "IMP-5",
+        "path": "bin/helpers/account_kit_host_wiring.ts"
+      },
+      {
+        "entry": 3,
+        "item": "IMP-5",
+        "path": "bin/test_recipe.ts"
+      },
+      {
+        "entry": 3,
+        "item": "IMP-5",
+        "path": "tests/configure.spec.ts"
+      },
+      {
+        "entry": 3,
+        "item": "IMP-5",
+        "path": "tests/configure_ace.spec.ts"
+      },
+      {
+        "entry": 3,
+        "item": "IMP-5",
+        "path": "tests/helpers/starter_kit.ts"
+      },
+      {
+        "entry": 4,
+        "item": "NAM-1",
+        "path": "examples/account-kit"
+      },
+      {
+        "entry": 4,
+        "item": "NAM-1",
+        "path": "examples/account-kit-demo"
+      },
+      {
+        "entry": 5,
+        "item": "DB-6",
+        "path": "examples/inertia-react/database/migrations/1760918500000_create_masquerade_tables.ts"
+      },
+      {
+        "entry": 5,
+        "item": "DB-6",
+        "path": "examples/inertia-vue/database/migrations/1761885935170_create_masquerade_tables.ts"
+      },
+      {
+        "entry": 5,
+        "item": "DB-6",
+        "path": "examples/native-session/database/migrations/1760918500000_create_masquerade_tables.ts"
+      }
+    ]
+  }
+}
