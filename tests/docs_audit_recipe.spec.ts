@@ -14,4 +14,14 @@ test('the audit history guide matches the native-session recipe controller', asy
 
   assert.isNotNull(block)
   assert.equal(block![1], controller)
+
+  const validator = await readFile(
+    new URL('../examples/native-session/app/validators/masquerade_history.ts', import.meta.url),
+    'utf8'
+  )
+  const validatorBlock = page.match(
+    /<!-- host-recipe:masquerade-history-validator -->\n\n```ts\n([\s\S]*?)```/
+  )
+  assert.isNotNull(validatorBlock)
+  assert.equal(validatorBlock![1], validator)
 })

@@ -1,3 +1,4 @@
+import { masqueradeHistoryValidator } from '#validators/masquerade_history'
 import type { HttpContext } from '@adonisjs/core/http'
 import db from '@adonisjs/lucid/services/db'
 import { parseAuditHistoryFilters } from '#services/audit_history_query'
@@ -12,7 +13,14 @@ export default class MasqueradeHistoryController {
   async index({ request, response, view, bouncer }: MasqueradeHistoryContext) {
     await bouncer.authorize('viewMasqueradeHistory')
 
-    const filters = parseAuditHistoryFilters(request.qs())
+    const [validationError, queryInput] = await request.tryValidateUsing(
+      masqueradeHistoryValidator,
+      {
+        data: request.qs(),
+      }
+    )
+    if (validationError) return response.badRequest()
+    const filters = parseAuditHistoryFilters(queryInput!)
     if (filters === null) return response.badRequest()
 
     const events = await db

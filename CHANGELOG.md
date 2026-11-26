@@ -32,6 +32,9 @@
 - Pass an application `logger` explicitly in `defineConfig` to receive transition and diagnostic
   records. Enable package diagnostics with `NODE_DEBUG=adonisjs:masquerade`.
 
+- Validate example controller inputs with VineJS and retain the request context through container
+  injection. Keep HTML form feedback in a dedicated transition service.
+
 ## 0.7.1 - 2026-11-25
 
 - Require Account Kit `0.8.0` exactly. Verify its published archive in the compatibility demo.
