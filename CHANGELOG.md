@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+- Move package implementation and public subpath entries under `src/`, preserving export keys.
+
 - Read example demo settings through configuration, protect production migrations from rollback,
   and declare foreign-key targets and deletion behavior explicitly.
 

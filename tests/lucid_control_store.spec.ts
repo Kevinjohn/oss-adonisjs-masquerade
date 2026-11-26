@@ -1,7 +1,7 @@
 import { test } from '@japa/runner'
 import { randomUUID } from 'node:crypto'
 import { createRequire, syncBuiltinESMExports } from 'node:module'
-import { controlStoreConformance } from '../testing/main.ts'
+import { controlStoreConformance } from '../src/testing/main.ts'
 import { LucidControlStore } from '../src/stores/lucid.ts'
 import { requireRevision } from '../src/stores/lucid_row.ts'
 import { sqlFixture, transition } from './helpers/sql_store.ts'

@@ -1,7 +1,7 @@
 // The exported conformance suite must reject stores that break the documented contract.
 // Each broken store wraps the memory store and changes one behaviour.
 import { test } from '@japa/runner'
-import { controlStoreConformance, MemoryControlStore } from '../testing/main.ts'
+import { controlStoreConformance, MemoryControlStore } from '../src/testing/main.ts'
 import type {
   CompareAndSetInput,
   ControlOutcomeEvent,

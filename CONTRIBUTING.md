@@ -69,8 +69,8 @@ The _Supported AdonisJS versions_ table in `README.md` mirrors `.github/workflow
 ## Code layout
 
 - `src/` holds the core service, policy, context token, errors and internal integration wiring.
-- `auth/`, `http/`, and `native/` hold the effective guard, controllers and native authority.
-- `stores/`, `testing/`, and `plugins/` hold the optional Lucid store, test support and API client.
+- `src/auth/`, `src/http/`, and `src/native/` hold the effective guard, controllers and native authority.
+- `src/stores/`, `src/testing/`, and `src/plugins/` hold the optional Lucid store, test support and API client.
 - `providers/`, `commands/`, and `stubs/` hold the provider, Ace commands and configure templates.
 - `tests/` mirrors the source. Shared fixtures live in `tests/helpers/`, specs for `bin/` in
   `tests/tooling/` and type assertions use Japa expect-type in `*_types.spec.ts`.

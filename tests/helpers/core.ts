@@ -1,6 +1,6 @@
 import { validateConfig } from '../../src/define_config.ts'
 import { createMasqueradeService } from '../../index.ts'
-import { MemoryControlStore } from '../../testing/main.ts'
+import { MemoryControlStore } from '../../src/testing/main.ts'
 import type { CompleteMasqueradeConfig } from '../../src/define_config.ts'
 import type { AccountSnapshot, ModeAccess, ServiceDependencies, Subject } from '../../src/types.ts'
 export type User = { id: string; stamp: string; incarnation: string; privateData: string }

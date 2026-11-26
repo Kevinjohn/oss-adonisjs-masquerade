@@ -1,7 +1,7 @@
 import { NativeAdapter } from '../src/integration/native_adapter.ts'
 import { test } from '@japa/runner'
 import { MasqueradeCallbackRegistration, errors } from '../index.ts'
-import { MemoryControlStore } from '../testing/main.ts'
+import { MemoryControlStore } from '../src/testing/main.ts'
 import type { ControlStore, MasqueradePermissions } from '../src/types.ts'
 import type { User } from './helpers/core.ts'
 import { nativeRuntimeFixture } from './helpers/native_runtime.ts'
