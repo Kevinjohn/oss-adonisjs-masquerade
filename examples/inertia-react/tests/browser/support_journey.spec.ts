@@ -11,9 +11,46 @@ import {
   setMasqueradeTestTime,
 } from '#services/masquerade_fixture_boundary'
 
-const base = () => `http://${process.env.HOST ?? '127.0.0.1'}:${process.env.PORT ?? '3371'}`
-
 test.group('React support browser journey', (group) => {
+  const base = () => `http://${process.env.HOST ?? '127.0.0.1'}:${process.env.PORT ?? '3371'}`
+
+  async function signIn(
+    page: Awaited<ReturnType<import('@japa/runner/core').TestContext['browserContext']['newPage']>>
+  ) {
+    await page.goto(`${base()}/login`)
+    await page.getByLabel('Email').fill('operator@example.test')
+    await page.getByLabel('Password').fill('demo-operator-2026')
+    await page.getByRole('button', { name: 'Sign in' }).click()
+    await page.waitForURL('**/support')
+  }
+
+  async function submitRetainedForm(
+    page: Parameters<typeof signIn>[0],
+    formAction: string,
+    originalToken: string
+  ) {
+    return page.evaluate(
+      async ({ action, token }) => {
+        const form = document.querySelector<HTMLFormElement>(`form[action="${action}"]`)
+        if (!form) throw new Error(`Retained form ${action} is missing`)
+        const data = new FormData(form)
+        if (data.get('_masqueradeContext') !== token)
+          throw new Error('Retained form context changed')
+        const xsrf = document.cookie.split('; ').find((part) => part.startsWith('XSRF-TOKEN='))
+        if (!xsrf) throw new Error('XSRF cookie is missing')
+        const response = await fetch(form.action, {
+          method: 'POST',
+          body: data,
+          credentials: 'same-origin',
+          redirect: 'manual',
+          headers: { 'X-XSRF-TOKEN': decodeURIComponent(xsrf.split('=')[1]) },
+        })
+        return response.status
+      },
+      { action: formAction, token: originalToken }
+    )
+  }
+
   group.setup(() => testUtils.db().migrate())
   group.each.setup(async () => {
     await resetDemoAccounts()
@@ -52,7 +89,7 @@ test.group('React support browser journey', (group) => {
     assert.isTrue(await page.evaluate('document.documentElement.scrollWidth <= window.innerWidth'))
     await page.getByLabel('Email updates').selectOption('1')
     await page.getByRole('button', { name: 'Save preference' }).press('Enter')
-    await page.getByText('Customer email preference saved.').waitFor()
+    await page.getByText('Customer email preference saved.', { exact: false }).waitFor()
     await page.reload()
     assert.include(await page.locator('main').innerText(), 'On')
     await page.getByRole('button', { name: 'Try sensitive account action' }).press('Enter')
@@ -403,39 +440,3 @@ test.group('React support browser journey', (group) => {
     await page.getByRole('heading', { name: 'Support workspace' }).waitFor()
   })
 })
-
-async function signIn(
-  page: Awaited<ReturnType<import('@japa/runner/core').TestContext['browserContext']['newPage']>>
-) {
-  await page.goto(`${base()}/login`)
-  await page.getByLabel('Email').fill('operator@example.test')
-  await page.getByLabel('Password').fill('demo-operator-2026')
-  await page.getByRole('button', { name: 'Sign in' }).click()
-  await page.waitForURL('**/support')
-}
-
-async function submitRetainedForm(
-  page: Parameters<typeof signIn>[0],
-  formAction: string,
-  originalToken: string
-) {
-  return page.evaluate(
-    async ({ action, token }) => {
-      const form = document.querySelector<HTMLFormElement>(`form[action="${action}"]`)
-      if (!form) throw new Error(`Retained form ${action} is missing`)
-      const data = new FormData(form)
-      if (data.get('_masqueradeContext') !== token) throw new Error('Retained form context changed')
-      const xsrf = document.cookie.split('; ').find((part) => part.startsWith('XSRF-TOKEN='))
-      if (!xsrf) throw new Error('XSRF cookie is missing')
-      const response = await fetch(form.action, {
-        method: 'POST',
-        body: data,
-        credentials: 'same-origin',
-        redirect: 'manual',
-        headers: { 'X-XSRF-TOKEN': decodeURIComponent(xsrf.split('=')[1]) },
-      })
-      return response.status
-    },
-    { action: formAction, token: originalToken }
-  )
-}

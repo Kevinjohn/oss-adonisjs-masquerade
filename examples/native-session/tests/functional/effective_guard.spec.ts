@@ -9,6 +9,33 @@ import {
 } from '#services/masquerade_fixture_boundary'
 
 test.group('effective session guard through the packed package', (group) => {
+  async function getStatus(client: ApiClient, actor: User) {
+    const response = await client.get('/masquerade').loginAs(actor)
+    response.assertStatus(200)
+    response.assertHeader('cache-control', 'no-store')
+    return response.body()
+  }
+
+  function startMode(client: ApiClient, actor: User, targetId: number, contextToken: string) {
+    return client
+      .post('/masquerade/start')
+      .withCsrfToken()
+      .header('Accept', 'application/json')
+      .header('X-Masquerade-Context', contextToken)
+      .json({ targetId, reason: 'support case 1042', access: 'edit' })
+      .loginAs(actor)
+  }
+
+  function stopMode(client: ApiClient, actor: User, contextToken: string) {
+    return client
+      .post('/masquerade/stop')
+      .withCsrfToken()
+      .header('Accept', 'application/json')
+      .header('X-Masquerade-Context', contextToken)
+      .json({})
+      .loginAs(actor)
+  }
+
   group.setup(() => testUtils.db().migrate())
   group.each.teardown(() => cleanUsers())
 
@@ -117,30 +144,3 @@ test.group('effective session guard through the packed package', (group) => {
     assert.notEqual(firstResponse.body().effectiveId, secondResponse.body().effectiveId)
   })
 })
-
-async function getStatus(client: ApiClient, actor: User) {
-  const response = await client.get('/masquerade').loginAs(actor)
-  response.assertStatus(200)
-  response.assertHeader('cache-control', 'no-store')
-  return response.body()
-}
-
-function startMode(client: ApiClient, actor: User, targetId: number, contextToken: string) {
-  return client
-    .post('/masquerade/start')
-    .withCsrfToken()
-    .header('Accept', 'application/json')
-    .header('X-Masquerade-Context', contextToken)
-    .json({ targetId, reason: 'support case 1042', access: 'edit' })
-    .loginAs(actor)
-}
-
-function stopMode(client: ApiClient, actor: User, contextToken: string) {
-  return client
-    .post('/masquerade/stop')
-    .withCsrfToken()
-    .header('Accept', 'application/json')
-    .header('X-Masquerade-Context', contextToken)
-    .json({})
-    .loginAs(actor)
-}

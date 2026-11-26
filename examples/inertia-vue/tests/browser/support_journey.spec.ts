@@ -10,6 +10,112 @@ import {
 } from '#services/masquerade_fixture_boundary'
 
 test.group('Inertia Vue browser journey', (group) => {
+  async function signIn(page: any) {
+    await page.goto(`${base()}/login`)
+    await page.getByLabel('Email').fill('operator@example.test')
+    await page.getByLabel('Password').fill('demo-operator-2026')
+    await page.getByRole('button', { name: 'Sign in' }).press('Enter')
+    await page.waitForURL('**/support')
+  }
+
+  async function selectCustomer(page: any, index: number) {
+    const customer = await User.findByOrFail('email', demoAccounts[index].email)
+    await page.getByLabel('Customer').selectOption({ value: String(customer.id) })
+  }
+
+  function base() {
+    const host = process.env.HOST ?? '127.0.0.1'
+    const port = process.env.PORT ?? '3378'
+    return `http://${host}:${port}`
+  }
+
+  async function activeWorkspace(page: any) {
+    await signIn(page)
+    await selectCustomer(page, 1)
+    await page.getByLabel('Reason for support').fill('Workspace freshness check')
+    await page.getByRole('button', { name: 'Start support mode' }).click()
+    await page.waitForURL('**/support/customer')
+    await page.goto(`${base()}/support`)
+    await page.getByText(/Viewing Customer One/).waitFor()
+  }
+
+  /** Hold real server responses, deliberately ignoring cancellation to exercise generation guards. */
+  async function holdWorkspaceIdentity(page: any) {
+    await page.evaluate(() => {
+      const original = globalThis.fetch.bind(globalThis)
+      ;(globalThis as any).heldIdentity = []
+      globalThis.fetch = async (input, init) => {
+        if (String(input) !== '/support/identity') return original(input, init)
+        const response = await original(input, { ...init, signal: undefined })
+        // Capture the actual server result before publishing the response barrier.
+        await response.clone().text()
+        return new Promise<Response>((resolve, reject) => {
+          const held = {
+            parsed: false,
+            release(failure?: string) {
+              if (failure === 'network') reject(new TypeError('Controlled fetch failure'))
+              else if (failure === 'non-ok') resolve(new Response('', { status: 503 }))
+              else if (failure === 'parse') resolve(new Response('invalid json'))
+              else resolve(response)
+            },
+          }
+          const json = response.json.bind(response)
+          Object.defineProperty(response, 'json', {
+            value: async () => {
+              const body = await json()
+              held.parsed = true
+              return body
+            },
+          })
+          ;(globalThis as any).heldIdentity.push(held)
+        })
+      }
+    })
+  }
+
+  async function triggerWorkspaceValidation(page: any, count: number, event = 'visibilitychange') {
+    await page.evaluate((kind: string) => {
+      if (kind === 'pageshow')
+        (globalThis as any).dispatchEvent(
+          new (globalThis as any).PageTransitionEvent('pageshow', { persisted: true })
+        )
+      else (globalThis as any).document.dispatchEvent(new Event('visibilitychange'))
+    }, event)
+    await page.waitForFunction(
+      (expected: number) => (globalThis as any).heldIdentity.length === expected,
+      count
+    )
+  }
+
+  async function releaseWorkspaceIdentity(page: any, index: number, failure?: string) {
+    await page.evaluate(
+      ({ position, outcome }: { position: number; outcome?: string }) => {
+        ;(globalThis as any).heldIdentity[position].release(outcome)
+      },
+      { position: index, outcome: failure }
+    )
+    await page.evaluate(
+      'new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(resolve)))'
+    )
+  }
+
+  async function assertWorkspaceHidden(
+    page: any,
+    assert: any,
+    state: 'pending' | 'failed' | 'blocked' = 'pending'
+  ) {
+    await page.locator(`[data-workspace-identity-${state}]`).waitFor()
+    for (const other of ['pending', 'failed', 'blocked'].filter((name) => name !== state)) {
+      assert.equal(await page.locator(`[data-workspace-identity-${other}]`).count(), 0)
+    }
+    const content = await page.locator('main').innerText()
+    assert.notInclude(content, 'Customer One')
+    assert.notInclude(content, 'customer-one@example.test')
+    assert.equal(await page.locator('[data-workspace-identity="current"]').count(), 0)
+    assert.equal(await page.locator('.support-banner').count(), 0)
+    assert.equal(await page.getByRole('link', { name: 'Open customer details' }).count(), 0)
+  }
+
   group.setup(async () => {
     await testUtils.db().migrate()
     await resetDemoAccounts()
@@ -98,9 +204,9 @@ test.group('Inertia Vue browser journey', (group) => {
 
     await page.getByRole('link', { name: 'Check current status' }).click()
     await page.getByRole('link', { name: 'Open customer details' }).click()
-    await page.getByText('Customer email updates: Off').waitFor()
+    await page.getByText('Customer email updates: Off', { exact: false }).waitFor()
     await page.reload()
-    await page.getByText('Customer email updates: Off').waitFor()
+    await page.getByText('Customer email updates: Off', { exact: false }).waitFor()
     assert.include(await page.getByRole('status').innerText(), 'View only support mode is active')
   })
 
@@ -716,109 +822,3 @@ test.group('Inertia Vue browser journey', (group) => {
     await page.getByRole('button', { name: 'Stop support mode' }).waitFor()
   })
 })
-
-async function signIn(page: any) {
-  await page.goto(`${base()}/login`)
-  await page.getByLabel('Email').fill('operator@example.test')
-  await page.getByLabel('Password').fill('demo-operator-2026')
-  await page.getByRole('button', { name: 'Sign in' }).press('Enter')
-  await page.waitForURL('**/support')
-}
-
-async function selectCustomer(page: any, index: number) {
-  const customer = await User.findByOrFail('email', demoAccounts[index].email)
-  await page.getByLabel('Customer').selectOption({ value: String(customer.id) })
-}
-
-function base() {
-  const host = process.env.HOST ?? '127.0.0.1'
-  const port = process.env.PORT ?? '3378'
-  return `http://${host}:${port}`
-}
-
-async function activeWorkspace(page: any) {
-  await signIn(page)
-  await selectCustomer(page, 1)
-  await page.getByLabel('Reason for support').fill('Workspace freshness check')
-  await page.getByRole('button', { name: 'Start support mode' }).click()
-  await page.waitForURL('**/support/customer')
-  await page.goto(`${base()}/support`)
-  await page.getByText(/Viewing Customer One/).waitFor()
-}
-
-/** Hold real server responses, deliberately ignoring cancellation to exercise generation guards. */
-async function holdWorkspaceIdentity(page: any) {
-  await page.evaluate(() => {
-    const original = globalThis.fetch.bind(globalThis)
-    ;(globalThis as any).heldIdentity = []
-    globalThis.fetch = async (input, init) => {
-      if (String(input) !== '/support/identity') return original(input, init)
-      const response = await original(input, { ...init, signal: undefined })
-      // Capture the actual server result before publishing the response barrier.
-      await response.clone().text()
-      return new Promise<Response>((resolve, reject) => {
-        const held = {
-          parsed: false,
-          release(failure?: string) {
-            if (failure === 'network') reject(new TypeError('Controlled fetch failure'))
-            else if (failure === 'non-ok') resolve(new Response('', { status: 503 }))
-            else if (failure === 'parse') resolve(new Response('invalid json'))
-            else resolve(response)
-          },
-        }
-        const json = response.json.bind(response)
-        Object.defineProperty(response, 'json', {
-          value: async () => {
-            const body = await json()
-            held.parsed = true
-            return body
-          },
-        })
-        ;(globalThis as any).heldIdentity.push(held)
-      })
-    }
-  })
-}
-
-async function triggerWorkspaceValidation(page: any, count: number, event = 'visibilitychange') {
-  await page.evaluate((kind: string) => {
-    if (kind === 'pageshow')
-      (globalThis as any).dispatchEvent(
-        new (globalThis as any).PageTransitionEvent('pageshow', { persisted: true })
-      )
-    else (globalThis as any).document.dispatchEvent(new Event('visibilitychange'))
-  }, event)
-  await page.waitForFunction(
-    (expected: number) => (globalThis as any).heldIdentity.length === expected,
-    count
-  )
-}
-
-async function releaseWorkspaceIdentity(page: any, index: number, failure?: string) {
-  await page.evaluate(
-    ({ position, outcome }: { position: number; outcome?: string }) => {
-      ;(globalThis as any).heldIdentity[position].release(outcome)
-    },
-    { position: index, outcome: failure }
-  )
-  await page.evaluate(
-    'new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(resolve)))'
-  )
-}
-
-async function assertWorkspaceHidden(
-  page: any,
-  assert: any,
-  state: 'pending' | 'failed' | 'blocked' = 'pending'
-) {
-  await page.locator(`[data-workspace-identity-${state}]`).waitFor()
-  for (const other of ['pending', 'failed', 'blocked'].filter((name) => name !== state)) {
-    assert.equal(await page.locator(`[data-workspace-identity-${other}]`).count(), 0)
-  }
-  const content = await page.locator('main').innerText()
-  assert.notInclude(content, 'Customer One')
-  assert.notInclude(content, 'customer-one@example.test')
-  assert.equal(await page.locator('[data-workspace-identity="current"]').count(), 0)
-  assert.equal(await page.locator('.support-banner').count(), 0)
-  assert.equal(await page.getByRole('link', { name: 'Open customer details' }).count(), 0)
-}

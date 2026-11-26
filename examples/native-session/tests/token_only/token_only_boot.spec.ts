@@ -4,6 +4,10 @@ import testUtils from '@adonisjs/core/services/test_utils'
 import { cleanUsers, createAccessToken, createUsers } from '#tests/helpers/users'
 
 test.group('token-only native authority boot', (group) => {
+  function status(client: ApiClient, token: string) {
+    return client.get('/api/masquerade').header('Authorization', `Bearer ${token}`)
+  }
+
   group.setup(() => testUtils.db().migrate())
   group.each.teardown(() => cleanUsers())
 
@@ -46,7 +50,3 @@ test.group('token-only native authority boot', (group) => {
     after.assertBodyContains({ isMasquerading: false })
   })
 })
-
-function status(client: ApiClient, token: string) {
-  return client.get('/api/masquerade').header('Authorization', `Bearer ${token}`)
-}
