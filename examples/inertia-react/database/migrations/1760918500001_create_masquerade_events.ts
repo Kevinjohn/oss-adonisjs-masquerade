@@ -1,0 +1,14 @@
+import { BaseSchema } from '@adonisjs/lucid/schema'
+import { createMasqueradeEventsTableV1 } from '@kevinjohn/adonisjs-masquerade/stores/lucid'
+
+export default class extends BaseSchema {
+  protected tableName = 'masquerade_events'
+
+  async up() {
+    this.schema.createTable(this.tableName, createMasqueradeEventsTableV1)
+  }
+
+  async down() {
+    this.schema.dropTable(this.tableName)
+  }
+}

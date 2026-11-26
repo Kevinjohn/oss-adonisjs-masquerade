@@ -4,6 +4,14 @@
 
 - Keep optional Lucid types under `/types/lucid`, use class instances for native adapters, and align public examples and setup with the package conventions. Rename logger diagnostics to `DiagnosticEntry`.
 
+- Keep distinct Account Kit integration (`account_kit`) and browser demo (`account_kit_demo`) overlays; remove the obsolete `with_account_kit` fixture.
+
+- Generate separate Lucid migrations for modes and events, each with its own `tableName`. Replace
+  the aggregate schema helpers with `createMasqueradeModesTableV1` and
+  `createMasqueradeEventsTableV1`, which define one table each.
+
+- Move package implementation and public subpath entries under `src/`, preserving export keys.
+
 - Read example demo settings through configuration, protect production migrations from rollback,
   and declare foreign-key targets and deletion behavior explicitly.
 
@@ -21,7 +29,8 @@
 - Import types previously exported from `/native`, `/account-kit`, `/http`, and
   `/plugins/api_client` from `@kevinjohn/adonisjs-masquerade/types`. This includes
   `MasqueradeRoutesOptions`, `MasqueradeAuditFields`, and the API client option and target types.
-  Import `LucidControlStoreOptions` and `LucidControlClient` from `/types/lucid` or `/stores/lucid`. Import the booted runtime
+  Import `LucidControlStoreOptions` and `LucidControlClient` from `/types/lucid` or `/stores/lucid`.
+  Import the booted runtime
   from `/services/main` instead of injecting the `MasqueradeRuntime` class.
 - Replace `masqueradeContext(ctx, next)` with the context middleware subpath or call
   `new MasqueradeContextMiddleware().handle(ctx, next)` in a wrapper. Replace

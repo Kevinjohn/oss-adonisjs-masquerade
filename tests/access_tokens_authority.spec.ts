@@ -2,7 +2,7 @@ import { errors, symbols } from '@adonisjs/auth'
 import { test } from '@japa/runner'
 import type { AccessTokensUserProviderContract } from '@adonisjs/auth/types/access_tokens'
 import type { HttpContext } from '@adonisjs/core/http'
-import { accessTokensAuthority } from '../native/main.ts'
+import { accessTokensAuthority } from '../src/native/main.ts'
 import { errorCode } from './helpers/core.ts'
 
 test('access token authority authenticates its named guard, enforces ability, and maps canonical identity', async ({

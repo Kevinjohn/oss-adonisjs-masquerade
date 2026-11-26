@@ -214,7 +214,7 @@ if (args[0] === 'exec' && args[1] === 'tsc') {
 }
 if (args[0] === 'exec' && args[1] === 'node' && args[3] === 'configure') {
   const check = path.join(process.cwd(), 'configure-check')
-  for (const file of ['config/masquerade.ts', 'app/services/masquerade_user_provider.ts', 'providers/masquerade_native_provider.ts', 'database/migrations/fixture_create_masquerade_tables.ts']) {
+  for (const file of ['config/masquerade.ts', 'app/services/masquerade_user_provider.ts', 'providers/masquerade_native_provider.ts', 'database/migrations/fixture_create_masquerade_modes.ts', 'database/migrations/fixture_create_masquerade_events.ts']) {
     const target = path.join(check, file)
     await mkdir(path.dirname(target), { recursive: true })
     await writeFile(target, file === 'config/masquerade.ts' ? 'consumer_check report\\n' : 'export {}\\n')

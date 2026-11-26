@@ -22,10 +22,6 @@ import {
 } from '../../bin/helpers/native_pg_lease.ts'
 
 const root = resolve(import.meta.dirname, '../..')
-const apps = {
-  native: join(root, 'examples/native-session'),
-  api: join(root, 'examples/with_account_kit/api'),
-}
 const envFixture = `NODE_ENV=development
 PORT=3333
 HOST=127.0.0.1
@@ -77,13 +73,12 @@ if (config.connection === 'pg' || config.connection === 'postgres') {
 `
 
 function fixture(
-  kind: keyof typeof apps,
   overrides: Record<string, string> = {},
   files: Record<string, string> = {},
   link?: 'symlink' | 'hardlink' | 'dangling'
 ) {
   const directory = mkdtempSync(join(tmpdir(), 'example-database-isolation-'))
-  const source = apps[kind]
+  const source = join(root, 'examples/native-session')
   try {
     mkdirSync(join(directory, 'start'))
     mkdirSync(join(directory, 'tmp'))
@@ -92,7 +87,7 @@ function fixture(
       join(directory, 'package.json'),
       JSON.stringify({ type: 'module', imports: { '#start/*': './start/*.js' } })
     )
-    for (const name of ['env.ts', ...(kind === 'native' ? ['test_database_target.ts'] : [])]) {
+    for (const name of ['env.ts', 'test_database_target.ts']) {
       const input = readFileSync(join(source, 'start', name), 'utf8')
       const output = ts.transpileModule(input, {
         compilerOptions: { module: ts.ModuleKind.ESNext, target: ts.ScriptTarget.ES2022 },
@@ -149,97 +144,92 @@ function fixture(
   }
 }
 
-for (const kind of ['native', 'api'] as const) {
-  test(`${kind} test cleanup preserves the temporary demo database`, ({ assert }) => {
-    const result = fixture(kind, { DB_CLIENT: 'sqlite', DB_CONNECTION: 'sqlite' })
-    assert.equal(result.status, 0, result.stderr)
-    assert.equal(result.output.mutationCount, process.env.RUN_CAUSAL_MUTANT === '1' ? 1 : 0)
-    assert.equal(result.output.value, 'operator@example.test')
-    assert.notEqual(result.output.demoFile, result.output.testFile)
-  })
+test(`native test cleanup preserves the temporary demo database`, ({ assert }) => {
+  const result = fixture({ DB_CLIENT: 'sqlite', DB_CONNECTION: 'sqlite' })
+  assert.equal(result.status, 0, result.stderr)
+  assert.equal(result.output.mutationCount, process.env.RUN_CAUSAL_MUTANT === '1' ? 1 : 0)
+  assert.equal(result.output.value, 'operator@example.test')
+  assert.notEqual(result.output.demoFile, result.output.testFile)
+})
 
-  test(`${kind} refuses linked SQLite test files`, ({ assert }) => {
-    for (const link of ['symlink', 'hardlink', 'dangling'] as const) {
-      const result = fixture(kind, { DB_CLIENT: 'sqlite', DB_CONNECTION: 'sqlite' }, {}, link)
-      assert.notEqual(result.status, 0)
-      assert.match(result.stderr, /SQLite test database must/)
-    }
-  })
+test(`native refuses linked SQLite test files`, ({ assert }) => {
+  for (const link of ['symlink', 'hardlink', 'dangling'] as const) {
+    const result = fixture({ DB_CLIENT: 'sqlite', DB_CONNECTION: 'sqlite' }, {}, link)
+    assert.notEqual(result.status, 0)
+    assert.match(result.stderr, /SQLite test database must/)
+  }
+})
 
-  test(`${kind} refuses PostgreSQL without a launch-time ordinary database`, ({ assert }) => {
-    const engine = { DB_CLIENT: 'pg', DB_CONNECTION: 'postgres', DB_TEST_DATABASE: 'test_database' }
-    const fileOnly = fixture(kind, engine)
-    assert.notEqual(fileOnly.status, 0)
-    assert.match(fileOnly.stderr, /exported, nonblank ordinary DB_DATABASE/)
-    const driverDefault = fixture(kind, {
-      ...engine,
-      PGDATABASE: 'demo_database',
-      PGUSER: 'demo_user',
-    })
-    assert.notEqual(driverDefault.status, 0)
-    assert.match(driverDefault.stderr, /exported, nonblank ordinary DB_DATABASE/)
-    const empty = fixture(kind, { ...engine, DB_DATABASE: '' })
-    assert.notEqual(empty.status, 0)
-    assert.match(empty.stderr, /exported, nonblank ordinary DB_DATABASE/)
+test(`native refuses PostgreSQL without a launch-time ordinary database`, ({ assert }) => {
+  const engine = { DB_CLIENT: 'pg', DB_CONNECTION: 'postgres', DB_TEST_DATABASE: 'test_database' }
+  const fileOnly = fixture(engine)
+  assert.notEqual(fileOnly.status, 0)
+  assert.match(fileOnly.stderr, /exported, nonblank ordinary DB_DATABASE/)
+  const driverDefault = fixture({
+    ...engine,
+    PGDATABASE: 'demo_database',
+    PGUSER: 'demo_user',
   })
+  assert.notEqual(driverDefault.status, 0)
+  assert.match(driverDefault.stderr, /exported, nonblank ordinary DB_DATABASE/)
+  const empty = fixture({ ...engine, DB_DATABASE: '' })
+  assert.notEqual(empty.status, 0)
+  assert.match(empty.stderr, /exported, nonblank ordinary DB_DATABASE/)
+})
 
-  test(`${kind} protects the exported ordinary database through test overlays`, ({ assert }) => {
-    const engine = { DB_CLIENT: 'pg', DB_CONNECTION: 'postgres', DB_DATABASE: 'demo_database' }
-    for (const overlay of ['.env.test', '.env.test.local', '.env.local']) {
-      const result = fixture(
-        kind,
-        { ...engine, DB_TEST_DATABASE: 'demo_database' },
-        { [overlay]: 'DB_DATABASE=shadow_database\n' }
-      )
-      assert.notEqual(result.status, 0)
-      assert.match(result.stderr, /DB_TEST_DATABASE must differ/)
-    }
-    const distinct = fixture(kind, {
-      ...engine,
-      DB_TEST_DATABASE: 'test_database',
-      DB_TEST_SCHEMA: 'public',
-      DB_SCHEMA: 'public',
-    })
-    assert.equal(distinct.status, 0, distinct.stderr)
-    assert.equal(distinct.output.database, 'test_database')
-    if (kind === 'native') assert.equal(distinct.output.schema, 'public')
+test(`native protects the exported ordinary database through test overlays`, ({ assert }) => {
+  const engine = { DB_CLIENT: 'pg', DB_CONNECTION: 'postgres', DB_DATABASE: 'demo_database' }
+  for (const overlay of ['.env.test', '.env.test.local', '.env.local']) {
+    const result = fixture(
+      { ...engine, DB_TEST_DATABASE: 'demo_database' },
+      { [overlay]: 'DB_DATABASE=shadow_database\n' }
+    )
+    assert.notEqual(result.status, 0)
+    assert.match(result.stderr, /DB_TEST_DATABASE must differ/)
+  }
+  const distinct = fixture({
+    ...engine,
+    DB_TEST_DATABASE: 'test_database',
+    DB_TEST_SCHEMA: 'public',
+    DB_SCHEMA: 'public',
   })
+  assert.equal(distinct.status, 0, distinct.stderr)
+  assert.equal(distinct.output.database, 'test_database')
+  assert.equal(distinct.output.schema, 'public')
+})
 
-  test(`${kind} accepts distinct connection names through the PostgreSQL byte limit`, ({
-    assert,
-  }) => {
-    const engine = { DB_CLIENT: 'pg', DB_CONNECTION: 'postgres' }
-    const hyphenated = fixture(kind, {
-      ...engine,
-      DB_DATABASE: 'team-demo',
-      DB_TEST_DATABASE: 'team-test',
-    })
-    assert.equal(hyphenated.status, 0, hyphenated.stderr)
-    assert.equal(hyphenated.output.database, 'team-test')
-    const valid63 = `${'é'.repeat(31)}a`
-    const distinct63 = `${'é'.repeat(31)}b`
-    const multibyte = fixture(kind, {
-      ...engine,
-      DB_DATABASE: valid63,
-      DB_TEST_DATABASE: distinct63,
-    })
-    assert.equal(multibyte.status, 0, multibyte.stderr)
-    assert.equal(multibyte.output.database, distinct63)
-    const tooLong = fixture(kind, {
-      ...engine,
-      DB_DATABASE: valid63,
-      DB_TEST_DATABASE: 'é'.repeat(32),
-    })
-    assert.notEqual(tooLong.status, 0)
-    assert.match(tooLong.stderr, /valid DB_TEST_DATABASE/)
+test(`native accepts distinct connection names through the PostgreSQL byte limit`, ({ assert }) => {
+  const engine = { DB_CLIENT: 'pg', DB_CONNECTION: 'postgres' }
+  const hyphenated = fixture({
+    ...engine,
+    DB_DATABASE: 'team-demo',
+    DB_TEST_DATABASE: 'team-test',
   })
-}
+  assert.equal(hyphenated.status, 0, hyphenated.stderr)
+  assert.equal(hyphenated.output.database, 'team-test')
+  const valid63 = `${'é'.repeat(31)}a`
+  const distinct63 = `${'é'.repeat(31)}b`
+  const multibyte = fixture({
+    ...engine,
+    DB_DATABASE: valid63,
+    DB_TEST_DATABASE: distinct63,
+  })
+  assert.equal(multibyte.status, 0, multibyte.stderr)
+  assert.equal(multibyte.output.database, distinct63)
+  const tooLong = fixture({
+    ...engine,
+    DB_DATABASE: valid63,
+    DB_TEST_DATABASE: 'é'.repeat(32),
+  })
+  assert.notEqual(tooLong.status, 0)
+  assert.match(tooLong.stderr, /valid DB_TEST_DATABASE/)
+})
 
 test('native demo command children select the guarded test file in development and production', ({
   assert,
 }) => {
   for (const mode of ['development', 'production']) {
-    const result = fixture('native', {
+    const result = fixture({
       NODE_ENV: mode,
       DB_CLIENT: 'sqlite',
       NATIVE_TEST_SQLITE: '1',
@@ -248,7 +238,7 @@ test('native demo command children select the guarded test file in development a
     assert.equal(result.output.value, 'operator@example.test')
     assert.notEqual(result.output.demoFile, result.output.testFile)
   }
-  const postgres = fixture('native', {
+  const postgres = fixture({
     NODE_ENV: 'development',
     DB_CLIENT: 'pg',
     NATIVE_TEST_SQLITE: '1',
@@ -280,15 +270,14 @@ test('native shared PostgreSQL target requires the exact live runner lease', ({ 
     nonce,
     ownerPid: process.pid,
   }
-  const missing = fixture('native', env)
+  const missing = fixture(env)
   assert.notEqual(missing.status, 0)
   assert.match(missing.stderr, /runner lease/)
-  const valid = fixture('native', env, { 'tmp/pg-test-lease.json': JSON.stringify(record) })
+  const valid = fixture(env, { 'tmp/pg-test-lease.json': JSON.stringify(record) })
   assert.equal(valid.status, 0, valid.stderr)
   assert.equal(valid.output.database, 'team-demo')
   assert.equal(valid.output.schema, schema)
   const mismatch = fixture(
-    'native',
     { ...env, DB_TEST_SCHEMA: `kit_${'b'.repeat(32)}` },
     {
       'tmp/pg-test-lease.json': JSON.stringify(record),
@@ -297,7 +286,6 @@ test('native shared PostgreSQL target requires the exact live runner lease', ({ 
   assert.notEqual(mismatch.status, 0)
   assert.match(mismatch.stderr, /lease does not match/)
   const stale = fixture(
-    'native',
     { ...env, NATIVE_PG_TEST_LEASE_OWNER: '99999999' },
     {
       'tmp/pg-test-lease.json': JSON.stringify({ ...record, ownerPid: 99999999 }),

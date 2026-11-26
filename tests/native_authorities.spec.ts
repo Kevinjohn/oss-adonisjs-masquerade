@@ -1,7 +1,7 @@
 import { test } from '@japa/runner'
 import type { HttpContext } from '@adonisjs/core/http'
 import type { NativeRuntimeAdapter } from '../src/types.ts'
-import { nativeAuthorities } from '../native/main.ts'
+import { nativeAuthorities } from '../src/native/main.ts'
 import type { NativeAuthority, Subject } from '../src/types.ts'
 
 function adapter(authority: NativeAuthority<{ id: string }>, guard?: string): NativeRuntimeAdapter {

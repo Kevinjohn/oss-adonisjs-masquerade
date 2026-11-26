@@ -1,6 +1,6 @@
 import type Configure from '@adonisjs/core/commands/configure'
 import { access, lstat, readFile, stat } from 'node:fs/promises'
-import { basename, dirname, extname, join, sep } from 'node:path'
+import { basename, dirname, extname, join, relative, sep } from 'node:path'
 import { fileURLToPath, pathToFileURL } from 'node:url'
 
 /**
@@ -72,9 +72,11 @@ export async function configure(command: Configure): Promise<void> {
   }
 
   const migrationFolders = await resolveMigrationFolders(command)
-  const migration = await resolveMigrationPathOrReport(command, migrationFolders)
-  if (!migration) return
-  const migrationDestination = command.app.relativePath(migration.path)
+  const migrations = await resolveMigrationPathsOrReport(command, migrationFolders)
+  if (!migrations) return
+  const migrationDestinations = migrations.map((migration) =>
+    command.app.relativePath(migration.path)
+  )
   const banner = command.parsedFlags.banner === true
   const formController =
     command.parsedFlags.formController === true || command.parsedFlags['form-controller'] === true
@@ -108,7 +110,7 @@ export async function configure(command: Configure): Promise<void> {
     ...(formController ? [formControllerDestination] : []),
     ...(controlRoutes ? routeDestinations : []),
   ].map((destination) => command.app.makePath(destination))
-  destinations.push(migration.path)
+  destinations.push(...migrations.map((migration) => migration.path))
   if (!command.force) {
     const existingPaths = await Promise.all(
       destinations.map(async (destination) =>
@@ -117,7 +119,7 @@ export async function configure(command: Configure): Promise<void> {
     ).then((paths) => paths.filter((path): path is string => path !== null))
     if (existingPaths.length) {
       command.logger.error(
-        `Existing Masquerade files were left unchanged: ${existingPaths.join(', ')}. Rerun with --force to refresh the scaffolds and preserve any existing migration.`
+        `Existing Masquerade files were left unchanged: ${existingPaths.join(', ')}. Rerun with --force to refresh the scaffolds and preserve existing migrations.`
       )
       command.exitCode = 1
       return
@@ -184,15 +186,18 @@ export async function configure(command: Configure): Promise<void> {
         ]
       : []),
   ]
-  if (!migration.exists) {
+  for (const migration of migrations.filter((entry) => !entry.exists)) {
     codemods.overwriteExisting = false
     generated.push(
       await codemods.makeUsingStub(
         command.stubsRoot,
-        'make/migration/create_masquerade_tables.stub',
+        `make/migration/create_masquerade_${migration.table}.stub`,
         {
-          // makePath resolves through a URL; preserve literal characters in the folder.
-          migrationDirectory: pathToFileURL(dirname(migration.path)).pathname,
+          // migrationsPath resolves through a URL; preserve literal characters in the folder.
+          migrationDirectory: relative(command.app.migrationsPath(), dirname(migration.path))
+            .split(sep)
+            .map((segment) => encodeURIComponent(segment))
+            .join('/'),
           migrationFile: basename(migration.path),
         }
       )
@@ -229,7 +234,7 @@ export async function configure(command: Configure): Promise<void> {
     `Register () => import('@kevinjohn/adonisjs-masquerade/masquerade_context_middleware') as router middleware in ${kernelFile}, after initialize_auth and before any silent_auth middleware.`,
     `In ${authFile}, pass the generated userProvider from #services/masquerade_user_provider to your raw sessionGuard. Keep it named ${guard}, then make ${effectiveGuardKey} the default: guards: { ${rawGuardKey}: rawGuard, ${effectiveGuardKey}: effectiveSessionGuard(rawGuard) }. Import effectiveSessionGuard from @kevinjohn/adonisjs-masquerade/auth.`,
     'Implement the generated account incarnation, security stamp, active-account checks, and deny-by-default permissions using your account model. Make stamps change on privilege, password, suspension, and logout-all changes.',
-    `Review the migration ${migrationDestination}, back up the database, then run: node ace migration:run`,
+    `Review the migrations ${migrationDestinations.join(', ')}, back up the database, then run: node ace migration:run`,
     ...(controlRoutes
       ? [
           `Review the limiter budgets in ${routeDestinations[1]}, then import ${routeDestinations[0]} from your routes preload. Keep Shield CSRF enabled.`,
@@ -357,13 +362,13 @@ async function fileExists(path: string): Promise<boolean> {
 }
 
 /**
- * Locate an existing migration or select a new destination. A failure is logged, sets the exit code
+ * Locate each existing table migration or select a new destination. A failure is logged, sets the exit code
  * and returns undefined.
  */
-async function resolveMigrationPathOrReport(
+async function resolveMigrationPathsOrReport(
   command: Configure,
   folders: [string, ...string[]]
-): Promise<{ path: string; exists: boolean } | undefined> {
+): Promise<{ path: string; exists: boolean; table: 'modes' | 'events' }[] | undefined> {
   const { sourceFiles } = await import('@adonisjs/lucid/utils')
   const infos = await Promise.all(
     folders.map((folder) =>
@@ -386,31 +391,40 @@ async function resolveMigrationPathOrReport(
       return files
     })
   )
-  const existing = discovered
-    .flat()
-    .filter(({ absPath }) =>
-      /^\d{13}_create_masquerade_tables$/.test(basename(absPath, extname(absPath)))
-    )
-  if (existing.length > 1) {
-    command.logger.error(
-      `Multiple Masquerade migrations were found in the default connection. Review migration history before rerunning configure.`
-    )
-    command.exitCode = 1
-    return
+  const migrations: { path: string; exists: boolean; table: 'modes' | 'events' }[] = []
+  const timestamp = Date.now()
+  for (const [index, table] of (['modes', 'events'] as const).entries()) {
+    const suffix = `create_masquerade_${table}`
+    const existing = discovered
+      .flat()
+      .filter(({ absPath }) =>
+        new RegExp(`^\\d{13}_${suffix}$`).test(basename(absPath, extname(absPath)))
+      )
+    if (existing.length > 1) {
+      command.logger.error(
+        `Multiple Masquerade ${table} migrations were found in the default connection. Review migration history before rerunning configure.`
+      )
+      command.exitCode = 1
+      return
+    }
+    if (existing[0]) {
+      migrations.push({ path: existing[0].absPath, exists: true, table })
+      continue
+    }
+    const path = join(folders[0], `${timestamp + index}_${suffix}.ts`)
+    const entry = await lstat(path).catch((error: unknown) => {
+      if ((error as NodeJS.ErrnoException).code !== 'ENOENT') throw error
+    })
+    if (entry) {
+      command.logger.error(
+        `The migration destination ${command.app.relativePath(path)} is occupied by an entry that Lucid ignores. Move it out of the migration directory and rerun configure.`
+      )
+      command.exitCode = 1
+      return
+    }
+    migrations.push({ path, exists: false, table })
   }
-  if (existing[0]) return { path: existing[0].absPath, exists: true }
-  const path = join(folders[0], `${Date.now()}_create_masquerade_tables.ts`)
-  const entry = await lstat(path).catch((error: unknown) => {
-    if ((error as NodeJS.ErrnoException).code !== 'ENOENT') throw error
-  })
-  if (entry) {
-    command.logger.error(
-      `The migration destination ${command.app.relativePath(path)} is occupied by an entry that Lucid ignores. Move it out of the migration directory and rerun configure.`
-    )
-    command.exitCode = 1
-    return
-  }
-  return { path, exists: false }
+  return migrations
 }
 
 function isModuleNotFound(error: unknown): boolean {

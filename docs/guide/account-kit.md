@@ -71,9 +71,9 @@ export const managedGuard = createManagedGuard({
 ```
 
 Use that exact `accessTokenUserProvider` instance in the host's raw `api` guard and in the
-Masquerade adapter below. The [local fixture's Account Kit configuration](https://github.com/Kevinjohn/oss-adonisjs-masquerade/blob/main/examples/account-kit/config/account_kit.ts)
+Masquerade adapter below. The [local fixture's Account Kit configuration](https://github.com/Kevinjohn/oss-adonisjs-masquerade/blob/main/examples/account_kit/config/account_kit.ts)
 shows how its Account Kit strategy selects the matching `web` or `api` name; its
-[admission configuration](https://github.com/Kevinjohn/oss-adonisjs-masquerade/blob/main/examples/account-kit/config/admission.ts)
+[admission configuration](https://github.com/Kevinjohn/oss-adonisjs-masquerade/blob/main/examples/account_kit/config/admission.ts)
 shows the separate host-owned admission policy.
 
 Use one adapter instance for the native binding and Masquerade configuration. This complete session
@@ -140,7 +140,7 @@ export const nativeAdapter = accountKitAuthority<User>({
 })
 ```
 
-The fixture's [Masquerade configuration](https://github.com/Kevinjohn/oss-adonisjs-masquerade/blob/main/examples/account-kit/config/masquerade.ts)
+The fixture's [Masquerade configuration](https://github.com/Kevinjohn/oss-adonisjs-masquerade/blob/main/examples/account_kit/config/masquerade.ts)
 shows both variants selected from one environment flag. It imports the host's two raw providers from
 `#services/web_guard`; adapt those imports to the exports in your Auth setup, keeping each provider
 instance identical between the raw guard and `accountKitAuthority`.

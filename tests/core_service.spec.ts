@@ -1,7 +1,7 @@
 import { validateConfig } from '../src/define_config.ts'
 import { test } from '@japa/runner'
 import { createMasqueradeService } from '../index.ts'
-import { MemoryControlStore } from '../testing/main.ts'
+import { MemoryControlStore } from '../src/testing/main.ts'
 
 test('starts, rejects nesting, stops and preserves idle revisions', async ({ assert }) => {
   const store = new MemoryControlStore()

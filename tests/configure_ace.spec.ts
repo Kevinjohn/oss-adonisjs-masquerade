@@ -60,6 +60,22 @@ export default defineConfig({
       assert.equal(process.exitCode, 0)
       process.exitCode = previousProcessExitCode
 
+      const migrationRoot = join(root, 'database/migrations')
+      const migrations = await readdir(migrationRoot)
+      migrations.sort()
+      assert.lengthOf(migrations, 2)
+      assert.match(migrations[0], /^\d{13}_create_masquerade_modes\.ts$/)
+      assert.match(migrations[1], /^\d{13}_create_masquerade_events\.ts$/)
+      const migrationSources = await Promise.all(
+        migrations.map(async (file) => {
+          const source =
+            '// Application-owned migration edit\n' +
+            (await readFile(join(migrationRoot, file), 'utf8'))
+          await writeFile(join(migrationRoot, file), source)
+          return source
+        })
+      )
+
       await ignitor
         .ace()
         .configure(async (app) => {
@@ -89,8 +105,11 @@ export default defineConfig({
         await readFile(join(root, 'app/services/masquerade_user_provider.ts'), 'utf8'),
         'sessionUserProvider'
       )
-      const migrations = await readdir(join(root, 'database/migrations'))
-      assert.equal(migrations.length, 1)
+      assert.sameMembers(await readdir(migrationRoot), migrations)
+      assert.deepEqual(
+        await Promise.all(migrations.map((file) => readFile(join(migrationRoot, file), 'utf8'))),
+        migrationSources
+      )
       const rcFile = await readFile(join(root, 'adonisrc.ts'), 'utf8')
       assert.include(rcFile, "'#providers/host_provider'")
       assert.include(rcFile, "'#commands/host_command'")
@@ -214,8 +233,21 @@ export default defineConfig({
       const kernelPath = join(host, 'bootstrap/kernel.ts')
       assert.equal(await readFile(kernelPath, 'utf8'), starterKernel)
       const saved = await Promise.all(files.map((file) => readFile(join(host, file), 'utf8')))
-      const migrations = await readdir(join(host, 'schema'))
-      assert.lengthOf(migrations, 1)
+      const migrationRoot = join(host, 'schema')
+      const migrations = await readdir(migrationRoot)
+      migrations.sort()
+      assert.lengthOf(migrations, 2)
+      assert.match(migrations[0], /^\d{13}_create_masquerade_modes\.ts$/)
+      assert.match(migrations[1], /^\d{13}_create_masquerade_events\.ts$/)
+      const migrationSources = await Promise.all(
+        migrations.map(async (file) => {
+          const source =
+            '// Application-owned migration edit\n' +
+            (await readFile(join(migrationRoot, file), 'utf8'))
+          await writeFile(join(migrationRoot, file), source)
+          return source
+        })
+      )
       assert.equal(await runConfigure(host, options, directories), 1)
       assert.deepEqual(
         await Promise.all(files.map((file) => readFile(join(host, file), 'utf8'))),
@@ -223,7 +255,11 @@ export default defineConfig({
       )
       assert.equal(await runConfigure(host, [...options, '--force'], directories), 0)
       assert.equal(await readFile(kernelPath, 'utf8'), starterKernel)
-      assert.deepEqual(await readdir(join(host, 'schema')), migrations)
+      assert.sameMembers(await readdir(migrationRoot), migrations)
+      assert.deepEqual(
+        await Promise.all(migrations.map((file) => readFile(join(migrationRoot, file), 'utf8'))),
+        migrationSources
+      )
       assert.isFalse(existsSync(join(host, 'config/masquerade.ts')))
       assert.equal(await readFile(join(host, 'settings/auth.ts'), 'utf8'), starterAuthConfig)
       assert.deepEqual(await bootGeneratedRuntime(host, directories), {

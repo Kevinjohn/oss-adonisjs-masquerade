@@ -78,9 +78,9 @@ test('the recipe runner inputs run the SQLite recipe', ({ assert }) => {
     )
   }
   for (const path of [
-    'auth/actor.ts',
-    'http/controllers.ts',
-    'native/session_authority.ts',
+    'src/auth/actor.ts',
+    'src/http/controllers.ts',
+    'src/native/session_authority.ts',
     'examples/native-session/start/routes.ts',
     'docs/guide/security.md',
   ])
@@ -93,8 +93,8 @@ test('the docs workflow inputs build the docs and require a clean tree', ({ asse
     'typedoc.json',
     'src/service.ts',
     'index.ts',
-    'account_kit/provider.ts',
-    'plugins/api_client.ts',
+    'src/account_kit/provider.ts',
+    'src/plugins/api_client.ts',
   ]) {
     assert.deepInclude(
       planChangedChecks(changed(path)).find((step) => step.label === 'docs build'),
@@ -132,7 +132,10 @@ test('formats only existing files and leaves the lockfile to pnpm', ({ assert })
 })
 
 test('lint allows no warnings and skips files ESLint ignores', async ({ assert }) => {
-  assert.deepEqual(ran(planChangedChecks(changed('http/controllers.ts'))).lint, ['pnpm', 'lint'])
+  assert.deepEqual(ran(planChangedChecks(changed('src/http/controllers.ts'))).lint, [
+    'pnpm',
+    'lint',
+  ])
   // The repository's own lint script carries the zero-warning limit for every caller.
   const manifest = JSON.parse(
     await readFile(new URL('../../package.json', import.meta.url), 'utf8')
@@ -153,7 +156,7 @@ test('browser gate inputs note the browser suites', ({ assert }) => {
     'bin/helpers/prepare_account_kit_demo.ts',
   ])
     assert.deepInclude(planChangedChecks(changed(path)), note, path)
-  for (const path of ['examples/recipe-host/package.json', 'examples/account-kit/start/routes.ts'])
+  for (const path of ['examples/recipe-host/package.json', 'examples/account_kit/start/routes.ts'])
     assert.notDeepInclude(planChangedChecks(changed(path)), note, path)
 })
 
@@ -161,8 +164,8 @@ test('consumer and Account Kit integration inputs note the full profile', ({ ass
   const note = { label: 'consumer and Account Kit integration', skip: 'run pnpm check --full' }
 
   for (const path of [
-    'examples/account-kit/start/routes.ts',
-    'account_kit/main.ts',
+    'examples/account_kit/start/routes.ts',
+    'src/account_kit/main.ts',
     'bin/test_account_kit.ts',
     'bin/helpers/registry_version.ts',
     'bin/helpers/owned_process.ts',

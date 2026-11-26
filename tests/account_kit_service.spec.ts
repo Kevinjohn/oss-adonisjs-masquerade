@@ -2,7 +2,7 @@ import { test } from '@japa/runner'
 import type { HttpContext } from '@adonisjs/core/http'
 import { createMasqueradeService } from '../index.ts'
 import { accountKitAuthority } from '../src/account_kit/authority.ts'
-import { MemoryControlStore } from '../testing/main.ts'
+import { MemoryControlStore } from '../src/testing/main.ts'
 import { errorCode } from './helpers/core.ts'
 
 function fixture(strategy: 'session' | 'access_tokens' = 'session') {
