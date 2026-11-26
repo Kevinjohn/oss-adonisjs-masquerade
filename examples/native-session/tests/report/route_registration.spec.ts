@@ -7,6 +7,14 @@ const execFile = promisify(execFileCallback)
 const appRoot = fileURLToPath(new URL('../../', import.meta.url))
 
 test.group('test-only route registration boundary', () => {
+  async function routeReport(nodeEnv: 'development' | 'production' | 'test'): Promise<string> {
+    const { stdout, stderr } = await execFile(process.execPath, ['ace.js', 'masquerade:routes'], {
+      cwd: appRoot,
+      env: { ...process.env, NODE_ENV: nodeEnv },
+    })
+    return `${stdout}\n${stderr}`
+  }
+
   test('Ace route reports include probes only when NODE_ENV is test', async ({ assert }) => {
     const [normal, production, testEnvironment] = await Promise.all([
       routeReport('development'),
@@ -41,11 +49,3 @@ test.group('test-only route registration boundary', () => {
     assert.include(testEnvironment, '/members/status')
   })
 })
-
-async function routeReport(nodeEnv: 'development' | 'production' | 'test'): Promise<string> {
-  const { stdout, stderr } = await execFile(process.execPath, ['ace.js', 'masquerade:routes'], {
-    cwd: appRoot,
-    env: { ...process.env, NODE_ENV: nodeEnv },
-  })
-  return `${stdout}\n${stderr}`
-}

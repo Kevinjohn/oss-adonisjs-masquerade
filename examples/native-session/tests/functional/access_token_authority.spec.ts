@@ -11,6 +11,53 @@ import {
 } from '#services/masquerade_fixture_boundary'
 
 test.group('native access-token authority', (group) => {
+  function bearer(value: string) {
+    return `Bearer ${value}`
+  }
+
+  function status(client: ApiClient, token: string) {
+    return client.get('/api/masquerade').header('Authorization', bearer(token))
+  }
+
+  function business(client: ApiClient, token: string) {
+    return client.get('/api/business').header('Authorization', bearer(token))
+  }
+
+  function start(client: ApiClient, token: string, targetId: number, contextToken: string) {
+    return client
+      .post('/api/masquerade/start')
+      .header('Accept', 'application/json')
+      .header('Authorization', bearer(token))
+      .header('X-Masquerade-Context', contextToken)
+      .json({ targetId, reason: 'token acceptance journey', access: 'edit' })
+  }
+
+  function stop(client: ApiClient, token: string, contextToken: string) {
+    return client
+      .post('/api/masquerade/stop')
+      .header('Accept', 'application/json')
+      .header('Authorization', bearer(token))
+      .header('X-Masquerade-Context', contextToken)
+      .json({})
+  }
+
+  function mutate(client: ApiClient, token: string, contextToken?: string) {
+    let request = client
+      .post('/api/business/mutate')
+      .header('Authorization', bearer(token))
+      .json({})
+    if (contextToken) request = request.header('X-Masquerade-Context', contextToken)
+    return request
+  }
+
+  async function eventCount(actorId: number) {
+    const rows = await db
+      .from('masquerade_events')
+      .where('actor_id', String(actorId))
+      .count('* as total')
+    return Number(rows[0].total)
+  }
+
   group.setup(() => testUtils.db().migrate())
   group.each.teardown(() => cleanUsers())
 
@@ -439,47 +486,3 @@ test.group('native access-token authority', (group) => {
     idle.assertStatus(200)
   })
 })
-
-function bearer(value: string) {
-  return `Bearer ${value}`
-}
-
-function status(client: ApiClient, token: string) {
-  return client.get('/api/masquerade').header('Authorization', bearer(token))
-}
-
-function business(client: ApiClient, token: string) {
-  return client.get('/api/business').header('Authorization', bearer(token))
-}
-
-function start(client: ApiClient, token: string, targetId: number, contextToken: string) {
-  return client
-    .post('/api/masquerade/start')
-    .header('Accept', 'application/json')
-    .header('Authorization', bearer(token))
-    .header('X-Masquerade-Context', contextToken)
-    .json({ targetId, reason: 'token acceptance journey', access: 'edit' })
-}
-
-function stop(client: ApiClient, token: string, contextToken: string) {
-  return client
-    .post('/api/masquerade/stop')
-    .header('Accept', 'application/json')
-    .header('Authorization', bearer(token))
-    .header('X-Masquerade-Context', contextToken)
-    .json({})
-}
-
-function mutate(client: ApiClient, token: string, contextToken?: string) {
-  let request = client.post('/api/business/mutate').header('Authorization', bearer(token)).json({})
-  if (contextToken) request = request.header('X-Masquerade-Context', contextToken)
-  return request
-}
-
-async function eventCount(actorId: number) {
-  const rows = await db
-    .from('masquerade_events')
-    .where('actor_id', String(actorId))
-    .count('* as total')
-  return Number(rows[0].total)
-}

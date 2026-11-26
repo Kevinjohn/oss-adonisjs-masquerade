@@ -103,7 +103,7 @@ export default defineConfig({
         timeout: 30000,
       },
       {
-        files: ['tests/token-only/**/*.spec.ts'],
+        files: ['tests/token_only/**/*.spec.ts'],
         name: 'token-only',
         timeout: 30000,
       },

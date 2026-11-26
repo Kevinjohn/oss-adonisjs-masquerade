@@ -5,6 +5,30 @@ import limiter from '@adonisjs/limiter/services/main'
 import { cleanUsers, createAccessToken, createUsers } from '#tests/helpers/users'
 
 test.group('ordinary bearer support demo', (group) => {
+  function bearer(value: string) {
+    return `Bearer ${value}`
+  }
+
+  function tokenStatus(client: ApiClient, token: string) {
+    return client.get('/api/masquerade').header('Authorization', bearer(token))
+  }
+
+  function tokenStart(client: ApiClient, token: string, targetId: number, contextToken: string) {
+    return client
+      .post('/api/masquerade/start')
+      .header('Authorization', bearer(token))
+      .header('X-Masquerade-Context', contextToken)
+      .json({ targetId, reason: 'Documented native bearer demo', access: 'edit' })
+  }
+
+  function tokenStop(client: ApiClient, token: string, contextToken: string) {
+    return client
+      .post('/api/masquerade/stop')
+      .header('Authorization', bearer(token))
+      .header('X-Masquerade-Context', contextToken)
+      .json({})
+  }
+
   group.setup(() => testUtils.db().migrate())
   group.each.teardown(async () => {
     await limiter.clear(['memory'])
@@ -155,27 +179,3 @@ test.group('ordinary bearer support demo', (group) => {
     withCsrf.assertStatus(200)
   })
 })
-
-function bearer(value: string) {
-  return `Bearer ${value}`
-}
-
-function tokenStatus(client: ApiClient, token: string) {
-  return client.get('/api/masquerade').header('Authorization', bearer(token))
-}
-
-function tokenStart(client: ApiClient, token: string, targetId: number, contextToken: string) {
-  return client
-    .post('/api/masquerade/start')
-    .header('Authorization', bearer(token))
-    .header('X-Masquerade-Context', contextToken)
-    .json({ targetId, reason: 'Documented native bearer demo', access: 'edit' })
-}
-
-function tokenStop(client: ApiClient, token: string, contextToken: string) {
-  return client
-    .post('/api/masquerade/stop')
-    .header('Authorization', bearer(token))
-    .header('X-Masquerade-Context', contextToken)
-    .json({})
-}

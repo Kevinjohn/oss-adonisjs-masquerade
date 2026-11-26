@@ -5,29 +5,29 @@ import MasqueradeContextMiddleware from '@kevinjohn/adonisjs-masquerade/masquera
 
 const warnings: unknown[] = []
 
-/** Record what the context middleware logs, without putting test code in the middleware. */
-function captureWarnings(): () => void {
-  const handle = MasqueradeContextMiddleware.prototype.handle
-  MasqueradeContextMiddleware.prototype.handle = async function (ctx, next) {
-    const warn = ctx.logger.warn.bind(ctx.logger)
-    ctx.logger.warn = (...args: Parameters<typeof warn>) => {
-      warnings.push(args[0])
-      return warn(...args)
-    }
-    try {
-      return await handle.call(this, ctx, next)
-    } finally {
-      ctx.logger.warn = warn
-    }
-  }
-  return () => {
-    MasqueradeContextMiddleware.prototype.handle = handle
-    warnings.length = 0
-  }
-}
-
 if (process.env.MASQUERADE_CONTEXT_ENFORCEMENT === 'report') {
   test.group('report-mode HTTP context rollout', (group) => {
+    /** Record what the context middleware logs, without putting test code in the middleware. */
+    function captureWarnings(): () => void {
+      const handle = MasqueradeContextMiddleware.prototype.handle
+      MasqueradeContextMiddleware.prototype.handle = async function (ctx, next) {
+        const warn = ctx.logger.warn.bind(ctx.logger)
+        ctx.logger.warn = (...args: Parameters<typeof warn>) => {
+          warnings.push(args[0])
+          return warn(...args)
+        }
+        try {
+          return await handle.call(this, ctx, next)
+        } finally {
+          ctx.logger.warn = warn
+        }
+      }
+      return () => {
+        MasqueradeContextMiddleware.prototype.handle = handle
+        warnings.length = 0
+      }
+    }
+
     group.setup(() => testUtils.db().migrate())
     group.each.setup(() => captureWarnings())
     group.each.teardown(() => cleanUsers())

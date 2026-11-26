@@ -20,6 +20,98 @@ const demoEmails = [
 const usesPostgres = process.env.DB_CLIENT === 'pg'
 
 test.group('demo accounts', (group) => {
+  function runDemoCommand(
+    command: 'demo:reset' | 'demo:seed' | 'demo:token',
+    nodeEnv: 'development' | 'production',
+    dbClient: 'sqlite' | 'pg' = 'sqlite'
+  ): {
+    exitCode: number
+    stdout: string
+    output: string
+  } {
+    const appRoot = fileURLToPath(new URL('../../', import.meta.url))
+    try {
+      const output = execFileSync(process.execPath, ['ace', command], {
+        cwd: appRoot,
+        env: {
+          ...process.env,
+          NODE_ENV: nodeEnv,
+          PORT: '3333',
+          HOST: 'localhost',
+          LOG_LEVEL: 'error',
+          APP_KEY: 'development-command-fixture-key-012345',
+          APP_URL: 'http://localhost:3333',
+          SESSION_DRIVER: 'memory',
+          DB_CLIENT: dbClient,
+          NATIVE_TEST_SQLITE: dbClient === 'sqlite' ? '1' : undefined,
+        },
+        encoding: 'utf8',
+        stdio: 'pipe',
+      })
+      return { exitCode: 0, stdout: output, output }
+    } catch (error) {
+      const commandError = error as {
+        status?: number
+        stderr?: string | Buffer
+        stdout?: string | Buffer
+      }
+      return {
+        exitCode: commandError.status ?? 1,
+        stdout: commandError.stdout?.toString() ?? '',
+        output: `${commandError.stdout?.toString() ?? ''}${commandError.stderr?.toString() ?? ''}`,
+      }
+    }
+  }
+
+  function idleMode(actorId: number) {
+    return {
+      authority_namespace: 'native-session-fixture',
+      actor_id: String(actorId),
+      actor_incarnation: '1',
+      revision: 1,
+      revision_nonce: 'fixture-nonce',
+      state: 'idle',
+      mode_id: crypto.randomUUID(),
+      last_transition_id: crypto.randomUUID(),
+      target_id: null,
+      target_incarnation: null,
+      actor_stamp_hash: null,
+      target_stamp_hash: null,
+      reason: null,
+      started_at: null,
+      expires_at: null,
+      updated_at: new Date().toISOString(),
+    }
+  }
+
+  function rememberMeToken(tokenableId: number) {
+    const timestamp = new Date()
+    return {
+      tokenable_id: tokenableId,
+      hash: crypto.randomUUID(),
+      created_at: timestamp,
+      updated_at: timestamp,
+      expires_at: new Date(timestamp.getTime() + 60_000),
+    }
+  }
+
+  function masqueradeEvent(actorId: number) {
+    return {
+      id: crypto.randomUUID(),
+      mode_id: null,
+      authority_namespace: 'native-session-fixture',
+      actor_id: String(actorId),
+      actor_incarnation: '1',
+      target_id: null,
+      target_incarnation: null,
+      at: new Date().toISOString(),
+      kind: 'start_denied',
+      outcome_code: 'E_MASQUERADE_DENIED',
+      revision: 1,
+      reason: null,
+    }
+  }
+
   if (!usesPostgres) {
     group.setup(() => testUtils.db().migrate())
     group.each.teardown(async () => {
@@ -307,95 +399,3 @@ test.group('demo accounts', (group) => {
     )
   })
 })
-
-function runDemoCommand(
-  command: 'demo:reset' | 'demo:seed' | 'demo:token',
-  nodeEnv: 'development' | 'production',
-  dbClient: 'sqlite' | 'pg' = 'sqlite'
-): {
-  exitCode: number
-  stdout: string
-  output: string
-} {
-  const appRoot = fileURLToPath(new URL('../../', import.meta.url))
-  try {
-    const output = execFileSync(process.execPath, ['ace', command], {
-      cwd: appRoot,
-      env: {
-        ...process.env,
-        NODE_ENV: nodeEnv,
-        PORT: '3333',
-        HOST: 'localhost',
-        LOG_LEVEL: 'error',
-        APP_KEY: 'development-command-fixture-key-012345',
-        APP_URL: 'http://localhost:3333',
-        SESSION_DRIVER: 'memory',
-        DB_CLIENT: dbClient,
-        NATIVE_TEST_SQLITE: dbClient === 'sqlite' ? '1' : undefined,
-      },
-      encoding: 'utf8',
-      stdio: 'pipe',
-    })
-    return { exitCode: 0, stdout: output, output }
-  } catch (error) {
-    const commandError = error as {
-      status?: number
-      stderr?: string | Buffer
-      stdout?: string | Buffer
-    }
-    return {
-      exitCode: commandError.status ?? 1,
-      stdout: commandError.stdout?.toString() ?? '',
-      output: `${commandError.stdout?.toString() ?? ''}${commandError.stderr?.toString() ?? ''}`,
-    }
-  }
-}
-
-function idleMode(actorId: number) {
-  return {
-    authority_namespace: 'native-session-fixture',
-    actor_id: String(actorId),
-    actor_incarnation: '1',
-    revision: 1,
-    revision_nonce: 'fixture-nonce',
-    state: 'idle',
-    mode_id: crypto.randomUUID(),
-    last_transition_id: crypto.randomUUID(),
-    target_id: null,
-    target_incarnation: null,
-    actor_stamp_hash: null,
-    target_stamp_hash: null,
-    reason: null,
-    started_at: null,
-    expires_at: null,
-    updated_at: new Date().toISOString(),
-  }
-}
-
-function rememberMeToken(tokenableId: number) {
-  const timestamp = new Date()
-  return {
-    tokenable_id: tokenableId,
-    hash: crypto.randomUUID(),
-    created_at: timestamp,
-    updated_at: timestamp,
-    expires_at: new Date(timestamp.getTime() + 60_000),
-  }
-}
-
-function masqueradeEvent(actorId: number) {
-  return {
-    id: crypto.randomUUID(),
-    mode_id: null,
-    authority_namespace: 'native-session-fixture',
-    actor_id: String(actorId),
-    actor_incarnation: '1',
-    target_id: null,
-    target_incarnation: null,
-    at: new Date().toISOString(),
-    kind: 'start_denied',
-    outcome_code: 'E_MASQUERADE_DENIED',
-    revision: 1,
-    reason: null,
-  }
-}
