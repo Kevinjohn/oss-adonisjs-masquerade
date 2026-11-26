@@ -1,11 +1,21 @@
-import type { HttpContext } from '@adonisjs/core/http'
 import type { StartInput, StopInput } from '@kevinjohn/adonisjs-masquerade/types'
 
 /** Preserve the context token that accompanied the original form intent. */
-export function controlInput(ctx: HttpContext, action: 'start'): StartInput
-export function controlInput(ctx: HttpContext, action: 'stop'): StopInput
-export function controlInput(ctx: HttpContext, action: 'start' | 'stop'): StartInput | StopInput {
-  const body = ctx.request.body()
+export function controlInput(
+  body: Record<string, unknown>,
+  header: string | undefined,
+  action: 'start'
+): StartInput
+export function controlInput(
+  body: Record<string, unknown>,
+  header: string | undefined,
+  action: 'stop'
+): StopInput
+export function controlInput(
+  body: Record<string, unknown>,
+  header: string | undefined,
+  action: 'start' | 'stop'
+): StartInput | StopInput {
   const keys =
     action === 'start'
       ? ['targetId', 'reason', 'access', '_masqueradeContext', '_csrf']
@@ -18,7 +28,6 @@ export function controlInput(ctx: HttpContext, action: 'start' | 'stop'): StartI
   ) {
     return { __invalidHttpInput: true } as unknown as StartInput
   }
-  const header = ctx.request.header('X-Masquerade-Context')
   const hidden = body._masqueradeContext
   const expectedContext =
     header !== undefined && hidden !== undefined && header !== hidden
