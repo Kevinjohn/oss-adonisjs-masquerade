@@ -1,4 +1,4 @@
-import { isMasqueradeRequestError } from '../http/main.ts'
+import { isMasqueradeRequestError } from '../src/http/main.ts'
 import { test } from '@japa/runner'
 import { handleWithDefaultExceptionHandler } from './helpers/exception_handler.ts'
 import { IncomingMessage } from 'node:http'

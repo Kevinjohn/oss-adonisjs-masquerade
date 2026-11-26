@@ -4,6 +4,12 @@
 
 - Keep distinct Account Kit integration (`account_kit`) and browser demo (`account_kit_demo`) overlays; remove the obsolete `with_account_kit` fixture.
 
+- Generate separate Lucid migrations for modes and events, each with its own `tableName`. Replace
+  the aggregate schema helpers with `createMasqueradeModesTableV1` and
+  `createMasqueradeEventsTableV1`, which define one table each.
+
+- Move package implementation and public subpath entries under `src/`, preserving export keys.
+
 - Read example demo settings through configuration, protect production migrations from rollback,
   and declare foreign-key targets and deletion behavior explicitly.
 

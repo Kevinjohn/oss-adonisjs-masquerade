@@ -19,7 +19,7 @@ async function loadStub(directory: string, broken = false) {
   )
   const source = stub
     .replace(/^\{\{\{[\s\S]*?\}\}\}\n/, '')
-    .replace("'@kevinjohn/adonisjs-masquerade/http'", `'${join(root, 'http/main.ts')}'`)
+    .replace("'@kevinjohn/adonisjs-masquerade/http'", `'${join(root, 'src/http/main.ts')}'`)
     .replace("'@kevinjohn/adonisjs-masquerade'", `'${join(root, 'index.ts')}'`)
   const file = join(
     directory,

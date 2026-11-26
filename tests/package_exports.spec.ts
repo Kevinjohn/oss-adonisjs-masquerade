@@ -57,7 +57,11 @@ if (process.env.TEST_BUILT_EXPORTS === '1') {
     assert.equal(blocked.blockedBy, 'sensitive')
     assert.isTrue(http.isMasqueradeRequestError(blocked))
     assert.isString(root.stubsRoot)
-    assert.isTrue(existsSync(join(root.stubsRoot, 'make/migration/create_masquerade_tables.stub')))
+    for (const table of ['modes', 'events']) {
+      assert.isTrue(
+        existsSync(join(root.stubsRoot, `make/migration/create_masquerade_${table}.stub`))
+      )
+    }
     assert.lengthOf(Object.keys(types), 0)
     assert.isFunction(provider.default)
     assert.isFunction(auth.effectiveSessionGuard)
@@ -66,10 +70,16 @@ if (process.env.TEST_BUILT_EXPORTS === '1') {
     assert.isFunction(native.accessTokensAuthority)
     assert.isFunction(native.nativeAuthorities)
     assert.isFunction(native.stampFrom)
-    assert.isFunction(lucid.createMasqueradeSchemaV1)
-    assert.isFunction(lucid.dropMasqueradeSchemaV1)
-    assert.equal(lucid.createMasqueradeSchema, lucid.createMasqueradeSchemaV1)
-    assert.equal(lucid.dropMasqueradeSchema, lucid.dropMasqueradeSchemaV1)
+    assert.isFunction(lucid.createMasqueradeModesTableV1)
+    assert.isFunction(lucid.createMasqueradeEventsTableV1)
+    for (const retired of [
+      'createMasqueradeSchemaV1',
+      'dropMasqueradeSchemaV1',
+      'createMasqueradeSchema',
+      'dropMasqueradeSchema',
+    ]) {
+      assert.notProperty(lucid, retired)
+    }
     assert.isFunction(accountKit.accountKitAuthority)
     assert.isFunction(accountKitProvider.default)
     assert.isFunction(accountKitMiddleware.default)
