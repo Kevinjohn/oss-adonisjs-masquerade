@@ -4,11 +4,11 @@ import vine from '@vinejs/vine'
 export const supportControlValidator = vine.create(
   vine
     .object({
-      targetId: vine.any().optional(),
-      reason: vine.any().optional(),
-      access: vine.any().optional(),
-      _masqueradeContext: vine.any().optional(),
-      _csrf: vine.any().optional(),
+      targetId: vine.any().nullable().optional(),
+      reason: vine.any().nullable().optional(),
+      access: vine.any().nullable().optional(),
+      _masqueradeContext: vine.any().nullable().optional(),
+      _csrf: vine.any().nullable().optional(),
     })
     .allowUnknownProperties()
 )

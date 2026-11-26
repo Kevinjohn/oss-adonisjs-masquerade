@@ -1,4 +1,5 @@
 import { test } from '@japa/runner'
+import { errorCode, fixture } from './helpers/core.ts'
 test.group('example control validation', () => {
   const controls = Promise.all([
     import(
@@ -60,6 +61,42 @@ test.group('example control validation', () => {
       assert.deepEqual(parse(input, 'different', 'stop'), {
         expectedContext: `0.${'0'.repeat(32)}`,
       })
+    }
+  })
+
+  test('preserves explicit null controls for canonical validation and token matching', async ({
+    assert,
+  }) => {
+    const [
+      { controlInput: reactControlInput },
+      { controlInput: vueControlInput },
+      { supportControlValidator: reactControlValidator },
+      { supportControlValidator: vueControlValidator },
+    ] = await controls
+    for (const [validator, parse] of [
+      [reactControlValidator, reactControlInput],
+      [vueControlValidator, vueControlInput],
+    ] as const) {
+      const f = fixture()
+      const service = await f.create()
+      const idle = await service.status({})
+      const body = await validator.validate({
+        targetId: 'b',
+        reason: 'Support',
+        access: null,
+        _masqueradeContext: idle.contextToken,
+      })
+      assert.isNull(body.access)
+      const input = parse(body, undefined, 'start')
+      assert.isNull(input.access)
+      assert.equal(await errorCode(() => service.start({}, input)), 'E_MASQUERADE_INVALID_INPUT')
+      assert.equal(f.store.events.at(-1)?.outcomeCode, 'E_MASQUERADE_INVALID_INPUT')
+
+      const invalidToken = await validator.validate({ _masqueradeContext: null })
+      assert.isNull(invalidToken._masqueradeContext)
+      const stop = parse(invalidToken, idle.contextToken, 'stop')
+      assert.deepEqual(stop, { expectedContext: `0.${'0'.repeat(32)}` })
+      assert.equal(await errorCode(() => service.stop({}, stop)), 'E_MASQUERADE_CONTEXT_CHANGED')
     }
   })
 
