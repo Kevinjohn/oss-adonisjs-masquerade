@@ -1,6 +1,6 @@
 import { readdir } from 'node:fs/promises'
 import { join } from 'node:path'
-import { runDemoCommand } from './account_kit_demo_process.js'
+import { runDemoCommand } from './account_kit_demo_process.ts'
 
 const sourcePaths = [
   'adonisrc.ts',

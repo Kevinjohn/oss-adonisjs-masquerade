@@ -180,7 +180,8 @@
       "./stores/lucid.ts",
       "./testing/main.ts",
       "./plugins/api_client.ts",
-      "./services/main.ts"
+      "./services/main.ts",
+      "./stubs/main.ts"
     ],
     "outDir": "./build",
     "clean": true,

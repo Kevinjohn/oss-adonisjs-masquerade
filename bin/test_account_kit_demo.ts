@@ -1,9 +1,9 @@
 import { appendFile, writeFile } from 'node:fs/promises'
 import { dirname, join, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
-import { formatDemoSchema } from './helpers/account_kit_demo_format.js'
-import { runDemoCommand } from './helpers/account_kit_demo_process.js'
-import { prepare } from './helpers/prepare_account_kit_demo.js'
+import { formatDemoSchema } from './helpers/account_kit_demo_format.ts'
+import { runDemoCommand } from './helpers/account_kit_demo_process.ts'
+import { prepare } from './helpers/prepare_account_kit_demo.ts'
 
 const root = resolve(dirname(fileURLToPath(import.meta.url)), '..')
 const workspace = join(root, 'tmp/account-kit-demo-check')

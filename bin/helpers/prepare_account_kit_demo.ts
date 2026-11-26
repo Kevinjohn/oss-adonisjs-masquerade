@@ -10,17 +10,17 @@ import {
   wireSessionConfig,
   wireSessionImports,
   wireShield,
-} from './account_kit_host_wiring.js'
-import { ensureKitArtifact } from './account_kit_demo_artifact.js'
-import { childDemoEnv, readDemoEnv } from './account_kit_demo_environment.js'
-import { formatDemoSources, snapshotDemoMigrations } from './account_kit_demo_format.js'
-import { runDemoCommand } from './account_kit_demo_process.js'
+} from './account_kit_host_wiring.ts'
+import { ensureKitArtifact } from './account_kit_demo_artifact.ts'
+import { childDemoEnv, readDemoEnv } from './account_kit_demo_environment.ts'
+import { formatDemoSources, snapshotDemoMigrations } from './account_kit_demo_format.ts'
+import { runDemoCommand } from './account_kit_demo_process.ts'
 import {
   copyNativeDemo,
   rewriteDemoManifest,
   validateDemoWorkspace,
   writeDemoRecipe,
-} from './account_kit_demo_workspace.js'
+} from './account_kit_demo_workspace.ts'
 
 const root = resolve(dirname(fileURLToPath(import.meta.url)), '../..')
 const native = join(root, 'examples/native-session')

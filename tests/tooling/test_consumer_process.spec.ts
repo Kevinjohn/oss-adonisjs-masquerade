@@ -89,6 +89,10 @@ async function fixture(options: FixtureOptions = {}): Promise<Fixture> {
     await readFile(processHelperPath)
   )
   await writeFile(
+    path.join(root, 'bin/helpers/consumer_command_error.ts'),
+    await readFile(path.join(repoRoot, 'bin/helpers/consumer_command_error.ts'))
+  )
+  await writeFile(
     path.join(root, 'bin/helpers/consumer_artifact.ts'),
     await readFile(artifactHelperPath)
   )
