@@ -82,11 +82,19 @@ async function fixture(options: FixtureOptions = {}): Promise<Fixture> {
     await readFile(path.join(repoRoot, 'bin/helpers/owned_process.ts'))
   )
   await writeFile(path.join(root, 'package.json'), '{"type":"module"}\n')
+  await writeFile(
+    path.join(root, 'tsconfig.json'),
+    '{"compilerOptions":{"rewriteRelativeImportExtensions":true}}\n'
+  )
   await symlink(path.join(repoRoot, 'node_modules'), path.join(root, 'node_modules'), 'dir')
   await writeFile(path.join(root, 'bin/test_consumer.ts'), await readFile(consumerRunnerPath))
   await writeFile(
     path.join(root, 'bin/helpers/consumer_process.ts'),
     await readFile(processHelperPath)
+  )
+  await writeFile(
+    path.join(root, 'bin/helpers/consumer_command_error.ts'),
+    await readFile(path.join(repoRoot, 'bin/helpers/consumer_command_error.ts'))
   )
   await writeFile(
     path.join(root, 'bin/helpers/consumer_artifact.ts'),
@@ -243,6 +251,7 @@ if (args[0] === 'test' || ['test:report', 'test:credentials'].includes(args[0]))
   const env: NodeJS.ProcessEnv = {
     ...process.env,
     PATH: `${bin}${path.delimiter}${process.env.PATH}`,
+    TS_EXEC_PWD: root,
     CONSUMER_COMMANDS: commands,
     CONSUMER_FIXTURE_MODE: options.mode ?? 'normal',
     CONSUMER_TEST_READY: ready,

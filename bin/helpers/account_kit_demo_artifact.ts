@@ -1,7 +1,7 @@
 import { createHash } from 'node:crypto'
 import { existsSync } from 'node:fs'
 import { readFile, rename, writeFile } from 'node:fs/promises'
-import { kitReleaseSha256, kitReleaseUrl } from './account_kit_host_wiring.js'
+import { kitReleaseSha256, kitReleaseUrl } from './account_kit_host_wiring.ts'
 
 export async function ensureKitArtifact(path: string, signal?: AbortSignal): Promise<void> {
   signal?.throwIfAborted()

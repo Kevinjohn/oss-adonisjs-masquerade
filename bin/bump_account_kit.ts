@@ -21,7 +21,7 @@ import {
   isKitVersionedDoc,
   rewriteFor,
   staleKitVersions,
-} from './helpers/account_kit_bump.js'
+} from './helpers/account_kit_bump.ts'
 
 const run = promisify(execFile)
 

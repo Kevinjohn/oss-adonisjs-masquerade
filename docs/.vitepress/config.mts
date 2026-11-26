@@ -1,6 +1,6 @@
 import { defineConfig } from 'vitepress'
-import { githubLinks, repository } from './github_links.mts'
-import { nav, sidebar } from './navigation.mts'
+import { githubLinks, repository } from './github_links.ts'
+import { nav, sidebar } from './navigation.ts'
 
 export default defineConfig({
   title: 'Masquerade for AdonisJS',

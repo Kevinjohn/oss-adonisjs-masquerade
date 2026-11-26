@@ -1,12 +1,12 @@
 import { spawn, spawnSync, type ChildProcess } from 'node:child_process'
-import { signalOwnedProcess, terminateOwnedProcess } from './helpers/owned_process.js'
+import { signalOwnedProcess, terminateOwnedProcess } from './helpers/owned_process.ts'
 import { fileURLToPath } from 'node:url'
 import {
   executedTests,
   planChangedChecks,
   type ChangedCheckStep,
   type ChangedFile,
-} from './check_changed_plan.js'
+} from './check_changed_plan.ts'
 
 const root = fileURLToPath(new URL('../', import.meta.url))
 const stepLimitMs = 15 * 60 * 1000
