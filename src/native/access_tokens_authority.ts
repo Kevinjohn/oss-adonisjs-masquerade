@@ -4,7 +4,8 @@ import { errors } from '@adonisjs/auth'
 import { InvalidArgumentsException } from '@adonisjs/core/exceptions'
 import type { GuardContract } from '@adonisjs/auth/types'
 import type { HttpContext } from '@adonisjs/core/http'
-import type { NativeAuthority, Subject } from '../types.ts'
+import type { NativeAuthority } from '../types.ts'
+import { AccountAuthority, buildSubject } from './account_authority.ts'
 import { isBoundedString } from '../bounded_string.ts'
 
 /**
@@ -12,7 +13,7 @@ import { isBoundedString } from '../bounded_string.ts'
  *
  * @example
  * ```ts
- * * import { accessTokensAuthority } from '@kevinjohn/adonisjs-masquerade/native'
+ * import { accessTokensAuthority } from '@kevinjohn/adonisjs-masquerade/native'
  * import type { NativeSessionAdapter } from '@kevinjohn/adonisjs-masquerade/types'
  *
  * type Account = { id: string }
@@ -77,83 +78,76 @@ export function accessTokensAuthority<User>(
       standalone.incarnation === 'id' ? 'id' : standalone.incarnation.bind(standalone)
     const securityStamp = standalone.securityStamp.bind(standalone)
     const isActive = standalone.isActive.bind(standalone)
-    authority = {
+    authority = new AccountAuthority({
       namespace,
       guard,
+      provider,
       incarnation,
       securityStamp,
-      async inspectAccount(id) {
-        const account = await provider.findById(id)
-        if (!account) return null
-        const user = account.getOriginal()
-        const active = await isActive(user)
-        if (typeof active !== 'boolean') throw new E_MASQUERADE_UNAVAILABLE()
-        return {
-          subject: buildSubject(user, account.getId(), incarnation),
-          active,
-          securityStamp: await securityStamp(user),
-        }
-      },
+      isActive,
+    })
+  }
+
+  return new AccessTokensAdapter(guard, provider, ability, authority)
+}
+
+class AccessTokensAdapter<User> implements NativeAccessTokensAdapter<User> {
+  declare readonly authority: NativeAuthority<User>
+  declare readonly guard: string
+  declare readonly driverName: 'access_tokens'
+  declare readonly authenticateActor: NativeAccessTokensAdapter<User>['authenticateActor']
+  #provider: AccessTokensAuthorityOptions<User>['provider']
+  #ability: string
+  #incarnation: 'id' | ((user: User) => string)
+
+  constructor(
+    guard: string,
+    provider: AccessTokensAuthorityOptions<User>['provider'],
+    ability: string,
+    authority: NativeAuthority<User>
+  ) {
+    this.authority = authority
+    this.guard = guard
+    this.driverName = 'access_tokens'
+    this.#provider = provider
+    this.#ability = ability
+    this.#incarnation =
+      authority.incarnation === 'id' ? 'id' : authority.incarnation.bind(authority)
+    this.authenticateActor = this.#authenticateActor.bind(this)
+    Object.freeze(this)
+  }
+
+  async #authenticateActor(ctx: HttpContext) {
+    let raw: GuardContract<User & { currentAccessToken?: { allows(ability: string): unknown } }>
+    try {
+      raw = ctx.auth.use(this.guard as never) as GuardContract<
+        User & { currentAccessToken?: { allows(ability: string): unknown } }
+      >
+    } catch {
+      throw new E_MASQUERADE_UNAVAILABLE()
     }
-    Object.freeze(authority)
-  }
-
-  const incarnation: 'id' | ((user: User) => string) =
-    authority.incarnation === 'id' ? 'id' : authority.incarnation.bind(authority)
-  function buildSubject(
-    user: User,
-    identifier: unknown,
-    configuredIncarnation: 'id' | ((user: User) => string) = incarnation
-  ): Subject<User> {
-    if (
-      typeof identifier !== 'string' &&
-      typeof identifier !== 'bigint' &&
-      !(typeof identifier === 'number' && Number.isSafeInteger(identifier))
-    )
+    if (raw.driverName !== 'access_tokens') throw new E_MASQUERADE_UNAVAILABLE()
+    let user: User & { currentAccessToken?: { allows(ability: string): unknown } }
+    try {
+      user = await raw.authenticate()
+    } catch (error) {
+      if (error instanceof errors.E_UNAUTHORIZED_ACCESS) throw error
       throw new E_MASQUERADE_UNAVAILABLE()
-    const id = String(identifier)
-    const accountIncarnation = configuredIncarnation === 'id' ? id : configuredIncarnation(user)
-    if (!isBoundedString(id, 255) || !isBoundedString(accountIncarnation, 128))
+    }
+
+    let allowed = false
+    try {
+      allowed = user.currentAccessToken?.allows(this.#ability) === true
+    } catch {
       throw new E_MASQUERADE_UNAVAILABLE()
-    return { id, incarnation: accountIncarnation, user }
+    }
+    if (!allowed) throw new E_MASQUERADE_NOT_ALLOWED()
+
+    try {
+      const account = await this.#provider.createUserForGuard(user)
+      return buildSubject(user, account.getId(), this.#incarnation)
+    } catch {
+      throw new E_MASQUERADE_UNAVAILABLE()
+    }
   }
-
-  return Object.freeze({
-    authority,
-    guard,
-    driverName: 'access_tokens' as const,
-    async authenticateActor(ctx: HttpContext) {
-      let raw: GuardContract<User & { currentAccessToken?: { allows(ability: string): unknown } }>
-      try {
-        raw = ctx.auth.use(guard as never) as GuardContract<
-          User & { currentAccessToken?: { allows(ability: string): unknown } }
-        >
-      } catch {
-        throw new E_MASQUERADE_UNAVAILABLE()
-      }
-      if (raw.driverName !== 'access_tokens') throw new E_MASQUERADE_UNAVAILABLE()
-      let user: User & { currentAccessToken?: { allows(ability: string): unknown } }
-      try {
-        user = await raw.authenticate()
-      } catch (error) {
-        if (error instanceof errors.E_UNAUTHORIZED_ACCESS) throw error
-        throw new E_MASQUERADE_UNAVAILABLE()
-      }
-
-      let allowed = false
-      try {
-        allowed = user.currentAccessToken?.allows(ability) === true
-      } catch {
-        throw new E_MASQUERADE_UNAVAILABLE()
-      }
-      if (!allowed) throw new E_MASQUERADE_NOT_ALLOWED()
-
-      try {
-        const account = await provider.createUserForGuard(user)
-        return buildSubject(user, account.getId())
-      } catch {
-        throw new E_MASQUERADE_UNAVAILABLE()
-      }
-    },
-  })
 }

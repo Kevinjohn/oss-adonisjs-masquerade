@@ -124,3 +124,21 @@ test('native authorities preserve the primary authority and actor user types', (
   }
   acceptsTypedComposition(composed)
 })
+
+test('composition preserves own metadata and detached authentication', async ({ assert }) => {
+  const shared = makeAuthority('web')
+  const primary = adapter(shared, 'api')
+  const composition = nativeAuthorities(primary)
+  assert.deepEqual(Object.keys(composition), [
+    'authority',
+    'guard',
+    'adapters',
+    'authenticateActor',
+  ])
+  assert.isTrue(Object.isFrozen(composition))
+  const authenticate = composition.authenticateActor
+  const authenticated = await authenticate({} as HttpContext)
+  assert.equal(authenticated.id, 'actor')
+  const withoutGuard = nativeAuthorities(adapter(shared))
+  assert.isFalse(Object.hasOwn(withoutGuard, 'guard'))
+})
