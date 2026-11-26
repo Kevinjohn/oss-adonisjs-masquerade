@@ -1,5 +1,5 @@
 import { test } from '@japa/runner'
-import { controlStoreConformance, MemoryControlStore } from '../testing/main.ts'
+import { controlStoreConformance, MemoryControlStore } from '../src/testing/main.ts'
 import type { TransitionEvent } from '../src/types.ts'
 import { fixture } from './helpers/core.ts'
 

@@ -6,6 +6,8 @@
   the aggregate schema helpers with `createMasqueradeModesTableV1` and
   `createMasqueradeEventsTableV1`, which define one table each.
 
+- Move package implementation and public subpath entries under `src/`, preserving export keys.
+
 - Read example demo settings through configuration, protect production migrations from rollback,
   and declare foreign-key targets and deletion behavior explicitly.
 

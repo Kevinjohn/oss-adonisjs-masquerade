@@ -1,5 +1,5 @@
 import type { HttpContext } from '@adonisjs/core/http'
-import { renderMasqueradeError } from '../../http/main.ts'
+import { renderMasqueradeError } from '../../src/http/main.ts'
 
 /** Run an operation and render a request exception as the AdonisJS default exception handler does. */
 export async function handleWithDefaultExceptionHandler(
