@@ -2,6 +2,9 @@
 
 ## Unreleased
 
+- Validate example controller inputs with VineJS and retain the request context through container
+  injection. Keep HTML form feedback in a dedicated transition service.
+
 - Releases reuse the successful `checks.yml` push or manual run for the exact commit on `main` before
   building and validating the release archive.
 
