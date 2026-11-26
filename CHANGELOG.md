@@ -2,9 +2,6 @@
 
 ## Unreleased
 
-- Validate example controller inputs with VineJS and retain the request context through container
-  injection. Keep HTML form feedback in a dedicated transition service.
-
 - Releases reuse the successful `checks.yml` push or manual run for the exact commit on `main` before
   building and validating the release archive.
 
@@ -31,6 +28,9 @@
   route and limiter files, then import the reviewed route file from the host routes preload.
 - Pass an application `logger` explicitly in `defineConfig` to receive transition and diagnostic
   records. Enable package diagnostics with `NODE_DEBUG=adonisjs:masquerade`.
+
+- Validate example controller inputs with VineJS and retain the request context through container
+  injection. Keep HTML form feedback in a dedicated transition service.
 
 ## 0.7.1 - 2026-11-25
 
