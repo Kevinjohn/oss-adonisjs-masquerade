@@ -13,6 +13,7 @@ import { AccountAuthority, buildSubject } from './account_authority.ts'
  * @example
  * ```ts
  * import { sessionAuthority, stampFrom } from '@kevinjohn/adonisjs-masquerade/native'
+ * import type { SessionUserProviderContract } from '@adonisjs/auth/types/session'
  *
  * type Account = { id: string; active: boolean; securityRevision: number }
  * export function webAuthority(provider: SessionUserProviderContract<Account>) {
@@ -39,18 +40,8 @@ export function sessionAuthority<User>(
     !(options.incarnation === 'id' || typeof options.incarnation === 'function')
   )
     throw new InvalidArgumentsException('Invalid native session authority')
-  const { namespace, guard, provider } = options
-  const incarnation = options.incarnation === 'id' ? 'id' : options.incarnation.bind(options)
-  const securityStamp = options.securityStamp.bind(options)
-  const isActive = options.isActive.bind(options)
-  const authority = new AccountAuthority({
-    namespace,
-    guard,
-    provider,
-    incarnation,
-    securityStamp,
-    isActive,
-  })
+  const { guard, provider } = options
+  const authority = new AccountAuthority(options, guard, provider)
   return new SessionAdapter(guard, provider, authority)
 }
 

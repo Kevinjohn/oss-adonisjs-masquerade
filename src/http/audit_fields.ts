@@ -11,9 +11,8 @@ class MasqueradeAudit {
    *
    * @example
    * ```ts
-   * masqueradeAudit.fields(ctx).then((fields) => {
-   *   ctx.logger.info(fields, 'Customer preference updated')
-   * })
+   * const fields = await masqueradeAudit.fields(ctx)
+   * ctx.logger.info(fields, 'Customer preference updated')
    * ```
    */
   async fields(ctx: HttpContext): Promise<MasqueradeAuditFields> {

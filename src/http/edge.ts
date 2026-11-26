@@ -11,7 +11,8 @@ class MasqueradeEdge {
    *
    * @example
    * ```ts
-   * masqueradeEdge.share(ctx).then(() => next())
+   * await masqueradeEdge.share(ctx)
+   * return next()
    * ```
    */
   async share(ctx: HttpContext): Promise<ModeView> {

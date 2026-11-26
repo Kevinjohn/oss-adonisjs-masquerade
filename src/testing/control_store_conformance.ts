@@ -15,7 +15,7 @@ class ControlStoreConformance {
    *
    * @example
    * ```ts
-   * controlStoreConformance.assert(async () => new MemoryControlStore())
+   * await controlStoreConformance.assert(async () => new MemoryControlStore())
    * ```
    */
   async assert(createStore: () => Promise<ControlStore>): Promise<void> {

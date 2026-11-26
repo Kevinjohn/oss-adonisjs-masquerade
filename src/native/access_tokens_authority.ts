@@ -15,6 +15,7 @@ import { isBoundedString } from '../bounded_string.ts'
  * ```ts
  * import { accessTokensAuthority } from '@kevinjohn/adonisjs-masquerade/native'
  * import type { NativeSessionAdapter } from '@kevinjohn/adonisjs-masquerade/types'
+ * import type { AccessTokensUserProviderContract } from '@adonisjs/auth/types/access_tokens'
  *
  * type Account = { id: string }
  * export function apiAuthority(
@@ -73,19 +74,7 @@ export function accessTokensAuthority<User>(
     )
       throw new InvalidArgumentsException('Invalid native access tokens authority')
 
-    const namespace = standalone.namespace
-    const incarnation =
-      standalone.incarnation === 'id' ? 'id' : standalone.incarnation.bind(standalone)
-    const securityStamp = standalone.securityStamp.bind(standalone)
-    const isActive = standalone.isActive.bind(standalone)
-    authority = new AccountAuthority({
-      namespace,
-      guard,
-      provider,
-      incarnation,
-      securityStamp,
-      isActive,
-    })
+    authority = new AccountAuthority(standalone, guard, provider)
   }
 
   return new AccessTokensAdapter(guard, provider, ability, authority)

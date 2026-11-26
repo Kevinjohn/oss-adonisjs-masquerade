@@ -30,12 +30,16 @@ export class AccountAuthority<User> implements NativeAuthority<User> {
   #provider: SessionAuthorityOptions<User>['provider']
   #isActive: SessionAuthorityOptions<User>['isActive']
 
-  constructor(options: SessionAuthorityOptions<User>) {
+  constructor(
+    options: SessionAuthorityOptions<User>,
+    guard: string,
+    provider: SessionAuthorityOptions<User>['provider']
+  ) {
     this.namespace = options.namespace
-    this.guard = options.guard
+    this.guard = guard
     this.incarnation = options.incarnation === 'id' ? 'id' : options.incarnation.bind(options)
     this.securityStamp = options.securityStamp.bind(options)
-    this.#provider = options.provider
+    this.#provider = provider
     this.#isActive = options.isActive.bind(options)
     this.inspectAccount = this.#inspectAccount.bind(this)
     Object.freeze(this)
