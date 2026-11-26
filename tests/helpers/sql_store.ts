@@ -8,8 +8,8 @@ import { Application } from '@adonisjs/core/app'
 import { Emitter } from '@adonisjs/core/events'
 import {
   LucidControlStore,
-  createMasqueradeSchema,
-  dropMasqueradeSchema,
+  createMasqueradeModesTableV1,
+  createMasqueradeEventsTableV1,
 } from '../../src/stores/lucid.ts'
 import type { CompareAndSetInput, IdleModeRow } from '../../src/types.ts'
 
@@ -98,7 +98,10 @@ export async function sqlFixture(options: { poolMax?: number; createTables?: boo
       await first.rawQuery(`create schema ${schema}`)
       schemaCreated = true
     }
-    if (createTables) await createMasqueradeSchema(client.schema)
+    if (createTables) {
+      await client.schema.createTable('masquerade_modes', createMasqueradeModesTableV1)
+      await client.schema.createTable('masquerade_events', createMasqueradeEventsTableV1)
+    }
     second = database().connection()
     if (!pg) {
       await client.rawQuery('PRAGMA busy_timeout = 5')
@@ -123,7 +126,10 @@ export async function sqlFixture(options: { poolMax?: number; createTables?: boo
     other: new LucidControlStore(second),
     async cleanup() {
       try {
-        if (createTables) await dropMasqueradeSchema(client.schema)
+        if (createTables) {
+          await client.schema.dropTable('masquerade_events')
+          await client.schema.dropTable('masquerade_modes')
+        }
         if (pg) await first.rawQuery(`drop schema ${schema}${createTables ? '' : ' cascade'}`)
       } finally {
         try {

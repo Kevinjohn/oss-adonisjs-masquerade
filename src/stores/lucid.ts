@@ -22,12 +22,8 @@ import {
   buildOwnerRecord,
   buildModeRecord,
 } from './lucid_row.ts'
-export {
-  createMasqueradeSchemaV1,
-  dropMasqueradeSchemaV1,
-  createMasqueradeSchemaV1 as createMasqueradeSchema,
-  dropMasqueradeSchemaV1 as dropMasqueradeSchema,
-} from './lucid_schema.ts'
+export { createMasqueradeModesTableV1 } from './lucid_modes_table.ts'
+export { createMasqueradeEventsTableV1 } from './lucid_events_table.ts'
 
 function isBusyError(error: unknown): boolean {
   return (
