@@ -1,7 +1,7 @@
 import { NativeAdapter } from '../src/integration/native_adapter.ts'
 import { InvalidArgumentsException } from '@adonisjs/core/exceptions'
 import type { ApplicationService } from '@adonisjs/core/types'
-import { AccountKitBlocker } from '../account_kit/middleware.ts'
+import { AccountKitBlocker } from '../src/account_kit/middleware.ts'
 import type { AccountKitAdapter } from '../src/types.ts'
 import { assertManagedRouteRegistration } from '../src/account_kit/route_validation.ts'
 import { accountKitBlockerStatus } from '../src/integration/account_kit_status.ts'

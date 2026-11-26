@@ -77,7 +77,7 @@ commands/                   Ace commands, where they exist
 services/main.ts            container service, where it exists
 stubs/                      configure templates, where they exist
 src/                        implementation; src/types.ts and src/errors.ts for public types and errors
-<subpath>/main.ts           top-level folder only when it backs a package.json export
+src/<subpath>/main.ts       public subpath entry points
 bin/                        package scripts (.ts via ts-exec; .sh allowed)
 bin/helpers/                modules used only by bin/
 tests/                      flat Japa specs
@@ -89,8 +89,8 @@ examples/                   example apps
 docs/                       user and maintainer documentation
 ```
 
-1. A top-level folder exists only for an exported subpath. It holds that subpath's entry and the
-   modules only that subpath uses; anything shared with other subpaths goes in `src/`.
+1. Package implementation and exported subpath entry points live under `src/`. Framework-owned
+   folders (`providers/`, `commands/`, `services/` and `stubs/`) stay at the root.
 2. Scripts are TypeScript files under `bin/`, run with `node --import=@poppinss/ts-exec`.
 3. All tests run under one Japa config with `files: ['tests/**/*.spec.ts']` and no suites.
 4. Do not add a `scripts/` folder.

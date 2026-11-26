@@ -8,11 +8,11 @@ import type { SessionUserProviderContract } from '@adonisjs/auth/types/session'
 import { fixture } from './core.ts'
 import type { User } from './core.ts'
 import type { ControlStore, MasqueradeConfig } from '../../src/types.ts'
-import { sessionAuthority } from '../../native/main.ts'
+import { sessionAuthority } from '../../src/native/main.ts'
 import type { NativeSessionAdapter } from '../../src/types.ts'
 import type { ApplicationService } from '@adonisjs/core/types'
 import { MasqueradeCallbackRegistration } from '../../src/callback_registration.ts'
-import { effectiveSessionGuard } from '../../auth/main.ts'
+import { effectiveSessionGuard } from '../../src/auth/main.ts'
 
 export async function nativeRuntimeFixture(
   options: {

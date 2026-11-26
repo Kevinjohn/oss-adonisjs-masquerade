@@ -1,4 +1,4 @@
-import { isMasqueradeRequestError } from '../http/main.ts'
+import { isMasqueradeRequestError } from '../src/http/main.ts'
 // masqueradeContext at the HTTP boundary: guard checks, context tokens and the view/edit rule.
 // Admission values go to request_admission.spec.ts, route markers to route_metadata.spec.ts.
 // Fixtures: fixture() in tests/helpers/core.ts, requestContext() in tests/helpers/http_context.ts.
