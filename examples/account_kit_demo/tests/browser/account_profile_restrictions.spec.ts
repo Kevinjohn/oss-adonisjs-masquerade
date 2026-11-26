@@ -12,7 +12,7 @@ import {
   seedDemoBrowserAccounts,
   type DemoBrowserState,
   type BrowserPage,
-} from './demo_browser_fixture.js'
+} from '#tests/browser/demo_browser_fixture'
 
 const screenshots = resolve('tmp/browser')
 const operator = demoAccounts[0]

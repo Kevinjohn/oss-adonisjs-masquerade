@@ -156,7 +156,7 @@ test('browser gate inputs note the browser suites', ({ assert }) => {
     'bin/helpers/prepare_account_kit_demo.ts',
   ])
     assert.deepInclude(planChangedChecks(changed(path)), note, path)
-  for (const path of ['examples/recipe-host/package.json', 'examples/account-kit/start/routes.ts'])
+  for (const path of ['examples/recipe-host/package.json', 'examples/account_kit/start/routes.ts'])
     assert.notDeepInclude(planChangedChecks(changed(path)), note, path)
 })
 
@@ -164,7 +164,7 @@ test('consumer and Account Kit integration inputs note the full profile', ({ ass
   const note = { label: 'consumer and Account Kit integration', skip: 'run pnpm check --full' }
 
   for (const path of [
-    'examples/account-kit/start/routes.ts',
+    'examples/account_kit/start/routes.ts',
     'src/account_kit/main.ts',
     'bin/test_account_kit.ts',
     'bin/helpers/registry_version.ts',

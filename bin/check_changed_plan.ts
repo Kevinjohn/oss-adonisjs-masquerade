@@ -49,14 +49,14 @@ const formatterInputs = [
 ]
 // Inputs of the browser gates that only pnpm check --browser runs.
 const browserInputs = [
-  /^examples\/(?!recipe-host\/|account-kit\/)/,
+  /^examples\/(?!recipe-host\/|account_kit\/)/,
   /^bin\/(demo|demo_account_kit|test_account_kit_demo|test_inertia_[a-z]+)\.ts$/,
   /^bin\/helpers\/(prepare_)?account_kit_demo[a-z_]*\.ts$/,
 ]
 // Inputs of the consumer and Account Kit integration gates that only pnpm check --full runs.
 const fullInputs = [
   /^src\/(account_kit|native|auth)\//,
-  /^examples\/(native-session|account-kit)\//,
+  /^examples\/(native-session|account_kit)\//,
   /^bin\/(test_consumer|test_account_kit)\.ts$/,
   /^bin\/helpers\/(consumer_[a-z_]+|owned_process|registry_version|account_kit_host_wiring)\.ts$/,
 ]

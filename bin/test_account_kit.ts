@@ -28,7 +28,7 @@ import {
 } from './helpers/account_kit_host_wiring.ts'
 
 const root = fileURLToPath(new URL('../', import.meta.url))
-const fixture = join(root, 'examples/account-kit')
+const fixture = join(root, 'examples/account_kit')
 const template = join(root, 'examples/native-session')
 const options = new Map(
   process.argv.slice(2).map((arg) => {

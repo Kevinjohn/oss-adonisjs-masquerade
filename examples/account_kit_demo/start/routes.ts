@@ -1,9 +1,9 @@
 import { middleware } from '#start/kernel'
 import router from '@adonisjs/core/services/router'
 
-import './demo_routes.js'
-import './masquerade_control_routes.js'
-import './account_kit_routes.js'
+import '#start/demo_routes'
+import '#start/masquerade_control_routes'
+import '#start/account_kit_routes'
 
 router.on('/').render('pages/home').as('home')
 router.on('/login').render('pages/auth/login').as('session.create').use(middleware.guest())
