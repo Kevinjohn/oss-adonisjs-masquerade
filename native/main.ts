@@ -1,5 +1,0 @@
-export { sessionAuthority } from '../src/native/session_authority.ts'
-export { accessTokensAuthority } from '../src/native/access_tokens_authority.ts'
-export { nativeAuthorities } from '../src/native/native_authorities.ts'
-export { stampFrom } from '../src/native/stamp_from.ts'
-export { NativeAdapter } from '../src/integration/native_adapter.ts'

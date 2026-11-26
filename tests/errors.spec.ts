@@ -1,7 +1,7 @@
 import { test } from '@japa/runner'
 import { Exception, RuntimeException } from '@adonisjs/core/exceptions'
 import { errors } from '../index.ts'
-import { isMasqueradeRequestError } from '../http/main.ts'
+import { isMasqueradeRequestError } from '../src/http/main.ts'
 import { fixture } from './helpers/core.ts'
 import { requestContext } from './helpers/http_context.ts'
 

@@ -1,5 +1,5 @@
 import { test } from '@japa/runner'
-import { stampFrom } from '../native/main.ts'
+import { stampFrom } from '../src/native/main.ts'
 
 test('changes the stamp when any selected security field changes', ({ assert }) => {
   type User = {

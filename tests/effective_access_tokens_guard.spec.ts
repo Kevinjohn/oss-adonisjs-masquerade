@@ -5,7 +5,7 @@ import type { AccessTokensUserProviderContract } from '@adonisjs/auth/types/acce
 import type { GuardContract } from '@adonisjs/auth/types'
 import type { HttpContext } from '@adonisjs/core/http'
 import { EffectiveAccessTokensGuard } from '../src/auth/effective_access_tokens_guard.ts'
-import { effectiveAccessTokensGuard } from '../auth/main.ts'
+import { effectiveAccessTokensGuard } from '../src/auth/main.ts'
 import { contextEnforcement } from '../src/integration/context_enforcement.ts'
 import { errorCode } from './helpers/core.ts'
 import { errors as masqueradeErrors } from '../index.ts'

@@ -2,7 +2,7 @@ import { test } from '@japa/runner'
 import { symbols } from '@adonisjs/auth'
 import type { SessionUserProviderContract } from '@adonisjs/auth/types/session'
 import type { HttpContext } from '@adonisjs/core/http'
-import { sessionAuthority } from '../native/main.ts'
+import { sessionAuthority } from '../src/native/main.ts'
 
 test('native authority uses provider canonical identity rather than model id and preserves native user', async ({
   assert,
