@@ -9,8 +9,8 @@
 
 import { middleware } from '#start/kernel'
 import router from '@adonisjs/core/services/router'
-import './masquerade_control_routes.js'
-import './demo_routes.js'
+import '#start/masquerade_control_routes'
+import '#start/demo_routes'
 
 const controllers = {
   Session: () => import('#controllers/session_controller'),

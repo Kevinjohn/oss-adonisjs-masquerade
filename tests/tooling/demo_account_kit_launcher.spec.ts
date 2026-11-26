@@ -29,7 +29,7 @@ const tsExec = path.join(repoRoot, 'node_modules/@poppinss/ts-exec/build/index.j
 const launcherSource = path.join(repoRoot, 'bin/demo_account_kit.ts')
 const helperSource = path.join(repoRoot, 'bin/helpers')
 const nativeSource = path.join(repoRoot, 'examples/native-session')
-const overlaySource = path.join(repoRoot, 'examples/account-kit-demo')
+const overlaySource = path.join(repoRoot, 'examples/account_kit_demo')
 const wiringSource = path.join(helperSource, 'account_kit_host_wiring.ts')
 const kitUrl =
   'https://github.com/Kevinjohn/oss-adonisjs-account-kit/releases/download/v0.8.0/kevinjohn-adonisjs-account-kit-0.8.0.tgz'
@@ -247,7 +247,7 @@ async function fixture(options: FixtureOptions = {}): Promise<Demo> {
     recursive: true,
     filter: sourceFilesOnly,
   })
-  await cp(overlaySource, path.join(root, 'examples/account-kit-demo'), {
+  await cp(overlaySource, path.join(root, 'examples/account_kit_demo'), {
     recursive: true,
     filter: sourceFilesOnly,
   })

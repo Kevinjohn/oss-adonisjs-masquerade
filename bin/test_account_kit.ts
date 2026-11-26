@@ -4,13 +4,13 @@ import { cp, mkdir, mkdtemp, readdir, readFile, rm, writeFile } from 'node:fs/pr
 import { tmpdir } from 'node:os'
 import { join, relative, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
-import { selectRegistryVersion } from './helpers/registry_version.js'
+import { selectRegistryVersion } from './helpers/registry_version.ts'
 import {
   issueNativePgLease,
   nativePgTarget,
   revokeNativePgLease,
   withoutNativePgTestTargets,
-} from './helpers/native_pg_lease.js'
+} from './helpers/native_pg_lease.ts'
 import {
   kitReleaseSha256,
   kitReleaseUrl,
@@ -25,7 +25,7 @@ import {
   wireSessionConfig,
   wireSessionImports,
   wireShield,
-} from './helpers/account_kit_host_wiring.js'
+} from './helpers/account_kit_host_wiring.ts'
 
 const root = fileURLToPath(new URL('../', import.meta.url))
 const fixture = join(root, 'examples/account-kit')
@@ -506,7 +506,7 @@ try {
               )
               await overlay(fixture, app)
               await wireRoutes(app, {
-                anchor: "import './demo_json_routes.js'",
+                anchor: "import '#start/demo_json_routes'",
                 imports: ['./account_kit_routes.js', './account_kit_fixture_routes.js'],
               })
               await wireAuth(app)

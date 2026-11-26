@@ -7,7 +7,7 @@ over the copy, and wires the Account Kit provider and active-mode blocker with
 The result runs Account Kit's session and access-token strategies, with and without session
 management, on SQLite and PostgreSQL.
 
-To see the integration running, use the [Account Kit demo](../account-kit-demo/README.md) instead.
+To see the integration running, use the [Account Kit demo](../account_kit_demo/README.md) instead.
 To add Account Kit to your app, follow the
 [Account Kit integration guide](../../docs/guide/account-kit.md).
 

@@ -33,7 +33,7 @@ export default defineConfig({
       !target.user.masqueradeOperator &&
       Boolean(target.user.active),
     canUseRequest: async ({ actor, target, request }) => {
-      if (process.env.NODE_ENV === 'test') {
+      if (app.inTest) {
         const { areCustomerRequestsUnavailable } =
           await import('#services/masquerade_fixture_boundary')
         if (
@@ -48,7 +48,7 @@ export default defineConfig({
   store: async () => {
     const database = await app.container.make(Database)
     const store = new LucidControlStore(database.connection())
-    if (process.env.NODE_ENV !== 'test') return store
+    if (!app.inTest) return store
     const { withFixtureControlStore } = await import('#services/masquerade_fixture_boundary')
     return withFixtureControlStore(store)
   },

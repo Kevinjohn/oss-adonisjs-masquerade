@@ -6,15 +6,15 @@ import { readdir, rm } from 'node:fs/promises'
 import { dirname, join, resolve } from 'node:path'
 import { setTimeout as delay } from 'node:timers/promises'
 import { fileURLToPath } from 'node:url'
-import { childDemoEnv, readDemoEnv } from './helpers/account_kit_demo_environment.js'
-import { formatDemoSchema } from './helpers/account_kit_demo_format.js'
-import { groupExists, runDemoCommand, signalGroup } from './helpers/account_kit_demo_process.js'
-import { validateDemoWorkspace } from './helpers/account_kit_demo_workspace.js'
-import { prepare } from './helpers/prepare_account_kit_demo.js'
+import { childDemoEnv, readDemoEnv } from './helpers/account_kit_demo_environment.ts'
+import { formatDemoSchema } from './helpers/account_kit_demo_format.ts'
+import { groupExists, runDemoCommand, signalGroup } from './helpers/account_kit_demo_process.ts'
+import { validateDemoWorkspace } from './helpers/account_kit_demo_workspace.ts'
+import { prepare } from './helpers/prepare_account_kit_demo.ts'
 
 const root = resolve(dirname(fileURLToPath(import.meta.url)), '..')
 const workspace = join(root, 'tmp/account-kit-demo')
-const template = join(root, 'examples/account-kit-demo/.env.example')
+const template = join(root, 'examples/account_kit_demo/.env.example')
 
 export function assertNodeVersion(version = process.versions.node): void {
   if (Number(version.split('.')[0]) !== 24)

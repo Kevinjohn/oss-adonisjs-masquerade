@@ -43,6 +43,10 @@ async function fixture(options: FixtureOptions = {}): Promise<Fixture> {
     await readFile(path.join(repoRoot, 'bin/helpers/owned_process.ts'))
   )
   await writeFile(path.join(root, 'package.json'), '{"type":"module"}\n')
+  await writeFile(
+    path.join(root, 'tsconfig.json'),
+    '{"compilerOptions":{"rewriteRelativeImportExtensions":true}}\n'
+  )
   await writeFile(path.join(root, 'README.md'), 'fixture baseline\n')
   await symlink(path.join(repoRoot, 'node_modules'), path.join(root, 'node_modules'), 'dir')
 
@@ -88,6 +92,7 @@ async function fixture(options: FixtureOptions = {}): Promise<Fixture> {
   await chmod(directory, 0o755)
   const env: NodeJS.ProcessEnv = {
     ...process.env,
+    TS_EXEC_PWD: root,
     PATH: `${bin}${path.delimiter}${supportBin}`,
   }
   delete env.CHECK_CHANGED_HANG

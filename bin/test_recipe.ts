@@ -4,7 +4,7 @@ import { cp, mkdir, mkdtemp, readFile, rm, writeFile } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { join, relative, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
-import { formTokenMutation } from './helpers/recipe_mutations.js'
+import { formTokenMutation } from './helpers/recipe_mutations.ts'
 
 const root = fileURLToPath(new URL('../', import.meta.url))
 const template = join(root, 'examples/recipe-host')

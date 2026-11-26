@@ -45,7 +45,7 @@ import ts from 'typescript'
 import Database from 'better-sqlite3'
 const [configFile, directory] = process.argv.slice(1)
 const moduleUrl = (source) => 'data:text/javascript;base64,' + Buffer.from(source).toString('base64')
-const appUrl = moduleUrl('export default { tmpPath: (name) => ' + JSON.stringify(join(directory, 'tmp')) + ' + "/" + name, inDev: false }')
+const appUrl = moduleUrl('export default { tmpPath: (name) => ' + JSON.stringify(join(directory, 'tmp')) + ' + "/" + name, inDev: false, inTest: process.env.NODE_ENV === "test" }')
 const lucidUrl = moduleUrl('export const defineConfig = (value) => value')
 const envUrl = pathToFileURL(join(directory, 'start/env.js')).href
 const helperUrl = pathToFileURL(join(directory, 'start/test_database_target.js')).href
@@ -88,7 +88,10 @@ function fixture(
     mkdirSync(join(directory, 'start'))
     mkdirSync(join(directory, 'tmp'))
     symlinkSync(join(root, 'node_modules'), join(directory, 'node_modules'), 'dir')
-    writeFileSync(join(directory, 'package.json'), '{"type":"module"}')
+    writeFileSync(
+      join(directory, 'package.json'),
+      JSON.stringify({ type: 'module', imports: { '#start/*': './start/*.js' } })
+    )
     for (const name of ['env.ts', ...(kind === 'native' ? ['test_database_target.ts'] : [])]) {
       const input = readFileSync(join(source, 'start', name), 'utf8')
       const output = ts.transpileModule(input, {

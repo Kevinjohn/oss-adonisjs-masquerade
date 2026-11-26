@@ -49,18 +49,18 @@ test('applies optional Account Kit host route imports and other wiring', async (
 
     const patchedApp = await createHost(root)
     await applyWiring(patchedApp, {
-      anchor: "import './demo_json_routes.js'",
+      anchor: "import '#start/demo_json_routes'",
       imports: ['./custom_account_routes.js', './custom_fixture_routes.js'],
     })
 
     const routes = await readFile(join(patchedApp, 'start/routes.ts'), 'utf8')
     assert.include(
       routes,
-      "import './demo_json_routes.js'\nimport './custom_account_routes.js'\nimport './custom_fixture_routes.js'"
+      "import '#start/demo_json_routes'\nimport './custom_account_routes.js'\nimport './custom_fixture_routes.js'"
     )
     assert.include(
       routes,
-      "if (process.env.ACCOUNT_KIT_AUTH_STRATEGY === 'access_tokens') {\n  await import('./token_control_routes.js')\n}"
+      "if (process.env.ACCOUNT_KIT_AUTH_STRATEGY === 'access_tokens') {\n  await import('#start/token_control_routes')\n}"
     )
     assert.include(
       await readFile(join(patchedApp, 'config/auth.ts'), 'utf8'),

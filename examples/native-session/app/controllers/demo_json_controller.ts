@@ -1,34 +1,44 @@
+import { preferenceValidator } from '#validators/preference'
+import app from '@adonisjs/core/services/app'
 import User from '#models/user'
 import { demoAccounts } from '#services/demo_accounts'
 import { Bouncer } from '@adonisjs/bouncer'
-import type { HttpContext } from '@adonisjs/core/http'
+import { inject } from '@adonisjs/core'
+import { HttpContext } from '@adonisjs/core/http'
 import db from '@adonisjs/lucid/services/db'
 import { masqueradeEdge } from '@kevinjohn/adonisjs-masquerade/http'
 
 /** Host-owned JSON views of the existing fictional support workflow. */
+@inject()
 export default class DemoJsonController {
-  async shell(ctx: HttpContext) {
-    noStore(ctx)
-    const actor = ctx.auth.use('web').getUserOrFail() as User
+  #context: HttpContext
+
+  constructor(context: HttpContext = HttpContext.getOrFail()) {
+    this.#context = context
+  }
+
+  async shell({ auth, view }: HttpContext) {
+    noStore(this.#context)
+    const actor = auth.use('web').getUserOrFail() as User
     const emails = demoAccounts.filter((account) => !account.masqueradeOperator).map((a) => a.email)
     const customers = actor.masqueradeOperator
       ? await User.query().whereIn('email', emails).where('active', true)
       : []
-    return ctx.view.render('pages/demo_json', {
+    return view.render('pages/demo_json', {
       actor,
       customers: customers.map(({ id, fullName, email }) => ({ id, fullName, email })),
     })
   }
 
-  async customer(ctx: HttpContext) {
-    noStore(ctx)
-    const mode = await masqueradeEdge.share(ctx)
+  async customer({ auth }: HttpContext) {
+    noStore(this.#context)
+    const mode = await masqueradeEdge.share(this.#context)
     if (!mode.isMasquerading || Date.parse(mode.expiresAt) <= (await now())) {
-      return changedContext(ctx)
+      return changedContext(this.#context)
     }
-    const actor = ctx.auth.use('web').getUserOrFail() as User
-    const customer = ctx.auth.user as User
-    await customerBouncer(ctx).authorize(
+    const actor = auth.use('web').getUserOrFail() as User
+    const customer = auth.user as User
+    await customerBouncer(this.#context).authorize(
       Bouncer.ability((user: User) => user.active && user.id === customer.id)
     )
     const preference = await db.from('demo_preferences').where('user_id', customer.id).first()
@@ -38,65 +48,65 @@ export default class DemoJsonController {
       mode: { contextToken: mode.contextToken, expiresAt: mode.expiresAt, access: mode.access },
       emailUpdates: Boolean(preference?.email_updates),
       canEdit: Boolean(
-        await customerBouncer(ctx).allows(
+        await customerBouncer(this.#context).allows(
           Bouncer.ability((user: User) => user.active && user.canMutate && user.id === customer.id)
         )
       ),
     }
   }
 
-  async preference(ctx: HttpContext) {
-    noStore(ctx)
-    const mode = await masqueradeEdge.share(ctx)
+  async preference({ auth, request, response }: HttpContext) {
+    const [validationError, input] = await request.tryValidateUsing(preferenceValidator)
+    noStore(this.#context)
+    const mode = await masqueradeEdge.share(this.#context)
     if (!mode.isMasquerading || Date.parse(mode.expiresAt) <= (await now())) {
-      return changedContext(ctx)
+      return changedContext(this.#context)
     }
-    const customer = ctx.auth.user as User
-    await customerBouncer(ctx).authorize(
+    const customer = auth.user as User
+    await customerBouncer(this.#context).authorize(
       Bouncer.ability((user: User) => user.active && user.canMutate && user.id === customer.id)
     )
-    const value = ctx.request.input('emailUpdates')
-    if (value !== '0' && value !== '1') {
-      return ctx.response.unprocessableEntity({
+    if (validationError) {
+      return response.unprocessableEntity({
         code: 'E_MASQUERADE_INVALID_INPUT',
         message: 'Choose on or off for email updates.',
       })
     }
     await db
       .table('demo_preferences')
-      .insert({ user_id: customer.id, email_updates: value === '1' })
+      .insert({ user_id: customer.id, email_updates: input!.emailUpdates === '1' })
       .onConflict('user_id')
       .merge()
-    return { emailUpdates: value === '1', contextToken: mode.contextToken }
+    return { emailUpdates: input!.emailUpdates === '1', contextToken: mode.contextToken }
   }
 
-  async sensitive(ctx: HttpContext) {
-    noStore(ctx)
-    return ctx.response.forbidden({
+  async sensitive({ response }: HttpContext) {
+    noStore(this.#context)
+    return response.forbidden({
       code: 'E_MASQUERADE_ACTION_BLOCKED',
       message: 'Sensitive account actions are unavailable in support mode.',
     })
   }
 }
 
-function customerBouncer(ctx: HttpContext) {
-  return new Bouncer<User>(() => (ctx.auth.user as User | undefined) ?? null)
+function customerBouncer({ auth }: HttpContext) {
+  return new Bouncer<User>(() => (auth.user as User | undefined) ?? null)
 }
 
-function changedContext(ctx: HttpContext) {
-  return ctx.response.status(409).send({
+function changedContext({ response }: HttpContext) {
+  return response.status(409).send({
     code: 'E_MASQUERADE_CONTEXT_CHANGED',
     message: 'Check status and choose a customer again.',
   })
 }
 
-function noStore(ctx: HttpContext) {
-  ctx.response.header('Cache-Control', 'private, no-store')
-  ctx.response.vary(['Accept', 'X-Masquerade-Context'])
+function noStore({ response }: HttpContext) {
+  response.header('Cache-Control', 'private, no-store')
+  response.vary(['Accept', 'X-Masquerade-Context'])
 }
 
 async function now() {
-  if (process.env.NODE_ENV === 'test') {
+  if (app.inTest) {
     const { masqueradeNow } = await import('#services/masquerade_fixture_boundary')
     return masqueradeNow()
   }
