@@ -1,8 +1,6 @@
 import app from '@adonisjs/core/services/app'
 import { defineConfig } from '@adonisjs/lucid'
 
-const migrations = { naturalSort: true, paths: ['database/migrations'] }
-
 /** Keep browser and functional migrations away from the seeded development database. */
 export default defineConfig({
   connection: process.env.DB_CLIENT === 'pg' ? 'pg' : 'sqlite',
@@ -11,7 +9,11 @@ export default defineConfig({
       client: 'better-sqlite3',
       connection: { filename: app.tmpPath(app.inTest ? 'test.sqlite3' : 'db.sqlite3') },
       useNullAsDefault: true,
-      migrations,
+      migrations: {
+        naturalSort: true,
+        paths: ['database/migrations'],
+        disableRollbacksInProduction: true,
+      },
     },
     pg: {
       client: 'pg',
@@ -23,7 +25,11 @@ export default defineConfig({
         database: process.env.DB_DATABASE ?? 'package_test',
       },
       searchPath: [process.env.DB_SCHEMA ?? 'public'],
-      migrations,
+      migrations: {
+        naturalSort: true,
+        paths: ['database/migrations'],
+        disableRollbacksInProduction: true,
+      },
     },
   },
 })

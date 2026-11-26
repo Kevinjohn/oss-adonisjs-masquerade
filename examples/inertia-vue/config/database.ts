@@ -27,6 +27,7 @@ const dbConfig = defineConfig({
       useNullAsDefault: true,
 
       migrations: {
+        disableRollbacksInProduction: true,
         /**
          * Sort migration files naturally by filename.
          */

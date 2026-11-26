@@ -10,8 +10,8 @@
 import { middleware } from '#start/kernel'
 import { controllers } from '#generated/controllers'
 import router from '@adonisjs/core/services/router'
-import './masquerade_control_routes.js'
-import './demo_routes.js'
+import '#start/masquerade_control_routes'
+import '#start/demo_routes'
 
 router.on('/').renderInertia('home', {}).as('home')
 

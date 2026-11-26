@@ -1,13 +1,14 @@
+import app from '@adonisjs/core/services/app'
 import { middleware } from '#start/kernel'
 import router from '@adonisjs/core/services/router'
 
-import './masquerade_control_routes.js'
-import './token_control_routes.js'
-import './demo_routes.js'
-import './demo_json_routes.js'
+import '#start/masquerade_control_routes'
+import '#start/token_control_routes'
+import '#start/demo_routes'
+import '#start/demo_json_routes'
 
-if (process.env.NODE_ENV === 'test') {
-  await import('./token_test_routes.js')
+if (app.inTest) {
+  await import('#start/token_test_routes')
 }
 
 const controllers = {

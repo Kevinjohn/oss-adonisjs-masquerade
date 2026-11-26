@@ -3,8 +3,7 @@ import { defineConfig } from '@adonisjs/lucid'
 import { nativeTestSqliteFromLaunch, postgresTestTarget } from '#start/env'
 import { assertSeparateSqliteFiles } from '#start/test_database_target'
 
-const migrations = { naturalSort: true, paths: ['database/migrations'] }
-const testing = process.env.NODE_ENV === 'test'
+const testing = app.inTest
 const selectedTestSqlite = testing || nativeTestSqliteFromLaunch
 const demoSqlite = app.tmpPath('db.sqlite3')
 const testSqlite = app.tmpPath('test-db.sqlite3')
@@ -23,7 +22,11 @@ export default defineConfig({
       client: 'better-sqlite3',
       connection: { filename: selectedTestSqlite ? testSqlite : demoSqlite },
       useNullAsDefault: true,
-      migrations,
+      migrations: {
+        naturalSort: true,
+        paths: ['database/migrations'],
+        disableRollbacksInProduction: true,
+      },
     },
     pg: {
       client: 'pg',
@@ -35,7 +38,11 @@ export default defineConfig({
         database: postgresTestTarget?.database ?? process.env.DB_DATABASE ?? 'package_test',
       },
       searchPath: [postgresTestTarget?.schema ?? process.env.DB_SCHEMA ?? 'public'],
-      migrations,
+      migrations: {
+        naturalSort: true,
+        paths: ['database/migrations'],
+        disableRollbacksInProduction: true,
+      },
     },
   },
 })

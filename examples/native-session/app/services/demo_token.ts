@@ -1,3 +1,4 @@
+import config from '@adonisjs/core/services/config'
 import User from '#models/user'
 import { assertDemoEnvironmentAllowed, demoAccounts } from '#services/demo_accounts'
 
@@ -8,10 +9,7 @@ type DemoTokenEnvironment = { nodeEnv?: string; dbClient?: string }
 
 /** Issue a short-lived bearer credential for the reserved local support operator. */
 export async function issueDemoToken(
-  environment: DemoTokenEnvironment = {
-    nodeEnv: process.env.NODE_ENV,
-    dbClient: process.env.DB_CLIENT,
-  }
+  environment: DemoTokenEnvironment = config.get<DemoTokenEnvironment>('demo.environment')
 ) {
   assertDemoEnvironmentAllowed(environment)
 

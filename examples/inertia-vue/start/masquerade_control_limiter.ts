@@ -1,5 +1,5 @@
 import limiter from '@adonisjs/limiter/services/main'
-import env from '#start/env'
+import config from '@adonisjs/core/services/config'
 import type User from '#models/user'
 
 const duration = '1 minute'
@@ -7,7 +7,7 @@ const duration = '1 minute'
 export const startMasqueradeLimiter = limiter.define('masquerade_start', (ctx) => {
   const actor = ctx.auth.use('web').getUserOrFail() as User
   return limiter
-    .allowRequests(env.get('MASQUERADE_START_REQUESTS') ?? 10)
+    .allowRequests(config.get<number>('demo.startRequests'))
     .every(duration)
     .usingKey(String(actor.id))
 })
@@ -15,7 +15,7 @@ export const startMasqueradeLimiter = limiter.define('masquerade_start', (ctx) =
 export const stopMasqueradeLimiter = limiter.define('masquerade_stop', (ctx) => {
   const actor = ctx.auth.use('web').getUserOrFail() as User
   return limiter
-    .allowRequests(env.get('MASQUERADE_STOP_REQUESTS') ?? 10)
+    .allowRequests(config.get<number>('demo.stopRequests'))
     .every(duration)
     .usingKey(String(actor.id))
 })

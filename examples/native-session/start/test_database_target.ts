@@ -14,9 +14,12 @@ function validDatabaseName(name: string | undefined): name is string {
 }
 
 /** Validate the destination before any test-mode PostgreSQL migration can boot. */
-export function testPostgresTarget(ordinaryDatabase: string | undefined) {
-  const target = process.env.DB_TEST_DATABASE
-  const schema = process.env.DB_TEST_SCHEMA ?? 'public'
+export function testPostgresTarget(
+  ordinaryDatabase: string | undefined,
+  environment: NodeJS.ProcessEnv
+) {
+  const target = environment.DB_TEST_DATABASE
+  const schema = environment.DB_TEST_SCHEMA ?? 'public'
   if (!validDatabaseName(ordinaryDatabase)) {
     throw new Error('PostgreSQL tests require an exported, nonblank ordinary DB_DATABASE')
   }
@@ -37,11 +40,11 @@ export function testPostgresTarget(ordinaryDatabase: string | undefined) {
     const expected = {
       database: target,
       schema,
-      host: process.env.DB_HOST,
-      port: process.env.DB_PORT,
-      user: process.env.DB_USER,
-      nonce: process.env.NATIVE_PG_TEST_LEASE,
-      ownerPid: Number(process.env.NATIVE_PG_TEST_LEASE_OWNER),
+      host: environment.DB_HOST,
+      port: environment.DB_PORT,
+      user: environment.DB_USER,
+      nonce: environment.NATIVE_PG_TEST_LEASE,
+      ownerPid: Number(environment.NATIVE_PG_TEST_LEASE_OWNER),
     }
     if (
       !schemaName.test(schema) ||
