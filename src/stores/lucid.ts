@@ -1,5 +1,6 @@
 import { debug } from '../debug.ts'
-import type { LucidControlClient, LucidControlStoreOptions } from '../types.ts'
+import type { LucidControlClient, LucidControlStoreOptions } from './types.ts'
+export type { LucidControlClient, LucidControlStoreOptions } from './types.ts'
 import { E_MASQUERADE_UNAVAILABLE } from '../errors.ts'
 import { setTimeout } from 'node:timers/promises'
 import type { TransactionClientContract } from '@adonisjs/lucid/types/database'

@@ -6,7 +6,7 @@ As an application developer, I want to register the native adapter and policy fr
 **Access:** Application developer who controls app config and provider order.
 **Entry:** Register one factory on `MasqueradeCallbackRegistration` in a host provider's `boot()`. List that provider before the package's `masquerade_provider`.
 **Documentation:** [Registering callbacks from a provider](../../README.md#registering-callbacks-from-a-provider).
-**Source:** [Registry](../../src/callback_registration.ts), [provider](../../providers/masquerade_provider.ts), [runtime construction](../../src/integration/runtime_factory.ts).
+**Source:** [Registry](../../src/callback_registration.ts), [provider](../../providers/masquerade_provider.ts), [runtime construction](../../src/integration/runtime_builder.ts).
 **Coverage:** [Callback registry integration](../../tests/callback_registration.spec.ts).
 
 ## Acceptance criteria
@@ -52,4 +52,4 @@ flowchart TD
     K -->|Success| L["The container service exposes masquerade.runtime"]
 ```
 
-**Code references:** [Host and fallback bindings](../../providers/masquerade_provider.ts#L18), [factory resolution](../../src/callback_registration.ts#L11), [runtime validation](../../src/integration/runtime_factory.ts#L40), [runtime creation](../../src/integration/runtime_factory.ts#L157), [standalone service](../../src/service.ts#L60).
+**Code references:** [Host and fallback bindings](../../providers/masquerade_provider.ts#L18), [factory resolution](../../src/callback_registration.ts#L11), [runtime validation](../../src/integration/runtime_builder.ts#L40), [runtime creation](../../src/integration/runtime_builder.ts#L157), [standalone service](../../src/service.ts#L60).

@@ -1,7 +1,7 @@
 import type {
   TransitionEvent,
   DiagnosticCategory,
-  DiagnosticEvent,
+  DiagnosticEntry,
   DiagnosticOperation,
   ServiceDependencies,
 } from './types.ts'
@@ -15,10 +15,10 @@ export function reportDiagnostic(
   dependencies: ObserverDependencies | undefined,
   category: DiagnosticCategory,
   operation: DiagnosticOperation,
-  code: DiagnosticEvent['code']
+  code: DiagnosticEntry['code']
 ): void {
   try {
-    const event: DiagnosticEvent = {
+    const event: DiagnosticEntry = {
       category,
       operation,
       code,
@@ -54,7 +54,7 @@ export function observe(dependencies: ObserverDependencies, event: TransitionEve
   invoke(() => dependencies.logger?.info(projection))
 }
 export function reportUnknown(dependencies: ObserverDependencies, transitionId: string): void {
-  const event: DiagnosticEvent = {
+  const event: DiagnosticEntry = {
     category: 'store',
     operation: 'compare_and_set',
     code: 'E_MASQUERADE_UNAVAILABLE',

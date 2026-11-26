@@ -641,59 +641,57 @@ class CoreService<User, Request extends object> implements MasqueradeService<Req
     // §6.4 Any: a revision at Number.MAX_SAFE_INTEGER fails closed.
     if (row?.revision === Number.MAX_SAFE_INTEGER) throw new E_MASQUERADE_UNAVAILABLE()
     // §7.2 step 2: an idle request runs as the actor.
-    let effective = actor
-    if (row?.state === 'active') {
-      let invalid: string | undefined
-      // §7.2 step 3, I06: expiry is checked before any account read; the request gets 409.
-      if (this.#readCurrentTimestamp() >= row.expiresAt) {
-        return this.#invalidateAdmission(owner, row, 'expired', 'expired')
-      }
-      // §6.4 Active: an ineligible account, changed stamp or canMasquerade false invalidates.
-      const currentActor = await this.#inspect(actor.id)
-      const target = await this.#inspect(row.targetId)
-      if (!this.#isEligibleActor(currentActor, actor)) invalid = 'actor_ineligible'
-      else if (
-        !target?.active ||
-        target.subject.id !== row.targetId ||
-        target.subject.incarnation !== row.targetIncarnation
-      )
-        invalid = 'target_ineligible'
-      else {
-        try {
-          if (hashSecurityStamp(currentActor.securityStamp) !== row.actorStampHash)
-            invalid = 'actor_stamp'
-          else if (hashSecurityStamp(target.securityStamp) !== row.targetStampHash)
-            invalid = 'target_stamp'
-        } catch {
-          reportDiagnostic(
-            this.#dependencies,
-            'authority',
-            'security_stamp',
-            'E_MASQUERADE_UNAVAILABLE'
-          )
-          throw new E_MASQUERADE_UNAVAILABLE()
-        }
-        if (
-          !invalid &&
-          !(await this.#checkMasqueradePermission(currentActor.subject, target.subject))
-        )
-          invalid = 'policy_denied'
-        // §14.1: an edit mode also needs canEdit true; it is never downgraded to view.
-        if (
-          !invalid &&
-          row.access === 'edit' &&
-          !(await this.#checkEditPermission(currentActor.subject, target.subject))
-        )
-          invalid = 'edit_denied'
-      }
-      // §6.4 Active: CAS to idle with one invalidated event; the triggering request gets 409.
-      if (invalid) {
-        return this.#invalidateAdmission(owner, row, 'invalidated', invalid)
-      }
-      effective = target!.subject
-      // §6.4 Active: canUseRequest false rejects this request only; the mode is unchanged.
-      await this.#assertRequestPermission(currentActor!.subject, effective, request)
+    if (row?.state !== 'active') return buildAdmittedProjection(owner, row, actor, actor)
+    let invalid: string | undefined
+    // §7.2 step 3, I06: expiry is checked before any account read; the request gets 409.
+    if (this.#readCurrentTimestamp() >= row.expiresAt) {
+      return this.#invalidateAdmission(owner, row, 'expired', 'expired')
     }
+    // §6.4 Active: an ineligible account, changed stamp or canMasquerade false invalidates.
+    const currentActor = await this.#inspect(actor.id)
+    const target = await this.#inspect(row.targetId)
+    if (!this.#isEligibleActor(currentActor, actor)) invalid = 'actor_ineligible'
+    else if (
+      !target?.active ||
+      target.subject.id !== row.targetId ||
+      target.subject.incarnation !== row.targetIncarnation
+    )
+      invalid = 'target_ineligible'
+    else {
+      try {
+        if (hashSecurityStamp(currentActor.securityStamp) !== row.actorStampHash)
+          invalid = 'actor_stamp'
+        else if (hashSecurityStamp(target.securityStamp) !== row.targetStampHash)
+          invalid = 'target_stamp'
+      } catch {
+        reportDiagnostic(
+          this.#dependencies,
+          'authority',
+          'security_stamp',
+          'E_MASQUERADE_UNAVAILABLE'
+        )
+        throw new E_MASQUERADE_UNAVAILABLE()
+      }
+      if (
+        !invalid &&
+        !(await this.#checkMasqueradePermission(currentActor.subject, target.subject))
+      )
+        invalid = 'policy_denied'
+      // §14.1: an edit mode also needs canEdit true; it is never downgraded to view.
+      if (
+        !invalid &&
+        row.access === 'edit' &&
+        !(await this.#checkEditPermission(currentActor.subject, target.subject))
+      )
+        invalid = 'edit_denied'
+    }
+    // §6.4 Active: CAS to idle with one invalidated event; the triggering request gets 409.
+    if (invalid) {
+      return this.#invalidateAdmission(owner, row, 'invalidated', invalid)
+    }
+    const effective = target!.subject
+    // §6.4 Active: canUseRequest false rejects this request only; the mode is unchanged.
+    await this.#assertRequestPermission(currentActor!.subject, effective, request)
     return buildAdmittedProjection(owner, row, actor, effective)
   }
 }

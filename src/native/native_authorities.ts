@@ -18,7 +18,7 @@ function requireAdapterGuard(adapter: NativeRuntimeAdapter): string {
  *
  * @example
  * ```ts
- * * import { accessTokensAuthority, nativeAuthorities } from '@kevinjohn/adonisjs-masquerade/native'
+ * import { accessTokensAuthority, nativeAuthorities } from '@kevinjohn/adonisjs-masquerade/native'
  * import type { NativeSessionAdapter } from '@kevinjohn/adonisjs-masquerade/types'
  * import type { AccessTokensUserProviderContract } from '@adonisjs/auth/types/access_tokens'
  *
@@ -64,11 +64,32 @@ export function nativeAuthorities<Primary extends NativeRuntimeAdapter>(
     adapters[guard] = adapter
   }
 
-  const composition: NativeAuthorityComposition<Primary> = {
-    authority,
-    ...(primary.guard === undefined ? {} : { guard: primary.guard }),
-    adapters: Object.freeze(adapters),
-    authenticateActor: (ctx: HttpContext) => primary.authenticateActor(ctx),
+  return new AuthorityComposition(primary, authority, Object.freeze(adapters))
+}
+
+class AuthorityComposition<
+  Primary extends NativeRuntimeAdapter,
+> implements NativeAuthorityComposition<Primary> {
+  declare readonly authority: Primary['authority']
+  declare readonly guard?: string
+  declare readonly adapters: Readonly<Record<string, NativeRuntimeAdapter>>
+  declare readonly authenticateActor: Primary['authenticateActor']
+  #primary: Primary
+
+  constructor(
+    primary: Primary,
+    authority: Primary['authority'],
+    adapters: Readonly<Record<string, NativeRuntimeAdapter>>
+  ) {
+    this.#primary = primary
+    this.authority = authority
+    if (primary.guard !== undefined) this.guard = primary.guard
+    this.adapters = adapters
+    this.authenticateActor = this.#authenticateActor.bind(this) as Primary['authenticateActor']
+    Object.freeze(this)
   }
-  return Object.freeze(composition)
+
+  #authenticateActor(ctx: HttpContext) {
+    return this.#primary.authenticateActor(ctx)
+  }
 }

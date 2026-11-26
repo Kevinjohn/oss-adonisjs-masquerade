@@ -37,7 +37,8 @@
     "./stores/lucid": "./build/src/stores/lucid.js",
     "./testing": "./build/src/testing/main.js",
     "./plugins/api_client": "./build/src/plugins/api_client.js",
-    "./services/main": "./build/services/main.js"
+    "./services/main": "./build/services/main.js",
+    "./types/lucid": "./build/src/stores/types.js"
   },
   "scripts": {
     "typecheck": "tsc --noEmit",
@@ -181,7 +182,8 @@
       "./src/testing/main.ts",
       "./src/plugins/api_client.ts",
       "./services/main.ts",
-      "./stubs/main.ts"
+      "./stubs/main.ts",
+      "./src/stores/types.ts"
     ],
     "outDir": "./build",
     "clean": true,

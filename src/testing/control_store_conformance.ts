@@ -15,15 +15,7 @@ class ControlStoreConformance {
    *
    * @example
    * ```ts
-   * import {
-   *   controlStoreConformance,
-   *   MemoryControlStore,
-   * } from '@kevinjohn/adonisjs-masquerade/testing'
-   * import { test } from '@japa/runner'
-   *
-   * test('isolated support store contract', async () => {
-   *   await controlStoreConformance.assert(async () => new MemoryControlStore())
-   * })
+   * await controlStoreConformance.assert(async () => new MemoryControlStore())
    * ```
    */
   async assert(createStore: () => Promise<ControlStore>): Promise<void> {

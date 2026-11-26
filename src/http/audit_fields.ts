@@ -11,12 +11,8 @@ class MasqueradeAudit {
    *
    * @example
    * ```ts
-   * import { masqueradeAudit } from '@kevinjohn/adonisjs-masquerade/http'
-   * import type { HttpContext } from '@adonisjs/core/http'
-   *
-   * export async function logPreferenceUpdate(ctx: HttpContext) {
-   *   ctx.logger.info(await masqueradeAudit.fields(ctx), 'Customer preference updated')
-   * }
+   * const fields = await masqueradeAudit.fields(ctx)
+   * ctx.logger.info(fields, 'Customer preference updated')
    * ```
    */
   async fields(ctx: HttpContext): Promise<MasqueradeAuditFields> {

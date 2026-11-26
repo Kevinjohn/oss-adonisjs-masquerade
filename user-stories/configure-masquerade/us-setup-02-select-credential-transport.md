@@ -6,7 +6,7 @@ As an application developer, I want to bind each effective guard to the intended
 **Access:** Application developer
 **Entry:** Host auth configuration and native adapter registration.
 **Documentation:** [Access tokens](../../docs/guide/access-tokens.md).
-**Source:** [Runtime](../../src/integration/runtime_factory.ts), [Route selection](../../src/integration/route_guard_selection.ts).
+**Source:** [Runtime](../../src/integration/runtime_builder.ts), [Route selection](../../src/integration/route_guard_selection.ts).
 **Coverage:** [Live guard configuration](../../tests/runtime_guard_configuration.spec.ts), [Route selection](../../tests/route_guard_selection.spec.ts).
 
 ## Acceptance criteria
@@ -43,4 +43,4 @@ flowchart TD
     S -->|No| R
 ```
 
-**Code references:** [Runtime validation and request authentication](../../src/integration/runtime_factory.ts#L71), [route selection](../../src/integration/route_guard_selection.ts#L23).
+**Code references:** [Runtime validation and request authentication](../../src/integration/runtime_builder.ts#L71), [route selection](../../src/integration/route_guard_selection.ts#L23).

@@ -20,11 +20,14 @@ credential.
 
 ## Install
 
-Masquerade is currently distributed as a GitHub release tarball. Use the
-[setup guide](docs/guide/setup.md) to install the released archive or pack the current checkout.
+Masquerade is distributed as a GitHub release tarball. Install it in your AdonisJS application:
 
-Once the package is available in a registry, use `node ace add @kevinjohn/adonisjs-masquerade --package-manager=pnpm`.
-For a tarball install, run `node ace configure @kevinjohn/adonisjs-masquerade --namespace=my_app --guard=web`.
+```sh
+pnpm add https://github.com/Kevinjohn/oss-adonisjs-masquerade/releases/download/v0.7.1/kevinjohn-adonisjs-masquerade-0.7.1.tgz
+node ace configure @kevinjohn/adonisjs-masquerade --namespace=my_app --guard=web
+```
+
+The [setup guide](docs/guide/setup.md) also explains how to pack and install the current checkout.
 
 ## What configure writes
 

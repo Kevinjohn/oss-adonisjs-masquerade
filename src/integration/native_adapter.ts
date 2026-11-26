@@ -6,6 +6,8 @@ import type { NativeRuntimeAdapter, Subject } from '../types.ts'
  *
  * @example
  * ```ts
+ * import { NativeAdapter } from '@kevinjohn/adonisjs-masquerade/native'
+ *
  * app.container.bindValue(NativeAdapter, nativeAdapter)
  * ```
  */

@@ -247,3 +247,37 @@ test('native session inspection reports isActive exactly and rejects a non-boole
     'E_MASQUERADE_UNAVAILABLE'
   )
 })
+
+test('session authority keeps frozen own metadata and detached methods', async ({ assert }) => {
+  const user = { id: 'a' }
+  const native = sessionAuthority({
+    namespace: 'users',
+    guard: 'web',
+    provider: {
+      [symbols.PROVIDER_REAL_USER]: undefined as unknown as typeof user,
+      createUserForGuard: async () => ({ getId: () => user.id, getOriginal: () => user }),
+      findById: async () => ({ getId: () => user.id, getOriginal: () => user }),
+    },
+    incarnation: 'id',
+    securityStamp: () => 'stamp',
+    isActive: () => true,
+  })
+  assert.deepEqual(Object.keys(native), ['authority', 'driverName', 'authenticateActor'])
+  assert.deepEqual(Object.keys(native.authority), [
+    'namespace',
+    'guard',
+    'incarnation',
+    'securityStamp',
+    'inspectAccount',
+  ])
+  assert.isTrue(Object.isFrozen(native))
+  const inspect = native.authority.inspectAccount
+  const inspected = await inspect('a')
+  assert.equal(inspected?.subject.id, 'a')
+  const authenticate = native.authenticateActor
+  const ctx = {
+    auth: { use: () => ({ driverName: 'session', authenticate: async () => user }) },
+  } as unknown as HttpContext
+  const authenticated = await authenticate(ctx)
+  assert.equal(authenticated.id, 'a')
+})
