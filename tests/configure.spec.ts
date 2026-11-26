@@ -366,12 +366,12 @@ test.group('Masquerade configure scaffold', (group) => {
     try {
       f.app.config.set('database', {
         connection: 'main',
-        connections: { main: { migrations: { paths: ['./db/schema/'] } } },
+        connections: { main: { migrations: { paths: ['./db/schema%23tenant%25/'] } } },
       })
       const configured = f.command({ namespace: 'support', guard: 'web' })
       await configure(configured as never)
       assert.equal(configured.exitCode, 0)
-      const files = await readdir(join(f.root, 'db/schema'))
+      const files = await readdir(join(f.root, 'db/schema#tenant%'))
       assert.lengthOf(
         files.filter((file) => file.endsWith('_create_masquerade_tables.ts')),
         1

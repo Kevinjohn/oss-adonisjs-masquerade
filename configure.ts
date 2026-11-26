@@ -191,7 +191,8 @@ export async function configure(command: Configure): Promise<void> {
         command.stubsRoot,
         'make/migration/create_masquerade_tables.stub',
         {
-          migrationDirectory: dirname(migration.path),
+          // makePath resolves through a URL; preserve literal characters in the folder.
+          migrationDirectory: pathToFileURL(dirname(migration.path)).pathname,
           migrationFile: basename(migration.path),
         }
       )
