@@ -35,7 +35,7 @@ const recipeInputs = [
 ]
 // The docs workflow's push paths: TypeDoc reads the package source and treats warnings as errors.
 const docsInputs = [
-  /^(docs|account_kit|auth|commands|http|native|plugins|providers|services|src|stores|testing|stubs)\//,
+  /^(docs|commands|providers|services|src|stubs)\//,
   /^(index|configure)\.ts$/,
   /^(package\.json|pnpm-lock\.yaml|pnpm-workspace\.yaml|tsconfig\.json|typedoc\.json)$/,
 ]
@@ -55,7 +55,7 @@ const browserInputs = [
 ]
 // Inputs of the consumer and Account Kit integration gates that only pnpm check --full runs.
 const fullInputs = [
-  /^(src\/)?(account_kit|native|auth)\//,
+  /^src\/(account_kit|native|auth)\//,
   /^examples\/(native-session|account-kit)\//,
   /^bin\/(test_consumer|test_account_kit)\.ts$/,
   /^bin\/helpers\/(consumer_[a-z_]+|owned_process|registry_version|account_kit_host_wiring)\.ts$/,
