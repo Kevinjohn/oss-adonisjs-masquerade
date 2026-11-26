@@ -52,6 +52,16 @@
         "path": "tests/helpers/starter_kit.ts"
       },
       {
+        "entry": 3,
+        "item": "IMP-5",
+        "path": "bin/test_account_kit.ts"
+      },
+      {
+        "entry": 3,
+        "item": "IMP-5",
+        "path": "tests/account_kit_host_wiring.spec.ts"
+      },
+      {
         "entry": 4,
         "item": "NAM-1",
         "path": "examples/account-kit"
