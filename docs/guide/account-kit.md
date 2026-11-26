@@ -23,7 +23,7 @@ both Masquerade transports in one host is unsupported.
 
 ## Run the local demo
 
-The [Account Kit support demo README](https://github.com/Kevinjohn/oss-adonisjs-masquerade/blob/main/examples/account-kit-demo/README.md)
+The [Account Kit support demo README](https://github.com/Kevinjohn/oss-adonisjs-masquerade/blob/main/examples/account_kit_demo/README.md)
 walks through the fictional operator and customer workflow, including setup, support mode, and
 local data reset. It requires Node.js 24, pnpm, JavaScript in the browser, and network access on
 first run to fetch the pinned Account Kit release artifact. The demo is for local development.

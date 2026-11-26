@@ -24,7 +24,7 @@ import {
 
 const root = resolve(dirname(fileURLToPath(import.meta.url)), '../..')
 const native = join(root, 'examples/native-session')
-const demo = join(root, 'examples/account-kit-demo')
+const demo = join(root, 'examples/account_kit_demo')
 
 export interface PreparedAccountKitDemo {
   workspace: string
