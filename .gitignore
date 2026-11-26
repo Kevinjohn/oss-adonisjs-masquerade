@@ -33,5 +33,6 @@ docs/api/
 !examples/inertia-react/.env.test
 # example env fixtures
 !examples/inertia-vue/.env.test
+!examples/recipe-host/.env.test
 # Playwright MCP scratch
 .playwright-mcp/

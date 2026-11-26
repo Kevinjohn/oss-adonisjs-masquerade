@@ -34,7 +34,7 @@ const config = defineConfig({
   store: async () => {
     const database = await app.container.make(Database)
     const store = new LucidControlStore(database.connection())
-    if (process.env.NODE_ENV !== 'test') return store
+    if (!app.inTest) return store
 
     const { withFixtureControlStore } = await import('#services/masquerade_fixture_boundary')
     return withFixtureControlStore(store)

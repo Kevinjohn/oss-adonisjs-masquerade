@@ -1,3 +1,4 @@
+import config from '@adonisjs/core/services/config'
 import User from '#models/user'
 import db from '@adonisjs/lucid/services/db'
 
@@ -37,10 +38,7 @@ type DemoEnvironment = { nodeEnv?: string; dbClient?: string }
 
 /** Create or refresh the three reserved demo accounts without touching other users. */
 export async function seedDemoAccounts(
-  environment: DemoEnvironment = {
-    nodeEnv: process.env.NODE_ENV,
-    dbClient: process.env.DB_CLIENT,
-  }
+  environment: DemoEnvironment = config.get<DemoEnvironment>('demo.environment')
 ): Promise<void> {
   assertDemoEnvironmentAllowed(environment)
 
@@ -53,10 +51,7 @@ export async function seedDemoAccounts(
 
 /** Delete only the reserved demo accounts from the local SQLite fixture database. */
 export async function resetDemoAccounts(
-  environment: DemoEnvironment = {
-    nodeEnv: process.env.NODE_ENV,
-    dbClient: process.env.DB_CLIENT,
-  }
+  environment: DemoEnvironment = config.get<DemoEnvironment>('demo.environment')
 ): Promise<void> {
   assertDemoEnvironmentAllowed(environment)
 

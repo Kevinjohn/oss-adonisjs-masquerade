@@ -1,3 +1,4 @@
+import app from '@adonisjs/core/services/app'
 import type { LucidControlStore } from '@kevinjohn/adonisjs-masquerade/stores/lucid'
 import {
   FixtureControlStore,
@@ -34,5 +35,5 @@ export function setAuthorityCallbacksThrow(value: boolean) {
 }
 
 export function shouldThrowFromAuthorityCallbacks() {
-  return process.env.NODE_ENV === 'test' && throwFromAuthorityCallbacks
+  return app.inTest && throwFromAuthorityCallbacks
 }
