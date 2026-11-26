@@ -1,5 +1,5 @@
 import { test } from '@japa/runner'
-import { hashSecurityStamp } from '../src/security_stamp.js'
+import { hashSecurityStamp } from '../src/security_stamp.ts'
 
 test('hashes opaque stamps with a512 UTF8 byte bound without storing plaintext', ({ assert }) => {
   assert.match(hashSecurityStamp('secret'), /^[a-f0-9]{64}$/)

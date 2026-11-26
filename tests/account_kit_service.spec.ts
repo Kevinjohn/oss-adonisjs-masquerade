@@ -1,9 +1,9 @@
 import { test } from '@japa/runner'
 import type { HttpContext } from '@adonisjs/core/http'
-import { createMasqueradeService } from '../index.js'
-import { accountKitAuthority } from '../account_kit/main.js'
-import { MemoryControlStore } from '../testing/main.js'
-import { errorCode } from './helpers/core.js'
+import { createMasqueradeService } from '../index.ts'
+import { accountKitAuthority } from '../src/account_kit/authority.ts'
+import { MemoryControlStore } from '../testing/main.ts'
+import { errorCode } from './helpers/core.ts'
 
 function fixture(strategy: 'session' | 'access_tokens' = 'session') {
   type User = { id: number }
@@ -107,7 +107,7 @@ function fixture(strategy: 'session' | 'access_tokens' = 'session') {
   const service = createMasqueradeService(
     {
       authority: adapter.authority,
-      policy: { canMasquerade: async () => state.admitted },
+      permissions: { canMasquerade: async () => state.admitted },
       store: async () => store,
       retention: 'host-managed',
       contextEnforcement: 'enforce',

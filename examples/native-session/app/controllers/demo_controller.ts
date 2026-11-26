@@ -3,7 +3,7 @@ import { demoAccounts } from '#services/demo_accounts'
 import { Bouncer } from '@adonisjs/bouncer'
 import type { HttpContext } from '@adonisjs/core/http'
 import db from '@adonisjs/lucid/services/db'
-import { shareMasquerade } from '@kevinjohn/adonisjs-masquerade/http'
+import { masqueradeEdge } from '@kevinjohn/adonisjs-masquerade/http'
 import MasqueradeFormController from '#controllers/masquerade_form_controller'
 import type { MasqueradeFormFlash } from '#controllers/masquerade_form_controller'
 
@@ -52,7 +52,7 @@ export default class DemoController extends MasqueradeFormController {
 
   async customer(ctx: HttpContext) {
     noStore(ctx)
-    const mode = await shareMasquerade(ctx)
+    const mode = await masqueradeEdge.share(ctx)
     if (!mode.isMasquerading || Date.parse(mode.expiresAt) <= (await now())) {
       return ctx.response.redirect().toPath('/support')
     }
@@ -76,7 +76,7 @@ export default class DemoController extends MasqueradeFormController {
 
   async preference(ctx: HttpContext) {
     noStore(ctx)
-    const mode = await shareMasquerade(ctx)
+    const mode = await masqueradeEdge.share(ctx)
     if (!mode.isMasquerading || Date.parse(mode.expiresAt) <= (await now())) {
       return ctx.response.redirect().toPath('/support')
     }

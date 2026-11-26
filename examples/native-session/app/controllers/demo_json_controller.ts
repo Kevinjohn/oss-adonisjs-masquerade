@@ -3,7 +3,7 @@ import { demoAccounts } from '#services/demo_accounts'
 import { Bouncer } from '@adonisjs/bouncer'
 import type { HttpContext } from '@adonisjs/core/http'
 import db from '@adonisjs/lucid/services/db'
-import { shareMasquerade } from '@kevinjohn/adonisjs-masquerade/http'
+import { masqueradeEdge } from '@kevinjohn/adonisjs-masquerade/http'
 
 /** Host-owned JSON views of the existing fictional support workflow. */
 export default class DemoJsonController {
@@ -22,7 +22,7 @@ export default class DemoJsonController {
 
   async customer(ctx: HttpContext) {
     noStore(ctx)
-    const mode = await shareMasquerade(ctx)
+    const mode = await masqueradeEdge.share(ctx)
     if (!mode.isMasquerading || Date.parse(mode.expiresAt) <= (await now())) {
       return changedContext(ctx)
     }
@@ -47,7 +47,7 @@ export default class DemoJsonController {
 
   async preference(ctx: HttpContext) {
     noStore(ctx)
-    const mode = await shareMasquerade(ctx)
+    const mode = await masqueradeEdge.share(ctx)
     if (!mode.isMasquerading || Date.parse(mode.expiresAt) <= (await now())) {
       return changedContext(ctx)
     }

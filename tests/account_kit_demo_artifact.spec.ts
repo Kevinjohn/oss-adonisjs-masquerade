@@ -2,7 +2,7 @@ import { test } from '@japa/runner'
 import { mkdtemp, readFile, rm, writeFile } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
-import { ensureKitArtifact } from '../bin/helpers/account_kit_demo_artifact.js'
+import { ensureKitArtifact } from '../bin/helpers/account_kit_demo_artifact.ts'
 
 test('rejects a corrupt cached pinned artifact without changing it', async ({ assert }) => {
   const directory = await mkdtemp(join(tmpdir(), 'account-kit-artifact-'))

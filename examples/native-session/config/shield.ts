@@ -93,7 +93,7 @@ const shieldConfig = defineConfig({
     enabled: true,
 
     /**
-     * Frame embedding policy.
+     * Frame embedding permissions.
      * It can block all framing with 'DENY' or allow same-origin framing
      * with 'SAMEORIGIN'.
      */

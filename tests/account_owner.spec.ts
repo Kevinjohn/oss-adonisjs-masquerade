@@ -1,5 +1,5 @@
 import { test } from '@japa/runner'
-import { resolveAccountOwner, requireCanonicalId } from '../account_kit/account_owner.js'
+import { resolveAccountOwner, requireCanonicalId } from '../src/account_kit/account_owner.ts'
 
 const unavailable = { code: 'E_MASQUERADE_UNAVAILABLE' }
 

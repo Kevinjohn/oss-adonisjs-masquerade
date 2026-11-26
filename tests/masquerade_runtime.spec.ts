@@ -1,11 +1,12 @@
+import { NativeAdapter } from '../src/integration/native_adapter.ts'
 import { test } from '@japa/runner'
 import { HttpContextFactory } from '@adonisjs/core/factories/http'
-import { errors, MasqueradeRuntime } from '../index.js'
-import { nativeRuntimeFixture } from './helpers/native_runtime.js'
-import { masqueradeRoutes } from '../http/control_routes.js'
-import { sqlFixture } from './helpers/sql_store.js'
-import { markContextEnforced } from '../src/integration/context_enforcement.js'
-import { resolveRuntime } from '../src/integration/runtime.js'
+import { errors, MasqueradeRuntime } from '../index.ts'
+import { nativeRuntimeFixture } from './helpers/native_runtime.ts'
+import { masqueradeRoutes } from '../src/http/control_routes.ts'
+import { sqlFixture } from './helpers/sql_store.ts'
+import { contextEnforcement } from '../src/integration/context_enforcement.ts'
+import { resolveRuntime } from '../src/integration/runtime.ts'
 
 test('configured provider validates native binding and rejects test-only store during boot', async ({
   assert,
@@ -39,7 +40,7 @@ test('provider rejects mismatched native binding before store construction', asy
     { namespace: 'test', guard: 'other' },
   ]) {
     const f = await nativeRuntimeFixture()
-    f.app.container.bindValue('masquerade.native', { ...f.native, authority })
+    f.app.container.bindValue(NativeAdapter, { ...f.native, authority })
     try {
       await assert.rejects(
         () => f.app.boot(),
@@ -56,7 +57,6 @@ test('provider binds a singleton real runtime and native emitter error handling 
   assert,
 }) => {
   const sql = await sqlFixture()
-  const f = await nativeRuntimeFixture({ store: sql.store })
   let reads = 0
   const read = sql.store.read.bind(sql.store)
   sql.store.read = async (owner) => {
@@ -64,16 +64,17 @@ test('provider binds a singleton real runtime and native emitter error handling 
     return read(owner)
   }
   const observations: unknown[] = []
-  const logs: unknown[][] = []
-  f.app.container.bindValue('logger', {
-    info: (...args: unknown[]) => {
-      logs.push(args)
-      return Promise.reject(new Error('private logger failure'))
+  const logs: unknown[] = []
+  const f = await nativeRuntimeFixture({
+    store: sql.store,
+    logger: {
+      info: (event) => {
+        logs.push(event)
+        return Promise.reject(new Error('private logger failure'))
+      },
+      error: (event) => logs.push(event),
     },
-    error: (...args: unknown[]) => {
-      logs.push(args)
-    },
-  } as never)
+  })
   try {
     await f.app.boot()
     assert.equal(reads, 0)
@@ -100,23 +101,15 @@ test('provider binds a singleton real runtime and native emitter error handling 
     })
     assert.isTrue(active.isMasquerading)
     await new Promise((resolve) => setImmediate(resolve))
-    assert.include(
-      logs.map((args) => args[1]),
-      'Masquerade transition'
-    )
-    assert.include(
-      logs.map((args) => args[1]),
-      'Masquerade observer failed'
-    )
+    assert.lengthOf(logs, 1)
+    assert.equal((logs[0] as { kind: string }).kind, 'started')
     sql.store.read = async () => {
       throw new Error('private database failure')
     }
     await assert.rejects(() => runtime.service.status(ctx))
     await new Promise((resolve) => setImmediate(resolve))
-    assert.include(
-      logs.map((args) => args[1]),
-      'Masquerade diagnostic'
-    )
+    assert.lengthOf(logs, 2)
+    assert.equal((logs[1] as { code: string }).code, 'E_MASQUERADE_UNAVAILABLE')
     assert.lengthOf(observations, 1)
     assert.notInclude(JSON.stringify([observations, logs]), 'private')
     assert.notInclude(JSON.stringify(observations), 'secret-')
@@ -178,7 +171,7 @@ test('runtime includes every actual effective factory alias with immutable names
     } as never
     business.auth = auth.createAuthenticator(business) as never
     business.containerResolver.bindValue('masquerade.runtime', runtime)
-    markContextEnforced(business)
+    contextEnforcement.markContextEnforced(business)
     const defaultGuard = business.auth.use(
       'web_effective' as never
     ) as import('@adonisjs/auth/types').GuardContract<unknown>
@@ -197,59 +190,23 @@ test('runtime includes every actual effective factory alias with immutable names
   }
 })
 
-test('the runtime resolves by class, by its string alias, through constructor injection and from a request', async ({
+test('the provider registers one runtime available through the request resolver', async ({
   assert,
 }) => {
   const sql = await sqlFixture()
   const f = await nativeRuntimeFixture({ store: sql.store })
-  // What `@inject()` writes onto a class; the test loader emits no decorator metadata.
-  class Host {
-    static containerInjections = {
-      _constructor: {
-        dependencies: [MasqueradeRuntime],
-        createError: (message: string) => new Error(message),
-      },
-    }
-    constructor(public runtime: MasqueradeRuntime) {}
-  }
   try {
     await f.app.boot()
-    const runtime = await f.app.container.make(MasqueradeRuntime)
-    assert.strictEqual(await f.app.container.make('masquerade.runtime'), runtime)
-    const host = await f.app.container.make(Host)
-    assert.strictEqual(host.runtime, runtime)
+    const runtime = await f.app.container.make('masquerade.runtime')
+    assert.isTrue(runtime instanceof MasqueradeRuntime)
     const ctx = new HttpContextFactory().create()
     ctx.containerResolver = f.app.container.createResolver()
     assert.strictEqual(await resolveRuntime(ctx), runtime)
-  } finally {
-    await f.app.terminate()
-    await sql.cleanup()
-  }
-})
 
-test('a runtime bound under masquerade.runtime replaces the class binding as well', async ({
-  assert,
-}) => {
-  const sql = await sqlFixture()
-  const f = await nativeRuntimeFixture({ store: sql.store })
-  class Host {
-    static containerInjections = {
-      _constructor: {
-        dependencies: [MasqueradeRuntime],
-        createError: (message: string) => new Error(message),
-      },
-    }
-    constructor(public runtime: MasqueradeRuntime) {}
-  }
-  try {
-    await f.app.boot()
     const fake = { fake: true } as unknown as MasqueradeRuntime
-    const resolver = f.app.container.createResolver()
-    resolver.bindValue('masquerade.runtime', fake)
-    assert.strictEqual(await resolver.make('masquerade.runtime'), fake)
-    assert.strictEqual(await resolver.make(MasqueradeRuntime), fake)
-    const host = await resolver.make(Host)
-    assert.strictEqual(host.runtime, fake)
+    ctx.containerResolver.bindValue('masquerade.runtime', fake)
+    assert.strictEqual(await resolveRuntime(ctx), fake)
+    assert.strictEqual(await f.app.container.make('masquerade.runtime'), runtime)
   } finally {
     await f.app.terminate()
     await sql.cleanup()

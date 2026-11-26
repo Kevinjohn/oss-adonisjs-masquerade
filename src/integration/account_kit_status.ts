@@ -1,12 +1,16 @@
 import type { ApplicationService } from '@adonisjs/core/types'
 
-const verified = new WeakSet<ApplicationService>()
+class AccountKitBlockerStatus {
+  #verified = new WeakSet<ApplicationService>()
 
-/** Set only after the committed router and installed blocker have been checked. */
-export function recordAccountKitBlocker(app: ApplicationService): void {
-  verified.add(app)
+  /** Set only after the committed router and installed blocker have been checked. */
+  recordAccountKitBlocker(app: ApplicationService): void {
+    this.#verified.add(app)
+  }
+
+  hasVerifiedAccountKitBlocker(app: ApplicationService): boolean {
+    return this.#verified.has(app)
+  }
 }
 
-export function hasVerifiedAccountKitBlocker(app: ApplicationService): boolean {
-  return verified.has(app)
-}
+export const accountKitBlockerStatus = new AccountKitBlockerStatus()

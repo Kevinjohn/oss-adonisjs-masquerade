@@ -4,11 +4,11 @@ import { tokensGuard } from '@adonisjs/auth/access_tokens'
 import type { AccessTokensUserProviderContract } from '@adonisjs/auth/types/access_tokens'
 import type { GuardContract } from '@adonisjs/auth/types'
 import type { HttpContext } from '@adonisjs/core/http'
-import { EffectiveAccessTokensGuard } from '../auth/effective_access_tokens_guard.js'
-import { effectiveAccessTokensGuard } from '../auth/main.js'
-import { markContextEnforced } from '../src/integration/context_enforcement.js'
-import { errorCode } from './helpers/core.js'
-import { errors as masqueradeErrors } from '../index.js'
+import { EffectiveAccessTokensGuard } from '../src/auth/effective_access_tokens_guard.ts'
+import { effectiveAccessTokensGuard } from '../auth/main.ts'
+import { contextEnforcement } from '../src/integration/context_enforcement.ts'
+import { errorCode } from './helpers/core.ts'
+import { errors as masqueradeErrors } from '../index.ts'
 
 test('effective token factory preserves nominal users without inferring actor token metadata', ({
   assert,
@@ -63,10 +63,10 @@ test('default effective token facade uses selected token actor and target, never
     },
   } as unknown as HttpContext
   const effective = new EffectiveAccessTokensGuard(ctx, raw, 'api')
-  // Without masqueradeContext, view-only and sensitive() are unenforced: the target is refused.
+  // Without view-only and sensitive() are unenforced: the target is refused.
   assert.equal(await errorCode(() => effective.authenticate()), 'E_MASQUERADE_UNAVAILABLE')
   assert.isFalse(effective.isAuthenticated)
-  markContextEnforced(ctx)
+  contextEnforcement.markContextEnforced(ctx)
   assert.deepEqual(await effective.authenticate(), target)
   assert.deepEqual(names, [])
 })
@@ -151,7 +151,7 @@ test('token facade check, getUserOrFail and failure reset match the native token
       }),
     },
   } as unknown as HttpContext
-  markContextEnforced(ctx)
+  contextEnforcement.markContextEnforced(ctx)
   const effective = new EffectiveAccessTokensGuard(ctx, raw, 'api')
   assert.throws(() => effective.getUserOrFail(), 'No effective user is authenticated')
   assert.isFalse(await effective.check())
@@ -217,7 +217,7 @@ test('context holds the admitted view-as context only when the effective guard w
       }),
     },
   } as unknown as HttpContext
-  markContextEnforced(ctx)
+  contextEnforcement.markContextEnforced(ctx)
   const guard = new EffectiveAccessTokensGuard(ctx, raw, 'api')
   assert.isUndefined(guard.context)
   assert.deepEqual(await guard.authenticate(), target)

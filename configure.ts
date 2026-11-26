@@ -1,12 +1,10 @@
 import type Configure from '@adonisjs/core/commands/configure'
 import { access, lstat, readFile, stat } from 'node:fs/promises'
-import { basename, extname, join, sep } from 'node:path'
+import { basename, dirname, extname, join, sep } from 'node:path'
 import { fileURLToPath, pathToFileURL } from 'node:url'
-import { contextMiddleware, wireHost } from './src/configure_wiring.js'
 
 /**
- * Scaffold a fail-closed native-session and Lucid setup, then wire recognised auth, kernel and
- * route shapes unless `--no-wire` is passed.
+ * Scaffold a fail-closed native session and Lucid setup and register its providers and commands.
  */
 export async function configure(command: Configure): Promise<void> {
   const namespace = await readOption(command, 'namespace', 'Masquerade namespace')
@@ -93,15 +91,22 @@ export async function configure(command: Configure): Promise<void> {
     directories.httpControllers,
     'masquerade_form_controller.ts'
   )
+  const controlRoutes =
+    command.parsedFlags.controlRoutes === true || command.parsedFlags['control-routes'] === true
   const routeDestinations = [
-    join(directories.start, 'masquerade_routes.ts'),
+    join(directories.start, formController ? 'masquerade_form_routes.ts' : 'masquerade_routes.ts'),
     join(directories.start, 'masquerade_limiter.ts'),
   ]
+  if (controlRoutes && !(await fileExists(command.app.configPath('limiter.ts')))) {
+    command.logger.error('Configure @adonisjs/limiter before requesting --control-routes.')
+    command.exitCode = 1
+    return
+  }
   const destinations = [
     ...fileDestinations,
     ...(banner ? bannerDestinations : []),
     ...(formController ? [formControllerDestination] : []),
-    ...(shouldSkipAutoWiring(command) ? [] : routeDestinations),
+    ...(controlRoutes ? routeDestinations : []),
   ].map((destination) => command.app.makePath(destination))
   destinations.push(migration.path)
   if (!command.force) {
@@ -126,31 +131,71 @@ export async function configure(command: Configure): Promise<void> {
     codemodError = error
   })
   const generated = [
-    await codemods.makeUsingStub(command.stubsRoot, 'configure/user_provider.stub', {}),
-    await codemods.makeUsingStub(command.stubsRoot, 'configure/masquerade_config.stub', {
+    await codemods.makeUsingStub(
+      command.stubsRoot,
+      'app/services/masquerade_user_provider.stub',
+      {}
+    ),
+    await codemods.makeUsingStub(command.stubsRoot, 'config/masquerade.stub', {
       namespaceLiteral: JSON.stringify(namespace),
       guardLiteral: JSON.stringify(guard),
     }),
-    await codemods.makeUsingStub(command.stubsRoot, 'configure/native_provider.stub', {}),
+    await codemods.makeUsingStub(
+      command.stubsRoot,
+      'providers/masquerade_native_provider.stub',
+      {}
+    ),
     ...(banner
       ? [
-          await codemods.makeUsingStub(command.stubsRoot, 'configure/status_middleware.stub', {}),
-          await codemods.makeUsingStub(command.stubsRoot, 'configure/banner_edge.stub', {
-            edgeOpen: '{{',
-            edgeClose: '}}',
-          }),
+          await codemods.makeUsingStub(
+            command.stubsRoot,
+            'app/middleware/share_masquerade_status_middleware.stub',
+            {}
+          ),
+          await codemods.makeUsingStub(
+            command.stubsRoot,
+            'resources/views/components/masquerade/banner.stub',
+            {
+              edgeOpen: '{{',
+              edgeClose: '}}',
+            }
+          ),
         ]
       : []),
     ...(formController
-      ? [await codemods.makeUsingStub(command.stubsRoot, 'configure/form_controller.stub', {})]
+      ? [
+          await codemods.makeUsingStub(
+            command.stubsRoot,
+            'app/controllers/masquerade_form_controller.stub',
+            {}
+          ),
+        ]
+      : []),
+    ...(controlRoutes
+      ? [
+          await codemods.makeUsingStub(command.stubsRoot, 'start/masquerade_limiter.stub', {
+            guardQuoted: JSON.stringify(guard),
+          }),
+          await codemods.makeUsingStub(
+            command.stubsRoot,
+            formController ? 'start/masquerade_form_routes.stub' : 'start/masquerade_routes.stub',
+            { guardQuoted: JSON.stringify(guard) }
+          ),
+        ]
       : []),
   ]
   if (!migration.exists) {
     codemods.overwriteExisting = false
     generated.push(
-      await codemods.makeUsingStub(command.stubsRoot, 'migrations/create_masquerade_tables.stub', {
-        migrationPath: migration.path,
-      })
+      await codemods.makeUsingStub(
+        command.stubsRoot,
+        'make/migration/create_masquerade_tables.stub',
+        {
+          // makePath resolves through a URL; preserve literal characters in the folder.
+          migrationDirectory: pathToFileURL(dirname(migration.path)).pathname,
+          migrationFile: basename(migration.path),
+        }
+      )
     )
     codemods.overwriteExisting = command.force === true
   }
@@ -178,90 +223,40 @@ export async function configure(command: Configure): Promise<void> {
     return
   }
 
-  const wiring = shouldSkipAutoWiring(command)
-    ? { auth: 'skipped', kernel: 'skipped', routes: 'skipped', status: 'skipped' }
-    : await wireHost(command, codemods, guard, { banner, formController })
-  if (codemodError) {
-    command.logger.error(
-      `Host wiring failed in an AdonisJS codemod. Resolve the reported error and check ${authFile}, ${kernelFile} and adonisrc.ts before booting the package.`
-    )
-    command.exitCode = 1
-    return
-  }
-  if (wiring.auth === 'wired')
-    command.logger.info(
-      `Wired ${authFile}: the raw ${guard} guard reuses userProvider and ${guard}_effective is the default guard.`
-    )
-  if (wiring.auth === 'already')
-    command.logger.info(`${authFile} already makes ${guard}_effective the default guard.`)
-  if (wiring.kernel === 'wired')
-    command.logger.info(`Registered the context middleware after initialize_auth in ${kernelFile}.`)
-  if (wiring.kernel === 'already')
-    command.logger.info(`${kernelFile} already registers the context middleware.`)
-  if (wiring.routes !== 'skipped')
-    command.logger.info(
-      `Mounted the control routes in ${routeDestinations[0]} with the limiters in ${routeDestinations[1]}.`
-    )
-  if (banner && wiring.status === 'wired')
-    command.logger.info(
-      'Registered the optional banner status middleware after silent authentication; include components/masquerade/banner in an authenticated Edge layout.'
-    )
-  if (banner && wiring.status === 'already')
-    command.logger.info(`${kernelFile} already registers the banner status middleware.`)
-  if (formController && wiring.routes !== 'skipped')
-    command.logger.info(
-      'Mounted the generated host-owned form controller on the control routes; HTML forms redirect and flash, while JSON clients keep the package response.'
-    )
-
   const rawGuardKey = JSON.stringify(guard)
   const effectiveGuardKey = JSON.stringify(`${guard}_effective`)
   const steps = [
-    ...(wiring.auth === 'skipped'
-      ? [
-          'In your raw sessionGuard configuration, import userProvider from #services/masquerade_user_provider and pass that exact instance to sessionGuard. Keep the raw guard named web (or your --guard value).',
-          `Wrap the raw factory with effectiveSessionGuard from @kevinjohn/adonisjs-masquerade/auth and make the wrapper the default auth guard, e.g. import { effectiveSessionGuard } from '@kevinjohn/adonisjs-masquerade/auth'; default: ${effectiveGuardKey}; guards: { ${rawGuardKey}: rawGuard, ${effectiveGuardKey}: effectiveSessionGuard(rawGuard) }.`,
-        ]
-      : []),
-    ...(wiring.kernel === 'skipped'
-      ? [
-          `Register ${contextMiddleware} as router middleware after initialize_auth and before any silent_auth middleware; preserve this order in ${kernelFile}.`,
-        ]
-      : []),
-    'Implement the generated account incarnation, security stamp, active-account checks, and deny-by-default policy using your account model. Make stamps change on privilege, password, suspension, and logout-all changes.',
+    `Register () => import('@kevinjohn/adonisjs-masquerade/masquerade_context_middleware') as router middleware in ${kernelFile}, after initialize_auth and before any silent_auth middleware.`,
+    `In ${authFile}, pass the generated userProvider from #services/masquerade_user_provider to your raw sessionGuard. Keep it named ${guard}, then make ${effectiveGuardKey} the default: guards: { ${rawGuardKey}: rawGuard, ${effectiveGuardKey}: effectiveSessionGuard(rawGuard) }. Import effectiveSessionGuard from @kevinjohn/adonisjs-masquerade/auth.`,
+    'Implement the generated account incarnation, security stamp, active-account checks, and deny-by-default permissions using your account model. Make stamps change on privilege, password, suspension, and logout-all changes.',
     `Review the migration ${migrationDestination}, back up the database, then run: node ace migration:run`,
-    ...(wiring.routes === 'skipped'
+    ...(controlRoutes
       ? [
-          ...(formController
-            ? [
-                `Mount GET /masquerade on MasqueradeController and POST /masquerade/start|stop on #controllers/masquerade_form_controller, behind middleware.auth({ guards: ["${guard}"] }) with separate start/stop limiters and route names masquerade.status|start|stop. Keep Shield CSRF enabled.`,
-              ]
-            : [
-                `Define separate start and stop limiters, then mount the controls with masqueradeRoutes(router, { auth: middleware.auth, guard: "${guard}", startLimiter, stopLimiter }) from @kevinjohn/adonisjs-masquerade/http; keep Shield CSRF enabled. Do not mount routes before those controls are in place.`,
-              ]),
+          `Review the limiter budgets in ${routeDestinations[1]}, then import ${routeDestinations[0]} from your routes preload. Keep Shield CSRF enabled.`,
         ]
-      : []),
+      : formController
+        ? [
+            `Mount GET /masquerade on MasqueradeController and POST /masquerade/start|stop on #controllers/masquerade_form_controller, behind middleware.auth({ guards: [${rawGuardKey}] }) with separate start/stop limiters. Keep Shield CSRF enabled.`,
+          ]
+        : [
+            `Define separate start and stop limiters, then mount the controls with masqueradeRoutes(router, { auth: middleware.auth, guard: ${rawGuardKey}, startLimiter, stopLimiter }) from @kevinjohn/adonisjs-masquerade/http. Keep Shield CSRF enabled.`,
+          ]),
     ...(formController
       ? [
-          `Edit ${formControllerDestination} for your host redirect destinations and localised flash handling. Use --form-controller with --banner to make the generated banner Stop form use this controller.`,
+          `Edit ${formControllerDestination} for your host redirect destinations and localised flash handling.`,
         ]
       : []),
-    ...(banner && wiring.status === 'skipped'
+    ...(banner
       ? [
-          `Wire ${bannerDestinations[0]} in ${kernelFile} after silent_auth_middleware, then include components/masquerade/banner in an authenticated Edge layout. The middleware shares only safe status fields on authenticated effective-guard routes; public and raw control routes do not read mode status.`,
+          `Register ${bannerDestinations[0]} in ${kernelFile} after silent_auth_middleware, then include components/masquerade/banner in an authenticated Edge layout.`,
         ]
       : []),
     'Keep context enforcement in report mode during form rollout; switch to enforce after clients submit the current context token. Host-managed retention never prunes idle rows.',
   ]
   command.logger.info(
-    wiring.auth === 'skipped'
-      ? 'Masquerade scaffold generated. Complete the host-specific wiring before enabling masquerade routes:'
-      : `Masquerade scaffold generated and wired. ${guard}_effective is now the default guard, so authenticated routes return 503 until these steps are complete:`
+    'Masquerade scaffold generated. Complete these steps before enabling masquerade routes:'
   )
   steps.forEach((step, index) => command.logger.info(`${index + 1}. ${step}`))
-}
-
-function shouldSkipAutoWiring(command: Configure): boolean {
-  return command.parsedFlags.wire === false || command.parsedFlags['no-wire'] === true
 }
 
 async function readOption(command: Configure, key: 'namespace' | 'guard', label: string) {

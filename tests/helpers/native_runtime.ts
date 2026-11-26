@@ -1,28 +1,34 @@
+import { defineConfig } from '../../src/define_config.ts'
+import { NativeAdapter } from '../../src/integration/native_adapter.ts'
 import { IgnitorFactory } from '@adonisjs/core/factories'
 import { AuthManager, symbols } from '@adonisjs/auth'
 import type { GuardContract } from '@adonisjs/auth/types'
 import type { HttpContext } from '@adonisjs/core/http'
 import type { SessionUserProviderContract } from '@adonisjs/auth/types/session'
-import { fixture } from './core.js'
-import type { User } from './core.js'
-import type { ControlStore } from '../../src/types.js'
-import { sessionAuthority } from '../../native/main.js'
-import type { NativeSessionAdapter } from '../../native/main.js'
+import { fixture } from './core.ts'
+import type { User } from './core.ts'
+import type { ControlStore, MasqueradeConfig } from '../../src/types.ts'
+import { sessionAuthority } from '../../native/main.ts'
+import type { NativeSessionAdapter } from '../../src/types.ts'
 import type { ApplicationService } from '@adonisjs/core/types'
-import type { MasqueradeCallbackRegistry } from '../../src/callback_registry.js'
-import { effectiveSessionGuard } from '../../auth/main.js'
+import { MasqueradeCallbackRegistration } from '../../src/callback_registration.ts'
+import { effectiveSessionGuard } from '../../auth/main.ts'
 
 export async function nativeRuntimeFixture(
   options: {
     store?: ControlStore
+    logger?: MasqueradeConfig<User, HttpContext>['logger']
     missingRaw?: boolean
     rawDefault?: boolean
     aliases?: boolean
     unadaptedGuard?: string
-    /** Leave authority, policy and the native binding to `masquerade.callbacks`. */
+    /** Leave authority, permissions and the native binding to `MasqueradeCallbackRegistration`. */
     callbacks?: boolean
     /** Called from an application provider's `boot()`, listed before the Masquerade provider. */
-    register?: (registry: MasqueradeCallbackRegistry, native: NativeSessionAdapter<User>) => void
+    register?: (
+      registry: MasqueradeCallbackRegistration,
+      native: NativeSessionAdapter<User>
+    ) => void
   } = {}
 ) {
   const f = fixture()
@@ -45,8 +51,9 @@ export async function nativeRuntimeFixture(
   let storeCreations = 0
   const config = {
     ...f.config,
+    logger: options.logger,
     ...(options.callbacks
-      ? { authority: undefined, policy: undefined }
+      ? { authority: undefined, permissions: undefined }
       : { authority: native.authority }),
     store: async () => {
       storeCreations++
@@ -57,7 +64,7 @@ export async function nativeRuntimeFixture(
     .withCoreProviders()
     .withCoreConfig()
     .merge({
-      config: { masquerade: config },
+      config: { masquerade: defineConfig(config) },
       rcFileContents: {
         providers: [
           ...(options.register
@@ -67,7 +74,7 @@ export async function nativeRuntimeFixture(
                     constructor(protected app: ApplicationService) {}
                     async boot() {
                       options.register?.(
-                        await this.app.container.make('masquerade.callbacks'),
+                        await this.app.container.make(MasqueradeCallbackRegistration),
                         native
                       )
                     }
@@ -82,7 +89,7 @@ export async function nativeRuntimeFixture(
     .create(new URL('../../', import.meta.url))
   const app = ignitor.createApp('web')
   await app.init()
-  if (!options.callbacks) app.container.bindValue('masquerade.native', native)
+  if (!options.callbacks) app.container.bindValue(NativeAdapter, native)
   const raw = {
     resolver:
       async () =>

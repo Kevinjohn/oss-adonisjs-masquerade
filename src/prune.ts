@@ -2,15 +2,15 @@ import {
   E_MASQUERADE_PRUNE_PROGRESS,
   E_MASQUERADE_UNAVAILABLE,
   E_MASQUERADE_UNKNOWN_COMMIT,
-} from './errors.js'
+} from './errors.ts'
 import { randomUUID } from 'node:crypto'
-import { defineConfig } from './define_config.js'
-import { openControlStore } from './control_store.js'
-import { requireActiveCandidate } from './active_modes.js'
-import { commitTransition, createIdleRowAfterTransition } from './mode_transition.js'
-import { requireValidModeRow } from './row_validation.js'
-import type { ObserverDependencies } from './observers.js'
-import type { MasqueradeConfig, ModeRow, RequestControlStore, TransitionEvent } from './types.js'
+import { validateConfig } from './define_config.ts'
+import { openControlStore } from './control_store.ts'
+import { requireActiveCandidate } from './active_modes.ts'
+import { commitTransition, createIdleRowAfterTransition } from './mode_transition.ts'
+import { requireValidModeRow } from './row_validation.ts'
+import type { ObserverDependencies } from './observers.ts'
+import type { MasqueradeConfig, ModeRow, RequestControlStore, TransitionEvent } from './types.ts'
 
 export const DEFAULT_PRUNE_BATCH_SIZE = 100
 export const MAX_PRUNE_BATCH_SIZE = 1000
@@ -62,7 +62,7 @@ export async function pruneMasquerade<User, Request>(
     throw new E_MASQUERADE_UNAVAILABLE()
 
   const now = resolveNow(options, dependencies).toISOString()
-  const validated = defineConfig(config)
+  const validated = validateConfig(config)
   const store = await openControlStore(validated.store, dependencies.environment, [
     'read',
     'compareAndSet',

@@ -3,7 +3,7 @@ import { mkdtempSync, readFileSync, rmSync, symlinkSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { test } from '@japa/runner'
-import { repoRoot } from './helpers/tracked_markdown.js'
+import { repoRoot } from './helpers/tracked_markdown.ts'
 
 test('missing PostgreSQL binaries point to the external-server instructions', ({ assert }) => {
   const path = mkdtempSync(join(tmpdir(), 'postgres-help-'))

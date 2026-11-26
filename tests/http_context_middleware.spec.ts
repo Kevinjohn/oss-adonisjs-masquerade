@@ -1,18 +1,18 @@
-import { isMasqueradeRequestError } from '../http/main.js'
+import { isMasqueradeRequestError } from '../http/main.ts'
 // masqueradeContext at the HTTP boundary: guard checks, context tokens and the view/edit rule.
 // Admission values go to request_admission.spec.ts, route markers to route_metadata.spec.ts.
 // Fixtures: fixture() in tests/helpers/core.ts, requestContext() in tests/helpers/http_context.ts.
 import { test } from '@japa/runner'
-import { handleWithDefaultExceptionHandler } from './helpers/exception_handler.js'
-import { fixture } from './helpers/core.js'
-import { requestContext } from './helpers/http_context.js'
+import { handleWithDefaultExceptionHandler } from './helpers/exception_handler.ts'
+import { fixture } from './helpers/core.ts'
+import { requestContext } from './helpers/http_context.ts'
 import { errors } from '@adonisjs/auth'
-import { masqueradeContext } from '../http/context_middleware.js'
-import { EffectiveSessionGuard } from '../auth/effective_session_guard.js'
-import { allowMutation, sensitive } from '../src/integration/route_metadata.js'
-import { errors as masqueradeErrors } from '../index.js'
-import type { RequestAdmission } from '../src/request_admission.js'
-import type { MasqueradeBlockedBy } from '../index.js'
+import MasqueradeContextMiddleware from '../src/http/context_middleware.ts'
+import { EffectiveSessionGuard } from '../src/auth/effective_session_guard.ts'
+import { allowMutation, sensitive } from '../src/integration/route_metadata.ts'
+import { errors as masqueradeErrors } from '../index.ts'
+import type { RequestAdmission } from '../src/request_admission.ts'
+import type { MasqueradeBlockedBy } from '../index.ts'
 
 test.group('masquerade HTTP boundary', () => {
   test('rejects mixed native-effective and other guards before authentication or downstream fallback', async ({
@@ -40,7 +40,7 @@ test.group('masquerade HTTP boundary', () => {
         })
         let downstreamCalls = 0
         await handleWithDefaultExceptionHandler(ctx, () =>
-          masqueradeContext(ctx, async () => {
+          new MasqueradeContextMiddleware().handle(ctx, async () => {
             downstreamCalls++
           })
         )
@@ -67,7 +67,7 @@ test.group('masquerade HTTP boundary', () => {
     let downstreamCalls = 0
     await assert.rejects(
       () =>
-        masqueradeContext(ctx, async () => {
+        new MasqueradeContextMiddleware().handle(ctx, async () => {
           downstreamCalls++
           throw new errors.E_UNAUTHORIZED_ACCESS('Named auth chooses rendering', {
             guardDriverName: 'session',
@@ -87,7 +87,7 @@ test.group('masquerade HTTP boundary', () => {
     f.config.contextEnforcement = 'report'
     const { ctx, warnings } = requestContext(f, { body: {} })
     let continued = false
-    await masqueradeContext(ctx, async () => {
+    await new MasqueradeContextMiddleware().handle(ctx, async () => {
       continued = true
     })
     assert.isTrue(continued)
@@ -109,7 +109,7 @@ test.group('masquerade HTTP boundary', () => {
       })
       let continued = false
       await handleWithDefaultExceptionHandler(ctx, () =>
-        masqueradeContext(ctx, async () => {
+        new MasqueradeContextMiddleware().handle(ctx, async () => {
           continued = true
         })
       )
@@ -132,7 +132,7 @@ test.group('masquerade HTTP boundary', () => {
       body: { _masqueradeContext: mode.contextToken, payload },
     })
     let continued = false
-    await masqueradeContext(ctx, async () => {
+    await new MasqueradeContextMiddleware().handle(ctx, async () => {
       continued = true
     })
     assert.isTrue(continued)
@@ -149,7 +149,7 @@ test.group('masquerade HTTP boundary', () => {
     let continued = false
     const cause: MasqueradeBlockedBy = 'mutation_not_allowed'
     try {
-      await masqueradeContext(ctx, async () => {
+      await new MasqueradeContextMiddleware().handle(ctx, async () => {
         continued = true
       })
     } catch (error) {
@@ -174,7 +174,7 @@ test.group('masquerade HTTP boundary', () => {
       routeMiddleware: [{ name: 'auth', args: [{ guards: ['web_effective'] }] }, sensitive()],
     })
     await handleWithDefaultExceptionHandler(sensitiveRoute, () =>
-      masqueradeContext(sensitiveRoute, async () => {})
+      new MasqueradeContextMiddleware().handle(sensitiveRoute, async () => {})
     )
     assert.deepEqual(sensitiveResponse.json, {
       errors: [
@@ -194,7 +194,7 @@ test.group('masquerade HTTP boundary', () => {
     let received: unknown
 
     try {
-      await masqueradeContext(ctx, async () => {
+      await new MasqueradeContextMiddleware().handle(ctx, async () => {
         continued = true
       })
     } catch (error) {
@@ -228,7 +228,9 @@ test.group('masquerade HTTP boundary', () => {
       body: { _masqueradeContext: mode.contextToken },
       routeMiddleware: [{ name: 'auth', args: [{ guards: ['web_effective'] }] }, allowMutation()],
     })
-    await handleWithDefaultExceptionHandler(ctx, () => masqueradeContext(ctx, async () => {}))
+    await handleWithDefaultExceptionHandler(ctx, () =>
+      new MasqueradeContextMiddleware().handle(ctx, async () => {})
+    )
     assert.equal(responseBlockedBy(responseState.json), 'view_only')
     assert.deepEqual(responseState.json, {
       errors: [
@@ -251,7 +253,9 @@ test.group('masquerade HTTP boundary', () => {
     const { ctx, responseState } = requestContext(f, {
       body: { _masqueradeContext: mode.contextToken },
     })
-    await handleWithDefaultExceptionHandler(ctx, () => masqueradeContext(ctx, async () => {}))
+    await handleWithDefaultExceptionHandler(ctx, () =>
+      new MasqueradeContextMiddleware().handle(ctx, async () => {})
+    )
     assert.equal(responseBlockedBy(responseState.json), 'view_only')
   })
 
@@ -267,7 +271,9 @@ test.group('masquerade HTTP boundary', () => {
         body: { _masqueradeContext: mode.contextToken },
         admit: overrideAdmissionAccess(access),
       })
-      await handleWithDefaultExceptionHandler(ctx, () => masqueradeContext(ctx, async () => {}))
+      await handleWithDefaultExceptionHandler(ctx, () =>
+        new MasqueradeContextMiddleware().handle(ctx, async () => {})
+      )
       assert.equal(responseBlockedBy(responseState.json), 'view_only')
     }
   })
@@ -291,7 +297,7 @@ test.group('masquerade HTTP boundary', () => {
           const { ctx, warnings, responseState } = requestContext(f, { method, header })
           let continued = false
           await handleWithDefaultExceptionHandler(ctx, () =>
-            masqueradeContext(ctx, async () => {
+            new MasqueradeContextMiddleware().handle(ctx, async () => {
               continued = true
             })
           )
@@ -317,7 +323,7 @@ test.group('masquerade HTTP boundary', () => {
       const { ctx, responseState } = requestContext(f, { method })
       let continued = false
       await handleWithDefaultExceptionHandler(ctx, () =>
-        masqueradeContext(ctx, async () => {
+        new MasqueradeContextMiddleware().handle(ctx, async () => {
           continued = true
         })
       )
@@ -334,7 +340,9 @@ test.group('masquerade HTTP boundary', () => {
     const { ctx, responseState } = requestContext(f, {
       body: { _masqueradeContext: mode.contextToken },
     })
-    await handleWithDefaultExceptionHandler(ctx, () => masqueradeContext(ctx, async () => {}))
+    await handleWithDefaultExceptionHandler(ctx, () =>
+      new MasqueradeContextMiddleware().handle(ctx, async () => {})
+    )
     assert.equal(responseBlockedBy(responseState.json), 'mutation_not_allowed')
   })
 
@@ -349,7 +357,7 @@ test.group('masquerade HTTP boundary', () => {
     })
     let continued = false
     await handleWithDefaultExceptionHandler(ctx, () =>
-      masqueradeContext(ctx, async () => {
+      new MasqueradeContextMiddleware().handle(ctx, async () => {
         continued = true
       })
     )
@@ -374,7 +382,9 @@ test.group('masquerade HTTP boundary', () => {
             allowMutation(),
           ],
         })
-        await handleWithDefaultExceptionHandler(ctx, () => masqueradeContext(ctx, async () => {}))
+        await handleWithDefaultExceptionHandler(ctx, () =>
+          new MasqueradeContextMiddleware().handle(ctx, async () => {})
+        )
         assert.equal(responseBlockedBy(responseState.json), 'sensitive')
       }
     }
@@ -391,7 +401,9 @@ test.group('masquerade HTTP boundary', () => {
       const { ctx, responseState } = requestContext(f, {
         body: token === undefined ? {} : { _masqueradeContext: token },
       })
-      await handleWithDefaultExceptionHandler(ctx, () => masqueradeContext(ctx, async () => {}))
+      await handleWithDefaultExceptionHandler(ctx, () =>
+        new MasqueradeContextMiddleware().handle(ctx, async () => {})
+      )
       assert.equal(responseState.status, status)
       assert.equal(errorCode(responseState.json), code)
       assert.isFalse(hasBlockedBy(responseState.json))
@@ -404,7 +416,9 @@ test.group('masquerade HTTP boundary', () => {
     const service = await f.create()
     await f.start(service)
     const { ctx, responseState, warnings } = requestContext(f, {})
-    await handleWithDefaultExceptionHandler(ctx, () => masqueradeContext(ctx, async () => {}))
+    await handleWithDefaultExceptionHandler(ctx, () =>
+      new MasqueradeContextMiddleware().handle(ctx, async () => {})
+    )
     assert.equal((warnings[0] as { code: string }).code, 'E_MASQUERADE_CONTEXT_REQUIRED')
     assert.equal(responseBlockedBy(responseState.json), 'view_only')
   })
@@ -420,7 +434,7 @@ test.group('masquerade HTTP boundary', () => {
     })
     let continued = false
     await handleWithDefaultExceptionHandler(ctx, () =>
-      masqueradeContext(ctx, async () => {
+      new MasqueradeContextMiddleware().handle(ctx, async () => {
         continued = true
       })
     )
@@ -448,7 +462,7 @@ test.group('masquerade HTTP boundary', () => {
       return resolveRuntime(name)
     }
     let continued = false
-    await masqueradeContext(ctx, async () => {
+    await new MasqueradeContextMiddleware().handle(ctx, async () => {
       continued = true
     })
     assert.isTrue(continued)
@@ -467,7 +481,7 @@ test.group('masquerade HTTP boundary', () => {
     })
     let continued = false
     await handleWithDefaultExceptionHandler(ctx, () =>
-      masqueradeContext(ctx, async () => {
+      new MasqueradeContextMiddleware().handle(ctx, async () => {
         continued = true
       })
     )
@@ -517,7 +531,7 @@ test('the effective guard admits the target only after masqueradeContext ran for
   const raw = { driverName: 'session', authenticate: async () => f.users.get('a') }
   const { ctx } = requestContext(f, { method: 'GET' })
   let user: unknown
-  await masqueradeContext(ctx, async () => {
+  await new MasqueradeContextMiddleware().handle(ctx, async () => {
     user = await new EffectiveSessionGuard('web', ctx, raw as never).authenticate()
   })
   assert.strictEqual(user, f.users.get('b'))

@@ -1,7 +1,7 @@
 import { test } from '@japa/runner'
-import { fixture } from './helpers/core.js'
-import { requestContext } from './helpers/http_context.js'
-import { contextField, shareMasquerade } from '../http/edge.js'
+import { fixture } from './helpers/core.ts'
+import { requestContext } from './helpers/http_context.ts'
+import { contextField, masqueradeEdge } from '../src/http/edge.ts'
 
 test.group('masquerade HTTP boundary', () => {
   test('renders an escaped hidden context field from a safe view', ({ assert }) => {
@@ -35,11 +35,11 @@ test.group('masquerade HTTP boundary', () => {
         shared = value
       },
     }
-    const mode = await shareMasquerade(ctx)
+    const mode = await masqueradeEdge.share(ctx)
     assert.equal(reads, 1)
     assert.deepEqual(shared?.masquerade, mode)
     assert.equal(responseState.headers.get('cache-control'), 'private, no-store')
-    assert.deepEqual(await shareMasquerade(ctx), mode)
+    assert.deepEqual(await masqueradeEdge.share(ctx), mode)
     assert.equal(reads, 1)
   })
 
@@ -54,7 +54,7 @@ test.group('masquerade HTTP boundary', () => {
     await f.start(await f.create(), ctx)
     const before = await f.store.read(f.owner)
     f.users.get('b')!.stamp = 'changed'
-    const mode = await shareMasquerade(ctx)
+    const mode = await masqueradeEdge.share(ctx)
     assert.isTrue(mode.isMasquerading)
     assert.deepEqual(await f.store.read(f.owner), before)
     assert.equal(responseState.headers.get('cache-control'), 'private, no-store')
@@ -67,14 +67,14 @@ test.group('masquerade HTTP boundary', () => {
     const { ctx, responseState } = requestContext(f, { method: 'GET', routeMiddleware: [] })
     await f.start(await f.create(), ctx)
     const before = await f.store.read(f.owner)
-    const policyCalls = f.state.policyCount
+    const policyCalls = f.state.permissionsCount
 
-    const mode = await shareMasquerade(ctx)
+    const mode = await masqueradeEdge.share(ctx)
 
     assert.isTrue(mode.isMasquerading)
     if (mode.isMasquerading) assert.equal(mode.targetId, 'b')
     assert.deepEqual(await f.store.read(f.owner), before)
-    assert.equal(f.state.policyCount, policyCalls)
+    assert.equal(f.state.permissionsCount, policyCalls)
     assert.equal(responseState.headers.get('cache-control'), 'private, no-store')
   })
 
@@ -85,7 +85,7 @@ test.group('masquerade HTTP boundary', () => {
       throw new Error('store unavailable')
     }
 
-    await assert.rejects(() => shareMasquerade(ctx))
+    await assert.rejects(() => masqueradeEdge.share(ctx))
     assert.isEmpty(responseState.headers)
   })
 })

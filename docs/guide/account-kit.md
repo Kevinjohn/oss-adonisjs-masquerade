@@ -104,7 +104,7 @@ const accountAdmission = () => app.container.make(AccountAdmission)
 
 export default defineConfig({
   authority: nativeAdapter.authority,
-  policy: {
+  permissions: {
     // Operators may support active customers. Refusing other operators is the recommended default.
     canMasquerade: async ({ actor, target }) =>
       Boolean(actor.user.masqueradeOperator) &&
@@ -154,19 +154,20 @@ different primary key, wire that model/provider consistently and adapt the polic
 changes on delete-and-recreate.
 
 The `enforce` setting requires covered unsafe forms and clients to send context tokens; use `report`
-while migrating existing forms. Bind `nativeAdapter` as `masquerade.native` in one provider and set
+while migrating existing forms. Bind `nativeAdapter` as `NativeAdapter` in one provider and set
 `authority: nativeAdapter.authority` in the config. The provider pattern is:
 
 ```ts
 // providers/masquerade_native_provider.ts
 import { nativeAdapter } from '#config/masquerade'
+import { NativeAdapter } from '@kevinjohn/adonisjs-masquerade/native'
 import type { ApplicationService } from '@adonisjs/core/types'
 
 export default class MasqueradeNativeProvider {
   constructor(protected app: ApplicationService) {}
 
   register() {
-    this.app.container.bindValue('masquerade.native', nativeAdapter)
+    this.app.container.bindValue(NativeAdapter, nativeAdapter)
   }
 }
 ```
@@ -253,8 +254,7 @@ in `canAccess`.
 
 ## Install the provider and blocker
 
-The provider example below targets the scoped Masquerade `0.7.1` release. Its configure hook
-registers `@kevinjohn/adonisjs-masquerade/masquerade_provider` for the core provider.
+This repository’s configure hook registers `@kevinjohn/adonisjs-masquerade/masquerade_provider` for the core provider.
 
 Register the Account Kit provider subpath and its global middleware in the host. The middleware
 must run after session setup and `initialize_auth`, and before application middleware that calls

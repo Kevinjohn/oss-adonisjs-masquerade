@@ -66,7 +66,7 @@ The banner status middleware (`--banner`) shares `masquerade` with every view on
 @end
 ```
 
-Without the status middleware, call `await shareMasquerade(ctx)` from
+Without the status middleware, call `await masqueradeEdge.share(ctx)` from
 `@kevinjohn/adonisjs-masquerade/http` in the controller before rendering; it shares the same
 `masquerade` value.
 

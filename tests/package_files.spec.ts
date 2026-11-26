@@ -1,5 +1,5 @@
 import { test } from '@japa/runner'
-import { packedFiles } from './helpers/packed_files.js'
+import { packedFiles } from './helpers/packed_files.ts'
 
 const rootFiles = [
   'package.json',
@@ -21,6 +21,6 @@ if (process.env.TEST_BUILT_EXPORTS === '1') {
     assert.deepEqual(unexpected, [])
     for (const path of rootFiles) assert.include(files, path)
     assert.include(files, 'build/index.js')
-    assert.include(files, 'build/stubs/migrations/create_masquerade_tables.stub')
+    assert.include(files, 'build/stubs/make/migration/create_masquerade_tables.stub')
   })
 }

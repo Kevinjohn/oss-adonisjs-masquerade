@@ -1,10 +1,12 @@
+import { fixture } from './helpers/core.ts'
+import { defineConfig } from '../src/define_config.ts'
 import { test } from '@japa/runner'
 import { errors, symbols } from '@adonisjs/auth'
 import { SessionGuard } from '@adonisjs/auth/session'
 import type { GuardContract } from '@adonisjs/auth/types'
 import type { HttpContext } from '@adonisjs/core/http'
-import { EffectiveSessionGuard } from '../auth/effective_session_guard.js'
-import { selectRouteGuard } from '../src/integration/route_guard_selection.js'
+import { EffectiveSessionGuard } from '../src/auth/effective_session_guard.ts'
+import { selectRouteGuard } from '../src/integration/route_guard_selection.ts'
 
 const selectGuard = (ctx: HttpContext) =>
   selectRouteGuard({
@@ -93,8 +95,8 @@ test('only a genuine native unauthorized error becomes false', async ({ assert }
   assert.isFalse(await guard.check())
   assert.isTrue(guard.authenticationAttempted)
   assert.isFalse(guard.isAuthenticated)
-  failure = Object.assign(new Error('policy error'), { code: 'E_UNAUTHORIZED_ACCESS' })
-  await assert.rejects(() => guard.check(), 'policy error')
+  failure = Object.assign(new Error('permissions error'), { code: 'E_UNAUTHORIZED_ACCESS' })
+  await assert.rejects(() => guard.check(), 'permissions error')
   assert.isUndefined(guard.user)
 })
 
@@ -155,8 +157,8 @@ test('getUserOrFail preserves native session unauthorized behavior after a faile
 
 import { Authenticator } from '@adonisjs/auth'
 import { HttpContextFactory } from '@adonisjs/core/factories/http'
-import { errors as masqueradeErrors } from '../index.js'
-import { markContextEnforced } from '../src/integration/context_enforcement.js'
+import { errors as masqueradeErrors } from '../index.ts'
+import { contextEnforcement } from '../src/integration/context_enforcement.ts'
 
 test('business guard owns the facade while the raw guard retains actor identity; failures never fall back', async ({
   assert,
@@ -198,10 +200,10 @@ test('business guard owns the facade while the raw guard retains actor identity;
     },
   })
   ctx.auth = auth as never
-  // Without masqueradeContext, view-only and sensitive() are unenforced: the target is refused.
+  // Without view-only and sensitive() are unenforced: the target is refused.
   await assert.rejects(() => auth.check(), 'Masquerade is unavailable')
   assert.isUndefined(auth.use('web_effective').user)
-  markContextEnforced(ctx)
+  contextEnforcement.markContextEnforced(ctx)
   assert.isTrue(await auth.check())
   assert.strictEqual(auth.user, target)
   assert.strictEqual(auth.getUserOrFail(), target)
@@ -264,14 +266,26 @@ test('default silent auth uses an unrelated registered raw guard without mode ad
 })
 
 test('the effective session guard needs a raw guard with a different name', async ({ assert }) => {
-  const { effectiveSessionGuard } = await import('../auth/define_config.js')
+  const { effectiveSessionGuard } = await import('../src/auth/define_config.js')
   const raw = { resolver: async () => () => ({ driverName: 'session' }) } as never
   const app = (guard?: string) =>
-    ({ config: { get: () => (guard ? { authority: { guard } } : undefined) } }) as never
+    ({
+      config: {
+        get: () =>
+          guard
+            ? defineConfig({
+                ...fixture().config,
+                authority: { ...fixture().config.authority, guard },
+              })
+            : undefined,
+      },
+    }) as never
   for (const configured of ['web_effective', undefined])
     await assert.rejects(
       () => effectiveSessionGuard(raw).resolver('web_effective', app(configured)),
-      'Configure distinct raw and effective session guards'
+      configured === undefined
+        ? 'Invalid masquerade configuration: use defineConfig'
+        : 'Configure distinct raw and effective session guards'
     )
   const factory = await effectiveSessionGuard(raw).resolver('web_effective', app('web'))
   assert.isFunction(factory)
@@ -280,11 +294,11 @@ test('the effective session guard needs a raw guard with a different name', asyn
 test('without a configured authority the native adapter names the raw session guard', async ({
   assert,
 }) => {
-  const { effectiveSessionGuard } = await import('../auth/define_config.js')
+  const { effectiveSessionGuard } = await import('../src/auth/define_config.js')
   const raw = { resolver: async () => () => ({ driverName: 'session' }) } as never
   const app = (guard: string) =>
     ({
-      config: { get: () => ({}) },
+      config: { get: () => defineConfig({ ...fixture().config, authority: undefined }) },
       container: { make: async () => ({ authority: { namespace: 'test', guard } }) },
     }) as never
   await assert.rejects(
@@ -316,7 +330,7 @@ test('context holds the admitted view-as context only when the effective guard w
       }),
     },
   } as unknown as HttpContext
-  markContextEnforced(ctx)
+  contextEnforcement.markContextEnforced(ctx)
   const guard = new EffectiveSessionGuard('web', ctx, raw)
   assert.isUndefined(guard.context)
   assert.strictEqual(await guard.authenticate(), target)
@@ -332,11 +346,11 @@ test('a guard built by Account Kit accountKitSessionGuard passes the effective d
   assert,
 }) => {
   const { accountKitSessionGuard } = await import('@kevinjohn/adonisjs-account-kit/auth')
-  const { effectiveSessionGuard } = await import('../auth/define_config.js')
-  const { getEffectiveGuardDriver } = await import('../src/integration/guard_registration.js')
+  const { effectiveSessionGuard } = await import('../src/auth/define_config.js')
+  const { guardRegistration } = await import('../src/integration/guard_registration.js')
   const raw = accountKitSessionGuard({ provider: {} as never })
   const app = {
-    config: { get: () => ({ authority: { guard: 'web' } }) },
+    config: { get: () => defineConfig(fixture().config) },
     container: { make: async () => ({}) },
   } as never
   const rawFactory = await raw.resolver('web', app)
@@ -344,7 +358,7 @@ test('a guard built by Account Kit accountKitSessionGuard passes the effective d
   // Runtime wiring constructs factories without a live request; the guard must not touch it.
   const ctx = Object.freeze({}) as unknown as HttpContext
   // The request-time check compares the raw guard's driver with the effective factory's driver.
-  assert.equal(rawFactory(ctx).driverName, getEffectiveGuardDriver(factory))
+  assert.equal(rawFactory(ctx).driverName, guardRegistration.getEffectiveGuardDriver(factory))
   // The effective guard's constructor refuses a raw guard whose driver is not 'session'.
   assert.equal(factory(ctx).driverName, 'session')
 })

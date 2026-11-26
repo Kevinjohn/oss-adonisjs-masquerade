@@ -18,7 +18,7 @@ export const nativeAdapter = accountKitAuthority({
 
 export default defineConfig({
   authority: nativeAdapter.authority,
-  policy: {
+  permissions: {
     canMasquerade: async ({ actor, target }) => {
       // Operators may support active customers, never another operator.
       if (!actor.user.masqueradeOperator || target.user.masqueradeOperator) return false

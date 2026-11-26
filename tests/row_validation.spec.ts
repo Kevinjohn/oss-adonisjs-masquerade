@@ -1,6 +1,6 @@
 import { test } from '@japa/runner'
-import { fixture, errorCode } from './helpers/core.js'
-import { requireValidModeRow } from '../src/row_validation.js'
+import { fixture, errorCode } from './helpers/core.ts'
+import { requireValidModeRow } from '../src/row_validation.ts'
 
 test('access fails closed', async ({ assert }) => {
   const f = fixture()

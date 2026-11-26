@@ -52,7 +52,7 @@ const nativeAdapter = nativeAuthorities(session, [tokens])
 Register `effectiveSessionGuard` for the session business guard and
 `effectiveAccessTokensGuard(rawApiGuard, { guard: 'api' })` for a separate effective token guard.
 Configure Masquerade with `nativeAdapter.authority`, and bind `nativeAdapter` as
-`masquerade.native` in the application container, following the existing [setup guide](setup.md).
+`NativeAdapter` in the application container, following the existing [setup guide](setup.md).
 The composition requires every adapter to reference the exact same authority object and each raw
 guard name to be unique.
 
@@ -99,7 +99,7 @@ export const nativeAdapter = accessTokensAuthority({
 ```
 
 Use `nativeAdapter.authority` in the Masquerade configuration and bind `nativeAdapter` as
-`masquerade.native`, as described in the [setup guide](setup.md). Replace the example namespace
+`NativeAdapter`, as described in the [setup guide](setup.md). Replace the example namespace
 and account callbacks with host-owned values. Standalone token options (`namespace`, `incarnation`,
 `securityStamp`, `isActive`) are mutually exclusive with the shared `authority` option.
 

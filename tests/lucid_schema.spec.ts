@@ -3,7 +3,7 @@ import { readFile, mkdtemp, writeFile, rm } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { pathToFileURL } from 'node:url'
-import { sqlFixture } from './helpers/sql_store.js'
+import { sqlFixture } from './helpers/sql_store.ts'
 import type { BaseSchema } from '@adonisjs/lucid/schema'
 
 test('the v1 migration creates indexed tables with the owner primary key and rolls them back', async ({
@@ -13,7 +13,7 @@ test('the v1 migration creates indexed tables with the owner primary key and rol
   const directory = await mkdtemp(join(tmpdir(), 'masquerade_migration_'))
   try {
     const stub = await readFile(
-      new URL('../stubs/migrations/create_masquerade_tables.stub', import.meta.url),
+      new URL('../stubs/make/migration/create_masquerade_tables.stub', import.meta.url),
       'utf8'
     )
     // The leading Core stub directive selects the generated filename; execute the migration body here.
@@ -23,7 +23,7 @@ test('the v1 migration creates indexed tables with the owner primary key and rol
     await writeFile(
       schemaModule,
       `export { createMasqueradeSchemaV1, dropMasqueradeSchemaV1 } from ${JSON.stringify(
-        new URL('../stores/lucid.ts', import.meta.url).href
+        new URL('../src/stores/lucid.ts', import.meta.url).href
       )}
       export function createMasqueradeSchema() { throw new Error('Unversioned create helper called') }
       export function dropMasqueradeSchema() { throw new Error('Unversioned drop helper called') }

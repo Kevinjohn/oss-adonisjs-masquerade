@@ -1,38 +1,40 @@
+import { configProvider } from '@adonisjs/core'
+import { validateConfig } from '../src/define_config.ts'
 import { test } from '@japa/runner'
-import { InvalidArgumentsException, RuntimeException } from '@adonisjs/core/exceptions'
-import { createMasqueradeService, defineConfig, errors } from '../index.js'
-import { fixture } from './helpers/core.js'
+import { InvalidArgumentsException } from '@adonisjs/core/exceptions'
+import { createMasqueradeService, defineConfig, errors } from '../index.ts'
+import { fixture } from './helpers/core.ts'
 
-test('accepts optional canEdit and rejects a non-function as policy.canEdit', ({ assert }) => {
+test('accepts optional canEdit and rejects a non-function as permissions.canEdit', async ({
+  assert,
+}) => {
   const f = fixture()
-  const config = defineConfig(f.config)
-  assert.isFunction(config.policy.canEdit)
-  assert.isTrue(Object.isFrozen(config.policy))
+  const config = await defineConfig(f.config).resolver({} as never)
+  assert.isFunction(config.permissions?.canEdit)
+  assert.isTrue(Object.isFrozen(config.permissions))
   let error: unknown
   try {
-    defineConfig({ ...f.config, policy: { ...f.config.policy, canEdit: true } } as never)
+    defineConfig({ ...f.config, permissions: { ...f.config.permissions, canEdit: true } } as never)
   } catch (caught) {
     error = caught
   }
-  assert.instanceOf(error, errors.E_MASQUERADE_INVALID_CONFIGURATION)
-  assert.equal(
-    (error as InstanceType<typeof errors.E_MASQUERADE_INVALID_CONFIGURATION>).field,
-    'policy.canEdit'
-  )
+  assert.instanceOf(error, InvalidArgumentsException)
+  assert.equal((error as Error).message, 'Invalid masquerade configuration: permissions.canEdit')
 })
 
-test('validates config synchronously and freezes copied configuration', ({ assert }) => {
+test('validates config synchronously and freezes copied configuration', async ({ assert }) => {
   const f = fixture()
-  const config = defineConfig(f.config)
+  const config = await defineConfig(f.config).resolver({} as never)
   assert.equal(config.durationSeconds, 900)
   assert.equal(config.maxDurationSeconds, 3600)
   assert.equal(config.reason, 'optional')
-  assert.equal(defineConfig({ ...f.config, reason: 'required' }).reason, 'required')
+  const required = await defineConfig({ ...f.config, reason: 'required' }).resolver({} as never)
+  assert.equal(required.reason, 'required')
   assert.isTrue(Object.isFrozen(config))
   assert.isTrue(Object.isFrozen(config.authority))
-  assert.isTrue(Object.isFrozen(config.policy))
+  assert.isTrue(Object.isFrozen(config.permissions))
   f.config.authority.namespace = 'changed'
-  assert.equal(config.authority.namespace, 'test')
+  assert.equal(config.authority?.namespace, 'test')
 })
 
 test('invalid service configuration logs a safe diagnostic and preserves startup failure', async ({
@@ -43,16 +45,8 @@ test('invalid service configuration logs a safe diagnostic and preserves startup
   const error = await createMasqueradeService(invalid, f.dependencies).catch(
     (caught: unknown) => caught
   )
-  assert.instanceOf(error, errors.E_MASQUERADE_INVALID_CONFIGURATION)
-  assert.equal(
-    (error as InstanceType<typeof errors.E_MASQUERADE_INVALID_CONFIGURATION>).code,
-    'E_MASQUERADE_INVALID_CONFIGURATION'
-  )
-  assert.equal(
-    (error as InstanceType<typeof errors.E_MASQUERADE_INVALID_CONFIGURATION>).field,
-    'durationSeconds'
-  )
-  assert.equal((error as Error).message, 'Invalid masquerade configuration')
+  assert.instanceOf(error, InvalidArgumentsException)
+  assert.equal((error as Error).message, 'Invalid masquerade configuration: durationSeconds')
   assert.deepEqual(f.diagnostics, [
     { category: 'configuration', operation: 'validate', code: 'E_MASQUERADE_UNAVAILABLE' },
   ])
@@ -60,7 +54,7 @@ test('invalid service configuration logs a safe diagnostic and preserves startup
 
 for (const [name, patch] of Object.entries({
   unknown: { extra: true },
-  policy: { policy: null },
+  permissions: { permissions: null },
   authority: { authority: null },
   incarnation: { authority: { ...fixture().config.authority, incarnation: undefined } },
   namespace: { authority: { ...fixture().config.authority, namespace: '../bad' } },
@@ -75,7 +69,7 @@ for (const [name, patch] of Object.entries({
   retentionBound: { retention: { days: 36_501 } },
   context: { contextEnforcement: 'ignore' },
   reason: { reason: 'sometimes' },
-  unknownPolicy: { policy: { ...fixture().config.policy, onEvent: () => {} } },
+  unknownPolicy: { permissions: { ...fixture().config.permissions, onEvent: () => {} } },
   unknownAuthority: { authority: { ...fixture().config.authority, extra: true } },
   unknownRetention: { retention: { days: 7, extra: true } },
 }))
@@ -86,17 +80,17 @@ for (const [name, patch] of Object.entries({
     )
   })
 
-test('accepts a config without authority and policy; the service still requires them', async ({
+test('accepts a config without authority and permissions; the service still requires them', async ({
   assert,
 }) => {
   const f = fixture()
-  const { authority, policy, ...plain } = f.config
-  const config = defineConfig(plain)
+  const { authority, permissions, ...plain } = f.config
+  const config = await defineConfig(plain).resolver({} as never)
   assert.notProperty(config, 'authority')
-  assert.notProperty(config, 'policy')
+  assert.notProperty(config, 'permissions')
   for (const [missing, field] of [
-    [{ ...plain, policy }, 'authority'],
-    [{ ...plain, authority }, 'policy'],
+    [{ ...plain, permissions }, 'authority'],
+    [{ ...plain, authority }, 'permissions'],
   ] as const) {
     const error = await createMasqueradeService(missing, f.dependencies).catch(
       (caught: unknown) => caught
@@ -128,12 +122,12 @@ test('rejects test store outside explicit test environment even when store facto
     (error as InstanceType<typeof errors.E_MASQUERADE_INVALID_STORE>).field,
     'store.testOnly'
   )
-  const narrowed = defineConfig({
+  const narrowed = await defineConfig({
     ...f.config,
     durationSeconds: 60,
     maxDurationSeconds: 120,
     retention: { days: 30 },
-  })
+  }).resolver({} as never)
   assert.equal(narrowed.maxDurationSeconds, 120)
 })
 
@@ -186,8 +180,8 @@ test('reports safe, stable field categories for invalid configuration', ({ asser
       field: 'authority.namespace',
     },
     {
-      patch: { policy: { ...f.config.policy, canMasquerade: undefined } },
-      field: 'policy.canMasquerade',
+      patch: { permissions: { ...f.config.permissions, canMasquerade: undefined } },
+      field: 'permissions.canMasquerade',
     },
     { patch: { durationSeconds: 40 }, field: 'durationSeconds' },
     { patch: { maxDurationSeconds: 4000 }, field: 'maxDurationSeconds' },
@@ -203,17 +197,14 @@ test('reports safe, stable field categories for invalid configuration', ({ asser
     } catch (caught) {
       error = caught
     }
-    assert.instanceOf(error, errors.E_MASQUERADE_INVALID_CONFIGURATION)
-    assert.instanceOf(error, RuntimeException)
-    assert.equal((error as { code?: string }).code, 'E_MASQUERADE_INVALID_CONFIGURATION')
-    assert.equal((error as { field?: string }).field, field)
-    assert.equal((error as Error).message, 'Invalid masquerade configuration')
+    assert.instanceOf(error, InvalidArgumentsException)
+    assert.equal((error as Error).message, `Invalid masquerade configuration: ${field}`)
     assert.notInclude(JSON.stringify(error), 'private-secret')
   }
 })
 
-import type { NativeAuthority, MasqueradePolicy } from '../src/types.js'
-import type { Request, User } from './helpers/core.js'
+import type { NativeAuthority, MasqueradePermissions } from '../src/types.ts'
+import type { Request, User } from './helpers/core.ts'
 
 test('preserves inherited contract methods and their class receivers when copying config', async ({
   assert,
@@ -240,7 +231,7 @@ test('preserves inherited contract methods and their class receivers when copyin
         : null
     }
   }
-  class Policy implements MasqueradePolicy<User, Request> {
+  class Policy implements MasqueradePermissions<User, Request> {
     #approved = true
     async canMasquerade(): Promise<boolean> {
       return this.#approved
@@ -251,7 +242,7 @@ test('preserves inherited contract methods and their class receivers when copyin
   }
   class Configuration {
     authority = new Authority()
-    policy = new Policy()
+    permissions = new Policy()
     contextEnforcement = 'enforce' as const
     retention = 'host-managed' as const
     #store = f.store
@@ -259,7 +250,7 @@ test('preserves inherited contract methods and their class receivers when copyin
       return this.#store
     }
   }
-  const service = await createMasqueradeService(defineConfig(new Configuration()), f.dependencies)
+  const service = await createMasqueradeService(validateConfig(new Configuration()), f.dependencies)
   const idle = await service.status({})
   const active = await service.start(
     {},
@@ -272,4 +263,22 @@ test('preserves inherited contract methods and their class receivers when copyin
 
 test('accepts a retention window of one hundred years', ({ assert }) => {
   assert.doesNotThrow(() => defineConfig({ ...fixture().config, retention: { days: 36_500 } }))
+})
+
+test('passes AdonisJS application to the store only when requested', async ({ assert }) => {
+  const f = fixture()
+  const app = {} as never
+  const calls: unknown[] = []
+  const provider = defineConfig({
+    ...f.config,
+    store: async (application) => {
+      calls.push(application)
+      return f.store
+    },
+  })
+  const config = await configProvider.resolve<typeof f.config>(app, provider)
+  assert.isNotNull(config)
+  assert.deepEqual(calls, [])
+  assert.equal(await config!.store(), f.store)
+  assert.deepEqual(calls, [app])
 })

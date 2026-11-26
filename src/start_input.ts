@@ -1,8 +1,8 @@
-import { E_MASQUERADE_INVALID_INPUT } from './errors.js'
-import { isBoundedString } from './bounded_string.js'
-import { requireStartReason } from './reason.js'
-import type { ReasonRequirement } from './reason.js'
-import type { ModeAccess } from './types.js'
+import { E_MASQUERADE_INVALID_INPUT } from './errors.ts'
+import { isBoundedString } from './bounded_string.ts'
+import { requireStartReason } from './reason.ts'
+import type { ReasonRequirement } from './reason.ts'
+import type { ModeAccess } from './types.ts'
 
 type StartSelectionOptions = {
   actorId: string

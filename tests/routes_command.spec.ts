@@ -1,7 +1,9 @@
+import { fixture } from './helpers/core.ts'
+import { defineConfig } from '../src/define_config.ts'
 import { test } from '@japa/runner'
 import { IgnitorFactory } from '@adonisjs/core/factories'
-import { inspectRouteCoverage } from '../commands/routes.js'
-import { sensitive } from '../src/integration/route_metadata.js'
+import { inspectRouteCoverage } from '../commands/routes.ts'
+import { sensitive } from '../src/integration/route_metadata.ts'
 
 test.group('masquerade:routes Ace command', () => {
   test('reports routes from the actual router grouped by guard and marker', async ({ assert }) => {
@@ -14,9 +16,9 @@ test.group('masquerade:routes Ace command', () => {
       .withCoreProviders()
       .withCoreConfig()
       .merge({
-        config: { masquerade: { authority: { guard: 'web' } } },
+        config: { masquerade: defineConfig(fixture().config) },
         rcFileContents: {
-          commands: [() => import('../commands/main.js')],
+          commands: [() => import('./helpers/commands.js')],
           providers: [() => import('./helpers/auth_manager_provider.js')],
         },
       })
@@ -41,16 +43,10 @@ test.group('masquerade:routes Ace command', () => {
         [{ name: 'auth', args: { guards: ['web'] } }]
       )
       const packageControl = router
-        .post('/masquerade/start', [
-          () =>
-            import('../http/controllers.js').then(({ MasqueradeController }) => ({
-              default: MasqueradeController,
-            })),
-          'start',
-        ])
+        .post('/masquerade/start', [() => import('../src/http/masquerade_controller.js'), 'start'])
         .middleware(auth.auth({ guards: ['web'] }))
         .toJSON()
-      const controllerModule = await import('../http/controllers.js')
+      const controllerModule = await import('../src/http/masquerade_controller.js')
       class BusinessController {
         async start() {}
       }
@@ -58,7 +54,7 @@ test.group('masquerade:routes Ace command', () => {
         .post('/business/start', [
           async () => ({
             default: BusinessController,
-            MasqueradeController: controllerModule.MasqueradeController,
+            MasqueradeController: controllerModule.default,
           }),
           'start',
         ])
@@ -168,7 +164,7 @@ test.group('masquerade:routes Ace command', () => {
   })
 
   test('is discoverable by the package Ace loader', async ({ assert }) => {
-    const commands = await import('../commands/main.js')
+    const commands = await import('./helpers/commands.js')
     const metadata = await commands.getMetaData()
     const reportMetadata = metadata.find((entry) => entry.commandName === 'masquerade:routes')
     assert.exists(reportMetadata)
@@ -183,9 +179,9 @@ test.group('masquerade:routes Ace command', () => {
       .withCoreProviders()
       .withCoreConfig()
       .merge({
-        config: { masquerade: { authority: { guard: 'web' } } },
+        config: { masquerade: defineConfig(fixture().config) },
         rcFileContents: {
-          commands: [() => import('../commands/main.js')],
+          commands: [() => import('./helpers/commands.js')],
           providers: [() => import('./helpers/auth_manager_provider.js')],
         },
       })
@@ -214,9 +210,9 @@ test.group('masquerade:routes Ace command', () => {
       .withCoreProviders()
       .withCoreConfig()
       .merge({
-        config: { masquerade: {} },
+        config: { masquerade: defineConfig({ ...fixture().config, authority: undefined }) },
         rcFileContents: {
-          commands: [() => import('../commands/main.js')],
+          commands: [() => import('./helpers/commands.js')],
           providers: [() => import('./helpers/auth_manager_provider.js')],
         },
       })

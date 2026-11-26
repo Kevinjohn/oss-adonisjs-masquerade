@@ -11,7 +11,8 @@ if (process.env.TEST_BUILT_EXPORTS === '1') {
     const provider = await import('@kevinjohn/adonisjs-masquerade/masquerade_provider')
     const retiredProviderPath = '@kevinjohn/adonisjs-masquerade/providers/masquerade_provider'
     await rejects(() => import(retiredProviderPath), { code: 'ERR_PACKAGE_PATH_NOT_EXPORTED' })
-    const commands = await import('@kevinjohn/adonisjs-masquerade/commands')
+    const commandsPath = '@kevinjohn/adonisjs-masquerade/commands'
+    const commands: typeof import('./helpers/commands.ts') = await import(commandsPath)
     const auth = await import('@kevinjohn/adonisjs-masquerade/auth')
     const http = await import('@kevinjohn/adonisjs-masquerade/http')
     const contextMiddlewarePath = '@kevinjohn/adonisjs-masquerade/masquerade_context_middleware'
@@ -29,7 +30,7 @@ if (process.env.TEST_BUILT_EXPORTS === '1') {
     assert.isFunction(apiClientPlugin.masqueradeApiClient)
     assert.equal(typeof root, 'object')
     assert.isFunction(root.configure)
-    assert.isFunction(root.MasqueradeCallbackRegistry)
+    assert.isFunction(root.MasqueradeCallbackRegistration)
     assert.isFunction(root.MasqueradeRuntime)
     assert.notProperty(root, 'MasqueradeError')
     assert.notProperty(root, 'MasqueradeSetupError')
@@ -46,14 +47,17 @@ if (process.env.TEST_BUILT_EXPORTS === '1') {
       'E_MASQUERADE_STOP_PROGRESS',
       'E_MASQUERADE_UNAUTHENTICATED',
       'E_MASQUERADE_UNAVAILABLE',
+      'E_MASQUERADE_UNKNOWN_ACTOR_ACCOUNT',
       'E_MASQUERADE_UNKNOWN_COMMIT',
+      'E_UNAUTHORIZED_ACCESS',
+      'MasqueradeRequestException',
     ])
     const blocked = new root.errors.E_MASQUERADE_ACTION_BLOCKED('sensitive')
     assert.equal(blocked.code, 'E_MASQUERADE_ACTION_BLOCKED')
     assert.equal(blocked.blockedBy, 'sensitive')
     assert.isTrue(http.isMasqueradeRequestError(blocked))
     assert.isString(root.stubsRoot)
-    assert.isTrue(existsSync(join(root.stubsRoot, 'migrations/create_masquerade_tables.stub')))
+    assert.isTrue(existsSync(join(root.stubsRoot, 'make/migration/create_masquerade_tables.stub')))
     assert.lengthOf(Object.keys(types), 0)
     assert.isFunction(provider.default)
     assert.isFunction(auth.effectiveSessionGuard)
@@ -75,15 +79,14 @@ if (process.env.TEST_BUILT_EXPORTS === '1') {
     for (const name of [
       'MasqueradeController',
       'masqueradeRoutes',
-      'masqueradeContext',
       'renderMasqueradeError',
       'contextField',
-      'shareMasquerade',
-      'masqueradeAuditFields',
       'sensitive',
       'allowMutation',
     ] as const)
       assert.isFunction(http[name])
+    assert.isFunction(http.masqueradeEdge.share)
+    assert.isFunction(http.masqueradeAudit.fields)
     const commandMetadata = await commands.getMetaData()
     const prune = commandMetadata.find((command) => command.commandName === 'masquerade:prune')
     assert.isDefined(prune)
@@ -105,7 +108,7 @@ if (process.env.TEST_BUILT_EXPORTS === '1') {
           import { registerHooks } from 'node:module'
           registerHooks({
             resolve(specifier, context, nextResolve) {
-              if ((/^@adonisjs\\//.test(specifier) && specifier !== '@adonisjs/core/exceptions') || /account[-_]kit/i.test(specifier)) {
+              if (['@adonisjs/lucid', '@adonisjs/assembler', '@adonisjs/bouncer', '@adonisjs/session', '@japa/api-client'].some((name) => specifier === name || specifier.startsWith(name + '/')) || /account[-_]kit/i.test(specifier)) {
                 throw new Error('Optional integration resolved: ' + specifier)
               }
               return nextResolve(specifier, context)

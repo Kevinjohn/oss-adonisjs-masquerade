@@ -7,9 +7,8 @@ controller that also accepts Edge form posts, opt in when configuring the packag
 node ace configure @kevinjohn/adonisjs-masquerade --form-controller
 ```
 
-Configure creates `app/controllers/masquerade_form_controller.ts` and, when it can wire the
-starter-kit routes, uses that controller for POST start/stop while the package controller serves
-JSON status. Only requests that explicitly accept HTML and negotiate it use the form adapter; JSON
+Configure creates `app/controllers/masquerade_form_controller.ts`. Use `--control-routes` to draft
+the matching routes, then import them from the host routes preload. Only requests that explicitly accept HTML and negotiate it use the form adapter; JSON
 requests, requests without an `Accept` header, and wildcard-only requests delegate to the package
 controller. HTML requests call the same service, redirect, and flash a typed result
 under the `masquerade` key. Success values identify `started` or `stopped`; errors carry the stable
@@ -21,7 +20,7 @@ storage. The controller renders no UI.
 Use `--banner --form-controller` together when generating the starter banner: its
 `route('masquerade.stop')` action then reaches the host-owned HTML adapter. Without
 `--form-controller`, the package route keeps its JSON response, including for a browser form.
-With `--no-wire`, configure prints the manual route wiring instead.
+Configure prints the steps for mounting the routes and middleware.
 
 The native-session example extends the generated controller and overrides only its app-specific
 redirects. For a host-rendered status page, call `runtime.service.status(ctx)`, load eligible target

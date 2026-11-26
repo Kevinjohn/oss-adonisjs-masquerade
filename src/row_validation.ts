@@ -1,7 +1,7 @@
-import { E_MASQUERADE_UNAVAILABLE } from './errors.js'
-import { isBoundedString } from './bounded_string.js'
-import { normalizeReason } from './reason.js'
-import type { ModeRow, OwnerKey } from './types.js'
+import { E_MASQUERADE_UNAVAILABLE } from './errors.ts'
+import { isBoundedString } from './bounded_string.ts'
+import { normalizeReason } from './reason.ts'
+import type { ModeRow, OwnerKey } from './types.ts'
 
 const uuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/
 const hash = /^[0-9a-f]{64}$/

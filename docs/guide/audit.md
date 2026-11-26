@@ -8,16 +8,16 @@ audit record. Include it in the host transaction when that audit must commit ato
 business change:
 
 ```ts
-import { masqueradeAuditFields } from '@kevinjohn/adonisjs-masquerade/http'
+import { masqueradeAudit } from '@kevinjohn/adonisjs-masquerade/http'
 
 await businessAudit.record({
   action: 'customer.preference.updated',
   outcome: 'success',
-  ...(await masqueradeAuditFields(ctx)),
+  ...(await masqueradeAudit.fields(ctx)),
 })
 ```
 
-`masqueradeAuditFields(ctx)` always returns the same keys: `actorId`, `actorIncarnation`,
+`masqueradeAudit.fields(ctx)` always returns the same keys: `actorId`, `actorIncarnation`,
 `effectiveId`, `effectiveIncarnation`, `isMasquerading`, `modeId` and `access`. While idle, the
 effective identity is the actor and `modeId` and `access` are `null`, so one audit table shape
 covers every request. `businessAudit.record` is the host's own audit writer. Do not infer the actor

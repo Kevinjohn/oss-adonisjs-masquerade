@@ -1,4 +1,4 @@
-import { E_MASQUERADE_INVALID_INPUT } from './errors.js'
+import { E_MASQUERADE_INVALID_INPUT } from './errors.ts'
 
 /** Whether a start must carry a reason; set by the `reason` configuration key. */
 export type ReasonRequirement = 'optional' | 'required'

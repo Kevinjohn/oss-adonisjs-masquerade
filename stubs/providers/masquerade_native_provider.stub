@@ -1,0 +1,17 @@
+{{{
+  exports({ to: app.providersPath('masquerade_native_provider.ts') })
+}}}
+import { NativeAdapter } from '@kevinjohn/adonisjs-masquerade/native'
+import type { ApplicationService } from '@adonisjs/core/types'
+import { nativeAdapter } from '#config/masquerade'
+
+export default class MasqueradeNativeProvider {
+  #app: ApplicationService
+  constructor(app: ApplicationService) {
+    this.#app = app
+  }
+
+  register(): void {
+    this.#app.container.bindValue(NativeAdapter, nativeAdapter)
+  }
+}

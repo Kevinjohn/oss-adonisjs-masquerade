@@ -20,7 +20,7 @@ import {
 import os from 'node:os'
 import path from 'node:path'
 import { test } from '@japa/runner'
-import { freePort } from '../helpers/free_port.js'
+import { freePort } from '../helpers/free_port.ts'
 import { fileURLToPath } from 'node:url'
 
 const repoRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../..')

@@ -4,14 +4,14 @@ As an application developer rendering Edge pages, I want the current mode status
 
 **Status:** Current; source-reviewed helper. The `--banner` scaffold is optional.
 **Access:** Host controller or middleware that runs on a route whose handler renders an Edge view; the route may use the effective or a raw guard.
-**Entry:** Call `await shareMasquerade(ctx)` from `@kevinjohn/adonisjs-masquerade/http` before rendering, or generate the status middleware and banner with `node ace configure @kevinjohn/adonisjs-masquerade --banner` (see US-SETUP-01).
+**Entry:** Call `await masqueradeEdge.share(ctx)` from `@kevinjohn/adonisjs-masquerade/http` before rendering, or generate the status middleware and banner with `node ace configure @kevinjohn/adonisjs-masquerade --banner` (see US-SETUP-01).
 **Documentation:** [Context tokens and browser clients](../../docs/guide/security.md#context-tokens-and-browser-clients), [Edge forms](../../docs/recipes/routes-and-forms.md#edge).
-**Source:** [shareMasquerade and contextField](../../http/edge.ts), [status middleware stub](../../stubs/configure/status_middleware.stub), [banner stub](../../stubs/configure/banner_edge.stub).
+**Source:** [masqueradeEdge and contextField](../../src/http/edge.ts), [status middleware stub](../../stubs/app/middleware/share_masquerade_status_middleware.stub), [banner stub](../../stubs/resources/views/components/masquerade/banner.stub).
 **Coverage:** [Edge helper tests](../../tests/http_edge.spec.ts).
 
 ## Acceptance criteria
 
-- `shareMasquerade(ctx)` shares two Edge values: `masquerade` (the safe `ModeView`) and `masqueradeContextField()`, which renders `<input type="hidden" name="_masqueradeContext" value="...">` with the token HTML-escaped. It returns the `ModeView`.
+- `masqueradeEdge.share(ctx)` shares two Edge values: `masquerade` (the safe `ModeView`) and `masqueradeContextField()`, which renders `<input type="hidden" name="_masqueradeContext" value="...">` with the token HTML-escaped. It returns the `ModeView`.
 - On an effective-guard route it shares the request's memoised admission, so the view cannot show a mode newer than the one the handler ran under. On any other route it shares read-only status; it does not admit, invalidate or apply `canUseRequest`.
 - When the context has no Edge `view`, the call still returns the mode and shares nothing.
 - The hidden field carries the context token only. Cookie-authenticated forms still need Shield's `csrfField()` alongside it.
@@ -21,7 +21,7 @@ As an application developer rendering Edge pages, I want the current mode status
 
 ```mermaid
 flowchart TD
-    A{"Setup?"} -->|shareMasquerade before rendering| B["Page renders with masquerade and masqueradeContextField"]
+    A{"Setup?"} -->|masqueradeEdge before rendering| B["Page renders with masquerade and masqueradeContextField"]
     A -->|Generated banner middleware| H["Page renders with masquerade only"]
     B --> F["Form includes masqueradeContextField and csrfField"]
     H --> C{"Mode active?"}
@@ -33,11 +33,11 @@ flowchart TD
 
 ## Code flow
 
-Scope: the `shareMasquerade` helper and the generated status middleware; form handling is covered by US-CONTEXT-01.
+Scope: the `masqueradeEdge` helper and the generated status middleware; form handling is covered by US-CONTEXT-01.
 
 ```mermaid
 flowchart TD
-    A["shareMasquerade(ctx)"] --> B["resolveRuntime(ctx)"]
+    A["masqueradeEdge.share(ctx)"] --> B["resolveRuntime(ctx)"]
     B --> C{"runtime.selectGuard(ctx).kind is effective?"}
     C -->|Yes| D["runtime.admit(ctx) and use admitted.view"]
     C -->|No| E["runtime.service.status(ctx)"]
@@ -51,4 +51,4 @@ flowchart TD
     K --> J
 ```
 
-**Code references:** [Edge helpers](../../http/edge.ts), [status middleware stub](../../stubs/configure/status_middleware.stub), [banner stub](../../stubs/configure/banner_edge.stub), [banner option in configure](../../configure.ts), [security guide](../../docs/guide/security.md#context-tokens-and-browser-clients).
+**Code references:** [Edge helpers](../../src/http/edge.ts), [status middleware stub](../../stubs/app/middleware/share_masquerade_status_middleware.stub), [banner stub](../../stubs/resources/views/components/masquerade/banner.stub), [banner option in configure](../../configure.ts), [security guide](../../docs/guide/security.md#context-tokens-and-browser-clients).

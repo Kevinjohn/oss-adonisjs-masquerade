@@ -6,7 +6,7 @@ As a signed-in actor using a covered form or client, I want to submit the contex
 **Access:** Authenticated effective-guard business routes; token is bound to the raw actor and is not a credential. Integrated API tokens additionally need the configured `masquerade` ability.
 **Entry:** `_masqueradeContext` on a form or `X-Masquerade-Context` on a client request; unsafe methods also retain the host CSRF requirement.
 **Documentation:** [Context token contract](../../docs/guide/glossary.md), [JSON client](../../docs/guide/clients/json.md), [security](../../docs/guide/security.md#context-tokens-and-browser-clients).
-**Source:** [masqueradeContext](../../http/context_middleware.ts), [requireContext](../../src/context_token.ts).
+**Source:** [masqueradeContext](../../src/http/context_middleware.ts), [requireContext](../../src/context_token.ts).
 **Coverage:** [Context middleware tests](../../tests/http_context_middleware.spec.ts), [context token tests](../../tests/context_token.spec.ts).
 
 ## Acceptance criteria
@@ -40,7 +40,7 @@ Scope: router middleware on effective routes; context enforcement must run after
 
 ```mermaid
 flowchart TD
-    A["masqueradeContext(ctx, next)"] --> A2{"Route has Auth metadata?"}
+    A["new MasqueradeContextMiddleware().handle(ctx, next)"] --> A2{"Route has Auth metadata?"}
     A2 -->|No| D
     A2 -->|Yes| B["Set no-store; runtime.selectGuard"]
     B --> C{"Selected guard is effective?"}
@@ -61,7 +61,7 @@ flowchart TD
     G --> K["next() or throw route-policy error"]
 ```
 
-**Code references:** [middleware](../../http/context_middleware.ts), [requireContext](../../src/context_token.ts), [security contract](../../docs/guide/security.md#context-tokens-and-browser-clients), [middleware tests](../../tests/http_context_middleware.spec.ts).
+**Code references:** [middleware](../../src/http/context_middleware.ts), [requireContext](../../src/context_token.ts), [security contract](../../docs/guide/security.md#context-tokens-and-browser-clients), [middleware tests](../../tests/http_context_middleware.spec.ts).
 
 ## Middleware and error handling
 
@@ -69,4 +69,4 @@ Register the default or named `MasqueradeContextMiddleware` after Auth initialis
 
 A host exception handler can call `renderMasqueradeError(ctx, error)`. It returns false for framework and host exceptions. A Masquerade error produces a no-store JSON response with the stable code and a host translation at `errors.<code>` when available, falling back to English. Blocked actions additionally identify the cause in `blockedBy`.
 
-**Source:** [context middleware](../../http/context_middleware.ts), [error renderer](../../http/errors.ts), [error response](../../src/errors.ts). **Coverage:** [error contracts](../../tests/errors.spec.ts), [middleware](../../tests/http_context_middleware.spec.ts).
+**Source:** [context middleware](../../src/http/context_middleware.ts), [error renderer](../../src/http/errors.ts), [error response](../../src/errors.ts). **Coverage:** [error contracts](../../tests/errors.spec.ts), [middleware](../../tests/http_context_middleware.spec.ts).

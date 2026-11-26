@@ -1,8 +1,8 @@
 import { test } from '@japa/runner'
-import { pruneMasquerade } from '../src/prune.js'
-import { createMasqueradeService } from '../src/service.js'
-import { errors } from '../index.js'
-import { fixture, errorCode } from './helpers/core.js'
+import { pruneMasquerade } from '../src/prune.ts'
+import { createMasqueradeService } from '../src/service.ts'
+import { errors } from '../index.ts'
+import { fixture, errorCode } from './helpers/core.ts'
 
 test("prune expiry event carries the row's access", async ({ assert }) => {
   const f = fixture()

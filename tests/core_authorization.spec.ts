@@ -1,6 +1,6 @@
 import { test } from '@japa/runner'
-import { fixture, errorCode } from './helpers/core.js'
-import type { Request } from './helpers/core.js'
+import { fixture, errorCode } from './helpers/core.ts'
+import type { Request } from './helpers/core.ts'
 
 test('invalid access values are 422 with start_denied and no revision change', async ({
   assert,
@@ -53,7 +53,7 @@ test('edit start requires canEdit literal true; absent, false, non-boolean and t
 }) => {
   for (const value of ['absent', false, 1, 'true', 'throw'] as const) {
     const f = fixture()
-    if (value === 'absent') delete f.config.policy.canEdit
+    if (value === 'absent') delete f.config.permissions.canEdit
     else if (value === 'throw') f.state.editThrows = true
     else f.state.edit = value
     const service = await f.create()
@@ -78,7 +78,7 @@ test('view start never calls canEdit', async ({ assert }) => {
   assert.equal(f.state.editCount, 0)
 })
 
-test('edit policy receives start reason and request but no admission request', async ({
+test('edit permissions receives start reason and request but no admission request', async ({
   assert,
 }) => {
   const f = fixture()
@@ -94,25 +94,25 @@ test('edit policy receives start reason and request but no admission request', a
   assert.notProperty(f.state.editInputs[1] as object, 'reason')
 })
 
-test('edit policy follows global policy and precedes request policy on start and admission', async ({
+test('edit permissions follows global permissions and precedes request permissions on start and admission', async ({
   assert,
 }) => {
   const f = fixture()
   const timeline: string[] = []
   let globalAllowed = true
-  f.config.policy.canMasquerade = async (input) => {
+  f.config.permissions.canMasquerade = async (input) => {
     timeline.push('global')
     assert.equal(input.actor.id, 'a')
     assert.equal(input.target.id, 'b')
     return globalAllowed
   }
-  f.config.policy.canEdit = async (input) => {
+  f.config.permissions.canEdit = async (input) => {
     timeline.push('edit')
     assert.equal(input.actor.id, 'a')
     assert.equal(input.target.id, 'b')
     return true
   }
-  f.config.policy.canUseRequest = async () => {
+  f.config.permissions.canUseRequest = async () => {
     timeline.push('request')
     return true
   }
@@ -132,15 +132,15 @@ test('edit policy follows global policy and precedes request policy on start and
 
   const deniedStart = fixture()
   const startCalls: string[] = []
-  deniedStart.config.policy.canMasquerade = async () => {
+  deniedStart.config.permissions.canMasquerade = async () => {
     startCalls.push('global')
     return false
   }
-  deniedStart.config.policy.canEdit = async () => {
+  deniedStart.config.permissions.canEdit = async () => {
     startCalls.push('edit')
     return true
   }
-  deniedStart.config.policy.canUseRequest = async () => {
+  deniedStart.config.permissions.canUseRequest = async () => {
     startCalls.push('request')
     return true
   }
@@ -188,13 +188,13 @@ test('start preserves input-shape, context and active-mode error precedence', as
   assert.equal(row?.revision, 1)
 })
 
-test('start denies false and truthy nonboolean policy; policy throws unavailable; no revision change', async ({
+test('start denies false and truthy nonboolean permissions; permissions throws unavailable; no revision change', async ({
   assert,
 }) => {
   for (const value of [false, 1, undefined, 'true', 'throw']) {
     const f = fixture()
-    f.config.policy.canMasquerade = async () => {
-      if (value === 'throw') throw new Error('policy')
+    f.config.permissions.canMasquerade = async () => {
+      if (value === 'throw') throw new Error('permissions')
       return value as boolean
     }
     const service = await f.create()
@@ -286,12 +286,12 @@ test('incarnation and namespace isolate rows and no-row contexts; client actor s
   assert.equal((await f.store.read(f.owner))!.state, 'active')
 })
 
-test('start policy receives reason/request and admission policy gets neither; local tenant denial preserves revision', async ({
+test('start permissions receives reason/request and admission permissions gets neither; local tenant denial preserves revision', async ({
   assert,
 }) => {
   const f = fixture()
   const calls: unknown[] = []
-  f.config.policy.canMasquerade = async (input) => {
+  f.config.permissions.canMasquerade = async (input) => {
     calls.push(input)
     return true
   }
@@ -504,14 +504,14 @@ test('a non-boolean active flag or an inconsistent inspected subject fails close
 test('start and admission require canUseRequest to return exactly true', async ({ assert }) => {
   for (const value of [false, undefined, 1, 'yes']) {
     const f = fixture()
-    f.config.policy.canUseRequest = async () => value as boolean
+    f.config.permissions.canUseRequest = async () => value as boolean
     assert.equal(await startResult(f), 'E_MASQUERADE_NOT_ALLOWED', String(value))
     assert.isNull(await f.store.read(f.owner))
     assert.equal(f.store.events.at(-1)!.kind, 'start_denied')
   }
   const f = fixture()
   let local: unknown = true
-  f.config.policy.canUseRequest = async () => local as boolean
+  f.config.permissions.canUseRequest = async () => local as boolean
   const service = await f.create()
   await f.start(service)
   local = 'yes'

@@ -1,4 +1,4 @@
-import type { ModeView, ResolvedContext, Subject } from './types.js'
+import type { ModeView, ResolvedContext, Subject } from './types.ts'
 /**
  * Internal integration seam; deliberately absent from the root public API.
  * @internal

@@ -1,12 +1,13 @@
-import type { MasqueradeErrorCode } from './errors.js'
-import type { NativeRuntimeAdapter } from './integration/native_binding.js'
+import type { ApplicationService } from '@adonisjs/core/types'
+import type { MasqueradeErrorCode } from './error_types.ts'
+import type { NativeRuntimeAdapter } from './native/types.ts'
 
 export type {
   MasqueradeBlockedBy,
   MasqueradeErrorCode,
   MasqueradeSetupErrorCode,
   MasqueradeSetupErrorField,
-} from './errors.js'
+} from './error_types.ts'
 
 /** Canonical provider identifier. */
 export type SubjectId = string
@@ -55,7 +56,7 @@ export interface NativeAuthority<User> {
   inspectAccount(id: SubjectId): Promise<AccountSnapshot<User> | null>
 }
 /** Global eligibility, optional edit permission and request-local access; only literal true permits access. */
-export interface MasqueradePolicy<User, Request> {
+export interface MasqueradePermissions<User, Request> {
   /** Whether `actor` may masquerade as `target`; checked at start and on every active admission. */
   canMasquerade(input: {
     actor: Subject<User>
@@ -145,7 +146,7 @@ export type ControlOutcomeEvent = AuditEvent & { kind: ControlOutcomeKind }
 export type ObserverEvent = Readonly<Omit<TransitionEvent, 'reason'>>
 /** The subsystem a diagnostic describes. */
 export type DiagnosticCategory =
-  'configuration' | 'store' | 'authority' | 'policy' | 'control' | 'observer'
+  'configuration' | 'store' | 'authority' | 'permissions' | 'control' | 'observer'
 /** The operation a diagnostic describes. */
 export type DiagnosticOperation =
   | 'validate'
@@ -260,24 +261,35 @@ export type RequestControlStore = Pick<
 export interface MasqueradeConfig<User, Request, Store extends RequestControlStore = ControlStore> {
   /** Defaults to the native adapter's `authority` when the runtime builds. */
   authority?: NativeAuthority<User>
-  /** May instead be registered through `masquerade.callbacks`. */
-  policy?: MasqueradePolicy<User, Request>
+  /** May instead be registered through `MasqueradeCallbackRegistration`. */
+  permissions?: MasqueradePermissions<User, Request>
   /** Opens the control store when the service is created. */
   store: () => Promise<Store>
   /** Default mode length, 60 to `maxDurationSeconds`; defaults to 900. */
   durationSeconds?: number
   /** Longest mode a start may request, 60 to 3600; defaults to 3600. */
   maxDurationSeconds?: number
+  /** Optional host logger for transitions and diagnostics. */
+  logger?: NonNullable<ServiceDependencies<User, Request>['logger']>
   contextEnforcement: 'report' | 'enforce'
   retention: { days: number } | 'host-managed'
   /** Defaults to optional; required rejects a start without a reason. */
   reason?: 'optional' | 'required'
 }
-/** Callbacks an application provider registers through `masquerade.callbacks`. */
+/** Configuration input whose store factory receives the application. */
+export type MasqueradeConfigOptions<
+  User,
+  Request,
+  Store extends RequestControlStore = ControlStore,
+> = Omit<MasqueradeConfig<User, Request, Store>, 'store'> & {
+  /** Open the control store using the application once its services are registered. */
+  store: (app: ApplicationService) => Promise<Store>
+}
+/** Callbacks an application provider registers through `MasqueradeCallbackRegistration`. */
 export interface MasqueradeCallbacks<User, Request> {
-  /** The native adapter; the package binds it as `masquerade.native`. Its `authority` is the config's `authority`. */
+  /** The native adapter; the package binds it as `NativeAdapter`. Its `authority` is the config's `authority`. */
   native?: NativeRuntimeAdapter & { readonly authority: NativeAuthority<User> }
-  policy?: MasqueradePolicy<User, Request>
+  permissions?: MasqueradePermissions<User, Request>
 }
 /** Start control input. */
 export interface StartInput {
@@ -406,3 +418,9 @@ export interface ServiceDependencies<User, Request> {
   /** Receives errors thrown by observers; they never change a committed result. */
   observerErrorHandler: (error: unknown) => unknown
 }
+
+export type * from './native/types.ts'
+export type * from './account_kit/types.ts'
+export type * from './http/types.ts'
+export type * from './stores/types.ts'
+export type * from './plugins/types.ts'

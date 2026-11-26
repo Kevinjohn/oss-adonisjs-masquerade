@@ -1,10 +1,11 @@
-import { E_MASQUERADE_PRUNE_PROGRESS } from '../src/errors.js'
+import { debugLogger, reportObserverError } from '../src/debug.ts'
+import { E_MASQUERADE_PRUNE_PROGRESS } from '../src/errors.ts'
 import { InvalidArgumentsException } from '@adonisjs/core/exceptions'
 import { BaseCommand, flags } from '@adonisjs/core/ace'
-import { pruneMasquerade, DEFAULT_PRUNE_BATCH_SIZE, MAX_PRUNE_BATCH_SIZE } from '../src/prune.js'
-import type { MasqueradeConfig } from '../src/types.js'
+import { pruneMasquerade, DEFAULT_PRUNE_BATCH_SIZE, MAX_PRUNE_BATCH_SIZE } from '../src/prune.ts'
+import { resolveMasqueradeConfig } from '../src/define_config.ts'
 
-/** Expire outdated modes and apply the configured audit-event retention policy. */
+/** Expire outdated modes and apply the configured audit-event retention permissions. */
 export default class PruneCommand extends BaseCommand {
   static commandName = 'masquerade:prune'
   static description = 'Expire outdated masquerade modes and prune retained events'
@@ -19,14 +20,9 @@ export default class PruneCommand extends BaseCommand {
       throw new InvalidArgumentsException(
         `--batch-size must be an integer from 1 to ${MAX_PRUNE_BATCH_SIZE}`
       )
-    const config = this.app.config.get('masquerade') as
-      MasqueradeConfig<unknown, object> | undefined
-    if (!config) throw new InvalidArgumentsException('Masquerade configuration is required')
+    const config = await resolveMasqueradeConfig<object>(this.app)
 
-    const [emitterService, logger] = await Promise.all([
-      this.app.container.make('emitter'),
-      this.app.container.make('logger'),
-    ])
+    const emitterService = await this.app.container.make('emitter')
     const emitter = emitterService as unknown as {
       emit(name: string, event: unknown): unknown
     }
@@ -35,12 +31,8 @@ export default class PruneCommand extends BaseCommand {
       {
         environment: this.app.nodeEnvironment,
         emitter: { emit: (name, event) => emitter.emit(name, event) },
-        logger: {
-          info: (event) => logger.info(event, 'Masquerade transition'),
-          error: (event) => logger.error(event, 'Masquerade diagnostic'),
-        },
-        observerErrorHandler: () =>
-          logger.error({ code: 'E_MASQUERADE_OBSERVER_FAILED' }, 'Masquerade observer failed'),
+        logger: config.logger ?? debugLogger,
+        observerErrorHandler: reportObserverError,
       },
       { batchSize }
     )

@@ -1,8 +1,8 @@
-import { E_MASQUERADE_UNAVAILABLE } from './errors.js'
-import { defineConfig } from './define_config.js'
-import { isBoundedString } from './bounded_string.js'
-import { openControlStore } from './control_store.js'
-import { requireValidModeRow } from './row_validation.js'
+import { E_MASQUERADE_UNAVAILABLE } from './errors.ts'
+import { validateConfig } from './define_config.ts'
+import { isBoundedString } from './bounded_string.ts'
+import { openControlStore } from './control_store.ts'
+import { requireValidModeRow } from './row_validation.ts'
 import type {
   ActiveModeRow,
   ControlStore,
@@ -10,7 +10,7 @@ import type {
   ModeRow,
   OwnerKey,
   RequestControlStore,
-} from './types.js'
+} from './types.ts'
 
 export const DEFAULT_ACTIVE_MODE_LIMIT = 50
 export const MAX_ACTIVE_MODE_LIMIT = 1000
@@ -58,7 +58,7 @@ export async function openOperatorStore<User, Request, K extends keyof ControlSt
   environment: string,
   required: readonly K[]
 ): Promise<RequestControlStore & Pick<ControlStore, K>> {
-  const validated = defineConfig(config)
+  const validated = validateConfig(config)
   try {
     return await openControlStore(validated.store, environment, required)
   } catch {

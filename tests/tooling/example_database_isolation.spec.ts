@@ -19,7 +19,7 @@ import {
   nativePgTarget,
   revokeNativePgLease,
   withoutNativePgTestTargets,
-} from '../../bin/helpers/native_pg_lease.js'
+} from '../../bin/helpers/native_pg_lease.ts'
 
 const root = resolve(import.meta.dirname, '../..')
 const apps = {

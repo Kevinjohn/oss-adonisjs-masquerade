@@ -1,12 +1,13 @@
+import { validateConfig } from '../src/define_config.ts'
 import { test } from '@japa/runner'
-import { createMasqueradeService, defineConfig } from '../index.js'
-import { MemoryControlStore } from '../testing/main.js'
+import { createMasqueradeService } from '../index.ts'
+import { MemoryControlStore } from '../testing/main.ts'
 
 test('starts, rejects nesting, stops and preserves idle revisions', async ({ assert }) => {
   const store = new MemoryControlStore()
   const actor = { id: 'a', incarnation: 'a', user: { id: 'a' } }
   const service = await createMasqueradeService(
-    defineConfig({
+    validateConfig({
       authority: {
         namespace: 'test',
         guard: 'web',
@@ -18,7 +19,7 @@ test('starts, rejects nesting, stops and preserves idle revisions', async ({ ass
           securityStamp: 'stamp',
         }),
       },
-      policy: { canMasquerade: async () => true },
+      permissions: { canMasquerade: async () => true },
       store: async () => store,
       retention: 'host-managed',
       contextEnforcement: 'enforce',
@@ -52,7 +53,7 @@ test('starts, rejects nesting, stops and preserves idle revisions', async ({ ass
   )
 })
 
-import { fixture, errorCode } from './helpers/core.js'
+import { fixture, errorCode } from './helpers/core.ts'
 
 test('start persists bounded reason and hashes; projections and observers expose only safe fields', async ({
   assert,
@@ -177,19 +178,19 @@ test('stop ignores target deletion, denied policies and failing stamp access', a
   const service = await f.create()
   const active = await f.start(service, {}, 'edit')
   f.users.delete('b')
-  f.state.policyThrows = true
+  f.state.permissionsThrows = true
   f.state.local = false
   f.state.malformedStamp = true
   f.state.inspectThrows = true
   f.state.editThrows = true
-  const counts = [f.state.inspectCount, f.state.policyCount, f.state.editCount]
+  const counts = [f.state.inspectCount, f.state.permissionsCount, f.state.editCount]
   assert.equal(
     await errorCode(() => service.stop({}, { expectedContext: active.contextToken })),
     'NO_ERROR'
   )
   const idle = await service.status({})
   assert.isFalse(idle.isMasquerading)
-  assert.deepEqual([f.state.inspectCount, f.state.policyCount, f.state.editCount], counts)
+  assert.deepEqual([f.state.inspectCount, f.state.permissionsCount, f.state.editCount], counts)
   const row = await f.store.read(f.owner)
   for (const key of [
     'targetId',

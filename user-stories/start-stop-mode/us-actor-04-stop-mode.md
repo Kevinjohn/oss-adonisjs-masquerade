@@ -6,7 +6,7 @@ As a signed-in actor, I want to stop my active support mode with the current con
 **Access:** Actor authenticated by the configured raw control guard; this story follows an active mode. An authorised idle/absent stop is also accepted as a no-op with unchanged context. API tokens also need the configured `masquerade` ability.
 **Entry:** `POST /masquerade/stop` mounted by `masqueradeRoutes()`.
 **Documentation:** [Stop with the refreshed token](../../docs/guide/usage.md#stop-with-the-refreshed-token).
-**Source:** [MasqueradeController.stop](../../http/controllers.ts), [parseStopControlOrInvalidMarker](../../http/control_input.ts), [MasqueradeService.stop](../../src/service.ts).
+**Source:** [MasqueradeController.stop](../../src/http/masquerade_controller.ts), [parseStopControlOrInvalidMarker](../../src/http/control_input.ts), [MasqueradeService.stop](../../src/service.ts).
 **Coverage:** [HTTP controller tests](../../tests/http_controllers.spec.ts), [service transition tests](../../tests/mode_transition.spec.ts).
 
 ## Acceptance criteria
@@ -55,4 +55,4 @@ flowchart TD
     G -->|Applied| I["Return idle ModeView with rotated contextToken"]
 ```
 
-**Code references:** [controller](../../http/controllers.ts), [stop parser](../../http/control_input.ts), [service stop](../../src/service.ts), [context check](../../src/context_token.ts), [context guide](../../docs/guide/security.md#context-tokens-and-browser-clients), [stop guide](../../docs/guide/usage.md#stop-with-the-refreshed-token).
+**Code references:** [controller](../../src/http/masquerade_controller.ts), [stop parser](../../src/http/control_input.ts), [service stop](../../src/service.ts), [context check](../../src/context_token.ts), [context guide](../../docs/guide/security.md#context-tokens-and-browser-clients), [stop guide](../../docs/guide/usage.md#stop-with-the-refreshed-token).

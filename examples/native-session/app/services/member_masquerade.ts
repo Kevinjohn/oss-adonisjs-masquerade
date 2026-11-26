@@ -1,4 +1,4 @@
-import { createMasqueradeService, defineConfig } from '@kevinjohn/adonisjs-masquerade'
+import { createMasqueradeService } from '@kevinjohn/adonisjs-masquerade'
 import { sessionAuthority } from '@kevinjohn/adonisjs-masquerade/native'
 import { LucidControlStore } from '@kevinjohn/adonisjs-masquerade/stores/lucid'
 import type { HttpContext } from '@adonisjs/core/http'
@@ -17,10 +17,10 @@ const native = sessionAuthority({
 
 /** This alternate host integration exercises canonical provider IDs on a real native guard. */
 export function memberMasquerade() {
-  return createMasqueradeService(
-    defineConfig<Member, HttpContext>({
+  return createMasqueradeService<Member, HttpContext>(
+    {
       authority: native.authority,
-      policy: {
+      permissions: {
         canMasquerade: ({ actor, target }) =>
           actor.user.active && target.user.active && actor.id !== target.id,
         canEdit: ({ actor, target }) =>
@@ -29,7 +29,7 @@ export function memberMasquerade() {
       store: async () => new LucidControlStore(db.connection()),
       contextEnforcement: 'enforce',
       retention: 'host-managed',
-    }),
+    },
     {
       environment: 'test',
       authenticateActor: native.authenticateActor,

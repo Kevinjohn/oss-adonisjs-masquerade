@@ -1,6 +1,6 @@
 import { spawnSync } from 'node:child_process'
 import { test } from '@japa/runner'
-import { repoRoot } from '../helpers/tracked_markdown.js'
+import { repoRoot } from '../helpers/tracked_markdown.ts'
 
 test('the test runner fails when its filters select no tests', ({ assert }) => {
   const result = spawnSync(

@@ -1,8 +1,8 @@
 import { readFile } from 'node:fs/promises'
 import { join } from 'node:path'
 import { test } from '@japa/runner'
-import { isKitVersionedDoc, staleKitVersions } from '../../bin/helpers/account_kit_bump.js'
-import { repoRoot, trackedMarkdown } from '../helpers/tracked_markdown.js'
+import { isKitVersionedDoc, staleKitVersions } from '../../bin/helpers/account_kit_bump.ts'
+import { repoRoot, trackedMarkdown } from '../helpers/tracked_markdown.ts'
 
 const peerName = '@kevinjohn/adonisjs-account-kit'
 

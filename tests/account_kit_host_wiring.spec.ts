@@ -12,7 +12,7 @@ import {
   wireSessionConfig,
   wireSessionImports,
   wireShield,
-} from '../bin/helpers/account_kit_host_wiring.js'
+} from '../bin/helpers/account_kit_host_wiring.ts'
 
 const repositoryRoot = fileURLToPath(new URL('../', import.meta.url))
 const nativeSession = join(repositoryRoot, 'examples/native-session')

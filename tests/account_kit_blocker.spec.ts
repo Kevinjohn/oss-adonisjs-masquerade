@@ -1,8 +1,8 @@
 import { test } from '@japa/runner'
-import { assertManagedRouteRegistration } from '../account_kit/route_validation.js'
-import { inspectRouteCoverage } from '../commands/routes.js'
-import { checkActiveMode } from '../src/active_mode.js'
-import { fixture } from './helpers/core.js'
+import { assertManagedRouteRegistration } from '../src/account_kit/route_validation.ts'
+import { inspectRouteCoverage } from '../commands/routes.ts'
+import { checkActiveMode } from '../src/active_mode.ts'
+import { fixture } from './helpers/core.ts'
 
 const managed = {
   root: [

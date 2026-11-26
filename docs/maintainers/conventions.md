@@ -33,7 +33,7 @@ See [releasing](releasing.md) for the release procedure and local dry-run comman
 
 ## Architecture and boundaries
 
-- Core depends on explicit ports: `ControlStore`, `NativeAuthority` and `MasqueradePolicy`.
+- Core depends on explicit ports: `ControlStore`, `NativeAuthority` and `MasqueradePermissions`.
 - Framework and database integrations use narrow subpaths. Root import does not resolve Lucid or
   Account Kit. Lucid supports SQLite and PostgreSQL. Account Kit support is a v1.2 prerelease
   preview pinned to GitHub release artifact `0.8.0`; public registry publication is separate. The

@@ -1,4 +1,4 @@
-import { E_MASQUERADE_INVALID_INPUT } from './errors.js'
+import { E_MASQUERADE_INVALID_INPUT } from './errors.ts'
 
 /** Check raw control keys, leaving individual values unvalidated for the ordered service checks. */
 export function requireControlFields(

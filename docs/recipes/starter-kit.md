@@ -134,7 +134,7 @@ export { nativeAdapter }
 
 export default defineConfig<User, HttpContext>({
   authority: nativeAdapter.authority,
-  policy: {
+  permissions: {
     // Operators may support active customers. Refusing other operators is the recommended default.
     canMasquerade: ({ actor, target }) =>
       Boolean(actor.user.masqueradeOperator) &&

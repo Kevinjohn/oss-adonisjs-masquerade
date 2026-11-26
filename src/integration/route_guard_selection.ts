@@ -1,5 +1,5 @@
-import { E_MASQUERADE_UNAVAILABLE } from '../errors.js'
-import { hasAuthMiddleware, routeGuards } from './route_guards.js'
+import { E_MASQUERADE_UNAVAILABLE } from '../errors.ts'
+import { hasAuthMiddleware, routeGuards } from './route_guards.ts'
 
 type RouteMetadata = { middleware: { all(): Iterable<unknown> } }
 export type RouteGuardSelection =

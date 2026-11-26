@@ -2,7 +2,7 @@ import { test } from '@japa/runner'
 import { symbols } from '@adonisjs/auth'
 import type { SessionUserProviderContract } from '@adonisjs/auth/types/session'
 import type { HttpContext } from '@adonisjs/core/http'
-import { sessionAuthority } from '../native/main.js'
+import { sessionAuthority } from '../native/main.ts'
 
 test('native authority uses provider canonical identity rather than model id and preserves native user', async ({
   assert,
@@ -43,7 +43,7 @@ test('native authority uses provider canonical identity rather than model id and
 })
 
 import { errors } from '@adonisjs/auth'
-import { errorCode } from './helpers/core.js'
+import { errorCode } from './helpers/core.ts'
 
 test('native adapter rejects malformed canonical identifiers and preserves native authentication errors', async ({
   assert,

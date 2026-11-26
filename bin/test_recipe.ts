@@ -118,7 +118,7 @@ function verifyRecipe(parts: typeof snippets): void {
   requireRecipe(init >= 0 && init < context && context < silent, 'context middleware order')
   requireRecipe(
     parts.identityPolicy.includes('actor.user.masqueradeOperator'),
-    'deny-by-default policy'
+    'deny-by-default permissions'
   )
 }
 
@@ -273,9 +273,9 @@ async function applyRecipe(app: string): Promise<void> {
   )
   config = replaceOnce(
     config,
-    / {2}policy: \{[\s\S]*?\n {2}\},/,
-    extract(snippets.identityPolicy, / {2}policy: \{[\s\S]*?\n {2}\},/, 'host policy'),
-    'generated host policy'
+    / {2}permissions: \{[\s\S]*?\n {2}\},/,
+    extract(snippets.identityPolicy, / {2}permissions: \{[\s\S]*?\n {2}\},/, 'host permissions'),
+    'generated host permissions'
   )
   config = replaceOnce(
     config,
@@ -438,7 +438,6 @@ try {
           '--guard=web',
           '--banner',
           '--form-controller',
-          '--no-wire',
         ],
         `${engine} configure`,
         env

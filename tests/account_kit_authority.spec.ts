@@ -9,8 +9,8 @@ import { test } from '@japa/runner'
 import { errors, symbols } from '@adonisjs/auth'
 import { InvalidArgumentsException } from '@adonisjs/core/exceptions'
 import type { HttpContext } from '@adonisjs/core/http'
-import { accountKitAuthority } from '../account_kit/main.js'
-import { errorCode } from './helpers/core.js'
+import { accountKitAuthority } from '../src/account_kit/authority.ts'
+import { errorCode } from './helpers/core.ts'
 
 test('Account Kit authority captures one inspected revision with the canonical provider user', async ({
   assert,
@@ -108,7 +108,9 @@ test('Account Kit authority authenticates through raw guard then current; reject
       }),
     },
   } as unknown as HttpContext
-  const actor = await adapter.authenticateActor(ctx)
+  assert.isTrue(Object.isFrozen(adapter))
+  const { authenticateActor } = { ...adapter }
+  const actor = await authenticateActor(ctx)
   assert.equal(actor.id, '7')
   assert.deepEqual(calls, ['raw', 'managed', 'current'])
   reject = true

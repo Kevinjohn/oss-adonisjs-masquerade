@@ -1,7 +1,7 @@
 import { test } from '@japa/runner'
 import { RuntimeException } from '@adonisjs/core/exceptions'
-import { createMasqueradeService, errors } from '../index.js'
-import { fixture } from './helpers/core.js'
+import { createMasqueradeService, errors } from '../index.ts'
+import { fixture } from './helpers/core.ts'
 
 test('reports an invalid store contract without exposing store values', async ({ assert }) => {
   const f = fixture()

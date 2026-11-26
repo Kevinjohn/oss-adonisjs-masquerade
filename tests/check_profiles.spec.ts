@@ -3,7 +3,7 @@ import { mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { delimiter, join } from 'node:path'
 import { test } from '@japa/runner'
-import { checkProfiles, selectedSteps } from '../bin/check_profiles.js'
+import { checkProfiles, selectedSteps } from '../bin/check_profiles.ts'
 
 const root = join(import.meta.dirname, '..')
 const allSteps = Object.values(checkProfiles).flat()
@@ -23,6 +23,8 @@ test('every check step names an existing script', ({ assert }) => {
 test('the check profiles use only scripts invoked by CI workflows', ({ assert }) => {
   const covered = new Set(allSteps.map((step) => step.script))
   const ignored = new Set(['install', 'dlx', 'add', 'list', 'update', 'pack'])
+  // The tagged release gate requires release metadata and runs outside local check profiles.
+  const releaseOnly = new Set(['release.yml: release'])
   const uncovered = ['checks.yml', 'examples.yml', 'compat.yml', 'docs.yml', 'release.yml'].flatMap(
     (workflow) =>
       [
@@ -33,6 +35,7 @@ test('the check profiles use only scripts invoked by CI workflows', ({ assert })
         .map((match) => match[1])
         .filter((script) => !ignored.has(script) && !covered.has(script))
         .map((script) => `${workflow}: ${script}`)
+        .filter((command) => !releaseOnly.has(command))
   )
   assert.deepEqual(uncovered, [])
 })

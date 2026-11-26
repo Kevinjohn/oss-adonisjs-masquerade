@@ -38,7 +38,7 @@ The same rules as `CONTRIBUTING.md`; every change follows them.
 - `pnpm check:changed` — runs checks selected for changed files.
 - `pnpm precompile` — runs `pnpm lint` before compilation.
 - `pnpm compile` — compiles the package and emits declarations.
-- `pnpm postcompile` — copies configure templates into the build output.
+- `pnpm postcompile` — generates the Ace command index and copies configure templates into the build output.
 - `pnpm build` — runs `pnpm compile`.
 - `pnpm docs:api` — generates the API reference.
 - `pnpm docs:dev` — generates the API reference and serves the documentation site.
@@ -84,7 +84,7 @@ tests/                      flat Japa specs
 tests/helpers/              shared test helpers
 tests/fixtures/             static fixtures, where they exist
 tests/tooling/              specs for bin/
-tests/types/                type-level tests (.ts, not .spec.ts), checked by `pnpm typecheck`
+tests/*_types.spec.ts       public type tests using Japa expect-type
 examples/                   example apps
 docs/                       user and maintainer documentation
 ```

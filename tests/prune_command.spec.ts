@@ -1,19 +1,20 @@
-import { errors } from '../index.js'
+import { defineConfig } from '../src/define_config.ts'
+import { errors } from '../index.ts'
 import { Kernel } from '@adonisjs/core/ace'
 import { test } from '@japa/runner'
 import { IgnitorFactory } from '@adonisjs/core/factories'
-import { getCommand, getMetaData } from '../commands/main.js'
-import { pruneMasquerade } from '../src/prune.js'
-import { fixture } from './helpers/core.js'
+import { getCommand, getMetaData } from './helpers/commands.ts'
+import { pruneMasquerade } from '../src/prune.ts'
+import { fixture } from './helpers/core.ts'
 
 function createIgnitor(config: ReturnType<typeof fixture>['config']) {
   return new IgnitorFactory()
     .withCoreProviders()
     .withCoreConfig()
     .merge({
-      config: { masquerade: config },
+      config: { masquerade: defineConfig(config) },
       rcFileContents: {
-        commands: [() => import('../commands/main.js')],
+        commands: [() => import('./helpers/commands.js')],
         providers: [() => import('@adonisjs/core/providers/app_provider')],
       },
     })
@@ -150,7 +151,7 @@ test.group('masquerade:prune Ace command', () => {
       await app.start(() => {})
       try {
         const kernel = new Kernel(app)
-        kernel.addLoader(() => import('../commands/main.js'))
+        kernel.addLoader(() => import('./helpers/commands.js'))
         return await kernel.exec('masquerade:prune', [])
       } finally {
         await app.terminate()

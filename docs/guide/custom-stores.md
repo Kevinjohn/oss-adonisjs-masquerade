@@ -85,12 +85,12 @@ Add a test that supplies a newly created, isolated store each time. For a SQL ad
 
 ```ts
 import { test } from '@japa/runner'
-import { assertControlStoreConformance } from '@kevinjohn/adonisjs-masquerade/testing'
+import { controlStoreConformance } from '@kevinjohn/adonisjs-masquerade/testing'
 import { createTestDatabase, migrateTestDatabase } from './helpers/database.js'
 import { DatabaseControlStore } from '../app/stores/database_control_store.js'
 
 test('database store satisfies the ControlStore contract', async () => {
-  await assertControlStoreConformance(async () => {
+  await controlStoreConformance.assert(async () => {
     const db = await createTestDatabase()
     await migrateTestDatabase(db)
     return new DatabaseControlStore(db)

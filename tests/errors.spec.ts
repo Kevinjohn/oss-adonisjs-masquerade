@@ -1,9 +1,9 @@
 import { test } from '@japa/runner'
 import { Exception, RuntimeException } from '@adonisjs/core/exceptions'
-import { errors } from '../index.js'
-import { isMasqueradeRequestError } from '../http/main.js'
-import { fixture } from './helpers/core.js'
-import { requestContext } from './helpers/http_context.js'
+import { errors } from '../index.ts'
+import { isMasqueradeRequestError } from '../http/main.ts'
+import { fixture } from './helpers/core.ts'
+import { requestContext } from './helpers/http_context.ts'
 
 test.group('Masquerade exceptions', () => {
   test('falls back to English when ctx.i18n is present but unset', ({ assert }) => {

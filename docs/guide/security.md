@@ -130,14 +130,14 @@ when the actor is idle. The token is `<revision>.<nonce>` and is a replay/versio
 authentication credential. The nonce differs by owner when no row exists and rotates on each
 committed transition. Shield continues to provide CSRF protection for cookie requests.
 
-For an Edge form, call `shareMasquerade(ctx)` before rendering, then include the token-only hidden
+For an Edge form, call `masqueradeEdge.share(ctx)` before rendering, then include the token-only hidden
 field alongside Shield's CSRF field:
 
 ```ts
 // In the route handler
-import { shareMasquerade } from '@kevinjohn/adonisjs-masquerade/http'
+import { masqueradeEdge } from '@kevinjohn/adonisjs-masquerade/http'
 
-await shareMasquerade(ctx)
+await masqueradeEdge.share(ctx)
 return ctx.view.render('pages/edit')
 ```
 

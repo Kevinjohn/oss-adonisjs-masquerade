@@ -2,7 +2,7 @@ import { test } from '@japa/runner'
 import { mkdtemp, rm } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
-import { consumerArtifact, type PnpmScript } from '../bin/helpers/consumer_artifact.js'
+import { consumerArtifact, type PnpmScript } from '../bin/helpers/consumer_artifact.ts'
 
 async function withRoot(callback: (root: string) => void | Promise<void>) {
   const root = await mkdtemp(join(tmpdir(), 'consumer-artifact-'))

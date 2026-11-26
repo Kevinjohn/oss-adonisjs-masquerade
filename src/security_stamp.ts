@@ -1,4 +1,4 @@
-import { E_MASQUERADE_UNAVAILABLE } from './errors.js'
+import { E_MASQUERADE_UNAVAILABLE } from './errors.ts'
 import { createHash } from 'node:crypto'
 
 export function hashSecurityStamp(value: unknown): string {

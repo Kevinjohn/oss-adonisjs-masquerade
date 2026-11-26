@@ -1,5 +1,5 @@
-import { E_MASQUERADE_UNAVAILABLE } from './errors.js'
-import type { CompareAndSetInput, ModeRow } from './types.js'
+import { E_MASQUERADE_UNAVAILABLE } from './errors.ts'
+import type { CompareAndSetInput, ModeRow } from './types.ts'
 
 /** Checks that the audit record describes the state change carried by the CAS. */
 export function assertValidTransition(input: CompareAndSetInput, current: ModeRow | null): void {

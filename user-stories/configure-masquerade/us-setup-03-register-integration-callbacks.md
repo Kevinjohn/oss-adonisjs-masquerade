@@ -4,18 +4,18 @@ As an application developer, I want to register the native adapter and policy fr
 
 **Status:** Operator.
 **Access:** Application developer who controls app config and provider order.
-**Entry:** Register one factory on `masquerade.callbacks` in a host provider's `boot()`. List that provider before the package's `masquerade_provider`.
+**Entry:** Register one factory on `MasqueradeCallbackRegistration` in a host provider's `boot()`. List that provider before the package's `masquerade_provider`.
 **Documentation:** [Registering callbacks from a provider](../../README.md#registering-callbacks-from-a-provider).
-**Source:** [Registry](../../src/callback_registry.ts), [provider](../../providers/masquerade_provider.ts), [runtime construction](../../src/integration/runtime_factory.ts).
-**Coverage:** [Callback registry integration](../../tests/callback_registry.spec.ts).
+**Source:** [Registry](../../src/callback_registration.ts), [provider](../../providers/masquerade_provider.ts), [runtime construction](../../src/integration/runtime_factory.ts).
+**Coverage:** [Callback registry integration](../../tests/callback_registration.spec.ts).
 
 ## Acceptance criteria
 
-- `register(factory)` accepts a zero-argument factory which returns an object with optional `native` and `policy`, either synchronously or through a promise. The registry runs the factory when first needed and caches its promise. It refuses a second factory and registration after resolution has begun.
-- The package uses an existing `masquerade.native` binding when supplied. Otherwise the package's binding reads `native` from the registry and errors if it is absent. If both supply native adapters, runtime validation rejects distinct adapter objects. Provide the native adapter through one path.
-- The runtime uses the authority from `config/masquerade.ts` when supplied and otherwise uses the chosen native adapter's authority. An explicit authority must match the adapter's namespace and guard. For policy, provide either config or registered `policy`; the runtime rejects both and requires one.
+- `register(factory)` accepts a zero-argument factory which returns an object with optional `native` and `permissions`, either synchronously or through a promise. The registry runs the factory when first needed and caches its promise. It refuses a second factory and registration after resolution has begun.
+- The package uses an existing `NativeAdapter` binding when supplied. Otherwise the package's binding reads `native` from the registry and errors if it is absent. If both supply native adapters, runtime validation rejects distinct adapter objects. Provide the native adapter through one path.
+- The runtime uses the authority from `config/masquerade.ts` when supplied and otherwise uses the chosen native adapter's authority. An explicit authority must match the adapter's namespace and guard. For policy, provide either config or registered `permissions`; the runtime rejects both and requires one.
 - Loading the config validates supplied values and permits omitted authority and policy. Boot with Masquerade config resolves the completed runtime, including guard wiring and store construction. Calling standalone `createMasqueradeService` directly requires the completed config with both authority and policy.
-- The provider also exposes `MasqueradeRuntime` as a class binding resolving the same `masquerade.runtime` instance. Registration does not authenticate a request. [US-SETUP-02](us-setup-02-select-credential-transport.md) describes live guard checks.
+- The provider exposes `masquerade.runtime` through the booted container service at `/services/main`. Registration does not authenticate a request. [US-SETUP-02](us-setup-02-select-credential-transport.md) describes live guard checks.
 
 ## User flow
 
@@ -40,7 +40,7 @@ flowchart TD
     B -->|Accepted| C["MasqueradeProvider.boot with config starts resolveRuntimeConfiguration"]
     C --> D["defineConfig validates supplied values; resolve and cache callback factory"]
     D -->|Validation or factory fails| Y["Boot fails"]
-    D -->|Success| E["Resolve masquerade.native from host binding or registry fallback"]
+    D -->|Success| E["Resolve NativeAdapter from host binding or registered callbacks"]
     E -->|Missing adapter or binding fails| Y
     E -->|Resolved| G{"Distinct native values or duplicate policy sources?"}
     G -->|Yes| X2["Reject runtime resolution"]
@@ -49,7 +49,7 @@ flowchart TD
     I -->|Invalid or missing| Y
     I -->|Valid| K["createRuntime opens configured service and store"]
     K -->|Error| Y
-    K -->|Success| L["masquerade.runtime and MasqueradeRuntime resolve the same runtime"]
+    K -->|Success| L["The container service exposes masquerade.runtime"]
 ```
 
-**Code references:** [Host and fallback bindings](../../providers/masquerade_provider.ts#L18), [factory resolution](../../src/callback_registry.ts#L11), [runtime validation](../../src/integration/runtime_factory.ts#L40), [runtime creation](../../src/integration/runtime_factory.ts#L157), [standalone service](../../src/service.ts#L60).
+**Code references:** [Host and fallback bindings](../../providers/masquerade_provider.ts#L18), [factory resolution](../../src/callback_registration.ts#L11), [runtime validation](../../src/integration/runtime_factory.ts#L40), [runtime creation](../../src/integration/runtime_factory.ts#L157), [standalone service](../../src/service.ts#L60).

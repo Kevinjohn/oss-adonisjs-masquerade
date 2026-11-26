@@ -117,7 +117,7 @@ test.group('real HTTP masquerade context and actions', (group) => {
     conflict.assertStatus(409)
   })
 
-  test('applies the host operator policy when starting from an idle actor context', async ({
+  test('applies the host operator permissions when starting from an idle actor context', async ({
     client,
     assert,
   }) => {
@@ -162,7 +162,7 @@ test.group('real HTTP masquerade context and actions', (group) => {
     stopped.assertStatus(200)
   })
 
-  test('keeps idle unsafe requests under the raw actor Bouncer policy with a valid token', async ({
+  test('keeps idle unsafe requests under the raw actor Bouncer permissions with a valid token', async ({
     client,
   }) => {
     const { actor } = await createUsers()

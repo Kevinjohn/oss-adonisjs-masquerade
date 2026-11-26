@@ -56,7 +56,7 @@ const native = sessionAuthority({
 
 export default defineConfig({
   authority: native.authority,
-  policy: {
+  permissions: {
     // Operators may support active customers. Refusing other operators is the recommended default.
     canMasquerade: ({ actor, target }) =>
       Boolean(actor.user.isSupportOperator) &&

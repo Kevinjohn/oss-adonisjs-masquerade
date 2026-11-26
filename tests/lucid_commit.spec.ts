@@ -1,8 +1,8 @@
 import { test } from '@japa/runner'
-import { createMasqueradeService } from '../index.js'
-import { fixture } from './helpers/core.js'
-import { LucidControlStore } from '../stores/lucid.js'
-import { sqlFixture, transition } from './helpers/sql_store.js'
+import { createMasqueradeService } from '../index.ts'
+import { fixture } from './helpers/core.ts'
+import { LucidControlStore } from '../src/stores/lucid.ts'
+import { sqlFixture, transition } from './helpers/sql_store.ts'
 
 test('a post-commit pool hook fault preserves the start and retires the store', async ({
   assert,
@@ -49,7 +49,7 @@ test('a post-commit pool hook fault preserves the start and retires the store', 
     const events = await f.client.from('masquerade_events').select('kind')
     assert.deepEqual(events, [{ kind: 'started' }])
     assert.deepEqual(core.diagnostics, [])
-    assert.deepEqual(messages, ['Masquerade could not release the control store connection'])
+    assert.deepEqual(messages, [], 'the store must not log through Knex')
     await assert.rejects(() => service.status(request), 'Masquerade is unavailable')
   } finally {
     pool.removeListener('release', failRelease)

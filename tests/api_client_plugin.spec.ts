@@ -3,7 +3,7 @@ import type { AddressInfo } from 'node:net'
 import { test } from '@japa/runner'
 import { ApiClient } from '@japa/api-client'
 import type { PluginFn } from '@japa/runner/types'
-import { masqueradeApiClient } from '../plugins/api_client.js'
+import { masqueradeApiClient } from '../src/plugins/api_client.ts'
 
 test.group('masqueradeApiClient', (group) => {
   group.setup(() => {

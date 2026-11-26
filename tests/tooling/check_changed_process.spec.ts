@@ -5,7 +5,7 @@ import { spawn, type ChildProcess } from 'node:child_process'
 import os from 'node:os'
 import path from 'node:path'
 import { test } from '@japa/runner'
-import { collectExit, isAlive, outputOf, waitForFile } from '../helpers/child_process.js'
+import { collectExit, isAlive, outputOf, waitForFile } from '../helpers/child_process.ts'
 import { fileURLToPath } from 'node:url'
 
 const repoRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../..')

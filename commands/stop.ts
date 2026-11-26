@@ -1,8 +1,12 @@
-import { E_MASQUERADE_INVALID_INPUT, E_MASQUERADE_STOP_PROGRESS } from '../src/errors.js'
-import { InvalidArgumentsException } from '@adonisjs/core/exceptions'
+import { debugLogger, reportObserverError } from '../src/debug.ts'
+import {
+  E_MASQUERADE_INVALID_INPUT,
+  E_MASQUERADE_STOP_PROGRESS,
+  E_MASQUERADE_UNKNOWN_ACTOR_ACCOUNT,
+} from '../src/errors.ts'
 import { BaseCommand, flags } from '@adonisjs/core/ace'
-import { isUnknownAccount, stopActiveModes } from '../src/stop_modes.js'
-import type { MasqueradeConfig } from '../src/types.js'
+import { stopActiveModes } from '../src/stop_modes.ts'
+import { resolveMasqueradeConfig } from '../src/define_config.ts'
 
 /** End one operator's active mode, or every active mode, from the server. */
 export default class StopCommand extends BaseCommand {
@@ -41,9 +45,7 @@ export default class StopCommand extends BaseCommand {
       this.logger.info('Nothing stopped.')
       return
     }
-    const configured = this.app.config.get('masquerade') as
-      MasqueradeConfig<unknown, object> | undefined
-    if (!configured) throw new InvalidArgumentsException('Masquerade configuration is required')
+    const configured = await resolveMasqueradeConfig<object>(this.app)
     // Without a configured authority, the runtime holds the native adapter's.
     let authority = configured.authority
     if (!authority) {
@@ -52,10 +54,7 @@ export default class StopCommand extends BaseCommand {
     }
     const config = { ...configured, authority }
 
-    const [emitterService, logger] = await Promise.all([
-      this.app.container.make('emitter'),
-      this.app.container.make('logger'),
-    ])
+    const emitterService = await this.app.container.make('emitter')
     const emitter = emitterService as unknown as {
       emit(name: string, event: unknown): unknown
     }
@@ -66,19 +65,15 @@ export default class StopCommand extends BaseCommand {
         {
           environment: this.app.nodeEnvironment,
           emitter: { emit: (name, event) => emitter.emit(name, event) },
-          logger: {
-            info: (event) => logger.info(event, 'Masquerade transition'),
-            error: (event) => logger.error(event, 'Masquerade diagnostic'),
-          },
-          observerErrorHandler: () =>
-            logger.error({ code: 'E_MASQUERADE_OBSERVER_FAILED' }, 'Masquerade observer failed'),
+          logger: config.logger ?? debugLogger,
+          observerErrorHandler: reportObserverError,
         },
         this.all ? { all: true } : { actorId: this.actor, actorIncarnation: this.incarnation }
       )
     } catch (error) {
       if (error instanceof E_MASQUERADE_INVALID_INPUT) {
         this.logger.error(
-          isUnknownAccount(error)
+          error instanceof E_MASQUERADE_UNKNOWN_ACTOR_ACCOUNT
             ? 'Unknown operator account; pass --incarnation with the value from masquerade:status.'
             : 'Invalid --actor or --incarnation: an actor id has at most 255 bytes and an incarnation at most 128.'
         )

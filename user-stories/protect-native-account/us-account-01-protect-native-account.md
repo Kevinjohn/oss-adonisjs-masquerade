@@ -35,7 +35,7 @@ Scope: opt-in middleware boundary on host-managed Account Kit routes.
 
 ```mermaid
 flowchart TD
-    A["Host route group runs AccountKitAccountBlocker.handle"] --> B["Resolve masquerade.native adapter and managed raw guard"]
+    A["Host route group runs AccountKitAccountBlocker.handle"] --> B["Resolve NativeAdapter and managed raw guard"]
     B --> C["raw.check()"]
     C --> D{"Authenticated?"}
     D -->|No| E["next()"]

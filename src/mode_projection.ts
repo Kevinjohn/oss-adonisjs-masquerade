@@ -1,6 +1,6 @@
-import { buildContextToken } from './context_token.js'
-import type { RequestAdmission } from './request_admission.js'
-import type { ModeRow, ModeView, OwnerKey, ResolvedContext, Subject } from './types.js'
+import { buildContextToken } from './context_token.ts'
+import type { RequestAdmission } from './request_admission.ts'
+import type { ModeRow, ModeView, OwnerKey, ResolvedContext, Subject } from './types.ts'
 
 export function buildModeView(owner: OwnerKey, row: ModeRow | null): ModeView {
   const token = buildContextToken(owner, row)

@@ -3,7 +3,7 @@ import { mkdtemp, readFile, rm, writeFile } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { test } from '@japa/runner'
-import { repoRoot } from '../helpers/tracked_markdown.js'
+import { repoRoot } from '../helpers/tracked_markdown.ts'
 
 test('released changelog headings use the form bin/release_check.sh requires', async ({
   assert,

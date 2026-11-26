@@ -24,7 +24,7 @@ As a signed-in actor, I want to read my current masquerade status so that I can 
 **Access:** Actor authenticated by the configured raw control guard; native access tokens also require the configured `masquerade` ability.
 **Entry:** `GET /masquerade` mounted by `masqueradeRoutes()`.
 **Documentation:** [Control routes and status](../../docs/guide/usage.md#mount-the-json-controls).
-**Source:** [MasqueradeController.status](../../http/controllers.ts).
+**Source:** [MasqueradeController.status](../../src/http/masquerade_controller.ts).
 **Coverage:** [Controller tests](../../tests/http_controllers.spec.ts).
 
 ## Acceptance criteria
@@ -53,7 +53,7 @@ flowchart TD
     E --> F["ctx.response.status(200).json(result)"]
 ```
 
-**Code references:** [control route and controller](../../http/control_routes.ts), [status handler](../../http/controllers.ts), [status guide](../../docs/guide/usage.md#read-status-and-start).
+**Code references:** [control route and controller](../../src/http/control_routes.ts), [status handler](../../src/http/masquerade_controller.ts), [status guide](../../docs/guide/usage.md#read-status-and-start).
 ````
 
 ## Actions without input fields
