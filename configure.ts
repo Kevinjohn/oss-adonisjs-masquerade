@@ -1,6 +1,6 @@
 import type Configure from '@adonisjs/core/commands/configure'
 import { access, lstat, readFile, stat } from 'node:fs/promises'
-import { basename, extname, join, sep } from 'node:path'
+import { basename, dirname, extname, join, sep } from 'node:path'
 import { fileURLToPath, pathToFileURL } from 'node:url'
 
 /**
@@ -191,7 +191,8 @@ export async function configure(command: Configure): Promise<void> {
         command.stubsRoot,
         'make/migration/create_masquerade_tables.stub',
         {
-          migrationPath: migration.path,
+          migrationDirectory: dirname(migration.path),
+          migrationFile: basename(migration.path),
         }
       )
     )

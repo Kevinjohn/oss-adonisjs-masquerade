@@ -10,10 +10,13 @@
   `config/masquerade.ts`. The store callback receives the application when the store opens.
   Standalone callers of `createMasqueradeService` pass their configuration object directly.
   Invalid config fields raise AdonisJS `InvalidArgumentsException` with the configuration key.
-- Import public adapter types from `@kevinjohn/adonisjs-masquerade/types`. Import the booted
-  runtime from `/services/main` instead of injecting the `MasqueradeRuntime` class.
-- Register the context middleware subpath or call `new MasqueradeContextMiddleware().handle(ctx, next)`
-  in a wrapper. Replace `shareMasquerade(ctx)` with `masqueradeEdge.share(ctx)`,
+- Import types previously exported from `/native`, `/account-kit`, `/http`, `/stores/lucid`, and
+  `/plugins/api_client` from `@kevinjohn/adonisjs-masquerade/types`. This includes
+  `MasqueradeRoutesOptions`, `MasqueradeAuditFields`, `LucidControlStoreOptions`,
+  `LucidControlClient`, and the API client option and target types. Import the booted runtime
+  from `/services/main` instead of injecting the `MasqueradeRuntime` class.
+- Replace `masqueradeContext(ctx, next)` with the context middleware subpath or call
+  `new MasqueradeContextMiddleware().handle(ctx, next)` in a wrapper. Replace `shareMasquerade(ctx)` with `masqueradeEdge.share(ctx)`,
   `masqueradeAuditFields(ctx)` with `masqueradeAudit.fields(ctx)`, and
   `assertControlStoreConformance(createStore)` with `controlStoreConformance.assert(createStore)`.
 - Configure creates scaffolds and registers providers and commands. Apply the printed Auth and
