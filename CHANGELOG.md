@@ -2,6 +2,10 @@
 
 ## Unreleased
 
+- Generate separate Lucid migrations for modes and events, each with its own `tableName`. Replace
+  the aggregate schema helpers with `createMasqueradeModesTableV1` and
+  `createMasqueradeEventsTableV1`, which define one table each.
+
 - Read example demo settings through configuration, protect production migrations from rollback,
   and declare foreign-key targets and deletion behavior explicitly.
 

@@ -94,7 +94,16 @@ test.group('Masquerade configure scaffold', (group) => {
       assert.isUndefined(output.banner)
       assert.isUndefined(output.statusMiddleware)
       assert.isUndefined(output.formController)
-      assert.include(output.migration, 'createMasqueradeSchemaV1(this.schema)')
+      assert.include(
+        output.migration,
+        'this.schema.createTable(this.tableName, createMasqueradeModesTableV1)'
+      )
+      assert.include(
+        output.eventsMigration,
+        'this.schema.createTable(this.tableName, createMasqueradeEventsTableV1)'
+      )
+      assert.include(output.migration, "protected tableName = 'masquerade_modes'")
+      assert.include(output.eventsMigration, "protected tableName = 'masquerade_events'")
       assert.include(output.migration, 'async up()')
       assert.include(output.migration, 'async down()')
       assert.deepEqual(f.registered, [
@@ -373,8 +382,8 @@ test.group('Masquerade configure scaffold', (group) => {
       assert.equal(configured.exitCode, 0)
       const files = await readdir(join(f.root, 'db/schema#tenant%'))
       assert.lengthOf(
-        files.filter((file) => file.endsWith('_create_masquerade_tables.ts')),
-        1
+        files.filter((file) => /_create_masquerade_(modes|events)\.ts$/.test(file)),
+        2
       )
     } finally {
       await f.dispose()
@@ -414,7 +423,7 @@ test.group('Masquerade configure scaffold', (group) => {
     const now = Date.now
     Date.now = () => 1_700_000_000_000
     try {
-      const occupied = 'database/migrations/1700000000000_create_masquerade_tables.ts'
+      const occupied = 'database/migrations/1700000000000_create_masquerade_modes.ts'
       await mkdir(join(f.root, occupied), { recursive: true })
       const configured = f.command({ namespace: 'support', guard: 'web' })
       await configure(configured as never)
@@ -426,6 +435,85 @@ test.group('Masquerade configure scaffold', (group) => {
       assert.deepEqual(f.registered, [])
     } finally {
       Date.now = now
+      await f.dispose()
+    }
+  })
+
+  test('preflights the events destination before generating either migration', async ({
+    assert,
+    fs,
+  }) => {
+    const f = await configureFixture(fs)
+    const now = Date.now
+    Date.now = () => 1_700_000_000_000
+    try {
+      const occupied = 'database/migrations/1700000000001_create_masquerade_events.ts'
+      await mkdir(join(f.root, occupied), { recursive: true })
+      const configured = f.command({ namespace: 'support', guard: 'web' })
+      await configure(configured as never)
+      assert.equal(configured.exitCode, 1)
+      assert.include(
+        configured.errors.join('\n'),
+        `The migration destination ${occupied} is occupied`
+      )
+      assert.deepEqual(await listScaffoldPaths(f.root), [occupied])
+      assert.deepEqual(f.registered, [])
+    } finally {
+      Date.now = now
+      await f.dispose()
+    }
+  })
+
+  test('force repairs an interrupted pair while preserving the completed migration', async ({
+    assert,
+    fs,
+  }) => {
+    const f = await configureFixture(fs)
+    try {
+      const flags = { namespace: 'support', guard: 'web' }
+      await configure(f.command(flags) as never)
+      const directory = join(f.root, 'database/migrations')
+      const files = await readdir(directory)
+      const modes = files.find((file) => file.endsWith('_create_masquerade_modes.ts'))!
+      const events = files.find((file) => file.endsWith('_create_masquerade_events.ts'))!
+      const preserved =
+        '// Application-owned migration\n' + (await readFile(join(directory, modes), 'utf8'))
+      await writeFile(join(directory, modes), preserved)
+      await rm(join(directory, events))
+      const forced = f.command(flags, true)
+      await configure(forced as never)
+      assert.equal(forced.exitCode, 0, forced.errors.join('\n'))
+      assert.equal(await readFile(join(directory, modes), 'utf8'), preserved)
+      const repaired = await readdir(directory)
+      assert.lengthOf(
+        repaired.filter((file) => file.endsWith('_create_masquerade_events.ts')),
+        1
+      )
+      assert.lengthOf(repaired, 2)
+    } finally {
+      await f.dispose()
+    }
+  })
+
+  test('rejects competing events migrations before writing scaffolds', async ({ assert, fs }) => {
+    const f = await configureFixture(fs)
+    try {
+      const directory = join(f.root, 'database/migrations')
+      await mkdir(directory, { recursive: true })
+      for (const timestamp of ['1700000000000', '1700000000001']) {
+        await writeFile(
+          join(directory, `${timestamp}_create_masquerade_events.ts`),
+          '// Existing migration'
+        )
+      }
+      const before = await snapshot(f.root)
+      const configured = f.command({ namespace: 'support', guard: 'web' }, true)
+      await configure(configured as never)
+      assert.equal(configured.exitCode, 1)
+      assert.include(configured.errors.join('\n'), 'Multiple Masquerade events migrations')
+      assert.deepEqual(await snapshot(f.root), before)
+      assert.deepEqual(f.registered, [])
+    } finally {
       await f.dispose()
     }
   })
@@ -478,8 +566,8 @@ test.group('Masquerade configure scaffold', (group) => {
       assert.equal(configured.exitCode, 0, configured.errors.join('\n'))
       const files = await readdir(join(f.root, 'database/migrations'))
       assert.lengthOf(
-        files.filter((file) => file.endsWith('_create_masquerade_tables.ts')),
-        1
+        files.filter((file) => /_create_masquerade_(modes|events)\.ts$/.test(file)),
+        2
       )
     } finally {
       await f.dispose()
@@ -510,8 +598,9 @@ test.group('Masquerade configure scaffold', (group) => {
       assert.equal(configured.exitCode, 0, configured.errors.join('\n'))
       const runner = new MigrationRunner(db, f.app, { direction: 'up', dryRun: false })
       const migrations = await runner.getList()
-      assert.lengthOf(migrations, 1)
-      assert.match(migrations[0].name, /^schema\/\d{13}_create_masquerade_tables$/)
+      assert.lengthOf(migrations, 2)
+      assert.match(migrations[0].name, /^schema\/\d{13}_create_masquerade_modes$/)
+      assert.match(migrations[1].name, /^schema\/\d{13}_create_masquerade_events$/)
     } finally {
       await db.manager.closeAll()
       await f.dispose()
@@ -544,8 +633,9 @@ test.group('Masquerade configure scaffold', (group) => {
       assert.equal(configured.exitCode, 0, configured.errors.join('\n'))
       const runner = new MigrationRunner(db, f.app, { direction: 'up', dryRun: false })
       const list = await runner.getList()
-      assert.lengthOf(list, 1)
-      assert.match(list[0].name, /^schema\/primary\/\d{13}_create_masquerade_tables$/)
+      assert.lengthOf(list, 2)
+      assert.match(list[0].name, /^schema\/primary\/\d{13}_create_masquerade_modes$/)
+      assert.match(list[1].name, /^schema\/primary\/\d{13}_create_masquerade_events$/)
     } finally {
       await db.manager.closeAll()
       await f.dispose()
@@ -573,34 +663,45 @@ test.group('Masquerade configure scaffold', (group) => {
       await configure(first as never)
       assert.equal(first.exitCode, 0, first.errors.join('\n'))
       const directory = join(f.root, 'database/migrations')
-      const [file] = await readdir(directory)
+      const files = await readdir(directory)
+      files.sort()
       const nested = join(directory, 'prior#archive')
-      const migration = '// Host migration edit\n' + (await readFile(join(directory, file), 'utf8'))
       await mkdir(nested)
-      await rename(join(directory, file), join(nested, file))
-      await writeFile(join(nested, file), migration)
+      const sources = new Map<string, string>()
+      for (const file of files) {
+        const source = '// Host migration edit\n' + (await readFile(join(directory, file), 'utf8'))
+        sources.set(file, source)
+        await rename(join(directory, file), join(nested, file))
+        await writeFile(join(nested, file), source)
+      }
 
       const runner = new MigrationRunner(db, f.app, { direction: 'up', dryRun: false })
       const before = await runner.getList()
-      assert.deepEqual(before, [
-        { name: `database/migrations/prior#archive/${file.slice(0, -3)}`, status: 'pending' },
-      ])
+      assert.deepEqual(
+        before,
+        files.map((file) => ({
+          name: `database/migrations/prior#archive/${file.slice(0, -3)}`,
+          status: 'pending',
+        }))
+      )
       const rerun = f.command(flags)
       await configure(rerun as never)
       assert.equal(rerun.exitCode, 1)
       assert.deepEqual(await readdir(directory), ['prior#archive'])
-      assert.equal(await readFile(join(nested, file), 'utf8'), migration)
+      for (const [file, source] of sources)
+        assert.equal(await readFile(join(nested, file), 'utf8'), source)
       assert.deepEqual(await runner.getList(), before)
 
       const forced = f.command(flags, true)
       await configure(forced as never)
       assert.equal(forced.exitCode, 0, forced.errors.join('\n'))
       assert.deepEqual(await readdir(directory), ['prior#archive'])
-      assert.equal(await readFile(join(nested, file), 'utf8'), migration)
+      for (const [file, source] of sources)
+        assert.equal(await readFile(join(nested, file), 'utf8'), source)
       assert.deepEqual(await runner.getList(), before)
       await runner.run()
       assert.isNull(runner.error)
-      assert.lengthOf(Object.keys(runner.migratedFiles), 1)
+      assert.lengthOf(Object.keys(runner.migratedFiles), 2)
       assert.isTrue(await db.connection().schema.hasTable('masquerade_modes'))
       assert.isTrue(await db.connection().schema.hasTable('masquerade_events'))
       const rollback = new MigrationRunner(db, f.app, {
@@ -633,7 +734,7 @@ test.group('Masquerade configure scaffold', (group) => {
         connections: { main: { migrations: { paths } } },
       })
       const [primary, archive] = paths.map((path) => join(f.root, path))
-      const file = '1700000000000_create_masquerade_tables.ts'
+      const file = '1700000000000_create_masquerade_modes.ts'
       const archived = join(archive, file)
       const flags = { namespace: 'support', guard: 'web' }
       await mkdir(primary, { recursive: true })
@@ -643,7 +744,11 @@ test.group('Masquerade configure scaffold', (group) => {
       const forced = f.command(flags, true)
       await configure(forced as never)
       assert.equal(forced.exitCode, 0, forced.errors.join('\n'))
-      assert.deepEqual(await readdir(primary), [])
+      const generated = await readdir(primary)
+      assert.lengthOf(
+        generated.filter((entry) => entry.endsWith('_create_masquerade_events.ts')),
+        1
+      )
       assert.deepEqual(await readdir(archive), [file])
       assert.equal(await readFile(archived, 'utf8'), '// Earlier scaffold')
 
@@ -652,7 +757,7 @@ test.group('Masquerade configure scaffold', (group) => {
       const duplicate = f.command({ ...flags, namespace: 'changed' }, true)
       await configure(duplicate as never)
       assert.equal(duplicate.exitCode, 1)
-      assert.include(duplicate.errors.join('\n'), 'Multiple Masquerade migrations')
+      assert.include(duplicate.errors.join('\n'), 'Multiple Masquerade modes migrations')
       assert.deepEqual(await snapshot(f.root), before)
     } finally {
       await f.dispose()
@@ -664,14 +769,19 @@ test.group('Masquerade configure scaffold', (group) => {
     try {
       const directory = join(f.root, 'database/migrations/prior')
       await mkdir(directory, { recursive: true })
-      const file = join(directory, '1700000000000_create_masquerade_tables.cjs')
+      const file = join(directory, '1700000000000_create_masquerade_modes.cjs')
       const source = 'module.exports = class ExistingMigration {}'
       await writeFile(file, source)
       const forced = f.command({ namespace: 'support', guard: 'web' }, true)
       await configure(forced as never)
       assert.equal(forced.exitCode, 0, forced.errors.join('\n'))
       assert.equal(await readFile(file, 'utf8'), source)
-      assert.deepEqual(await readdir(join(f.root, 'database/migrations')), ['prior'])
+      const generated = await readdir(join(f.root, 'database/migrations'))
+      assert.include(generated, 'prior')
+      assert.lengthOf(
+        generated.filter((entry) => entry.endsWith('_create_masquerade_events.ts')),
+        1
+      )
       assert.include(await readdir(join(f.root, 'config')), 'masquerade.ts')
     } finally {
       await f.dispose()
@@ -700,8 +810,8 @@ test.group('Masquerade configure scaffold', (group) => {
       assert.equal(configured.exitCode, 0)
       const files = await readdir(join(f.root, 'database/schema'))
       assert.lengthOf(
-        files.filter((file) => file.endsWith('_create_masquerade_tables.ts')),
-        1
+        files.filter((file) => /_create_masquerade_(modes|events)\.ts$/.test(file)),
+        2
       )
     } finally {
       f.app.import = load
@@ -935,8 +1045,9 @@ async function listScaffoldPaths(root: string): Promise<string[]> {
 async function readScaffold(root: string) {
   const paths = await listScaffoldPaths(root)
   const read = async (file: string) => readFile(join(root, file), 'utf8')
-  const migrationPath = paths.find((path) => path.startsWith('database/migrations/'))
-  if (!migrationPath) throw new Error('Configure did not generate the migration')
+  const migrationPath = paths.find((path) => path.endsWith('_create_masquerade_modes.ts'))
+  const eventsPath = paths.find((path) => path.endsWith('_create_masquerade_events.ts'))
+  if (!migrationPath || !eventsPath) throw new Error('Configure did not generate both migrations')
   return {
     config: await read('config/masquerade.ts'),
     userProvider: await read('app/services/masquerade_user_provider.ts'),
@@ -951,6 +1062,7 @@ async function readScaffold(root: string) {
       ? await read('app/controllers/masquerade_form_controller.ts')
       : undefined,
     migration: await read(migrationPath),
+    eventsMigration: await read(eventsPath),
   }
 }
 

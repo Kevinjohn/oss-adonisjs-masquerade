@@ -76,4 +76,4 @@ flowchart TD
     V -->|No| H["Print required Auth, middleware, permissions, migration and mounting steps"]
 ```
 
-**Code references:** [configure](../../configure.ts), [defineConfig](../../src/define_config.ts), [v1 schema](../../src/stores/lucid_schema.ts), [setup guide](../../docs/guide/setup.md).
+**Code references:** [configure](../../configure.ts), [defineConfig](../../src/define_config.ts), [modes schema](../../src/stores/lucid_modes_table.ts), [events schema](../../src/stores/lucid_events_table.ts), [setup guide](../../docs/guide/setup.md).

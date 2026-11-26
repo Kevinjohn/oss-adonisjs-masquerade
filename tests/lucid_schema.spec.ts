@@ -6,51 +6,45 @@ import { pathToFileURL } from 'node:url'
 import { sqlFixture } from './helpers/sql_store.ts'
 import type { BaseSchema } from '@adonisjs/lucid/schema'
 
-test('the v1 migration creates indexed tables with the owner primary key and rolls them back', async ({
+test('the v1 table migrations independently create indexed tables and roll them back', async ({
   assert,
 }) => {
   const f = await sqlFixture({ createTables: false })
   const directory = await mkdtemp(join(tmpdir(), 'masquerade_migration_'))
   try {
-    const stub = await readFile(
-      new URL('../stubs/make/migration/create_masquerade_tables.stub', import.meta.url),
-      'utf8'
-    )
-    // The leading Core stub directive selects the generated filename; execute the migration body here.
-    assert.match(stub, /^\{\{\{[\s\S]*?exports\(\{ to:/)
-    const migrationBody = stub.replace(/^\{\{\{[\s\S]*?\}\}\}\r?\n/, '')
-    const schemaModule = join(directory, 'schema.ts')
-    await writeFile(
-      schemaModule,
-      `export { createMasqueradeSchemaV1, dropMasqueradeSchemaV1 } from ${JSON.stringify(
-        new URL('../src/stores/lucid.ts', import.meta.url).href
-      )}
-      export function createMasqueradeSchema() { throw new Error('Unversioned create helper called') }
-      export function dropMasqueradeSchema() { throw new Error('Unversioned drop helper called') }
-      `
-    )
-    const source = migrationBody
-      .replace(
-        "'@adonisjs/lucid/schema'",
-        JSON.stringify(import.meta.resolve('@adonisjs/lucid/schema'))
+    const migrations: { table: string; Migration: typeof BaseSchema }[] = []
+    for (const table of ['modes', 'events']) {
+      const stub = await readFile(
+        new URL(`../stubs/make/migration/create_masquerade_${table}.stub`, import.meta.url),
+        'utf8'
       )
-      .replace(
-        "'@kevinjohn/adonisjs-masquerade/stores/lucid'",
-        JSON.stringify(pathToFileURL(schemaModule).href)
-      )
-    const file = join(directory, 'migration.ts')
-    await writeFile(file, source)
-    const { default: Migration } = (await import(pathToFileURL(file).href)) as {
-      default: typeof BaseSchema
+      // The leading Core stub directive selects the generated filename; execute the migration body here.
+      assert.match(stub, /^\{\{\{[\s\S]*?exports\(\{ to: app\.migrationsPath/)
+      assert.include(stub, `protected tableName = 'masquerade_${table}'`)
+      const migrationBody = stub.replace(/^\{\{\{[\s\S]*?\}\}\}\r?\n/, '')
+      const source = migrationBody
+        .replace(
+          "'@adonisjs/lucid/schema'",
+          JSON.stringify(import.meta.resolve('@adonisjs/lucid/schema'))
+        )
+        .replace(
+          "'@kevinjohn/adonisjs-masquerade/stores/lucid'",
+          JSON.stringify(new URL('../src/stores/lucid.ts', import.meta.url).href)
+        )
+      const file = join(directory, `${table}.ts`)
+      await writeFile(file, source)
+      const { default: Migration } = (await import(pathToFileURL(file).href)) as {
+        default: typeof BaseSchema
+      }
+      migrations.push({ table, Migration })
+      const dry = new Migration(f.client, `create_masquerade_${table}`, true)
+      const queries = await dry.execUp()
+      assert.isArray(queries)
+      assert.isFalse(await f.client.schema.hasTable(`masquerade_${table}`))
+      await new Migration(f.client, `create_masquerade_${table}`, false).execUp()
+      assert.isTrue(await f.client.schema.hasTable(`masquerade_${table}`))
+      if (table === 'modes') assert.isFalse(await f.client.schema.hasTable('masquerade_events'))
     }
-    const dry = new Migration(f.client, 'create_masquerade', true)
-    const queries = await dry.execUp()
-    assert.isArray(queries)
-    assert.isFalse(await f.client.schema.hasTable('masquerade_modes'))
-    assert.isFalse(await f.client.schema.hasTable('masquerade_events'))
-    await new Migration(f.client, 'create_masquerade', false).execUp()
-    assert.isTrue(await f.client.schema.hasTable('masquerade_modes'))
-    assert.isTrue(await f.client.schema.hasTable('masquerade_events'))
 
     let ownerColumns: string[]
     let indexNames: string[]
@@ -88,9 +82,14 @@ test('the v1 migration creates indexed tables with the owner primary key and rol
     assert.include(indexNames, 'masquerade_modes_expiry_index')
     assert.include(indexNames, 'masquerade_events_retention_index')
 
-    await new Migration(f.client, 'drop_masquerade', false).execDown()
-    assert.isFalse(await f.client.schema.hasTable('masquerade_modes'))
-    assert.isFalse(await f.client.schema.hasTable('masquerade_events'))
+    for (const { table, Migration } of migrations.reverse()) {
+      const dry = new Migration(f.client, `drop_masquerade_${table}`, true)
+      assert.isArray(await dry.execDown())
+      assert.isTrue(await f.client.schema.hasTable(`masquerade_${table}`))
+      await new Migration(f.client, `drop_masquerade_${table}`, false).execDown()
+      assert.isFalse(await f.client.schema.hasTable(`masquerade_${table}`))
+      if (table === 'events') assert.isTrue(await f.client.schema.hasTable('masquerade_modes'))
+    }
   } finally {
     try {
       await f.cleanup()

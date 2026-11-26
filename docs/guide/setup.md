@@ -341,13 +341,34 @@ groups behind `middleware.auth({ guards: ['web_effective'] })`. See [route cover
 for report labels and release checks. The host still owns CSRF, the limiter budgets and where the
 routes are mounted.
 
-Fresh migrations import `createMasqueradeSchemaV1` and `dropMasqueradeSchemaV1` from
-`@kevinjohn/adonisjs-masquerade/stores/lucid`. Those helpers are the fixed initial schema contract.
-Use the same versioned imports if your application creates or rolls back the Masquerade tables
-inside its own baseline migration. Earlier migrations can still resolve `createMasqueradeSchema`
-and `dropMasqueradeSchema`.
+Configure generates one migration for `masquerade_modes` and one for `masquerade_events`.
+Each migration declares its own `protected tableName` and uses the corresponding fixed v1 helper,
+`createMasqueradeModesTableV1` or `createMasqueradeEventsTableV1`, from
+`@kevinjohn/adonisjs-masquerade/stores/lucid`:
 
-Review the generated migration and your database backup plan, then apply it with the host's normal
+```ts
+import { BaseSchema } from '@adonisjs/lucid/schema'
+import { createMasqueradeModesTableV1 } from '@kevinjohn/adonisjs-masquerade/stores/lucid'
+
+export default class extends BaseSchema {
+  protected tableName = 'masquerade_modes'
+
+  async up() {
+    this.schema.createTable(this.tableName, createMasqueradeModesTableV1)
+  }
+
+  async down() {
+    this.schema.dropTable(this.tableName)
+  }
+}
+```
+
+The events migration follows the same pattern with `masquerade_events` and
+`createMasqueradeEventsTableV1`. Each helper defines only that table's columns and indexes;
+the migration owns table creation and rollback. Keep the default table names used by the Lucid store.
+Configure preserves existing migration files and identities, including on `--force`.
+
+Review the generated migrations and your database backup plan, then apply it with the host's normal
 migration process, for example `node ace migration:run`. Follow [pruning and retention
 operations](operations.md) for scheduling and retention; this setup guide does not duplicate that
 operational recipe.

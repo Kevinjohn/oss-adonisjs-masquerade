@@ -28,7 +28,7 @@ For a tarball install, run `node ace configure @kevinjohn/adonisjs-masquerade --
 
 ## What configure writes
 
-Configure creates the Masquerade config, native provider, shared user provider and Lucid migration.
+Configure creates the Masquerade config, native provider, shared user provider and one Lucid migration per table.
 It registers the two providers and Ace commands in `adonisrc.ts`. Use `--control-routes` to draft
 control routes and separate rate limiters, then review and import the drafts in the host.
 

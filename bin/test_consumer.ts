@@ -99,7 +99,7 @@ async function verifyConfigure(app: string, profileName: string): Promise<void> 
     await rm(join(check, name), { force: true })
   const migrationRoot = join(check, 'database/migrations')
   for (const name of await readdir(migrationRoot))
-    if (name.endsWith('_create_masquerade_tables.ts')) await rm(join(migrationRoot, name))
+    if (/_create_masquerade_(modes|events)\.ts$/.test(name)) await rm(join(migrationRoot, name))
   await cp(join(app, 'adonisrc.ts'), join(check, 'adonisrc.ts'))
   try {
     await run(
@@ -124,8 +124,13 @@ async function verifyConfigure(app: string, profileName: string): Promise<void> 
     ])
       await readFile(join(check, file), 'utf8')
     const migrations = await readdir(migrationRoot)
-    if (migrations.filter((name) => name.endsWith('_create_masquerade_tables.ts')).length !== 1)
-      throw new Error('Packed configure did not generate exactly one migration')
+    if (
+      ['modes', 'events'].some(
+        (table) =>
+          migrations.filter((name) => name.endsWith(`_create_masquerade_${table}.ts`)).length !== 1
+      )
+    )
+      throw new Error('Packed configure did not generate exactly one migration per table')
     await run(
       app,
       ['typecheck', '--project', join(check, 'tsconfig.json')],
@@ -136,7 +141,7 @@ async function verifyConfigure(app: string, profileName: string): Promise<void> 
   }
 }
 
-const rootProbe = `import { registerHooks } from 'node:module'; import { access } from 'node:fs/promises'; import { join } from 'node:path'; registerHooks({resolve(specifier, context, next) { if (['@adonisjs/lucid', '@adonisjs/assembler', '@adonisjs/bouncer', '@adonisjs/session', '@japa/api-client'].some((name) => specifier === name || specifier.startsWith(name + '/')) || /account.?kit/i.test(specifier)) throw new Error('optional runtime import: '+specifier); return next(specifier, context) }}); const api = await import('@kevinjohn/adonisjs-masquerade'); for (const name of ['defineConfig','createMasqueradeService','configure']) if (typeof api[name] !== 'function') throw new Error('missing root export: '+name); if(typeof api.stubsRoot !== 'string') throw new Error('missing stubsRoot'); await access(join(api.stubsRoot,'make/migration/create_masquerade_tables.stub')); await access(join(api.stubsRoot,'config/masquerade.stub'));`
+const rootProbe = `import { registerHooks } from 'node:module'; import { access } from 'node:fs/promises'; import { join } from 'node:path'; registerHooks({resolve(specifier, context, next) { if (['@adonisjs/lucid', '@adonisjs/assembler', '@adonisjs/bouncer', '@adonisjs/session', '@japa/api-client'].some((name) => specifier === name || specifier.startsWith(name + '/')) || /account.?kit/i.test(specifier)) throw new Error('optional runtime import: '+specifier); return next(specifier, context) }}); const api = await import('@kevinjohn/adonisjs-masquerade'); for (const name of ['defineConfig','createMasqueradeService','configure']) if (typeof api[name] !== 'function') throw new Error('missing root export: '+name); if(typeof api.stubsRoot !== 'string') throw new Error('missing stubsRoot'); for (const table of ['modes','events']) await access(join(api.stubsRoot,'make/migration/create_masquerade_'+table+'.stub')); await access(join(api.stubsRoot,'config/masquerade.stub'));`
 
 const providerProbe = `
   import assert from 'node:assert/strict'
