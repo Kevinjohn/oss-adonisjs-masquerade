@@ -13,7 +13,7 @@ import { controlRouteGuards } from '../integration/control_route_guards.ts'
  *
  * @example
  * ```ts
- * * import { masqueradeRoutes } from '@kevinjohn/adonisjs-masquerade/http'
+ * import { masqueradeRoutes } from '@kevinjohn/adonisjs-masquerade/http'
  * import type { MasqueradeRoutesOptions } from '@kevinjohn/adonisjs-masquerade/types'
  * import router from '@adonisjs/core/services/router'
  *

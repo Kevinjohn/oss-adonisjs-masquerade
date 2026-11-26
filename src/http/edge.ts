@@ -11,16 +11,7 @@ class MasqueradeEdge {
    *
    * @example
    * ```ts
-   * import { masqueradeEdge } from '@kevinjohn/adonisjs-masquerade/http'
-   * import type { HttpContext } from '@adonisjs/core/http'
-   * import type { NextFn } from '@adonisjs/core/types/http'
-   *
-   * export default class ShareSupportStateMiddleware {
-   *   async handle(ctx: HttpContext, next: NextFn) {
-   *     await masqueradeEdge.share(ctx)
-   *     return next()
-   *   }
-   * }
+   * masqueradeEdge.share(ctx).then(() => next())
    * ```
    */
   async share(ctx: HttpContext): Promise<ModeView> {

@@ -1,5 +1,5 @@
 {{{
-  exports({ to: app.makePath(app.rcFile.directories.httpControllers, 'masquerade_form_controller.ts') })
+  exports({ to: app.httpControllersPath('masquerade_form_controller.ts') })
 }}}
 import type { HttpContext } from '@adonisjs/core/http'
 import type { MasqueradeErrorCode } from '@kevinjohn/adonisjs-masquerade'

@@ -8,7 +8,9 @@ import type { RouteGuardSelection } from './route_guard_selection.ts'
  *
  * @example
  * ```ts
- * import runtime from '@kevinjohn/adonisjs-masquerade/services/main'
+ * import { MasqueradeRuntime } from '@kevinjohn/adonisjs-masquerade'
+ *
+ * const runtime: MasqueradeRuntime = await app.container.make('masquerade.runtime')
  * const status = await runtime.service.status(ctx)
  * ```
  */
