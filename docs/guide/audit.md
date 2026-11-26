@@ -35,7 +35,7 @@ then validates optional ISO `from` and `to` filters and a positive safe-integer 
 input returns a 400 without package-owned error text; adapt that response to the host's validation
 renderer. The example's `audit_history_identity` and
 `audit_history_query` modules are host-local supporting files, not package exports; copy and adapt
-them with the controller. The native-session example typechecks this source but does not register
+them with the controller, and create `app/validators/masquerade_history.ts` with the validator below. The native-session example typechecks this source but does not register
 the history route or provide its ability or view.
 
 The query is limited to the configured authority namespace and selects both stored incarnations.
@@ -55,9 +55,22 @@ router
   .use(middleware.auth({ guards: ['web'] }))
 ```
 
+<!-- host-recipe:masquerade-history-validator -->
+
+```ts
+import vine from '@vinejs/vine'
+
+export const masqueradeHistoryValidator = vine.create({
+  from: vine.string().optional(),
+  to: vine.string().optional(),
+  page: vine.string().optional(),
+})
+```
+
 <!-- host-recipe:masquerade-history -->
 
 ```ts
+import { masqueradeHistoryValidator } from '#validators/masquerade_history'
 import type { HttpContext } from '@adonisjs/core/http'
 import db from '@adonisjs/lucid/services/db'
 import { parseAuditHistoryFilters } from '#services/audit_history_query'
@@ -72,7 +85,14 @@ export default class MasqueradeHistoryController {
   async index({ request, response, view, bouncer }: MasqueradeHistoryContext) {
     await bouncer.authorize('viewMasqueradeHistory')
 
-    const filters = parseAuditHistoryFilters(request.qs())
+    const [validationError, queryInput] = await request.tryValidateUsing(
+      masqueradeHistoryValidator,
+      {
+        data: request.qs(),
+      }
+    )
+    if (validationError) return response.badRequest()
+    const filters = parseAuditHistoryFilters(queryInput!)
     if (filters === null) return response.badRequest()
 
     const events = await db
