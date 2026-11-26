@@ -1,14 +1,14 @@
 import { test } from '@japa/runner'
 import { IgnitorFactory } from '@adonisjs/core/factories'
 import type { Router } from '@adonisjs/core/http'
-import { inspectRouteCoverage } from '../commands/routes.js'
-import { AccountKitAccountBlocker as PackageAccountKitAccountBlocker } from '../account_kit/middleware.js'
-import { masqueradeRoutes } from '../http/control_routes.js'
-import { MasqueradeController } from '../http/controllers.js'
-import { selectRouteGuard } from '../src/integration/route_guard_selection.js'
-import { errors } from '../index.js'
-import { fixture } from './helpers/core.js'
-import { requestContext } from './helpers/http_context.js'
+import { inspectRouteCoverage } from '../commands/routes.ts'
+import { AccountKitAccountBlocker as PackageAccountKitAccountBlocker } from '../account_kit/middleware.ts'
+import { masqueradeRoutes } from '../src/http/control_routes.ts'
+import MasqueradeController from '../src/http/masquerade_controller.ts'
+import { selectRouteGuard } from '../src/integration/route_guard_selection.ts'
+import { errors } from '../index.ts'
+import { fixture } from './helpers/core.ts'
+import { requestContext } from './helpers/http_context.ts'
 
 class AuthMiddleware {
   async handle(_ctx: unknown, next: () => Promise<unknown>, _options?: { guards: string[] }) {

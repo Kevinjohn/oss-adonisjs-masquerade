@@ -1,15 +1,17 @@
+import { defineConfig } from '../src/define_config.ts'
+import { NativeAdapter } from '../src/integration/native_adapter.ts'
 import { test } from '@japa/runner'
-import { errorCode, fixture } from './helpers/core.js'
-import { createRuntime, resolveRuntimeConfiguration } from '../src/integration/runtime_factory.js'
-import { markEffectiveFactory } from '../src/integration/guard_registration.js'
-import { buildContextToken } from '../src/context_token.js'
-import { masqueradeContext } from '../http/context_middleware.js'
-import { EffectiveSessionGuard } from '../auth/effective_session_guard.js'
-import { MasqueradeCallbackRegistry } from '../src/callback_registry.js'
+import { errorCode, fixture } from './helpers/core.ts'
+import { createRuntime, resolveRuntimeConfiguration } from '../src/integration/runtime_factory.ts'
+import { guardRegistration } from '../src/integration/guard_registration.ts'
+import { buildContextToken } from '../src/context_token.ts'
+import MasqueradeContextMiddleware from '../src/http/context_middleware.ts'
+import { EffectiveSessionGuard } from '../src/auth/effective_session_guard.ts'
+import { MasqueradeCallbackRegistration } from '../src/callback_registration.ts'
 
 const raw = () => ({})
 const effective = (guard: string, driver: 'session' | 'access_tokens' = 'session') =>
-  markEffectiveFactory(() => ({}), guard, driver)
+  guardRegistration.markEffectiveFactory(() => ({}), guard, driver)
 
 function configuration(
   adapters: Record<string, unknown>,
@@ -29,13 +31,13 @@ function configuration(
     config: { guards: { web: raw, ...guards } as Record<string, unknown> },
   }
   const app = {
-    config: { get: () => f.config },
+    config: { get: () => defineConfig(f.config) },
     container: {
-      make: async (name: string) =>
-        name === 'masquerade.native'
+      make: async (name: unknown) =>
+        name === NativeAdapter
           ? native
-          : name === 'masquerade.callbacks'
-            ? new MasqueradeCallbackRegistry()
+          : name === MasqueradeCallbackRegistration
+            ? new MasqueradeCallbackRegistration()
             : auth,
     },
   }
@@ -82,7 +84,13 @@ test('boot rejects an effective guard whose transport differs from its raw adapt
   const driver = (driverName: string) => () => ({ driverName })
   const f = configuration(
     {},
-    { web_effective: markEffectiveFactory(driver('access_tokens'), 'web', 'access_tokens') }
+    {
+      web_effective: guardRegistration.markEffectiveFactory(
+        driver('access_tokens'),
+        'web',
+        'access_tokens'
+      ),
+    }
   )
   await assert.rejects(
     () => resolveRuntimeConfiguration(f.app as never),
@@ -90,7 +98,7 @@ test('boot rejects an effective guard whose transport differs from its raw adapt
   )
   const g = configuration(
     {},
-    { web_effective: markEffectiveFactory(driver('session'), 'web', 'session') }
+    { web_effective: guardRegistration.markEffectiveFactory(driver('session'), 'web', 'session') }
   )
   const wiring = await resolveRuntimeConfiguration(g.app as never)
   assert.equal(wiring.effectiveRawGuards.web_effective, 'web')
@@ -103,7 +111,11 @@ test('a raw guard whose driver differs from agreeing metadata boots and refuses 
   const f = configuration(
     {},
     {
-      web_effective: markEffectiveFactory(() => ({ driverName: 'session' }), 'web', 'session'),
+      web_effective: guardRegistration.markEffectiveFactory(
+        () => ({ driverName: 'session' }),
+        'web',
+        'session'
+      ),
       web: () => ({ driverName: 'access_tokens' }),
     }
   )
@@ -120,7 +132,7 @@ test('a raw guard whose driver differs from agreeing metadata boots and refuses 
     {
       nodeEnvironment: 'test',
       container: {
-        make: async (name: string) =>
+        make: async (name: unknown) =>
           name === 'emitter' ? { emit: async () => {} } : { info: () => {}, error: () => {} },
       },
     } as never,
@@ -150,7 +162,7 @@ test('guard factories only run on a live request; cross-wired guards fail before
     ctx.request.method()
     return { driverName: 'session' }
   }
-  const effectiveFactory = markEffectiveFactory(
+  const effectiveFactory = guardRegistration.markEffectiveFactory(
     (ctx: Parameters<typeof session>[0]) => session(ctx),
     'web',
     'session'
@@ -175,7 +187,7 @@ test('guard factories only run on a live request; cross-wired guards fail before
     {
       nodeEnvironment: 'test',
       container: {
-        make: async (name: string) =>
+        make: async (name: unknown) =>
           name === 'emitter' ? { emit: async () => {} } : { info: () => {}, error: () => {} },
       },
     } as never,
@@ -220,14 +232,17 @@ test('a cross-wired or failing guard on a live request is logged before the unch
   const session = () => ({ driverName: 'session' })
   const f = configuration(
     {},
-    { web_effective: markEffectiveFactory(() => session(), 'web', 'session'), web: session }
+    {
+      web_effective: guardRegistration.markEffectiveFactory(() => session(), 'web', 'session'),
+      web: session,
+    }
   )
   const wiring = await resolveRuntimeConfiguration(f.app as never)
   const runtime = await createRuntime(
     {
       nodeEnvironment: 'test',
       container: {
-        make: async (name: string) =>
+        make: async (name: unknown) =>
           name === 'emitter' ? { emit: async () => {} } : { info: () => {}, error: () => {} },
       },
     } as never,
@@ -312,7 +327,7 @@ test('runtime service uses route-selected token actor despite a conflicting cook
   const app = {
     nodeEnvironment: 'test',
     container: {
-      make: async (name: string) =>
+      make: async (name: unknown) =>
         name === 'emitter' ? { emit: async () => {} } : { info: () => {}, error: () => {} },
     },
   }
@@ -364,7 +379,7 @@ test('unrelated registered raw guard passes selection but cannot enter the servi
   const app = {
     nodeEnvironment: 'test',
     container: {
-      make: async (name: string) =>
+      make: async (name: unknown) =>
         name === 'emitter' ? { emit: async () => {} } : { info: () => {}, error: () => {} },
     },
   }
@@ -411,7 +426,7 @@ test('a route accepting several raw guards keeps native auth but cannot enter th
   const app = {
     nodeEnvironment: 'test',
     container: {
-      make: async (name: string) =>
+      make: async (name: unknown) =>
         name === 'emitter' ? { emit: async () => {} } : { info: () => {}, error: () => {} },
     },
   }
@@ -435,7 +450,7 @@ test('a route accepting several raw guards keeps native auth but cannot enter th
     containerResolver: { make: async () => runtime },
   }
   let continued = false
-  await masqueradeContext(ctx as never, async () => {
+  await new MasqueradeContextMiddleware().handle(ctx as never, async () => {
     continued = true
   })
   assert.isTrue(continued)

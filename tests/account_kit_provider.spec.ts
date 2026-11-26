@@ -1,3 +1,5 @@
+import { MasqueradeCallbackRegistration } from '../src/callback_registration.ts'
+import { NativeAdapter } from '../src/integration/native_adapter.ts'
 import { resolve } from 'node:path'
 import { pathToFileURL } from 'node:url'
 import { registerHooks } from 'node:module'
@@ -6,11 +8,11 @@ import type { ApplicationService } from '@adonisjs/core/types'
 import type { Router } from '@adonisjs/core/http'
 import type { HttpContext } from '@adonisjs/core/http'
 import { test } from '@japa/runner'
-import AccountKitProvider from '../account_kit/provider.js'
-import AccountKitBlocker from '../account_kit/middleware.js'
-import { inspectRouteCoverage } from '../commands/routes.js'
-import { errors } from '../index.js'
-import { hasVerifiedAccountKitBlocker } from '../src/integration/account_kit_status.js'
+import AccountKitProvider from '../providers/account_kit_provider.ts'
+import AccountKitBlocker from '../account_kit/middleware.ts'
+import { inspectRouteCoverage } from '../commands/routes.ts'
+import { errors } from '../index.ts'
+import { accountKitBlockerStatus } from '../src/integration/account_kit_status.ts'
 
 function canLoadKit(): boolean {
   if (process.env.ACCOUNT_KIT_SOURCE) return true
@@ -61,7 +63,7 @@ async function fixture(
     identifier?: unknown
     environment?: string
     group?: string
-    /** Bind `masquerade.native` through the Masquerade provider and `masquerade.callbacks`. */
+    /** Bind `NativeAdapter` through the Masquerade provider and `MasqueradeCallbackRegistration`. */
     registered?: boolean
   } = {}
 ) {
@@ -106,15 +108,17 @@ async function fixture(
       },
     }),
   }
-  const registry = options.registered ? await app.container.make('masquerade.callbacks') : undefined
+  const registry = options.registered
+    ? await app.container.make(MasqueradeCallbackRegistration)
+    : undefined
   registry?.register(() => ({ native: adapter as never }))
   const providerApp = {
     container: {
-      make: async (key: string) =>
+      make: async (key: unknown) =>
         key === 'router'
           ? router
           : options.registered
-            ? app.container.make(key as 'masquerade.native')
+            ? app.container.make(NativeAdapter)
             : adapter,
     },
     getEnvironment: () => options.environment ?? 'console',
@@ -147,9 +151,9 @@ async function block(
       },
     },
     containerResolver: {
-      make: async (key: string) => {
+      make: async (key: unknown) => {
         if (key === 'router') return host.router
-        if (key === 'masquerade.native') return host.adapter
+        if (key === NativeAdapter) return host.adapter
         if (key === 'masquerade.runtime')
           return {
             activeMode: async (owner: unknown) => {
@@ -202,7 +206,7 @@ test.group('Account Kit provider', () => {
       assert.isFalse(host.router.commited)
       await host.provider.ready()
       assert.isTrue(host.router.commited)
-      assert.isTrue(hasVerifiedAccountKitBlocker(host.providerApp))
+      assert.isTrue(accountKitBlockerStatus.hasVerifiedAccountKitBlocker(host.providerApp))
     } finally {
       await host.app.terminate()
     }
@@ -214,8 +218,8 @@ test.group('Account Kit provider', () => {
     const host = await fixture({ registered: true })
     try {
       await host.provider.ready()
-      assert.strictEqual(await host.app.container.make('masquerade.native'), host.adapter as never)
-      assert.isTrue(hasVerifiedAccountKitBlocker(host.providerApp))
+      assert.strictEqual(await host.app.container.make(NativeAdapter), host.adapter as never)
+      assert.isTrue(accountKitBlockerStatus.hasVerifiedAccountKitBlocker(host.providerApp))
     } finally {
       await host.app.terminate()
     }
@@ -228,10 +232,10 @@ test.group('Account Kit provider', () => {
     try {
       await host.provider.ready()
       assert.isFalse(host.router.commited)
-      assert.isFalse(hasVerifiedAccountKitBlocker(host.providerApp))
+      assert.isFalse(accountKitBlockerStatus.hasVerifiedAccountKitBlocker(host.providerApp))
       host.router.commit()
       await host.provider.ready()
-      assert.isTrue(hasVerifiedAccountKitBlocker(host.providerApp))
+      assert.isTrue(accountKitBlockerStatus.hasVerifiedAccountKitBlocker(host.providerApp))
     } finally {
       await host.app.terminate()
     }
@@ -241,7 +245,7 @@ test.group('Account Kit provider', () => {
     const host = await fixture({ inlineBlocker: true })
     try {
       await host.provider.ready()
-      assert.isTrue(hasVerifiedAccountKitBlocker(host.providerApp))
+      assert.isTrue(accountKitBlockerStatus.hasVerifiedAccountKitBlocker(host.providerApp))
     } finally {
       await host.app.terminate()
     }
@@ -264,7 +268,7 @@ test.group('Account Kit provider', () => {
       }
       await host.provider.ready()
       assert.equal(calls, 0)
-      assert.isTrue(hasVerifiedAccountKitBlocker(host.providerApp))
+      assert.isTrue(accountKitBlockerStatus.hasVerifiedAccountKitBlocker(host.providerApp))
     } finally {
       await host.app.terminate()
     }
@@ -375,7 +379,7 @@ test.group('Account Kit provider', () => {
           'web',
           ['web'],
           {},
-          hasVerifiedAccountKitBlocker(host.providerApp)
+          accountKitBlockerStatus.hasVerifiedAccountKitBlocker(host.providerApp)
         )
       const unverified = await report()
       await host.provider.ready()

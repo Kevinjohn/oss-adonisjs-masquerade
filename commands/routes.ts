@@ -1,15 +1,11 @@
-import { InvalidArgumentsException } from '@adonisjs/core/exceptions'
 import { BaseCommand } from '@adonisjs/core/ace'
-import { MasqueradeController } from '../http/controllers.js'
-import type { MasqueradeConfig } from '../src/types.js'
-import { routeGuards, routeMarkers } from '../src/integration/route_metadata.js'
-import {
-  getEffectiveFactoryRawGuard,
-  isEffectiveFactory,
-} from '../src/integration/guard_registration.js'
-import { hasVerifiedAccountKitBlocker } from '../src/integration/account_kit_status.js'
-import { checkAccountKitBlockerRegistration } from '../src/integration/account_kit_blocker_registration.js'
-import { classifyAccountKitRoute } from '../src/integration/account_kit_route_classification.js'
+import MasqueradeController from '../src/http/masquerade_controller.ts'
+import { resolveMasqueradeConfig } from '../src/define_config.ts'
+import { routeGuards, routeMarkers } from '../src/integration/route_metadata.ts'
+import { guardRegistration } from '../src/integration/guard_registration.ts'
+import { accountKitBlockerStatus } from '../src/integration/account_kit_status.ts'
+import { checkAccountKitBlockerRegistration } from '../src/integration/account_kit_blocker_registration.ts'
+import { classifyAccountKitRoute } from '../src/integration/account_kit_route_classification.ts'
 
 /** Print a route coverage report from the router's committed route definitions. */
 export default class RoutesCommand extends BaseCommand {
@@ -18,17 +14,15 @@ export default class RoutesCommand extends BaseCommand {
   static options = { startApp: true }
 
   async run(): Promise<void> {
-    const config = this.app.config.get('masquerade') as
-      MasqueradeConfig<unknown, object> | undefined
-    if (!config) throw new InvalidArgumentsException('Masquerade configuration is required')
+    const config = await resolveMasqueradeConfig<object>(this.app)
     const router = await this.app.container.make('router')
     const auth = await this.app.container.make('auth.manager')
     const effectiveGuardNames = Object.entries(auth.config.guards)
-      .filter(([, factory]) => isEffectiveFactory(factory))
+      .filter(([, factory]) => guardRegistration.isEffectiveFactory(factory))
       .map(([name]) => name)
     const effectiveRawGuards: Record<string, string> = Object.create(null)
     for (const [name, factory] of Object.entries(auth.config.guards)) {
-      const raw = getEffectiveFactoryRawGuard(factory)
+      const raw = guardRegistration.getEffectiveFactoryRawGuard(factory)
       if (raw) effectiveRawGuards[name] = raw
     }
     router.commit()
@@ -45,7 +39,7 @@ export default class RoutesCommand extends BaseCommand {
       String(auth.defaultGuard),
       effectiveGuardNames,
       effectiveRawGuards,
-      hasVerifiedAccountKitBlocker(this.app)
+      accountKitBlockerStatus.hasVerifiedAccountKitBlocker(this.app)
     ))
       this.logger.info(section)
   }

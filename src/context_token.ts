@@ -1,6 +1,6 @@
-import { E_MASQUERADE_CONTEXT_CHANGED, E_MASQUERADE_CONTEXT_REQUIRED } from './errors.js'
+import { E_MASQUERADE_CONTEXT_CHANGED, E_MASQUERADE_CONTEXT_REQUIRED } from './errors.ts'
 import { createHash } from 'node:crypto'
-import type { ModeRow, OwnerKey } from './types.js'
+import type { ModeRow, OwnerKey } from './types.ts'
 
 export function buildContextToken(owner: OwnerKey, row: ModeRow | null): string {
   if (row) return `${row.revision}.${row.revisionNonce}`

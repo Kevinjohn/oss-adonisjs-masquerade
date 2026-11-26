@@ -3,7 +3,7 @@ import { mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { delimiter, join } from 'node:path'
 import { test } from '@japa/runner'
-import { checkProfiles, selectedSteps } from '../bin/check_profiles.js'
+import { checkProfiles, selectedSteps } from '../bin/check_profiles.ts'
 
 const root = join(import.meta.dirname, '..')
 const allSteps = Object.values(checkProfiles).flat()

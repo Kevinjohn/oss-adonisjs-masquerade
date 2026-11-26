@@ -4,7 +4,7 @@ import {
   childDemoEnv,
   parseDemoEnv,
   validateDemoEnv,
-} from '../bin/helpers/account_kit_demo_environment.js'
+} from '../bin/helpers/account_kit_demo_environment.ts'
 
 test.group('Account Kit demo environment', () => {
   test('rejects unsafe effective configuration before any child starts', ({ assert }) => {

@@ -8,6 +8,9 @@ boundary and [custom authorities](custom-authorities.md) for the native authorit
 [API entry-point map](https://kevinjohn.github.io/oss-adonisjs-masquerade/reference/index#supported-package-imports) links supported imports.
 Hosts using Account Kit should also read the [Account Kit integration preview](account-kit.md).
 
+This guide follows the current checkout. For the published archive, follow the
+[0.7.1 setup guide](https://github.com/Kevinjohn/oss-adonisjs-masquerade/blob/v0.7.1/docs/guide/setup.md).
+
 ## Generate the starter files
 
 Use Node 24 and pnpm. Masquerade is not published to a package registry. The
@@ -56,72 +59,27 @@ Replace the previous provider path in existing `adonisrc.ts` entries and provide
 The two install commands are needed only if those dependencies are absent; `node ace add` also
 configures Lucid. Configure itself does not install packages or run the generated migration.
 
-Choose a stable namespace for this identity domain and the name of the raw session guard. Configure
-checks the namespace and guard syntax, that `config/auth.ts` and `#models/user` exist, and that
-the assembler code transformer and Lucid can be imported. It reads the shape of `config/auth.ts`
-only to decide whether to wire it, as below; it does not check the selected guard's driver or
-provider. Since v0.5.0, boot compares known native transport registration metadata. The actual selected guard
-and effective wrapper are checked on the live request before Masquerade reads mode state. The
-package no longer invokes a guard factory with a synthetic context as 0.4.3 did. Configure adds
-the package provider, native binding provider, and command loader to `adonisrc.ts`, and creates
-starter files. It creates the migration in the default connection's first migrations folder when
-none exists. With `--force`, it refreshes the other scaffolds and preserves the path and contents
-of an existing Masquerade migration found in that connection's migration folders. Multiple
-existing Masquerade migrations stop configure before it writes files.
-Since release 0.5.0, custom directories declared in `adonisrc.ts` are respected throughout generation, conflict
-preflight and host wiring. Keep the corresponding host import aliases aligned in `package.json`.
+Choose a stable namespace and the raw session guard name. Configure checks the name syntax,
+`config/auth.ts`, `#models/user`, the assembler and Lucid. It registers the package provider, native
+adapter provider and Ace commands in `adonisrc.ts` and drafts the config, shared user provider and
+migration. Keep any custom host directories and the corresponding import aliases aligned.
 
-Configure then wires the host when its files have the AdonisJS starter-kit shape, and prints the
-manual step for anything it leaves alone:
+- Add the effective guard and register the context middleware using the steps below.
+- Use `--control-routes` after configuring AdonisJS Limiter to draft `start/masquerade_routes.ts` (or `start/masquerade_form_routes.ts` with the form controller)
+  and `start/masquerade_limiter.ts`. Review both limiter budgets and CSRF protection, then import
+  the routes from the host's routes preload.
+- Use `--banner` to draft the host-owned status middleware and Edge banner. Register the middleware
+  after silent authentication and include `components/masquerade/banner` in an authenticated
+  layout. The middleware shares the safe `ModeView` with Edge and Inertia on authenticated
+  effective routes.
+- Use `--form-controller` to draft an HTML form adapter. With `--control-routes`, the route file
+  uses that controller. Otherwise mount it explicitly behind the raw guard with separate rate
+  limiters and CSRF protection. Edit its redirects and flash rendering.
 
-- **`config/auth.ts`**: when `authConfig` is a `defineConfig` call whose default is the `--guard`
-  value, and that guard is the starter's `sessionGuard` with a `sessionUserProvider` for
-  `#models/user`, configure moves the factory to a constant that uses the generated `userProvider`
-  (`webGuard` for `--guard=web`), adds `web_effective: effectiveSessionGuard(webGuard)` and makes
-  `web_effective` the default. Configure requires the starter imports from `@adonisjs/auth`
-  and `@adonisjs/auth/session`. Configurations with custom factory bindings use the manual path.
-- **`start/kernel.ts`**: configure inserts the context middleware directly after
-  `initialize_auth_middleware` in `router.use`. It skips the edit when `initialize_auth` is missing
-  or `silent_auth` runs before it.
-- **Control routes**: when both edits above are in place, `config/limiter.ts` exists and the kernel
-  has the named `auth` middleware, configure writes `start/masquerade_limiter.ts` (separate start
-  and stop budgets) and `start/masquerade_routes.ts` (`masqueradeRoutes` on the raw guard) and
-  preloads the routes file. Without `@adonisjs/limiter`, the routes step is printed instead.
-- **Optional banner**: pass `--banner` on the initial configure command to generate the editable
-  `resources/views/components/masquerade/banner.edge` and
-  `app/middleware/share_masquerade_status_middleware.ts` files. On a recognised kernel, configure
-  registers the middleware after silent authentication. Include the component in an authenticated
-  Edge layout with `@include('components/masquerade/banner')`. It displays the target ID, access
-  level, deadline, CSRF field, and current context token. The generated files are host-owned and
-  can be restyled or replaced; the package ships no runtime UI. The middleware shares the safe
-  `ModeView` as `masquerade` with Edge and Inertia only on authenticated effective-guard routes.
-  Public, login/logout, and raw control routes do not read mode status. The host may replace the
-  displayed target ID with its own label; the package does not inspect application display fields.
-- **Optional form controller**: pass `--form-controller` to generate the editable
-  `app/controllers/masquerade_form_controller.ts`. Configure routes GET status and POST start/stop
-  to it; status is the inherited package handler. The host controller delegates JSON requests to the
-  package controller and handles HTML form posts with typed flashes and host-owned redirects. Use
-  `--banner --form-controller` together when the generated banner's Stop form should redirect.
-
-  The generated form posts to the named `masquerade.stop` route. With the default package route,
-  a successful stop returns JSON, which the browser displays. A host that wants a redirect or
-  confirmation page owns that response presentation and the route used by its form.
-
-The identity and eligibility callbacks stay manual and fail closed. Pass `--no-wire` to skip automatic
-host-file wiring. Configure still generates the user provider, config, native provider, context
-middleware and migration, plus any selected banner/status middleware or form controller, and
-registers the generated native provider, package provider and commands in `adonisrc.ts`. It prints the remaining wiring steps
-for you to apply. With `--banner --no-wire`, manually register the generated
-status middleware in `router.use` after `silent_auth_middleware`, then include the Edge component in
-an authenticated layout yourself. If `--form-controller` is also enabled, manually mount its form
-routes, including its status route.
-
-Generated files fail closed. Once configure has wired the auth default, authenticated routes return
-503 until the host callbacks below are filled in. Review the output and replace every placeholder
-before mounting routes. If a generated destination already exists, including
-`start/masquerade_routes.ts` or `start/masquerade_limiter.ts` when wiring, configure leaves files
-unchanged and reports the conflicts. Use `--force` only when you intend to replace the
-other generated files. A codemod error fails the command; a file whose shape configure does not recognise is left unedited and listed as a manual step.
+Configure preserves the path and contents of an existing Masquerade migration, even with `--force`.
+Without `--force` it reports conflicting scaffold paths before writing. Multiple Masquerade
+migrations stop generation. Complete the fail-closed callbacks and apply the reviewed migration
+before serving the routes.
 
 ## Reuse the session user provider
 
@@ -234,7 +192,7 @@ export { nativeAdapter }
 
 export default defineConfig<User, HttpContext>({
   authority: nativeAdapter.authority,
-  policy: {
+  permissions: {
     // Never let an operator act as anyone with more privilege: edit access there lets them grant
     // themselves that privilege. Refusing other operators is the recommended default.
     canMasquerade: ({ actor, target }) =>
@@ -266,7 +224,7 @@ Set `contextEnforcement` to `enforce` when business forms carry a captured conte
 covered unsafe business request without the token with 428, including when no one is
 masquerading. An application with existing unsafe forms or clients on effective-guard routes keeps
 the generated `report` until each one sends the token, as described in
-[context tokens and browser clients](security.md#context-tokens-and-browser-clients). Replace the sample model fields and host callbacks with your own. The callbacks stay under the `policy` key in the public config. `authority` and `policy` may instead come from the callback registry: see
+[context tokens and browser clients](security.md#context-tokens-and-browser-clients). Replace the sample model fields and host callbacks with your own. The callbacks stay under the `permissions` key in the public config. `authority` and `permissions` may instead come from the callback registration: see
 [registering callbacks from a provider](https://github.com/Kevinjohn/oss-adonisjs-masquerade/blob/main/README.md#registering-callbacks-from-a-provider). If you choose a store other than the generated Lucid store, see [custom stores](custom-stores.md).
 `incarnation` must be stable for one account's lifetime and different if a deleted ID can be
 reused. Use `incarnation: 'id'` only if the host guarantees account IDs are never reused. The
@@ -362,12 +320,6 @@ router.use([
   () => import('#middleware/silent_auth_middleware'),
 ])
 ```
-
-Configure registers this import. Releases 0.5.0 and 0.5.1 do not have this subpath; there, register
-`() => import('@kevinjohn/adonisjs-masquerade/http')` or the generated
-`#middleware/masquerade_context_middleware` wrapper in the same position. Both keep working in later
-releases, configure reruns recognise them, and the `masqueradeContext(ctx, next)` function stays
-available for host-owned wrappers. Release 0.4.3 requires the wrapper.
 
 Keep the supported named `auth` middleware on route groups. Package control routes authenticate
 with the raw guard so an active effective identity cannot replace the actor used to stop a mode:

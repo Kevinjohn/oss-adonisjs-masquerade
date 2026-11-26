@@ -6,7 +6,7 @@ As an application test author, I want to exercise a real support mode through th
 **Access:** Register `masqueradeApiClient()` after auth, session and Shield API-client plugins. The same request must have `loginAs(actor)` credentials when setup runs.
 **Entry:** In an API test, chain `.loginAs(actor).masquerading(target, options)` before sending the request.
 **Documentation:** [Testing your routes](../../docs/guide/testing.md)
-**Source:** [`plugins/api_client.ts`](../../plugins/api_client.ts)
+**Source:** [`src/plugins/api_client.ts`](../../src/plugins/api_client.ts)
 **Coverage:** [`tests/api_client_plugin.spec.ts`](../../tests/api_client_plugin.spec.ts), [native-session helper scenario](../../examples/native-session/tests/functional/masquerading_helper.spec.ts)
 
 ## Acceptance criteria
@@ -63,4 +63,4 @@ flowchart TD
  W -->|Yes| L
 ```
 
-**Code references:** [plugin](../../plugins/api_client.ts), [testing guide](../../docs/guide/testing.md), [real control routes](../../http/control_routes.ts), [plugin tests](../../tests/api_client_plugin.spec.ts)
+**Code references:** [plugin](../../src/plugins/api_client.ts), [testing guide](../../docs/guide/testing.md), [real control routes](../../src/http/control_routes.ts), [plugin tests](../../tests/api_client_plugin.spec.ts)

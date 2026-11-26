@@ -1,22 +1,22 @@
 // The configure hook's scaffold: generated files, optional stubs, prompts and fail-closed exits.
-// Config and kernel rewrites go to configure_wiring.spec.ts, Ace runs to configure_ace.spec.ts.
+// Native Ace coverage lives in configure_ace.spec.ts.
 // Fixtures: configureFixture() and readScaffold() at the end of this file.
 import { test } from '@japa/runner'
+import { FileSystem } from '@japa/file-system'
 import { IgnitorFactory } from '@adonisjs/core/factories'
 import { mkdtemp, mkdir, readFile, readdir, rename, rm, symlink, writeFile } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
-import { stubsRoot } from '../stubs/main.js'
-import { configure } from '../configure.js'
+import { stubsRoot } from '../index.ts'
+import { configure } from '../configure.ts'
 import { pathToFileURL } from 'node:url'
 import { Database } from '@adonisjs/lucid/database'
 import { MigrationRunner } from '@adonisjs/lucid/migration'
 import { Emitter } from '@adonisjs/core/events'
 import { Logger } from '@adonisjs/core/logger'
-import { sqlFixture } from './helpers/sql_store.js'
+import { sqlFixture } from './helpers/sql_store.ts'
 
 test.group('Masquerade configure scaffold', (group) => {
-  // configure now wires the host through a ts-morph project, which is slow on CI runners.
   group.each.timeout(30_000)
 
   test('scaffold inspection rethrows filesystem errors other than missing paths', async ({
@@ -55,8 +55,9 @@ test.group('Masquerade configure scaffold', (group) => {
 
   test('generates fail-closed files and additive wiring, skips existing files, and force replaces them', async ({
     assert,
+    fs,
   }) => {
-    const f = await configureFixture()
+    const f = await configureFixture(fs)
     try {
       const first = f.command({ namespace: 'support', guard: 'web' })
       await configure(first as never)
@@ -78,7 +79,7 @@ test.group('Masquerade configure scaffold', (group) => {
       )
       assert.include(output.config, 'securityStamp: stampFrom<User>')
       assert.include(output.userProvider, "model: () => import('#models/user')")
-      assert.include(output.nativeProvider, "bindValue('masquerade.native', nativeAdapter)")
+      assert.include(output.nativeProvider, 'bindValue(NativeAdapter, nativeAdapter)')
       assert.notInclude(
         await listScaffoldPaths(f.root),
         'app/middleware/masquerade_context_middleware.ts'
@@ -141,8 +142,8 @@ test.group('Masquerade configure scaffold', (group) => {
     }
   })
 
-  test('generates the host-owned form controller only when requested', async ({ assert }) => {
-    const f = await configureFixture()
+  test('generates the host-owned form controller only when requested', async ({ assert, fs }) => {
+    const f = await configureFixture(fs)
     try {
       const configured = f.command({ namespace: 'support', guard: 'web', formController: true })
       await configure(configured as never)
@@ -166,8 +167,9 @@ test.group('Masquerade configure scaffold', (group) => {
 
   test('generates the host-owned status sharing middleware and Edge banner only when requested', async ({
     assert,
+    fs,
   }) => {
-    const f = await configureFixture()
+    const f = await configureFixture(fs)
     try {
       const configured = f.command({ namespace: 'support', guard: 'web', banner: true })
       await configure(configured as never)
@@ -194,7 +196,7 @@ test.group('Masquerade configure scaffold', (group) => {
       assert.notInclude(output.statusMiddleware!, 'email')
       assert.isTrue(
         configured.messages.some((message) =>
-          message.includes('Wire app/middleware/share_masquerade_status_middleware.ts')
+          message.includes('Register app/middleware/share_masquerade_status_middleware.ts')
         )
       )
 
@@ -281,63 +283,32 @@ test.group('Masquerade configure scaffold', (group) => {
     }
   })
 
-  test('names the generated route files among the paths --force would replace', async ({
+  test('generates control route drafts on request and preserves an existing limiter', async ({
     assert,
+    fs,
   }) => {
-    const f = await configureFixture()
+    const f = await configureFixture(fs)
     try {
-      await writeFile(join(f.root, 'start/masquerade_limiter.ts'), 'tuned limiter')
-      const refused = f.command({ namespace: 'support', guard: 'web' })
+      await f.fs.create('config/limiter.ts', 'export default {}')
+      await f.fs.create('start/masquerade_limiter.ts', 'tuned limiter')
+      const refused = f.command({ 'namespace': 'support', 'guard': 'web', 'control-routes': true })
       await configure(refused as never)
       assert.equal(refused.exitCode, 1)
       assert.isTrue(
         refused.errors.some((message) => message.includes('start/masquerade_limiter.ts'))
       )
       assert.deepEqual(await listScaffoldPaths(f.root), [])
-      // --no-wire never writes the route files, so they are not conflicts.
-      const manual = f.command({ namespace: 'support', guard: 'web', wire: false })
-      await configure(manual as never)
-      assert.equal(manual.exitCode, 0)
-      assert.equal(
-        await readFile(join(f.root, 'start/masquerade_limiter.ts'), 'utf8'),
-        'tuned limiter'
-      )
+      const scaffold = f.command({ namespace: 'support', guard: 'web' })
+      await configure(scaffold as never)
+      assert.equal(scaffold.exitCode, 0)
+      assert.equal(await f.fs.contents('start/masquerade_limiter.ts'), 'tuned limiter')
     } finally {
       await f.dispose()
     }
   })
 
-  test('fails when a codemod reports an error during host wiring', async ({ assert }) => {
-    const f = await configureFixture()
-    try {
-      const configured = f.command({ namespace: 'support', guard: 'web' })
-      const create = configured.createCodemods
-      configured.createCodemods = async () => {
-        const codemods = await create()
-        let raise: ((error: unknown) => void) | undefined
-        const on = codemods.on.bind(codemods)
-        return Object.assign(codemods, {
-          on(event: string, callback: (error: unknown) => void) {
-            raise = callback
-            on(event, callback)
-          },
-          // Wiring starts by asking for the project; a codemod error raised from here on is late.
-          async getTsMorphProject() {
-            raise?.(new Error('preload registration failed'))
-            return undefined
-          },
-        })
-      }
-      await configure(configured as never)
-      assert.equal(configured.exitCode, 1)
-      assert.isTrue(configured.errors.some((message) => message.includes('Host wiring failed')))
-    } finally {
-      await f.dispose()
-    }
-  })
-
-  test('reads a numeric namespace as it was typed', async ({ assert }) => {
-    const f = await configureFixture()
+  test('reads a numeric namespace as it was typed', async ({ assert, fs }) => {
+    const f = await configureFixture(fs)
     const argv = process.argv
     process.argv = [...argv, '--namespace=0042']
     try {
@@ -354,8 +325,9 @@ test.group('Masquerade configure scaffold', (group) => {
 
   test('refuses before writing when the user model the scaffold imports is missing', async ({
     assert,
+    fs,
   }) => {
-    const f = await configureFixture()
+    const f = await configureFixture(fs)
     try {
       await rm(join(f.root, 'app/models/user.ts'))
       const configured = f.command({ namespace: 'support', guard: 'web' })
@@ -368,8 +340,8 @@ test.group('Masquerade configure scaffold', (group) => {
     }
   })
 
-  test('finds the user model through the host #models import map', async ({ assert }) => {
-    const f = await configureFixture()
+  test('finds the user model through the host #models import map', async ({ assert, fs }) => {
+    const f = await configureFixture(fs)
     try {
       await rm(join(f.root, 'app/models/user.ts'))
       await mkdir(join(f.root, 'src/models'), { recursive: true })
@@ -386,8 +358,11 @@ test.group('Masquerade configure scaffold', (group) => {
     }
   })
 
-  test('writes the migration into the Lucid connection migrations folder', async ({ assert }) => {
-    const f = await configureFixture()
+  test('writes the migration into the Lucid connection migrations folder', async ({
+    assert,
+    fs,
+  }) => {
+    const f = await configureFixture(fs)
     try {
       f.app.config.set('database', {
         connection: 'main',
@@ -408,8 +383,9 @@ test.group('Masquerade configure scaffold', (group) => {
 
   test('reports a migration path that is not a directory without writing files', async ({
     assert,
+    fs,
   }) => {
-    const f = await configureFixture()
+    const f = await configureFixture(fs)
     try {
       await writeFile(join(f.root, 'schema.txt'), 'not a directory')
       f.app.config.set('database', {
@@ -432,8 +408,9 @@ test.group('Masquerade configure scaffold', (group) => {
 
   test('reports a migration destination occupied by an entry that Lucid ignores', async ({
     assert,
+    fs,
   }) => {
-    const f = await configureFixture()
+    const f = await configureFixture(fs)
     const now = Date.now
     Date.now = () => 1_700_000_000_000
     try {
@@ -455,8 +432,9 @@ test.group('Masquerade configure scaffold', (group) => {
 
   test('stops before writing when config/database.ts exists but fails to load', async ({
     assert,
+    fs,
   }) => {
-    const f = await configureFixture()
+    const f = await configureFixture(fs)
     const load = f.app.import
     try {
       await mkdir(join(f.root, 'config'), { recursive: true })
@@ -475,8 +453,8 @@ test.group('Masquerade configure scaffold', (group) => {
     }
   })
 
-  test('stops before writing when package.json is not JSON', async ({ assert }) => {
-    const f = await configureFixture()
+  test('stops before writing when package.json is not JSON', async ({ assert, fs }) => {
+    const f = await configureFixture(fs)
     try {
       await writeFile(join(f.root, 'package.json'), '{"imports":')
       const configured = f.command({ namespace: 'support', guard: 'web' })
@@ -489,8 +467,9 @@ test.group('Masquerade configure scaffold', (group) => {
 
   test('falls back to database/migrations without config/database.ts or package.json', async ({
     assert,
+    fs,
   }) => {
-    const f = await configureFixture()
+    const f = await configureFixture(fs)
     try {
       await rm(join(f.root, 'config/database.ts'), { force: true })
       await rm(join(f.root, 'package.json'), { force: true })
@@ -507,8 +486,8 @@ test.group('Masquerade configure scaffold', (group) => {
     }
   })
 
-  test('uses the same absolute RC migration fallback as Lucid', async ({ assert }) => {
-    const f = await configureFixture()
+  test('uses the same absolute RC migration fallback as Lucid', async ({ assert, fs }) => {
+    const f = await configureFixture(fs)
     const directory = join(f.root, 'schema')
     f.app.rcFile.directories.migrations = directory
     const db = new Database(
@@ -526,7 +505,7 @@ test.group('Masquerade configure scaffold', (group) => {
       new Emitter(f.app)
     )
     try {
-      const configured = f.command({ 'namespace': 'support', 'guard': 'web', 'no-wire': true })
+      const configured = f.command({ namespace: 'support', guard: 'web' })
       await configure(configured as never)
       assert.equal(configured.exitCode, 0, configured.errors.join('\n'))
       const runner = new MigrationRunner(db, f.app, { direction: 'up', dryRun: false })
@@ -541,8 +520,9 @@ test.group('Masquerade configure scaffold', (group) => {
 
   test('reads named database exports before boot and Lucid discovers the generated migration', async ({
     assert,
+    fs,
   }) => {
-    const f = await configureFixture(false)
+    const f = await configureFixture(fs, false)
     const connection = {
       client: 'better-sqlite3' as const,
       connection: { filename: join(f.root, 'db.sqlite3') },
@@ -559,7 +539,7 @@ test.group('Masquerade configure scaffold', (group) => {
         join(f.root, 'config/database.ts'),
         `export const connection = 'primary'\nexport const connections = ${JSON.stringify({ primary: connection })}\n`
       )
-      const configured = f.command({ 'namespace': 'support', 'guard': 'web', 'no-wire': true })
+      const configured = f.command({ namespace: 'support', guard: 'web' })
       await configure(configured as never)
       assert.equal(configured.exitCode, 0, configured.errors.join('\n'))
       const runner = new MigrationRunner(db, f.app, { direction: 'up', dryRun: false })
@@ -574,8 +554,9 @@ test.group('Masquerade configure scaffold', (group) => {
 
   test('force reruns retain the nested migration identity and create the schema once', async ({
     assert,
+    fs,
   }) => {
-    const f = await configureFixture()
+    const f = await configureFixture(fs)
     const database = await sqlFixture({ createTables: false })
     const { db } = database
     try {
@@ -585,9 +566,9 @@ test.group('Masquerade configure scaffold', (group) => {
       )
       await writeFile(
         join(f.root, 'schema.js'),
-        `export * from ${JSON.stringify(new URL('../stores/lucid.ts', import.meta.url).href)}\n`
+        `export * from ${JSON.stringify(new URL('../src/stores/lucid.ts', import.meta.url).href)}\n`
       )
-      const flags = { 'namespace': 'support', 'guard': 'web', 'no-wire': true }
+      const flags = { namespace: 'support', guard: 'web' }
       const first = f.command(flags)
       await configure(first as never)
       assert.equal(first.exitCode, 0, first.errors.join('\n'))
@@ -642,8 +623,9 @@ test.group('Masquerade configure scaffold', (group) => {
 
   test('force reuses a migration from a later Lucid directory and refuses competing migrations', async ({
     assert,
+    fs,
   }) => {
-    const f = await configureFixture()
+    const f = await configureFixture(fs)
     try {
       const paths = ['database/migrations', 'database/archive']
       f.app.config.set('database', {
@@ -653,7 +635,7 @@ test.group('Masquerade configure scaffold', (group) => {
       const [primary, archive] = paths.map((path) => join(f.root, path))
       const file = '1700000000000_create_masquerade_tables.ts'
       const archived = join(archive, file)
-      const flags = { 'namespace': 'support', 'guard': 'web', 'no-wire': true }
+      const flags = { namespace: 'support', guard: 'web' }
       await mkdir(primary, { recursive: true })
       await mkdir(archive, { recursive: true })
       await writeFile(archived, '// Earlier scaffold')
@@ -677,15 +659,15 @@ test.group('Masquerade configure scaffold', (group) => {
     }
   })
 
-  test('force leaves a discoverable non-TypeScript migration untouched', async ({ assert }) => {
-    const f = await configureFixture()
+  test('force leaves a discoverable non-TypeScript migration untouched', async ({ assert, fs }) => {
+    const f = await configureFixture(fs)
     try {
       const directory = join(f.root, 'database/migrations/prior')
       await mkdir(directory, { recursive: true })
       const file = join(directory, '1700000000000_create_masquerade_tables.cjs')
       const source = 'module.exports = class ExistingMigration {}'
       await writeFile(file, source)
-      const forced = f.command({ 'namespace': 'support', 'guard': 'web', 'no-wire': true }, true)
+      const forced = f.command({ namespace: 'support', guard: 'web' }, true)
       await configure(forced as never)
       assert.equal(forced.exitCode, 0, forced.errors.join('\n'))
       assert.equal(await readFile(file, 'utf8'), source)
@@ -696,8 +678,11 @@ test.group('Masquerade configure scaffold', (group) => {
     }
   })
 
-  test('reads config/database.ts when configure runs before the app boots', async ({ assert }) => {
-    const f = await configureFixture()
+  test('reads config/database.ts when configure runs before the app boots', async ({
+    assert,
+    fs,
+  }) => {
+    const f = await configureFixture(fs)
     const load = f.app.import
     try {
       f.app.import = async (specifier: string) => {
@@ -726,8 +711,9 @@ test.group('Masquerade configure scaffold', (group) => {
 
   test('prompts for missing values and rejects unsafe namespace before touching files', async ({
     assert,
+    fs,
   }) => {
-    const f = await configureFixture()
+    const f = await configureFixture(fs)
     try {
       const prompted = f.command({}, false, ['test_app', 'support-web'])
       await configure(prompted as never)
@@ -736,7 +722,9 @@ test.group('Masquerade configure scaffold', (group) => {
       assert.include(promptedOutput.config, 'namespace: "test_app"')
       assert.isTrue(
         prompted.messages.some((message) =>
-          message.includes('default: "support-web_effective"; guards: { "support-web": rawGuard')
+          message.includes(
+            'make "support-web_effective" the default: guards: { "support-web": rawGuard'
+          )
         )
       )
 
@@ -751,8 +739,8 @@ test.group('Masquerade configure scaffold', (group) => {
     }
   })
 
-  test('fails closed when Auth config or Lucid is unavailable', async ({ assert }) => {
-    const f = await configureFixture()
+  test('fails closed when Auth config or Lucid is unavailable', async ({ assert, fs }) => {
+    const f = await configureFixture(fs)
     try {
       await rm(join(f.root, 'config/auth.ts'))
       const missingAuth = f.command({ namespace: 'support', guard: 'web' })
@@ -795,8 +783,11 @@ test.group('Masquerade configure scaffold', (group) => {
     }
   })
 
-  test('returns failure when native registration reports a codemod error', async ({ assert }) => {
-    const f = await configureFixture()
+  test('returns failure when native registration reports a codemod error', async ({
+    assert,
+    fs,
+  }) => {
+    const f = await configureFixture(fs)
     try {
       const failing = f.command({ namespace: 'support', guard: 'web' }, false, [], true)
       await configure(failing as never)
@@ -808,15 +799,14 @@ test.group('Masquerade configure scaffold', (group) => {
   })
 })
 
-async function configureFixture(boot = true) {
-  const root = await mkdtemp(join(tmpdir(), 'masquerade-configure-'))
-  await mkdir(join(root, 'config'), { recursive: true })
-  await mkdir(join(root, 'start'), { recursive: true })
-  await mkdir(join(root, 'app/models'), { recursive: true })
-  await writeFile(join(root, 'app/models/user.ts'), 'export default class User {}')
-  await writeFile(join(root, 'config/auth.ts'), 'export default {}')
-  await writeFile(join(root, 'start/kernel.ts'), 'host kernel')
-  await writeFile(join(root, 'start/routes.ts'), 'host routes')
+async function configureFixture(fs: FileSystem, boot = true) {
+  await fs.mkdir('.', { recursive: true })
+  const root = await mkdtemp(join(fs.basePath, 'host-'))
+  const host = new FileSystem(root)
+  await host.create('app/models/user.ts', 'export default class User {}')
+  await host.create('config/auth.ts', 'export default {}')
+  await host.create('start/kernel.ts', 'host kernel')
+  await host.create('start/routes.ts', 'host routes')
   await symlink(join(process.cwd(), 'node_modules'), join(root, 'node_modules'), 'dir')
   const ignitor = new IgnitorFactory()
     .withCoreProviders()
@@ -902,12 +892,12 @@ async function configureFixture(boot = true) {
   }
   return {
     root,
+    fs: host,
     app,
     command,
     registered,
     async dispose() {
       await app.terminate()
-      await rm(root, { recursive: true, force: true })
     },
   }
 }

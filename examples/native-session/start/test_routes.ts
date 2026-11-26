@@ -1,12 +1,12 @@
 import { Bouncer } from '@adonisjs/bouncer'
-import { allowMutation, sensitive, shareMasquerade } from '@kevinjohn/adonisjs-masquerade/http'
+import { allowMutation, sensitive, masqueradeEdge } from '@kevinjohn/adonisjs-masquerade/http'
 import { middleware } from '#start/kernel'
 import router from '@adonisjs/core/services/router'
 import type User from '#models/user'
 
 router
   .get('/business/form', async (ctx) => {
-    await shareMasquerade(ctx)
+    await masqueradeEdge.share(ctx)
     return ctx.view.render('pages/masquerade_form')
   })
   .use(middleware.auth({ guards: ['web_effective'] }))
@@ -55,7 +55,7 @@ router
     const runtime = await ctx.containerResolver.make('masquerade.runtime')
     const admitted = await runtime.admit(ctx)
     await runtime.service.stop(ctx, { expectedContext: admitted.view.contextToken })
-    await shareMasquerade(ctx)
+    await masqueradeEdge.share(ctx)
     return ctx.view.render('pages/masquerade_form')
   })
   .use(middleware.auth({ guards: ['web_effective'] }))

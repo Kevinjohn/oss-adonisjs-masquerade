@@ -1,8 +1,8 @@
 import { test } from '@japa/runner'
-import { admitOnce } from '../src/request_admission.js'
-import type { RequestAdmission } from '../src/request_admission.js'
-import { fixture } from './helpers/core.js'
-import type { User } from './helpers/core.js'
+import { admitOnce } from '../src/request_admission.ts'
+import type { RequestAdmission } from '../src/request_admission.ts'
+import { fixture } from './helpers/core.ts'
+import type { User } from './helpers/core.ts'
 
 test('admitted context and view carry access only while active', async ({ assert }) => {
   const f = fixture()
@@ -23,15 +23,18 @@ test('internal admission preserves Subject properties exposed by prototype gette
   assert,
 }) => {
   class SubjectView {
-    constructor(private model: User) {}
+    #model: User
+    constructor(model: User) {
+      this.#model = model
+    }
     get id() {
-      return this.model.id
+      return this.#model.id
     }
     get incarnation() {
-      return this.model.incarnation
+      return this.#model.incarnation
     }
     get user() {
-      return this.model
+      return this.#model
     }
   }
   const f = fixture()

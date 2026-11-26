@@ -4,7 +4,7 @@ import { spawnSync } from 'node:child_process'
 import { mkdirSync, mkdtempSync, realpathSync, rmSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
-import { chromiumInstallArgs } from '../../bin/helpers/example_chromium.js'
+import { chromiumInstallArgs } from '../../bin/helpers/example_chromium.ts'
 
 test('Chromium installation resolves the browser client peer and invokes its CLI', ({
   cleanup,

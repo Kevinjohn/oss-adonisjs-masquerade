@@ -1,12 +1,5 @@
-export { sessionAuthority } from './session_authority.js'
-export type { NativeSessionAdapter, SessionAuthorityOptions } from './session_authority.js'
-export { accessTokensAuthority } from './access_tokens_authority.js'
-export type {
-  AccessTokensAuthorityOptions,
-  NativeAccessTokensAdapter,
-} from './access_tokens_authority.js'
-export { nativeAuthorities } from './native_authorities.js'
-export type { NativeAuthorityComposition } from './native_authorities.js'
-export { stampFrom } from './stamp_from.js'
-export type { StampField } from './stamp_from.js'
-export type { NativeRuntimeAdapter } from '../src/integration/native_binding.js'
+export { sessionAuthority } from '../src/native/session_authority.ts'
+export { accessTokensAuthority } from '../src/native/access_tokens_authority.ts'
+export { nativeAuthorities } from '../src/native/native_authorities.ts'
+export { stampFrom } from '../src/native/stamp_from.ts'
+export { NativeAdapter } from '../src/integration/native_adapter.ts'

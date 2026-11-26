@@ -6,7 +6,7 @@ As an authorised support actor with an active mode, I want covered business rout
 **Access:** Actor retains their raw session or opaque access token; host `canMasquerade` and per-request admission determine whether the target is effective.
 **Entry:** Business route uses `web_effective` or host-configured `api_effective` (or the configured effective alias); `masqueradeContext` runs after auth initialisation and before the effective guard authenticates.
 **Documentation:** [Use the effective customer identity](../../docs/guide/usage.md#use-the-effective-customer-identity), [security identity boundary](../../docs/guide/security.md#actor-target-and-scope).
-**Source:** [EffectiveSessionGuard](../../auth/effective_session_guard.ts), [EffectiveAccessTokensGuard](../../auth/effective_access_tokens_guard.ts), [request admission](../../src/service.ts).
+**Source:** [EffectiveSessionGuard](../../src/auth/effective_session_guard.ts), [EffectiveAccessTokensGuard](../../src/auth/effective_access_tokens_guard.ts), [request admission](../../src/service.ts).
 **Coverage:** [Session guard tests](../../tests/effective_session_guard.spec.ts), [access-token guard tests](../../tests/effective_access_tokens_guard.spec.ts), [route guard tests](../../tests/route_guard_selection.spec.ts).
 
 ## Acceptance criteria
@@ -61,4 +61,4 @@ flowchart TD
     E2 -->|No, access token| M
 ```
 
-**Code references:** [Session facade](../../auth/effective_session_guard.ts), [access-token facade](../../auth/effective_access_tokens_guard.ts), [service admission and local policy](../../src/service.ts), [native access-token wiring](../../docs/guide/access-tokens.md), [effective user type (type-only Omit)](../../auth/effective_access_tokens_guard.ts), [security contract](../../docs/guide/security.md#actor-target-and-scope), [token guard tests](../../tests/effective_access_tokens_guard.spec.ts).
+**Code references:** [Session facade](../../src/auth/effective_session_guard.ts), [access-token facade](../../src/auth/effective_access_tokens_guard.ts), [service admission and local policy](../../src/service.ts), [native access-token wiring](../../docs/guide/access-tokens.md), [effective user type (type-only Omit)](../../src/auth/effective_access_tokens_guard.ts), [security contract](../../docs/guide/security.md#actor-target-and-scope), [token guard tests](../../tests/effective_access_tokens_guard.spec.ts).

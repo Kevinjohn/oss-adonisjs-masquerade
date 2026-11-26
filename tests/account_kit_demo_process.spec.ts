@@ -2,7 +2,7 @@ import { test } from '@japa/runner'
 import { mkdtemp, readFile, rm, writeFile } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
-import { runDemoCommand } from '../bin/helpers/account_kit_demo_process.js'
+import { runDemoCommand } from '../bin/helpers/account_kit_demo_process.ts'
 
 async function waitForPid(file: string): Promise<number> {
   for (let attempt = 0; attempt < 100; attempt++) {

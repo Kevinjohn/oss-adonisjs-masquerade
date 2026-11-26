@@ -1,7 +1,7 @@
-import { E_MASQUERADE_UNAVAILABLE, E_MASQUERADE_UNKNOWN_COMMIT } from './errors.js'
+import { E_MASQUERADE_UNAVAILABLE, E_MASQUERADE_UNKNOWN_COMMIT } from './errors.ts'
 import { randomBytes } from 'node:crypto'
-import { observe, reportUnknown } from './observers.js'
-import type { ObserverDependencies } from './observers.js'
+import { observe, reportUnknown } from './observers.ts'
+import type { ObserverDependencies } from './observers.ts'
 import type {
   ActiveModeRow,
   AuditEvent,
@@ -9,7 +9,7 @@ import type {
   RequestControlStore,
   IdleModeRow,
   ModeRow,
-} from './types.js'
+} from './types.ts'
 
 export function advanceRevision(row: ModeRow | null): number {
   if (row?.revision === Number.MAX_SAFE_INTEGER) throw new E_MASQUERADE_UNAVAILABLE()

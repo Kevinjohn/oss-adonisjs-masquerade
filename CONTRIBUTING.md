@@ -63,7 +63,7 @@ Run the repository scripts, not bare tools. They carry the flags used by the rel
 Changes to the control store or migrations should pass on both SQLite and PostgreSQL. The `checks`
 workflow runs both for every pull request.
 
-The _Tested against_ table in `README.md` mirrors `.github/workflows/checks.yml` and
+The _Supported AdonisJS versions_ table in `README.md` mirrors `.github/workflows/checks.yml` and
 `compat.yml`; change them in the same PR.
 
 ## Code layout
@@ -73,7 +73,7 @@ The _Tested against_ table in `README.md` mirrors `.github/workflows/checks.yml`
 - `stores/`, `testing/`, and `plugins/` hold the optional Lucid store, test support and API client.
 - `providers/`, `commands/`, and `stubs/` hold the provider, Ace commands and configure templates.
 - `tests/` mirrors the source. Shared fixtures live in `tests/helpers/`, specs for `bin/` in
-  `tests/tooling/` and type-level tests in `tests/types/`.
+  `tests/tooling/` and type assertions use Japa expect-type in `*_types.spec.ts`.
 
 See the [maintainer source map](docs/maintainers/source-map.md) for module ownership and focused tests.
 [AGENTS.md](AGENTS.md) describes the file responsibility and folder rules.

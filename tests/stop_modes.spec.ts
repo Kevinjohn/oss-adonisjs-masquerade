@@ -1,8 +1,9 @@
+import { validateConfig } from '../src/define_config.ts'
 import { test } from '@japa/runner'
-import { createMasqueradeService, defineConfig } from '../index.js'
-import { OPERATOR_STOP_OUTCOME, stopActiveModes } from '../src/stop_modes.js'
-import { errorCode, fixture } from './helpers/core.js'
-import { sqlFixture } from './helpers/sql_store.js'
+import { createMasqueradeService } from '../index.ts'
+import { OPERATOR_STOP_OUTCOME, stopActiveModes } from '../src/stop_modes.ts'
+import { errorCode, fixture } from './helpers/core.ts'
+import { sqlFixture } from './helpers/sql_store.ts'
 
 test.group('operator mode stop', () => {
   test("ends one actor's mode with an audited invalidation and no stamp read", async ({
@@ -165,7 +166,7 @@ test.group('operator mode stop', () => {
       ...ids.config,
       authority: { ...ids.config.authority, incarnation: 'id' as const },
     }
-    const idService = await createMasqueradeService(defineConfig(idConfig), ids.dependencies)
+    const idService = await createMasqueradeService(validateConfig(idConfig), ids.dependencies)
     await ids.start(idService)
     const inspected = ids.state.inspectCount
     assert.deepEqual(await stopActiveModes(idConfig, ids.dependencies, { actorId: 'a' }), {
@@ -239,7 +240,7 @@ test.group('operator mode stop', () => {
       const f = fixture()
       const config = { ...f.config, store: async () => sql.store }
       const otherConfig = { ...f.config, store: async () => sql.other }
-      const service = await createMasqueradeService(defineConfig(config), f.dependencies)
+      const service = await createMasqueradeService(validateConfig(config), f.dependencies)
       await f.start(service)
       const results = await Promise.all([
         stopActiveModes(config, f.dependencies, { actorId: 'a' }),

@@ -1,45 +1,52 @@
-import { E_MASQUERADE_INVALID_CONFIGURATION } from './errors.js'
-import type { ControlStore, MasqueradeConfig, RequestControlStore } from './types.js'
-import { isBoundedString } from './bounded_string.js'
-import type { MasqueradeSetupErrorField } from './errors.js'
+import { configProvider } from '@adonisjs/core'
+import type { ApplicationService, ConfigProvider } from '@adonisjs/core/types'
+import { InvalidArgumentsException } from '@adonisjs/core/exceptions'
+import { E_MASQUERADE_INVALID_CONFIGURATION } from './errors.ts'
+import type {
+  ControlStore,
+  MasqueradeConfig,
+  MasqueradeConfigOptions,
+  RequestControlStore,
+} from './types.ts'
+import { isBoundedString } from './bounded_string.ts'
+import type { MasqueradeSetupErrorField } from './errors.ts'
 
 /** One hundred years; a longer window has no prunable cutoff on every supported store. */
 export const MAX_RETENTION_DAYS = 36_500
 
-/** A configuration whose `authority` and `policy` are present. */
+/** A configuration whose `authority` and `permissions` are present. */
 export type CompleteMasqueradeConfig<
   User,
   Request,
   Store extends RequestControlStore = ControlStore,
 > = MasqueradeConfig<User, Request, Store> &
-  Required<Pick<MasqueradeConfig<User, Request, Store>, 'authority' | 'policy'>>
+  Required<Pick<MasqueradeConfig<User, Request, Store>, 'authority' | 'permissions'>>
 
 const fail = (field: MasqueradeSetupErrorField): never => {
-  throw new E_MASQUERADE_INVALID_CONFIGURATION(field)
+  throw new InvalidArgumentsException(`Invalid masquerade configuration: ${field}`)
 }
 
-/** Require the fields `masquerade.callbacks` or the native adapter may supply. */
+/** Require the fields `MasqueradeCallbackRegistration` or the native adapter may supply. */
 export function completeConfig<User, Request, Store extends RequestControlStore>(
   config: MasqueradeConfig<User, Request, Store>
 ): CompleteMasqueradeConfig<User, Request, Store> {
-  if (!config.authority) fail('authority')
-  if (!config.policy) fail('policy')
+  if (!config.authority) throw new E_MASQUERADE_INVALID_CONFIGURATION('authority')
+  if (!config.permissions) throw new E_MASQUERADE_INVALID_CONFIGURATION('permissions')
   return config as CompleteMasqueradeConfig<User, Request, Store>
 }
 
 /**
- * Validate synchronously; resolving the store is deferred to service creation. `authority` and
- * `policy` may be left out when the native adapter and `masquerade.callbacks` supply them.
+ * Validate synchronously and return an AdonisJS config provider. The store receives the booted application. `authority` and
+ * `permissions` may be left out when the native adapter and `MasqueradeCallbackRegistration` supply them.
  *
  * @example
  * ```ts
  * import { defineConfig } from '@kevinjohn/adonisjs-masquerade'
  * import { LucidControlStore } from '@kevinjohn/adonisjs-masquerade/stores/lucid'
- * import app from '@adonisjs/core/services/app'
  * import { Database } from '@adonisjs/lucid/database'
  *
  * export default defineConfig({
- *   store: async () => {
+ *   store: async (app) => {
  *     const database = await app.container.make(Database)
  *     return new LucidControlStore(database.connection())
  *   },
@@ -49,34 +56,55 @@ export function completeConfig<User, Request, Store extends RequestControlStore>
  * ```
  */
 export function defineConfig<User, Request, Store extends RequestControlStore = ControlStore>(
-  config: MasqueradeConfig<User, Request, Store> &
-    Required<Pick<MasqueradeConfig<User, Request, Store>, 'authority' | 'policy'>>
-): MasqueradeConfig<User, Request, Store> &
-  Required<Pick<MasqueradeConfig<User, Request, Store>, 'authority' | 'policy'>>
-export function defineConfig<User, Request, Store extends RequestControlStore = ControlStore>(
-  config: MasqueradeConfig<User, Request, Store>
-): MasqueradeConfig<User, Request, Store>
-export function defineConfig<User, Request, Store extends RequestControlStore = ControlStore>(
+  config: MasqueradeConfigOptions<User, Request, Store>
+): ConfigProvider<MasqueradeConfig<User, Request, Store>> {
+  const validated = validateConfigFields(config)
+  const openStore = config.store.bind(config)
+  return configProvider.create(async (app) =>
+    Object.freeze({ ...validated, store: () => openStore(app) })
+  )
+}
+
+/** Resolve the package config after AdonisJS has registered the application services. */
+export async function resolveMasqueradeConfig<Request>(app: ApplicationService) {
+  const configured = await configProvider.resolve<MasqueradeConfig<unknown, Request>>(
+    app,
+    app.config.get('masquerade')
+  )
+  if (!configured)
+    throw new InvalidArgumentsException('Invalid masquerade configuration: use defineConfig')
+  return configured
+}
+
+export function validateConfig<User, Request, Store extends RequestControlStore>(
   config: MasqueradeConfig<User, Request, Store>
 ): MasqueradeConfig<User, Request, Store> {
+  const validated = validateConfigFields(config)
+  return Object.freeze({ ...validated, store: config.store.bind(config) })
+}
+
+function validateConfigFields<User, Request, Store extends RequestControlStore>(
+  config: MasqueradeConfigOptions<User, Request, Store>
+): Omit<MasqueradeConfig<User, Request, Store>, 'store'> {
   if (
     !config ||
     Object.keys(config).some(
       (key) =>
         ![
           'authority',
-          'policy',
+          'permissions',
           'store',
           'durationSeconds',
           'maxDurationSeconds',
           'contextEnforcement',
           'retention',
           'reason',
+          'logger',
         ].includes(key)
     )
   )
     fail('config')
-  const { authority, policy } = config
+  const { authority, permissions } = config
   if (authority !== undefined) {
     if (!authority) fail('authority')
     if (
@@ -98,20 +126,28 @@ export function defineConfig<User, Request, Store extends RequestControlStore = 
       fail('authority.securityStamp')
     if (typeof authority.inspectAccount !== 'function') fail('authority.inspectAccount')
   }
-  if (policy !== undefined) {
-    if (!policy) fail('policy')
-    if (typeof policy.canMasquerade !== 'function') fail('policy.canMasquerade')
+  if (permissions !== undefined) {
+    if (!permissions) fail('permissions')
+    if (typeof permissions.canMasquerade !== 'function') fail('permissions.canMasquerade')
     if (
-      Object.keys(policy).some(
+      Object.keys(permissions).some(
         (key) => !['canMasquerade', 'canEdit', 'canUseRequest'].includes(key)
       )
     )
-      fail('policy')
-    if (policy.canEdit !== undefined && typeof policy.canEdit !== 'function') fail('policy.canEdit')
-    if (policy.canUseRequest !== undefined && typeof policy.canUseRequest !== 'function')
-      fail('policy.canUseRequest')
+      fail('permissions')
+    if (permissions.canEdit !== undefined && typeof permissions.canEdit !== 'function')
+      fail('permissions.canEdit')
+    if (permissions.canUseRequest !== undefined && typeof permissions.canUseRequest !== 'function')
+      fail('permissions.canUseRequest')
   }
   if (typeof config.store !== 'function') fail('store')
+  if (
+    config.logger !== undefined &&
+    (!config.logger ||
+      typeof config.logger.info !== 'function' ||
+      typeof config.logger.error !== 'function')
+  )
+    fail('logger')
   const max = config.maxDurationSeconds === undefined ? 3600 : config.maxDurationSeconds
   const duration = config.durationSeconds === undefined ? 900 : config.durationSeconds
   if (!Number.isInteger(max) || max < 60 || max > 3600) fail('maxDurationSeconds')
@@ -147,14 +183,16 @@ export function defineConfig<User, Request, Store extends RequestControlStore = 
         inspectAccount: authority.inspectAccount.bind(authority),
       }),
     }),
-    ...(policy && {
-      policy: Object.freeze({
-        canMasquerade: policy.canMasquerade.bind(policy),
-        ...(policy.canEdit ? { canEdit: policy.canEdit.bind(policy) } : {}),
-        ...(policy.canUseRequest ? { canUseRequest: policy.canUseRequest.bind(policy) } : {}),
+    ...(permissions && {
+      permissions: Object.freeze({
+        canMasquerade: permissions.canMasquerade.bind(permissions),
+        ...(permissions.canEdit ? { canEdit: permissions.canEdit.bind(permissions) } : {}),
+        ...(permissions.canUseRequest
+          ? { canUseRequest: permissions.canUseRequest.bind(permissions) }
+          : {}),
       }),
     }),
-    store: config.store.bind(config),
+    ...(config.logger && { logger: config.logger }),
     contextEnforcement: config.contextEnforcement,
     retention:
       typeof config.retention === 'object'

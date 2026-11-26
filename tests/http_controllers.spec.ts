@@ -1,14 +1,14 @@
-import { isMasqueradeRequestError } from '../http/main.js'
+import { isMasqueradeRequestError } from '../http/main.ts'
 import { test } from '@japa/runner'
-import { handleWithDefaultExceptionHandler } from './helpers/exception_handler.js'
+import { handleWithDefaultExceptionHandler } from './helpers/exception_handler.ts'
 import { IncomingMessage } from 'node:http'
 import { Socket } from 'node:net'
 import type { HttpContext } from '@adonisjs/core/http'
 import { RequestFactory } from '@adonisjs/core/factories/http'
-import { fixture } from './helpers/core.js'
-import { controlRequestContext as requestContext } from './helpers/http_context.js'
-import { MasqueradeController } from '../http/controllers.js'
-import { errors } from '../index.js'
+import { fixture } from './helpers/core.ts'
+import { controlRequestContext as requestContext } from './helpers/http_context.ts'
+import MasqueradeController from '../src/http/masquerade_controller.ts'
+import { errors } from '../index.ts'
 
 test.group('masquerade HTTP boundary', () => {
   test('routes malformed control input through core auditing and renders the public error', async ({

@@ -7,7 +7,7 @@ import {
   planChangedChecks,
   type ChangedFile,
   type PlannedCheckStep,
-} from '../../bin/check_changed_plan.js'
+} from '../../bin/check_changed_plan.ts'
 
 const root = join(import.meta.dirname, '../..')
 const changed = (...paths: string[]): ChangedFile[] =>
@@ -66,9 +66,8 @@ test('the recipe runner inputs run the SQLite recipe', ({ assert }) => {
     'docs/guide/setup.md',
     'docs/guide/usage.md',
     'docs/guide/clients/edge.md',
-    'stubs/configure/masquerade_config.stub',
+    'stubs/config/masquerade.stub',
     'configure.ts',
-    'src/configure_wiring.ts',
     'bin/test_recipe.ts',
     'package.json',
   ]) {

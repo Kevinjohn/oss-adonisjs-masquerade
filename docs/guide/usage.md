@@ -15,7 +15,7 @@ actor guard. Keep customer business routes on the effective guard. See the
 
 `MasqueradeController` implements JSON status, start, and stop responses. The package controller
 does not render Edge or redirect. Its control responses are `no-store` and vary on `Accept` and
-`X-Masquerade-Context`. Configure writes this mount to `start/masquerade_routes.ts`: `masqueradeRoutes`
+`X-Masquerade-Context`. Use `--control-routes` to generate a draft of this mount in `start/masquerade_routes.ts`: `masqueradeRoutes`
 with raw session authentication and independent host-owned start and stop limiters. The
 native-session example mounts its bearer controls this way and its session controls by hand on a
 form controller. Keep Shield's CSRF middleware enabled for cookie-authenticated POST requests.
@@ -223,23 +223,22 @@ Never fetch a fresh token in an interceptor and automatically replay an old requ
 
 ## Use the runtime in a service
 
-The provider binds the runtime by class, so a service takes it through its constructor:
+Import the booted runtime from the package's container service in modules loaded by the running
+application:
 
 ```ts
-import { inject } from '@adonisjs/core'
-import { MasqueradeRuntime } from '@kevinjohn/adonisjs-masquerade'
+import runtime from '@kevinjohn/adonisjs-masquerade/services/main'
+import type { HttpContext } from '@adonisjs/core/http'
 
-@inject()
 export class ViewAsService {
-  constructor(protected runtime: MasqueradeRuntime) {}
+  status(ctx: HttpContext) {
+    return runtime.service.status(ctx)
+  }
 }
 ```
 
-Import `MasqueradeRuntime` with a plain `import`, not `import type`; a type-only import leaves the
-container no key to resolve. The `masquerade.runtime` key returns the same instance where there is
-no constructor. A service that your `masquerade.callbacks` factory builds in its body must not take
-`MasqueradeRuntime` through its constructor: building the runtime runs that factory, so the
-container waits on itself and nothing throws.
+During a request, `ctx.containerResolver.make('masquerade.runtime')` resolves the request's runtime.
+Keep native adapter construction and callback registration independent of the runtime itself.
 
 ## Next steps
 

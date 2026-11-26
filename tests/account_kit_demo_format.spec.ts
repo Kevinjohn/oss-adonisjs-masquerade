@@ -7,7 +7,7 @@ import {
   formatDemoSources,
   newDemoMigrationPaths,
   snapshotDemoMigrations,
-} from '../bin/helpers/account_kit_demo_format.js'
+} from '../bin/helpers/account_kit_demo_format.ts'
 
 test.group('Account Kit demo formatting', (group) => {
   let app: string

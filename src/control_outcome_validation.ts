@@ -1,5 +1,5 @@
-import { E_MASQUERADE_UNAVAILABLE } from './errors.js'
-import type { ControlOutcomeEvent } from './types.js'
+import { E_MASQUERADE_UNAVAILABLE } from './errors.ts'
+import type { ControlOutcomeEvent } from './types.ts'
 
 const outcomeKinds = new Set(['start_denied', 'stop_denied', 'control_noop'])
 

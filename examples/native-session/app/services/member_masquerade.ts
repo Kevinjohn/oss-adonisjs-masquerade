@@ -20,7 +20,7 @@ export function memberMasquerade() {
   return createMasqueradeService(
     defineConfig<Member, HttpContext>({
       authority: native.authority,
-      policy: {
+      permissions: {
         canMasquerade: ({ actor, target }) =>
           actor.user.active && target.user.active && actor.id !== target.id,
         canEdit: ({ actor, target }) =>

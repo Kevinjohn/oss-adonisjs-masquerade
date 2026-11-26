@@ -1,6 +1,6 @@
 import { test } from '@japa/runner'
-import { buildContextToken, requireContext } from '../src/context_token.js'
-import { errorCode, fixture } from './helpers/core.js'
+import { buildContextToken, requireContext } from '../src/context_token.ts'
+import { errorCode, fixture } from './helpers/core.ts'
 
 test('absent tokens are deterministic and length-framed owner-bound', ({ assert }) => {
   const owner = fixture().owner

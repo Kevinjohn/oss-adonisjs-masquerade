@@ -1,7 +1,8 @@
-import { RuntimeException } from '@adonisjs/core/exceptions'
-import { MasqueradeRequestException } from './request_exception.js'
-import type { PrunePhase, PruneResult } from './prune.js'
-import type { StopPhase } from './stop_modes.js'
+import { errors as authErrors } from '@adonisjs/auth'
+import { Exception, RuntimeException } from '@adonisjs/core/exceptions'
+import type { HttpContext } from '@adonisjs/core/http'
+import type { PrunePhase, PruneResult } from './prune.ts'
+import type { StopPhase } from './stop_modes.ts'
 
 /** Stable request error codes; each maps to one HTTP status and English message. */
 export type MasqueradeErrorCode =
@@ -24,16 +25,17 @@ export type MasqueradeSetupErrorCode =
 /** The configuration field named by a setup exception. */
 export type MasqueradeSetupErrorField =
   | 'config'
+  | 'logger'
   | 'authority'
   | 'authority.namespace'
   | 'authority.guard'
   | 'authority.incarnation'
   | 'authority.securityStamp'
   | 'authority.inspectAccount'
-  | 'policy'
-  | 'policy.canMasquerade'
-  | 'policy.canEdit'
-  | 'policy.canUseRequest'
+  | 'permissions'
+  | 'permissions.canMasquerade'
+  | 'permissions.canEdit'
+  | 'permissions.canUseRequest'
   | 'store'
   | 'store.testOnly'
   | 'store.read'
@@ -48,6 +50,46 @@ export type MasqueradeSetupErrorField =
   | 'contextEnforcement'
   | 'retention'
   | 'retention.days'
+
+/** Shared HTTP response and translation handling for Masquerade request failures. */
+/** @internal */
+export abstract class MasqueradeRequestException extends Exception {
+  declare readonly code: MasqueradeErrorCode
+  declare readonly status: number
+  readonly identifier: string
+  #englishMessage: string
+
+  constructor() {
+    super()
+    this.identifier = `errors.${this.code}`
+    this.#englishMessage = this.message
+  }
+
+  /** Resolve host translations with the fixed public English fallback. */
+  getResponseMessage(ctx: HttpContext): string {
+    const i18n = (ctx as { i18n?: unknown }).i18n as
+      { t?(id: string, data: Record<string, unknown>, fallback: string): string } | undefined
+    if (typeof i18n?.t === 'function')
+      return i18n.t(`errors.${this.code}`, {}, this.#englishMessage)
+    return this.#englishMessage
+  }
+
+  /** AdonisJS self-handling: a no-store JSON response with the stable code and message. */
+  handle(_error: unknown, ctx: HttpContext): void {
+    ctx.response.header('Cache-Control', 'no-store')
+    ctx.response.vary(['Accept', 'X-Masquerade-Context'])
+    ctx.response.status(this.status).json({
+      errors: [
+        { code: this.code, message: this.getResponseMessage(ctx), ...this.responseDetails() },
+      ],
+    })
+  }
+
+  /** @internal */
+  protected responseDetails(): Record<string, string> {
+    return {}
+  }
+}
 
 class UnauthenticatedException extends MasqueradeRequestException {
   static code = 'E_MASQUERADE_UNAUTHENTICATED'
@@ -93,6 +135,19 @@ class InvalidInputException extends MasqueradeRequestException {
   static status = 422
   static message = 'Invalid masquerade input'
 }
+
+class UnknownActorAccountException extends InvalidInputException {}
+
+class NativeUnauthorizedException extends authErrors.E_UNAUTHORIZED_ACCESS {
+  static code = 'E_UNAUTHORIZED_ACCESS'
+  static status = 401
+}
+
+/** The operator's account could not be resolved to a current incarnation. */
+export const E_MASQUERADE_UNKNOWN_ACTOR_ACCOUNT = UnknownActorAccountException
+
+/** Native credential failure, retaining the Auth exception handler and guard-specific response. */
+export const E_UNAUTHORIZED_ACCESS = NativeUnauthorizedException
 
 class ContextRequiredException extends MasqueradeRequestException {
   static code = 'E_MASQUERADE_CONTEXT_REQUIRED'

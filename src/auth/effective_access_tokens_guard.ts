@@ -1,0 +1,121 @@
+import { E_UNAUTHORIZED_ACCESS } from '../errors.ts'
+import { errors, symbols } from '@adonisjs/auth'
+import { InvalidArgumentsException, RuntimeException } from '@adonisjs/core/exceptions'
+import type { GuardContract } from '@adonisjs/auth/types'
+import type { HttpContext } from '@adonisjs/core/http'
+import { resolveRuntime } from '../integration/runtime.ts'
+import { contextEnforcement } from '../integration/context_enforcement.ts'
+import type { ResolvedContext } from '../types.ts'
+
+/** Effective user facade for a native opaque access-token guard. */
+export type EffectiveAccessTokensUser<User> = User extends { currentAccessToken: unknown }
+  ? Omit<User, 'currentAccessToken'>
+  : User
+
+/**
+ * Wraps the native token guard with effective-user admission.
+ * @internal
+ */
+export class EffectiveAccessTokensGuard<RawUser> implements GuardContract<
+  EffectiveAccessTokensUser<RawUser>
+> {
+  [symbols.GUARD_KNOWN_EVENTS] = undefined
+  readonly driverName: string
+  user?: EffectiveAccessTokensUser<RawUser>
+  isAuthenticated = false
+  authenticationAttempted = false
+  #context: ResolvedContext | undefined
+  /** The view-as context admitted by `authenticate()` when the route selected this effective guard; otherwise undefined. */
+  get context(): ResolvedContext | undefined {
+    return this.#context
+  }
+  #ctx: HttpContext
+  #raw: GuardContract<RawUser>
+  #rawName: string
+  constructor(ctx: HttpContext, raw: GuardContract<RawUser>, rawName: string) {
+    this.#ctx = ctx
+    this.#raw = raw
+    this.#rawName = rawName
+    if (raw.driverName !== 'access_tokens')
+      throw new InvalidArgumentsException('Masquerade requires a native access_tokens guard')
+    this.driverName = raw.driverName
+  }
+  /**
+   * Get the effective user after the route authenticates.
+   *
+   * @example
+   * ```ts
+   * const customer = guard.getUserOrFail()
+   * ```
+   */
+  getUserOrFail(): EffectiveAccessTokensUser<RawUser> {
+    if (this.isAuthenticated && this.user !== undefined) return this.user
+    if (!this.authenticationAttempted)
+      throw new RuntimeException('No effective user is authenticated')
+    throw new E_UNAUTHORIZED_ACCESS('Unauthorized access', {
+      guardDriverName: this.driverName,
+    })
+  }
+  /**
+   * Authenticate the raw credential and resolve the effective user for this route.
+   *
+   * @example
+   * ```ts
+   * const customer = await guard.authenticate()
+   * ```
+   */
+  async authenticate(): Promise<EffectiveAccessTokensUser<RawUser>> {
+    this.authenticationAttempted = true
+    this.isAuthenticated = false
+    this.#context = undefined
+    this.user = undefined
+    const runtime = await resolveRuntime(this.#ctx)
+    const selected = runtime.selectGuard(this.#ctx)
+    if (selected.kind === 'effective') {
+      const admitted = await runtime.admit(this.#ctx)
+      contextEnforcement.assertContextEnforced(this.#ctx, {
+        isMasquerading: admitted.context.isMasquerading,
+      })
+      this.user = admitted.effective.user as EffectiveAccessTokensUser<RawUser>
+      this.#context = admitted.context
+    } else {
+      // A public or multi-guard route selects no single credential; this facade still answers
+      // only for its own tokens.
+      const rawName =
+        selected.kind === 'none' || selected.kind === 'ambiguous' ? this.#rawName : selected.raw
+      this.user = (await (
+        this.#ctx.auth.use(rawName as never) as GuardContract<RawUser>
+      ).authenticate()) as EffectiveAccessTokensUser<RawUser>
+    }
+    this.isAuthenticated = true
+    return this.user
+  }
+  /**
+   * Check whether the request authenticates; operational failures reject.
+   *
+   * @example
+   * ```ts
+   * const signedIn = await guard.check()
+   * ```
+   */
+  async check(): Promise<boolean> {
+    try {
+      await this.authenticate()
+      return true
+    } catch (error) {
+      if (error instanceof errors.E_UNAUTHORIZED_ACCESS) return false
+      throw error
+    }
+  }
+  /**
+   * Delegate test-client authentication to the native guard.
+   *
+   * @example
+   * ```ts
+   * const credential = await guard.authenticateAsClient(operator)
+   * ```
+   */
+  authenticateAsClient(user: EffectiveAccessTokensUser<RawUser>, ...args: unknown[]) {
+    return this.#raw.authenticateAsClient(user as RawUser, ...args)
+  }
+}

@@ -1,6 +1,6 @@
-import { E_MASQUERADE_UNAVAILABLE } from './errors.js'
-import { isBoundedString } from './bounded_string.js'
-import type { Subject, NativeAuthority } from './types.js'
+import { E_MASQUERADE_UNAVAILABLE } from './errors.ts'
+import { isBoundedString } from './bounded_string.ts'
+import type { Subject, NativeAuthority } from './types.ts'
 
 export function requireValidSubject<User>(
   subject: Subject<User>,

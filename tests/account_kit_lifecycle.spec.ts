@@ -1,3 +1,5 @@
+import { fixture } from './helpers/core.ts'
+import { defineConfig } from '../src/define_config.ts'
 import { IncomingMessage, ServerResponse } from 'node:http'
 import { mkdtemp, rm } from 'node:fs/promises'
 import { Socket } from 'node:net'
@@ -71,14 +73,17 @@ function readyProbe(
   registeredRouteCount?: (router: Router) => number
 ) {
   return class ReadyProbeProvider {
-    constructor(private app: ApplicationService) {}
+    #app: ApplicationService
+    constructor(app: ApplicationService) {
+      this.#app = app
+    }
 
     async ready(): Promise<void> {
-      const router = await this.app.container.make('router')
+      const router = await this.#app.container.make('router')
       const committedAtEntry = router.commited
       if (commitRoutes) router.commit()
       observations.push({
-        environment: this.app.getEnvironment(),
+        environment: this.#app.getEnvironment(),
         committedAtEntry,
         committed: router.commited,
         managedRoutes: (router.toJSON().root ?? [])
@@ -309,9 +314,9 @@ test.group('Account Kit integration lifecycle', () => {
       .withCoreProviders()
       .withCoreConfig()
       .merge({
-        config: { masquerade: { authority: { guard: 'web' } } },
+        config: { masquerade: defineConfig(fixture().config) },
         rcFileContents: {
-          commands: [() => import('../commands/main.js')],
+          commands: [() => import('./helpers/commands.js')],
           providers: [
             () => import('./helpers/auth_manager_provider.js'),
             async () => ({ default: aceProvider }),

@@ -9,8 +9,8 @@ import { test } from '@japa/runner'
 import { errors, symbols } from '@adonisjs/auth'
 import { InvalidArgumentsException } from '@adonisjs/core/exceptions'
 import type { HttpContext } from '@adonisjs/core/http'
-import { accountKitAuthority } from '../account_kit/main.js'
-import { errorCode } from './helpers/core.js'
+import { accountKitAuthority } from '../src/account_kit/authority.ts'
+import { errorCode } from './helpers/core.ts'
 
 test('Account Kit authority captures one inspected revision with the canonical provider user', async ({
   assert,

@@ -238,7 +238,7 @@ test.group('support operator browser journey', (group) => {
       .withCsrfToken()
       .form({
         targetId: String(target.id),
-        reason: 'Recovery after policy change',
+        reason: 'Recovery after permissions change',
         _masqueradeContext: idle.body().contextToken,
       })
       .loginAs(actor)

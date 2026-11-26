@@ -1,8 +1,8 @@
-import { errors } from '../index.js'
+import { errors } from '../index.ts'
 import { test } from '@japa/runner'
-import { commitTransition } from '../src/mode_transition.js'
-import { fixture } from './helpers/core.js'
-import type { CompareAndSetInput } from '../src/types.js'
+import { commitTransition } from '../src/mode_transition.ts'
+import { fixture } from './helpers/core.ts'
+import type { CompareAndSetInput } from '../src/types.ts'
 
 test('an applied outcome for another transition is an unknown commit, never applied', async ({
   assert,

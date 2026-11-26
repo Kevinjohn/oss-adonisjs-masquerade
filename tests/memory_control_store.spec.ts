@@ -1,10 +1,10 @@
 import { test } from '@japa/runner'
-import { assertControlStoreConformance, MemoryControlStore } from '../testing/main.js'
-import type { TransitionEvent } from '../src/types.js'
-import { fixture } from './helpers/core.js'
+import { controlStoreConformance, MemoryControlStore } from '../testing/main.ts'
+import type { TransitionEvent } from '../src/types.ts'
+import { fixture } from './helpers/core.ts'
 
 test('memory store satisfies exported isolated ControlStore conformance', async () => {
-  await assertControlStoreConformance(async () => new MemoryControlStore())
+  await controlStoreConformance.assert(async () => new MemoryControlStore())
 })
 
 test('memory CAS clones inputs/outputs, commits one event and preserves row on event serialization failure', async ({

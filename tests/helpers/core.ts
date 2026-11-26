@@ -1,7 +1,8 @@
-import { createMasqueradeService, defineConfig } from '../../index.js'
-import { MemoryControlStore } from '../../testing/main.js'
-import type { CompleteMasqueradeConfig } from '../../src/define_config.js'
-import type { AccountSnapshot, ModeAccess, ServiceDependencies, Subject } from '../../src/types.js'
+import { validateConfig } from '../../src/define_config.ts'
+import { createMasqueradeService } from '../../index.ts'
+import { MemoryControlStore } from '../../testing/main.ts'
+import type { CompleteMasqueradeConfig } from '../../src/define_config.ts'
+import type { AccountSnapshot, ModeAccess, ServiceDependencies, Subject } from '../../src/types.ts'
 export type User = { id: string; stamp: string; incarnation: string; privateData: string }
 export type Request = { actorId?: string; credentialInvalid?: boolean; denied?: boolean }
 export function fixture() {
@@ -14,15 +15,15 @@ export function fixture() {
   const store = new MemoryControlStore()
   const state = {
     now: Date.parse('2026-01-01T00:00:00.000Z'),
-    policy: true,
+    permissions: true,
     local: true,
     localThrows: false,
-    policyThrows: false,
+    permissionsThrows: false,
     inspectThrows: false,
     malformedStamp: false,
     authenticateCount: 0,
     inspectCount: 0,
-    policyCount: 0,
+    permissionsCount: 0,
     editCount: 0,
     edit: true as unknown,
     editThrows: false,
@@ -51,20 +52,20 @@ export function fixture() {
           : null
       },
     },
-    policy: {
+    permissions: {
       canMasquerade: async () => {
-        state.policyCount++
-        if (state.policyThrows) throw new Error('policy failure')
-        return state.policy
+        state.permissionsCount++
+        if (state.permissionsThrows) throw new Error('permissions failure')
+        return state.permissions
       },
       canEdit: async (input) => {
         state.editCount++
         state.editInputs.push(input)
-        if (state.editThrows) throw new Error('edit policy failure')
+        if (state.editThrows) throw new Error('edit permissions failure')
         return state.edit as boolean
       },
       canUseRequest: async ({ request }) => {
-        if (state.localThrows) throw new Error('local policy failure')
+        if (state.localThrows) throw new Error('local permissions failure')
         return state.local && !request.denied
       },
     },
@@ -100,7 +101,7 @@ export function fixture() {
       failures.push(error)
     },
   }
-  const create = () => createMasqueradeService(defineConfig(config), dependencies)
+  const create = () => createMasqueradeService(validateConfig(config), dependencies)
   const start = async (
     service: Awaited<ReturnType<typeof create>>,
     request: Request = {},

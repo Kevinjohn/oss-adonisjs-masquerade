@@ -2,6 +2,26 @@
 
 ## Unreleased
 
+- Rename the package callbacks from `policy` and `MasqueradePolicy` to `permissions` and
+  `MasqueradePermissions`. Resolve `MasqueradeCallbackRegistration` by class instead of
+  `masquerade.callbacks`. Bind custom adapters with `NativeAdapter` from `/native` instead of
+  `masquerade.native`.
+- `defineConfig` returns an AdonisJS config provider. Keep it as the default export of
+  `config/masquerade.ts`. The store callback receives the application when the store opens.
+  Standalone callers of `createMasqueradeService` pass their configuration object directly.
+  Invalid config fields raise AdonisJS `InvalidArgumentsException` with the configuration key.
+- Import public adapter types from `@kevinjohn/adonisjs-masquerade/types`. Import the booted
+  runtime from `/services/main` instead of injecting the `MasqueradeRuntime` class.
+- Register the context middleware subpath or call `new MasqueradeContextMiddleware().handle(ctx, next)`
+  in a wrapper. Replace `shareMasquerade(ctx)` with `masqueradeEdge.share(ctx)`,
+  `masqueradeAuditFields(ctx)` with `masqueradeAudit.fields(ctx)`, and
+  `assertControlStoreConformance(createStore)` with `controlStoreConformance.assert(createStore)`.
+- Configure creates scaffolds and registers providers and commands. Apply the printed Auth and
+  middleware steps. Omit the retired `--no-wire` flag. Use `--control-routes` to draft the control
+  route and limiter files, then import the reviewed route file from the host routes preload.
+- Pass an application `logger` explicitly in `defineConfig` to receive transition and diagnostic
+  records. Enable package diagnostics with `NODE_DEBUG=adonisjs:masquerade`.
+
 ## 0.7.1 - 2026-11-25
 
 - Require Account Kit `0.8.0` exactly. Verify its published archive in the compatibility demo.

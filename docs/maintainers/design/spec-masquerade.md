@@ -82,7 +82,7 @@ interface NativeAuthority<User> {
   securityStamp?(user: User): string | Promise<string> // Legacy callback
   inspectAccount(id: SubjectId): Promise<AccountSnapshot<User> | null>
 }
-interface MasqueradePolicy<User, Request> {
+interface MasqueradePermissions<User, Request> {
   canMasquerade(input: {
     actor: Subject<User>
     target: Subject<User>
@@ -137,7 +137,7 @@ M0 proves this in a stock AdonisJS 7 hypermedia starter kit. If facade `auth.use
 ```ts
 interface MasqueradeConfig<User, Request> {
   authority: NativeAuthority<User>
-  policy: MasqueradePolicy<User, Request>
+  permissions: MasqueradePermissions<User, Request>
   store: () => Promise<ControlStore>
   durationSeconds?: number // default 900; integer 60..maxDurationSeconds
   maxDurationSeconds?: number // default 3600; may only narrow
@@ -291,7 +291,7 @@ interface ControlStore {
 
 1. Authenticate the raw actor guard; Shield CSRF and the host limiter have already run. Validate input shape and the expected context against the current row. Resolve an expired active row to idle first, then return 409; never start from an old token in the same request.
 2. Reject an active mode and self-targeting. Resolve the target through `inspectAccount` with generic denial for missing or ineligible targets.
-3. Apply the configured reason policy: in `'optional'` (default) an absent or blank reason becomes `null` on the row and is omitted from the event; in `'required'` it is invalid input. Evaluate `canMasquerade` with request and any supplied reason, then `canUseRequest` when configured. Capture both stamp hashes and the fixed deadline from the injectable clock.
+3. Apply the configured reason permissions: in `'optional'` (default) an absent or blank reason becomes `null` on the row and is omitted from the event; in `'required'` it is invalid input. Evaluate `canMasquerade` with request and any supplied reason, then `canUseRequest` when configured. Capture both stamp hashes and the fixed deadline from the injectable clock.
 4. CAS the active row and `started` event against the observed idle revision, or insert if absent. Only the winner succeeds. Return the committed view with the new token, then emit without awaiting. No login, logout or cookie change occurs.
 
 ### 7.2 Business request admission
@@ -440,7 +440,7 @@ uses its token provider for account lookup and inspection.
 `nativeAuthorities(primary, additional)` keeps the exact `primary.authority` object and returns a
 frozen record of native adapters keyed by raw guard. Every additional adapter must reference that
 same authority object, and raw guard names must be unique. The configured package authority remains
-the primary authority. Bind the composed adapter in the application container as `masquerade.native`.
+the primary authority. Bind the composed adapter in the application container as `NativeAdapter`.
 
 `effectiveAccessTokensGuard(rawGuard, { guard: 'api' })` wraps the named raw token guard as an
 effective-user facade. Its effective `User` type does not promise `currentAccessToken`. The raw
@@ -545,8 +545,8 @@ This additive contract changes D09/I12 and the related route, admission and star
 - Access values are exactly `'view' | 'edit'`. Every new mode defaults to `'view'`; there is no configuration-level default. Access is fixed for the lifetime of a mode.
 - `StartInput.access?: 'view' | 'edit'`. Only `undefined` defaults to `'view'`; supplied values other than exactly `'view'` or `'edit'` are invalid input. `ModeView` exposes `access` exactly while active. Idle views omit the key.
 - `ResolvedContext.access?` is present exactly while masquerading, like `modeId`. The account-wide mode applies the selected access to every integrated session and token transport; there is no per-token edit ability.
-- Add optional `canEdit(input: { actor: Subject<User>; target: Subject<User>; reason?: string; request?: Request }): boolean | Promise<boolean>` to `MasqueradePolicy`. A missing callback or any result other than exact `true` denies edit. A throw is an infrastructure failure. `canMasquerade` keeps its existing input and meaning and MUST NOT receive access as an authorization shortcut.
-- At start with `access: 'edit'`, call `canEdit` only after `canMasquerade` returns `true` and before `canUseRequest`. A missing callback or non-`true` result returns 403 `E_MASQUERADE_NOT_ALLOWED` and leaves mode unchanged. A throw returns 503 and leaves mode unchanged; record the existing `policy` / `can_edit` diagnostic. View starts never call `canEdit`.
+- Add optional `canEdit(input: { actor: Subject<User>; target: Subject<User>; reason?: string; request?: Request }): boolean | Promise<boolean>` to `MasqueradePermissions`. A missing callback or any result other than exact `true` denies edit. A throw is an infrastructure failure. `canMasquerade` keeps its existing input and meaning and MUST NOT receive access as an authorization shortcut.
+- At start with `access: 'edit'`, call `canEdit` only after `canMasquerade` returns `true` and before `canUseRequest`. A missing callback or non-`true` result returns 403 `E_MASQUERADE_NOT_ALLOWED` and leaves mode unchanged. A throw returns 503 and leaves mode unchanged; record the existing `permissions` / `can_edit` diagnostic. View starts never call `canEdit`.
 - At admission of an active edit-mode row, call `canMasquerade` first and then `canEdit({ actor, target })`, without reason or request. If `canEdit` is absent or does not return exact `true`, invalidate the whole mode with code `edit_denied`; reject the triggering request with 409. Do not downgrade. A throw returns 503 with mode unchanged. View-mode admission never calls `canEdit`. Stop never calls either edit or masquerade policy.
 
 ### 14.2 Persistence and audit projection

@@ -1,28 +1,27 @@
-import { E_MASQUERADE_UNAVAILABLE } from '../errors.js'
+import { MasqueradeCallbackRegistration } from '../callback_registration.ts'
+import { NativeAdapter } from './native_adapter.ts'
+import { debugLogger, reportObserverError } from '../debug.ts'
+import { E_MASQUERADE_UNAVAILABLE } from '../errors.ts'
 import { InvalidArgumentsException } from '@adonisjs/core/exceptions'
 import type {} from '@adonisjs/auth/auth_provider'
 import type { GuardContract } from '@adonisjs/auth/types'
 import type { HttpContext } from '@adonisjs/core/http'
 import type { ApplicationService } from '@adonisjs/core/types'
-import { completeConfig, defineConfig } from '../define_config.js'
-import type { CompleteMasqueradeConfig } from '../define_config.js'
-import { resolveCallbacks } from '../callback_registry.js'
-import { createMasqueradeService } from '../service.js'
-import { admitOnce } from '../request_admission.js'
-import { checkActiveMode } from '../active_mode.js'
-import { authenticateActorIdentity } from '../actor_identity.js'
-import type { RequestAdmission } from '../request_admission.js'
-import type { MasqueradeConfig, MasqueradePolicy, NativeAuthority, OwnerKey } from '../types.js'
-import type { NativeRuntimeAdapter } from './native_binding.js'
-import type { MasqueradeRuntime } from './runtime.js'
-import {
-  getEffectiveGuardDriver,
-  getEffectiveFactoryRawGuard,
-  isEffectiveFactory,
-} from './guard_registration.js'
-import type { NativeGuardDriver } from './guard_registration.js'
-import { routeGuards } from './route_guards.js'
-import { selectRouteGuard } from './route_guard_selection.js'
+import { completeConfig, resolveMasqueradeConfig, validateConfig } from '../define_config.ts'
+import type { CompleteMasqueradeConfig } from '../define_config.ts'
+import { resolveCallbacks } from '../callback_registration.ts'
+import { createMasqueradeService } from '../service.ts'
+import { admitOnce } from '../request_admission.ts'
+import { checkActiveMode } from '../active_mode.ts'
+import { authenticateActorIdentity } from '../actor_identity.ts'
+import type { RequestAdmission } from '../request_admission.ts'
+import type { MasqueradePermissions, NativeAuthority, OwnerKey } from '../types.ts'
+import type { NativeRuntimeAdapter } from '../types.ts'
+import { MasqueradeRuntime } from './runtime.ts'
+import { guardRegistration } from './guard_registration.ts'
+import type { NativeGuardDriver } from './guard_registration.ts'
+import { routeGuards } from './route_guards.ts'
+import { selectRouteGuard } from './route_guard_selection.ts'
 
 type TransitionName =
   'masquerade:started' | 'masquerade:stopped' | 'masquerade:expired' | 'masquerade:invalidated'
@@ -40,25 +39,25 @@ export interface RuntimeConfiguration {
 export async function resolveRuntimeConfiguration(
   app: ApplicationService
 ): Promise<RuntimeConfiguration> {
-  const configured = defineConfig(
-    app.config.get<MasqueradeConfig<unknown, HttpContext>>('masquerade')
-  )
-  const registry = await app.container.make('masquerade.callbacks')
+  const configured = await resolveMasqueradeConfig<HttpContext>(app)
+  const registry = await app.container.make(MasqueradeCallbackRegistration)
   const callbacks = await registry[resolveCallbacks]()
-  const native = await app.container.make('masquerade.native')
+  const native = await app.container.make(NativeAdapter)
   if (callbacks?.native && callbacks.native !== native)
     throw new InvalidArgumentsException(
-      'Masquerade native is supplied by both masquerade.native and masquerade.callbacks'
+      'Masquerade native is supplied by both NativeAdapter and MasqueradeCallbackRegistration'
     )
-  if (callbacks?.policy && configured.policy)
+  if (callbacks?.permissions && configured.permissions)
     throw new InvalidArgumentsException(
-      'Masquerade policy is supplied by both config/masquerade.ts and masquerade.callbacks'
+      'Masquerade permissions are supplied by both config/masquerade.ts and MasqueradeCallbackRegistration'
     )
   const config = completeConfig(
-    defineConfig({
+    validateConfig({
       ...configured,
       authority: configured.authority ?? (native?.authority as NativeAuthority<unknown>),
-      policy: configured.policy ?? (callbacks?.policy as MasqueradePolicy<unknown, HttpContext>),
+      permissions:
+        configured.permissions ??
+        (callbacks?.permissions as MasqueradePermissions<unknown, HttpContext>),
     })
   )
   if (
@@ -108,22 +107,22 @@ export async function resolveRuntimeConfiguration(
       )
   }
   const effectiveGuardName = String(auth.defaultGuard)
-  if (!isEffectiveFactory(auth.config.guards[auth.defaultGuard]))
+  if (!guardRegistration.isEffectiveFactory(auth.config.guards[auth.defaultGuard]))
     throw new InvalidArgumentsException(
       'The default auth guard must be an effective masquerade guard'
     )
   const effectiveRawGuards: Record<string, string> = Object.create(null)
   const effectiveDrivers: Record<string, NativeGuardDriver> = Object.create(null)
   for (const [name, factory] of Object.entries(auth.config.guards)) {
-    if (!isEffectiveFactory(factory)) continue
-    const raw = getEffectiveFactoryRawGuard(factory)
+    if (!guardRegistration.isEffectiveFactory(factory)) continue
+    const raw = guardRegistration.getEffectiveFactoryRawGuard(factory)
     if (!raw || !Object.hasOwn(rawAdapters, raw))
       throw new InvalidArgumentsException(
         `Effective masquerade guard ${name} has no registered raw adapter`
       )
     effectiveRawGuards[name] = raw
     // Compare only registration metadata during boot. Factories require a live HttpContext.
-    const effectiveDriver = getEffectiveGuardDriver(factory)
+    const effectiveDriver = guardRegistration.getEffectiveGuardDriver(factory)
     const rawDriver = rawAdapters[raw].driverName
     if (effectiveDriver && rawDriver && effectiveDriver !== rawDriver)
       throw new InvalidArgumentsException(
@@ -137,12 +136,15 @@ export async function resolveRuntimeConfiguration(
   }
   const effectiveGuardNames = Object.freeze(
     Object.entries(auth.config.guards)
-      .filter(([, factory]) => isEffectiveFactory(factory))
+      .filter(([, factory]) => guardRegistration.isEffectiveFactory(factory))
       .map(([name]) => name)
   )
   const registeredRawGuardNames = Object.freeze(
     Object.entries(auth.config.guards)
-      .filter(([, factory]) => typeof factory === 'function' && !isEffectiveFactory(factory))
+      .filter(
+        ([, factory]) =>
+          typeof factory === 'function' && !guardRegistration.isEffectiveFactory(factory)
+      )
       .map(([name]) => name)
   )
   return {
@@ -161,7 +163,6 @@ export async function createRuntime(
   wiring: RuntimeConfiguration
 ): Promise<MasqueradeRuntime> {
   const emitter = await app.container.make('emitter')
-  const logger = await app.container.make('logger')
   const selectGuard = (ctx: HttpContext) =>
     selectRouteGuard({
       route: ctx.route,
@@ -217,28 +218,56 @@ export async function createRuntime(
       return adapter.authenticateActor(ctx)
     },
     emitter: { emit: (name, event) => emitter.emit(name as TransitionName, event) },
-    logger: {
-      info: (event) => logger.info(event, 'Masquerade transition'),
-      error: (event) => logger.error(event, 'Masquerade diagnostic'),
-    },
+    logger: wiring.config.logger ?? debugLogger,
     // Native emitter.emit dispatches listener rejection to its registered onError handler.
     // A failed logger, missing handler or throwing handler reaches this safe diagnostic fallback.
-    observerErrorHandler: () =>
-      logger.error({ code: 'E_MASQUERADE_OBSERVER_FAILED' }, 'Masquerade observer failed'),
+    observerErrorHandler: reportObserverError,
   })
-  const internal = service as typeof service & {
-    [admitOnce](ctx: HttpContext): Promise<RequestAdmission<unknown>>
-    [checkActiveMode](owner: OwnerKey): Promise<boolean>
-    [authenticateActorIdentity](ctx: HttpContext): Promise<{ id: string; incarnation: string }>
+  return Object.freeze(new BootedMasqueradeRuntime(service as InternalService, wiring, selectGuard))
+}
+
+type InternalService = MasqueradeRuntime['service'] & {
+  [admitOnce](ctx: HttpContext): Promise<RequestAdmission<unknown>>
+  [checkActiveMode](owner: OwnerKey): Promise<boolean>
+  [authenticateActorIdentity](ctx: HttpContext): Promise<{ id: string; incarnation: string }>
+}
+
+class BootedMasqueradeRuntime extends MasqueradeRuntime {
+  #internal: InternalService
+  #selectGuard: MasqueradeRuntime['selectGuard']
+
+  declare readonly service: MasqueradeRuntime['service']
+  declare readonly config: RuntimeConfiguration['config']
+  declare readonly effectiveGuardName: string
+  declare readonly effectiveGuardNames: readonly string[]
+
+  constructor(
+    service: InternalService,
+    wiring: RuntimeConfiguration,
+    selectGuard: MasqueradeRuntime['selectGuard']
+  ) {
+    super()
+    this.service = service
+    this.config = wiring.config
+    this.effectiveGuardName = wiring.effectiveGuardName
+    this.effectiveGuardNames = wiring.effectiveGuardNames
+    this.#internal = service
+    this.#selectGuard = selectGuard
   }
-  return Object.freeze({
-    service,
-    config: wiring.config,
-    effectiveGuardName: wiring.effectiveGuardName,
-    effectiveGuardNames: wiring.effectiveGuardNames,
-    selectGuard,
-    admit: (ctx: HttpContext) => internal[admitOnce](ctx),
-    activeMode: (owner: OwnerKey) => internal[checkActiveMode](owner),
-    actor: (ctx: HttpContext) => internal[authenticateActorIdentity](ctx),
-  })
+
+  selectGuard(ctx: HttpContext) {
+    return this.#selectGuard(ctx)
+  }
+
+  admit(ctx: HttpContext) {
+    return this.#internal[admitOnce](ctx)
+  }
+
+  activeMode(owner: OwnerKey) {
+    return this.#internal[checkActiveMode](owner)
+  }
+
+  actor(ctx: HttpContext) {
+    return this.#internal[authenticateActorIdentity](ctx)
+  }
 }

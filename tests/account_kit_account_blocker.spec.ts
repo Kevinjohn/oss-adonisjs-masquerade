@@ -1,10 +1,11 @@
+import { NativeAdapter } from '../src/integration/native_adapter.ts'
 import { rejects } from 'node:assert/strict'
 import type { HttpContext } from '@adonisjs/core/http'
 import { test } from '@japa/runner'
-import AccountKitBlocker, { AccountKitAccountBlocker } from '../account_kit/middleware.js'
-import { errors } from '../index.js'
-import { checkActiveMode } from '../src/active_mode.js'
-import { fixture } from './helpers/core.js'
+import AccountKitBlocker, { AccountKitAccountBlocker } from '../account_kit/middleware.ts'
+import { errors } from '../index.ts'
+import { checkActiveMode } from '../src/active_mode.ts'
+import { fixture } from './helpers/core.ts'
 
 async function host() {
   const f = fixture()
@@ -25,8 +26,8 @@ async function host() {
       },
     },
     containerResolver: {
-      async make(key: string) {
-        if (key === 'masquerade.native')
+      async make(key: unknown) {
+        if (key === NativeAdapter)
           return {
             authority: {
               namespace: f.owner.namespace,
@@ -69,8 +70,8 @@ test.group('Account Kit host account blocker', () => {
       await h.start(h.service, {}, access)
       const before = await h.store.read(h.owner)
       const events = [...h.store.events]
-      // A failing policy or account inspection must not let the actor change their account.
-      h.state.policyThrows = true
+      // A failing permissions or account inspection must not let the actor change their account.
+      h.state.permissionsThrows = true
       h.state.inspectThrows = true
       // Host routes need neither a name nor an effective guard to opt in.
       h.ctx.route = undefined

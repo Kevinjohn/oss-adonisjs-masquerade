@@ -4,9 +4,9 @@ As an application developer, I want the safe actor and effective identity fields
 
 **Status:** Current; source-reviewed helper, not runtime-tested.
 **Access:** Host handler on a route covered by the Masquerade auth setup, after the host's own authorisation and business write.
-**Entry:** `await masqueradeAuditFields(ctx)` from `@kevinjohn/adonisjs-masquerade/http`, spread into the host's audit writer.
+**Entry:** `await masqueradeAudit.fields(ctx)` from `@kevinjohn/adonisjs-masquerade/http`, spread into the host's audit writer.
 **Documentation:** [Audit business work](../../docs/guide/audit.md).
-**Source:** [masqueradeAuditFields](../../http/audit_fields.ts).
+**Source:** [masqueradeAudit](../../src/http/audit_fields.ts).
 **Coverage:** [Audit field tests](../../tests/http_audit_fields.spec.ts).
 
 ## Acceptance criteria
@@ -21,7 +21,7 @@ As an application developer, I want the safe actor and effective identity fields
 
 ```mermaid
 flowchart TD
-    A["Handler finishes the authorised business write"] --> B["Call masqueradeAuditFields"]
+    A["Handler finishes the authorised business write"] --> B["Call masqueradeAudit"]
     B --> C{"Effective route admitted an active mode?"}
     C -->|Yes| D["Fields name actor, target, mode and access"]
     C -->|No| E["Fields name the actor as both identities"]
@@ -36,7 +36,7 @@ Scope: field resolution only; the host audit writer is application-owned.
 
 ```mermaid
 flowchart TD
-    A["masqueradeAuditFields(ctx)"] --> B["resolveRuntime(ctx)"]
+    A["masqueradeAudit.fields(ctx)"] --> B["resolveRuntime(ctx)"]
     B --> C{"runtime.selectGuard(ctx).kind is effective?"}
     C -->|No| D["runtime.actor(ctx); actor as both identities"]
     C -->|Yes| E["runtime.service.resolve(ctx) runs memoised admission"]
@@ -49,4 +49,4 @@ flowchart TD
     D -->|No mapped actor or invalid credentials| X["Propagate refusal"]
 ```
 
-**Code references:** [audit fields](../../http/audit_fields.ts), [audit guide](../../docs/guide/audit.md).
+**Code references:** [audit fields](../../src/http/audit_fields.ts), [audit guide](../../docs/guide/audit.md).

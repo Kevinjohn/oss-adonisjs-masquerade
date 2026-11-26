@@ -9,7 +9,7 @@ import {
   rewriteManifest,
   rewriteText,
   staleKitVersions,
-} from '../../bin/helpers/account_kit_bump.js'
+} from '../../bin/helpers/account_kit_bump.ts'
 
 const from: KitRelease = {
   version: '0.3.3',

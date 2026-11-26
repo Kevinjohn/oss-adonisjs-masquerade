@@ -1,13 +1,13 @@
 import { test } from '@japa/runner'
-import { fixture } from './helpers/core.js'
-import { requestContext } from './helpers/http_context.js'
-import { masqueradeAuditFields } from '../http/audit_fields.js'
+import { fixture } from './helpers/core.ts'
+import { requestContext } from './helpers/http_context.ts'
+import { masqueradeAudit } from '../src/http/audit_fields.ts'
 
 test.group('masquerade audit fields', () => {
   test('returns the actor as both identities while idle', async ({ assert }) => {
     const f = fixture()
     const { ctx } = requestContext(f, { method: 'GET' })
-    const fields = await masqueradeAuditFields(ctx)
+    const fields = await masqueradeAudit.fields(ctx)
     assert.deepEqual(fields, {
       actorId: 'a',
       actorIncarnation: 'a',
@@ -28,7 +28,7 @@ test.group('masquerade audit fields', () => {
       const { ctx } = requestContext(f, { method: 'GET' })
       await f.start(await f.create(), ctx, access)
       const row = await f.store.read(f.owner)
-      const fields = await masqueradeAuditFields(ctx)
+      const fields = await masqueradeAudit.fields(ctx)
       assert.deepEqual(fields, {
         actorId: 'a',
         actorIncarnation: 'a',
@@ -54,7 +54,7 @@ test.group('masquerade audit fields', () => {
     const before = await f.store.read(f.owner)
     // A target change would invalidate the mode if this raw request were admitted.
     f.users.get('b')!.stamp = 'changed'
-    const fields = await masqueradeAuditFields(ctx)
+    const fields = await masqueradeAudit.fields(ctx)
     assert.deepEqual(fields, {
       actorId: 'a',
       actorIncarnation: 'a',

@@ -1,6 +1,6 @@
-import { E_MASQUERADE_INVALID_STORE, E_MASQUERADE_UNAVAILABLE } from './errors.js'
-import type { MasqueradeSetupErrorField } from './errors.js'
-import type { ControlStore, RequestControlStore } from './types.js'
+import { E_MASQUERADE_INVALID_STORE, E_MASQUERADE_UNAVAILABLE } from './errors.ts'
+import type { MasqueradeSetupErrorField } from './errors.ts'
+import type { ControlStore, RequestControlStore } from './types.ts'
 
 const storeErrorFields: Record<keyof ControlStore, MasqueradeSetupErrorField> = {
   testOnly: 'store.testOnly',

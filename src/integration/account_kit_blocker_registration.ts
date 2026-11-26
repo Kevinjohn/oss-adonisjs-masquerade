@@ -1,4 +1,4 @@
-import { AccountKitAccountBlocker } from '../../account_kit/middleware.js'
+import AccountKitAccountBlocker from '../account_kit/account_blocker_middleware.ts'
 
 /** Compare the actual named middleware export without constructing or running middleware. */
 export async function checkAccountKitBlockerRegistration(

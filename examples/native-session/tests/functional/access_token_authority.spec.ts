@@ -194,7 +194,7 @@ test.group('native access-token authority', (group) => {
     sessionStop.assertStatus(200)
   })
 
-  test('allows token stop after policy denial, target deletion and actor stamp change', async ({
+  test('allows token stop after permissions denial, target deletion and actor stamp change', async ({
     client,
   }) => {
     const { actor, target } = await createUsers()
@@ -214,7 +214,7 @@ test.group('native access-token authority', (group) => {
     after.assertBodyContains({ isMasquerading: false })
   })
 
-  test('stops with a token while authority stamp and policy callbacks throw', async ({
+  test('stops with a token while authority stamp and permissions callbacks throw', async ({
     client,
   }) => {
     const { actor, target } = await createUsers()

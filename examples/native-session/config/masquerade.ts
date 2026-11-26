@@ -47,9 +47,9 @@ const runtimeAdapter = tokenOnly ? tokenOnlyNative : authorities
 
 const config = defineConfig({
   authority: runtimeAdapter.authority,
-  policy: {
+  permissions: {
     canMasquerade: ({ actor, target }) => {
-      if (shouldThrowFromAuthorityCallbacks()) throw new Error('Test policy callback fault')
+      if (shouldThrowFromAuthorityCallbacks()) throw new Error('Test permissions callback fault')
       return (
         Boolean(actor.user.masqueradeOperator) &&
         !target.user.masqueradeOperator &&
@@ -61,7 +61,8 @@ const config = defineConfig({
       !target.user.masqueradeOperator &&
       Boolean(target.user.active),
     canUseRequest: ({ actor, target }) => {
-      if (shouldThrowFromAuthorityCallbacks()) throw new Error('Test request-policy callback fault')
+      if (shouldThrowFromAuthorityCallbacks())
+        throw new Error('Test request-permissions callback fault')
       return Boolean(actor.user.active) && Boolean(target.user.active)
     },
   },

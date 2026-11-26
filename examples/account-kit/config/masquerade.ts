@@ -25,7 +25,7 @@ export const nativeAdapter = token
 
 export default defineConfig({
   authority: nativeAdapter.authority,
-  policy: {
+  permissions: {
     canMasquerade: async ({ actor, target }) =>
       Boolean(actor.user.masqueradeOperator) &&
       !target.user.masqueradeOperator &&

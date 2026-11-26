@@ -1,16 +1,16 @@
 import { test } from '@japa/runner'
 import { randomUUID } from 'node:crypto'
 import { createRequire, syncBuiltinESMExports } from 'node:module'
-import { assertControlStoreConformance } from '../testing/main.js'
-import { LucidControlStore } from '../stores/lucid.js'
-import { requireRevision } from '../stores/lucid_row.js'
-import { sqlFixture, transition } from './helpers/sql_store.js'
+import { controlStoreConformance } from '../testing/main.ts'
+import { LucidControlStore } from '../src/stores/lucid.ts'
+import { requireRevision } from '../src/stores/lucid_row.ts'
+import { sqlFixture, transition } from './helpers/sql_store.ts'
 
 test.group('Lucid control store', () => {
   test('exports the complete store conformance on a real database', async () => {
     const f = await sqlFixture()
     try {
-      await assertControlStoreConformance(async () => f.store)
+      await controlStoreConformance.assert(async () => f.store)
     } finally {
       await f.cleanup()
     }

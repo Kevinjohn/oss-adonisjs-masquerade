@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict'
 import { test } from '@japa/runner'
-import { withPostgresMeasurement } from '../../bin/helpers/postgres_measurement.js'
+import { withPostgresMeasurement } from '../../bin/helpers/postgres_measurement.ts'
 
 const schema = 'expiry_measurement_fixture'
 const drop = `DROP SCHEMA IF EXISTS ${schema} CASCADE`

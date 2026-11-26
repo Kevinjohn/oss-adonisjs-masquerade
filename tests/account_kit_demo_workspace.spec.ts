@@ -6,7 +6,7 @@ import {
   copyNativeDemo,
   validateDemoWorkspace,
   writeDemoRecipe,
-} from '../bin/helpers/account_kit_demo_workspace.js'
+} from '../bin/helpers/account_kit_demo_workspace.ts'
 
 test.group('Account Kit demo workspace', (group) => {
   let directory: string

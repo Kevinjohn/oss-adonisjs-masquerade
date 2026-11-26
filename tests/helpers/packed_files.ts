@@ -1,5 +1,5 @@
 import { spawnSync } from 'node:child_process'
-import { repoRoot } from './tracked_markdown.js'
+import { repoRoot } from './tracked_markdown.ts'
 
 /** Paths `pnpm pack` would put in the package tarball. */
 export function packedFiles(): string[] {

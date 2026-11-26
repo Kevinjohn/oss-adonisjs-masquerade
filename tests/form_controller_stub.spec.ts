@@ -2,18 +2,21 @@ import { mkdir, readFile, rm, writeFile } from 'node:fs/promises'
 import { join } from 'node:path'
 import { pathToFileURL } from 'node:url'
 import { test } from '@japa/runner'
-import { errors } from '../index.js'
-import { fixture } from './helpers/core.js'
-import { controlRequestContext } from './helpers/http_context.js'
-import { handleWithDefaultExceptionHandler } from './helpers/exception_handler.js'
-import { MasqueradeController } from '../http/controllers.js'
-import { formTokenMutation } from '../bin/helpers/recipe_mutations.js'
+import { errors } from '../index.ts'
+import { fixture } from './helpers/core.ts'
+import { controlRequestContext } from './helpers/http_context.ts'
+import { handleWithDefaultExceptionHandler } from './helpers/exception_handler.ts'
+import MasqueradeController from '../src/http/masquerade_controller.ts'
+import { formTokenMutation } from '../bin/helpers/recipe_mutations.ts'
 
 const root = process.cwd()
 
 /** Load the generated form controller with its package imports pointed at the source tree. */
 async function loadStub(directory: string, broken = false) {
-  const stub = await readFile(join(root, 'stubs/configure/form_controller.stub'), 'utf8')
+  const stub = await readFile(
+    join(root, 'stubs/app/controllers/masquerade_form_controller.stub'),
+    'utf8'
+  )
   const source = stub
     .replace(/^\{\{\{[\s\S]*?\}\}\}\n/, '')
     .replace("'@kevinjohn/adonisjs-masquerade/http'", `'${join(root, 'http/main.ts')}'`)

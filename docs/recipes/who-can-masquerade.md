@@ -1,7 +1,7 @@
 # Decide who can support whom
 
-The `policy` block in `config/masquerade.ts` decides who may start support mode, for which accounts,
-and with what access. Each example below is a complete `policy` (plus any other config keys it
+The `permissions` block in `config/masquerade.ts` decides who may start support mode, for which accounts,
+and with what access. Each example below is a complete `permissions` (plus any other config keys it
 needs) and type-checks against `defineConfig<User, HttpContext>`. Replace the field names with your
 own.
 
@@ -56,7 +56,7 @@ the Owner's account.
 - View access: one operator sees what another operator sees.
 - Edit access carries more risk: one operator can act as another, and an audit trail that records
   only the effective user points at the wrong person. If you allow it, record both with
-  [`masqueradeAuditFields`](../guide/audit.md).
+  [`masqueradeAudit`](../guide/audit.md).
 
 ## Roles: everyone views, leads edit
 
@@ -109,7 +109,7 @@ export default defineConfig<User, HttpContext>({
   reason: 'required',
   durationSeconds: 600, // default length: 10 minutes
   maxDurationSeconds: 1800, // longest an operator may request: 30 minutes
-  policy: {
+  permissions: {
     canMasquerade: async ({ actor, target }) => {
       if (actor.user.role !== 'support' || target.user.role !== 'customer') return false
       const ticket = await db

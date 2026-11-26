@@ -1,8 +1,8 @@
 // Core service failure paths: store reads, CAS and audit writes, observers, loggers, authority
-// and policy throws, and races. Happy paths go to core_service.spec.ts, admission to
+// and permissions throws, and races. Happy paths go to core_service.spec.ts, admission to
 // core_admission.spec.ts. Fixtures: fixture() and errorCode() in tests/helpers/core.ts.
 import { test } from '@japa/runner'
-import { fixture, errorCode } from './helpers/core.js'
+import { fixture, errorCode } from './helpers/core.ts'
 
 test('indeterminate committed start logs a safe diagnostic and never emits or records a false denial', async ({
   assert,
@@ -159,7 +159,7 @@ test('never-settling observers are not awaited', async ({ assert }) => {
   assert.isTrue(modeWithPendingObservers.isMasquerading)
 })
 
-test('authority and local-policy throws preserve mode without admitting or logging secrets', async ({
+test('authority and local-permissions throws preserve mode without admitting or logging secrets', async ({
   assert,
 }) => {
   for (const failure of ['local', 'stamp', 'incarnation'] as const) {
@@ -168,7 +168,7 @@ test('authority and local-policy throws preserve mode without admitting or loggi
     await f.start(service)
     const before = await f.store.read(f.owner)
     if (failure === 'local')
-      f.config.policy.canUseRequest = async () => {
+      f.config.permissions.canUseRequest = async () => {
         throw new Error('private failure')
       }
     if (failure === 'stamp') f.users.get('a')!.stamp = 's'.repeat(513)
@@ -215,7 +215,7 @@ test('conflicting expiry cannot clear a newer committed selection', async ({ ass
   )
 })
 
-test('status and stop fail closed on store read failure without account or policy reads', async ({
+test('status and stop fail closed on store read failure without account or permissions reads', async ({
   assert,
 }) => {
   const f = fixture()
@@ -229,7 +229,7 @@ test('status and stop fail closed on store read failure without account or polic
     'E_MASQUERADE_UNAVAILABLE'
   )
   assert.equal(f.state.inspectCount, 0)
-  assert.equal(f.state.policyCount, 0)
+  assert.equal(f.state.permissionsCount, 0)
   assert.deepEqual(f.diagnostics, [
     { category: 'store', operation: 'read', code: 'E_MASQUERADE_UNAVAILABLE' },
     { category: 'store', operation: 'read', code: 'E_MASQUERADE_UNAVAILABLE' },
@@ -237,7 +237,7 @@ test('status and stop fail closed on store read failure without account or polic
   ])
 })
 
-test('authority and policy failures log safe categories while preserving unavailable responses', async ({
+test('authority and permissions failures log safe categories while preserving unavailable responses', async ({
   assert,
 }) => {
   const authority = fixture()
@@ -249,13 +249,13 @@ test('authority and policy failures log safe categories while preserving unavail
     { category: 'authority', operation: 'inspect_account', code: 'E_MASQUERADE_UNAVAILABLE' },
   ])
 
-  const policy = fixture()
-  const policyService = await policy.create()
-  await policy.start(policyService)
-  policy.state.policyThrows = true
+  const permissions = fixture()
+  const policyService = await permissions.create()
+  await permissions.start(policyService)
+  permissions.state.permissionsThrows = true
   assert.equal(await errorCode(() => policyService.resolve({})), 'E_MASQUERADE_UNAVAILABLE')
-  assert.deepEqual(policy.diagnostics, [
-    { category: 'policy', operation: 'can_masquerade', code: 'E_MASQUERADE_UNAVAILABLE' },
+  assert.deepEqual(permissions.diagnostics, [
+    { category: 'permissions', operation: 'can_masquerade', code: 'E_MASQUERADE_UNAVAILABLE' },
   ])
 
   const requestPolicy = fixture()
@@ -264,7 +264,7 @@ test('authority and policy failures log safe categories while preserving unavail
   requestPolicy.state.localThrows = true
   assert.equal(await errorCode(() => requestPolicyService.resolve({})), 'E_MASQUERADE_UNAVAILABLE')
   assert.deepEqual(requestPolicy.diagnostics, [
-    { category: 'policy', operation: 'can_use_request', code: 'E_MASQUERADE_UNAVAILABLE' },
+    { category: 'permissions', operation: 'can_use_request', code: 'E_MASQUERADE_UNAVAILABLE' },
   ])
 
   const stamp = fixture()
@@ -335,7 +335,7 @@ test('denied controls and required audit failures log bounded diagnostics withou
   const f = fixture()
   const service = await f.create()
   const idle = await service.status({})
-  f.state.policy = false
+  f.state.permissions = false
   assert.equal(
     await errorCode(() =>
       service.start(
@@ -350,7 +350,7 @@ test('denied controls and required audit failures log bounded diagnostics withou
     'E_MASQUERADE_NOT_ALLOWED'
   )
   assert.deepEqual(f.diagnostics, [
-    { category: 'policy', operation: 'can_masquerade', code: 'E_MASQUERADE_NOT_ALLOWED' },
+    { category: 'permissions', operation: 'can_masquerade', code: 'E_MASQUERADE_NOT_ALLOWED' },
     { category: 'control', operation: 'start', code: 'E_MASQUERADE_NOT_ALLOWED' },
   ])
   assert.notInclude(JSON.stringify(f.diagnostics), 'private case detail')
@@ -382,7 +382,7 @@ test('denied controls and required audit failures log bounded diagnostics withou
     'E_MASQUERADE_UNAVAILABLE'
   )
   assert.deepEqual(f.diagnostics, [
-    { category: 'policy', operation: 'can_masquerade', code: 'E_MASQUERADE_NOT_ALLOWED' },
+    { category: 'permissions', operation: 'can_masquerade', code: 'E_MASQUERADE_NOT_ALLOWED' },
     { category: 'control', operation: 'start', code: 'E_MASQUERADE_NOT_ALLOWED' },
     { category: 'store', operation: 'record_control_outcome', code: 'E_MASQUERADE_UNAVAILABLE' },
   ])

@@ -7,10 +7,10 @@ import { chmod, mkdtemp, mkdir, readFile, rm, writeFile } from 'node:fs/promises
 import os from 'node:os'
 import path from 'node:path'
 import { test } from '@japa/runner'
-import { collectExit, waitForFile } from '../helpers/child_process.js'
-import { freePort } from '../helpers/free_port.js'
+import { collectExit, waitForFile } from '../helpers/child_process.ts'
+import { freePort } from '../helpers/free_port.ts'
 import { fileURLToPath } from 'node:url'
-import { assertNodeVersion } from '../../bin/demo.js'
+import { assertNodeVersion } from '../../bin/demo.ts'
 
 const repoRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../..')
 const launcherPath = path.join(repoRoot, 'bin/demo.ts')

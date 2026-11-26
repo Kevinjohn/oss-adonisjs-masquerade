@@ -1,14 +1,14 @@
 // The exported conformance suite must reject stores that break the documented contract.
 // Each broken store wraps the memory store and changes one behaviour.
 import { test } from '@japa/runner'
-import { assertControlStoreConformance, MemoryControlStore } from '../testing/main.js'
+import { controlStoreConformance, MemoryControlStore } from '../testing/main.ts'
 import type {
   CompareAndSetInput,
   ControlOutcomeEvent,
   ControlStore,
   ModeRow,
   OwnerKey,
-} from '../src/types.js'
+} from '../src/types.ts'
 
 function key(owner: OwnerKey): string {
   return JSON.stringify([owner.namespace, owner.actorId, owner.actorIncarnation])
@@ -115,8 +115,8 @@ for (const [name, Store] of [
   ['a transition kind recorded as a control outcome', AcceptsTransitionOutcome],
 ] as const)
   test(`conformance rejects a store with ${name}`, async ({ assert }) => {
-    await assertControlStoreConformance(async () => new DelegatingStore())
-    await assert.rejects(() => assertControlStoreConformance(async () => new Store()))
+    await controlStoreConformance.assert(async () => new DelegatingStore())
+    await assert.rejects(() => controlStoreConformance.assert(async () => new Store()))
   })
 
 class WrongAppliedAcknowledgement extends DelegatingStore {
@@ -151,12 +151,12 @@ class IgnoresStoppedTargetProjection extends DelegatingStore {
 }
 
 test('conformance uses only reachable idle transitions', async () => {
-  await assertControlStoreConformance(async () => new ReachableTransitionsOnly())
+  await controlStoreConformance.assert(async () => new ReachableTransitionsOnly())
 })
 
 test('conformance detects a store that ignores stopped target projection', async ({ assert }) => {
   await assert.rejects(() =>
-    assertControlStoreConformance(async () => new IgnoresStoppedTargetProjection())
+    controlStoreConformance.assert(async () => new IgnoresStoppedTargetProjection())
   )
 })
 
@@ -164,6 +164,6 @@ test('conformance rejects an applied acknowledgement for another transition', as
   assert,
 }) => {
   await assert.rejects(() =>
-    assertControlStoreConformance(async () => new WrongAppliedAcknowledgement())
+    controlStoreConformance.assert(async () => new WrongAppliedAcknowledgement())
   )
 })

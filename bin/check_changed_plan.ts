@@ -28,14 +28,14 @@ const recipeInputs = [
   /^examples\/recipe-host\//,
   /^docs\/guide\/(setup|usage)\.md$/,
   /^docs\/guide\/clients\/edge\.md$/,
-  /^stubs\/configure\//,
-  /^(configure\.ts|src\/configure_wiring\.ts)$/,
+  /^stubs\//,
+  /^configure\.ts$/,
   /^bin\/test_recipe\.ts$/,
   /^package\.json$/,
 ]
 // The docs workflow's push paths: TypeDoc reads the package source and treats warnings as errors.
 const docsInputs = [
-  /^(docs|account_kit|auth|commands|http|native|plugins|providers|src|stores|testing|stubs)\//,
+  /^(docs|account_kit|auth|commands|http|native|plugins|providers|services|src|stores|testing|stubs)\//,
   /^(index|configure)\.ts$/,
   /^(package\.json|pnpm-lock\.yaml|pnpm-workspace\.yaml|tsconfig\.json|typedoc\.json)$/,
 ]
@@ -55,7 +55,7 @@ const browserInputs = [
 ]
 // Inputs of the consumer and Account Kit integration gates that only pnpm check --full runs.
 const fullInputs = [
-  /^(account_kit|native|auth)\//,
+  /^(src\/)?(account_kit|native|auth)\//,
   /^examples\/(native-session|account-kit)\//,
   /^bin\/(test_consumer|test_account_kit)\.ts$/,
   /^bin\/helpers\/(consumer_[a-z_]+|owned_process|registry_version|account_kit_host_wiring)\.ts$/,

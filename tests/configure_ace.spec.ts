@@ -5,7 +5,7 @@ import { mkdtemp, mkdir, readFile, readdir, rename, rm, symlink, writeFile } fro
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { pathToFileURL } from 'node:url'
-import { starterAuthConfig, starterKernel } from './helpers/starter_kit.js'
+import { starterAuthConfig, starterKernel } from './helpers/starter_kit.ts'
 
 test.group('Masquerade configure scaffold', () => {
   test('loads and executes the package hook through native Ace', async ({ assert }) => {
@@ -125,108 +125,61 @@ export default defineConfig({
     // The generated app imports the compiled package; `pnpm test:built-exports` runs this after build.
     .skip(process.env.TEST_BUILT_EXPORTS !== '1', 'requires the built package')
 
-  test('wires a starter-kit host, and --no-wire leaves it to the printed steps', async ({
+  test('generates route drafts and leaves the host to install auth, middleware and routes', async ({
     assert,
   }) => {
     const previousProcessExitCode = process.exitCode
-    const wired = await starterHost()
-    const manual = await starterHost()
+    const host = await starterHost()
     const json = await starterHost()
     try {
-      assert.equal(await runConfigure(wired, ['--banner', '--form-controller']), 0)
-      assert.equal(await runConfigure(json, ['--banner']), 0)
-      const auth = await readFile(join(wired, 'config/auth.ts'), 'utf8')
-      assert.include(auth, "default: 'web_effective',")
-      assert.include(auth, 'web_effective: effectiveSessionGuard(webGuard),')
-      assert.include(
-        await readFile(join(wired, 'start/kernel.ts'), 'utf8'),
-        "initialize_auth_middleware'),\n  () => import('@kevinjohn/adonisjs-masquerade/masquerade_context_middleware'),"
+      assert.equal(
+        await runConfigure(host, ['--banner', '--form-controller', '--control-routes']),
+        0
       )
+      assert.equal(await runConfigure(json, ['--control-routes']), 0)
+      assert.equal(await readFile(join(host, 'config/auth.ts'), 'utf8'), starterAuthConfig)
+      assert.equal(await readFile(join(host, 'start/kernel.ts'), 'utf8'), starterKernel)
       assert.include(
-        await readFile(join(wired, 'start/kernel.ts'), 'utf8'),
-        "() => import('#middleware/silent_auth_middleware'),\n  () => import('#middleware/share_masquerade_status_middleware'),"
-      )
-      assert.include(
-        await readFile(join(wired, 'app/middleware/share_masquerade_status_middleware.ts'), 'utf8'),
+        await readFile(join(host, 'app/middleware/share_masquerade_status_middleware.ts'), 'utf8'),
         'runtime.selectGuard(ctx).kind'
       )
       assert.include(
-        await readFile(join(wired, 'resources/views/components/masquerade/banner.edge'), 'utf8'),
+        await readFile(join(host, 'resources/views/components/masquerade/banner.edge'), 'utf8'),
         'masquerade.contextToken'
       )
       assert.include(
-        await readFile(join(wired, 'resources/views/components/masquerade/banner.edge'), 'utf8'),
-        '@if(masquerade && masquerade.isMasquerading)'
+        await readFile(join(host, 'app/controllers/masquerade_form_controller.ts'), 'utf8'),
+        '#transition'
       )
-      assert.include(
-        await readFile(join(wired, 'app/controllers/masquerade_form_controller.ts'), 'utf8'),
-        'function acceptsHtmlForm(ctx: HttpContext): boolean'
-      )
-      const routes = await readFile(join(wired, 'start/masquerade_routes.ts'), 'utf8')
-      assert.include(routes, "guards: ['web']")
+      const routes = await readFile(join(host, 'start/masquerade_form_routes.ts'), 'utf8')
+      assert.match(routes, /guards: \[["']web["']\]/)
       assert.include(routes, "import('#controllers/masquerade_form_controller')")
-      assert.include(routes, "'status'")
-      assert.include(routes, "'start'")
-      assert.include(routes, "'stop'")
+      for (const route of ['status', 'start', 'stop']) assert.include(routes, `'${route}'`)
       const jsonRoutes = await readFile(join(json, 'start/masquerade_routes.ts'), 'utf8')
       assert.include(
         jsonRoutes,
         "import { masqueradeRoutes } from '@kevinjohn/adonisjs-masquerade/http'"
       )
-      assert.notInclude(jsonRoutes, 'MasqueradeFormController')
       assert.isFalse(existsSync(join(json, 'app/controllers/masquerade_form_controller.ts')))
-      assert.include(
-        await readFile(join(wired, 'start/masquerade_limiter.ts'), 'utf8'),
-        "ctx.auth.use('web').getUserOrFail()"
+      assert.match(
+        await readFile(join(host, 'start/masquerade_limiter.ts'), 'utf8'),
+        /ctx.auth.use\(["']web["']\).getUserOrFail\(\)/
       )
-      assert.include(
-        await readFile(join(wired, 'adonisrc.ts'), 'utf8'),
-        "() => import('#start/masquerade_routes')"
-      )
-
-      assert.equal(await runConfigure(manual, ['--no-wire']), 0)
-      assert.equal(await readFile(join(manual, 'config/auth.ts'), 'utf8'), starterAuthConfig)
-      assert.equal(await readFile(join(manual, 'start/kernel.ts'), 'utf8'), starterKernel)
-      assert.isFalse(existsSync(join(manual, 'start/masquerade_routes.ts')))
-      assert.isFalse(existsSync(join(manual, 'start/masquerade_limiter.ts')))
-      assert.notInclude(await readFile(join(manual, 'adonisrc.ts'), 'utf8'), 'masquerade_routes')
-      assert.deepEqual(await bootGeneratedRuntime(wired), { booted: true, guard: 'web_effective' })
+      assert.notInclude(await readFile(join(host, 'adonisrc.ts'), 'utf8'), 'masquerade_form_routes')
+      assert.deepEqual(await bootGeneratedRuntime(host, {}, true), {
+        booted: true,
+        guard: 'web_effective',
+      })
     } finally {
       process.exitCode = previousProcessExitCode
-      await rm(wired, { recursive: true, force: true })
-      await rm(manual, { recursive: true, force: true })
+      await rm(host, { recursive: true, force: true })
       await rm(json, { recursive: true, force: true })
     }
   })
     .timeout(20_000)
     .skip(process.env.TEST_BUILT_EXPORTS !== '1', 'requires the built package')
 
-  test('leaves auth unchanged when it cannot register the context middleware', async ({
-    assert,
-  }) => {
-    const previousProcessExitCode = process.exitCode
-    const host = await starterHost()
-    try {
-      const kernel = starterKernel.replace(
-        "  () => import('@adonisjs/auth/initialize_auth_middleware'),\n",
-        ''
-      )
-      assert.notEqual(kernel, starterKernel)
-      await writeFile(join(host, 'start/kernel.ts'), kernel)
-      assert.equal(await runConfigure(host), 0)
-      // Without the middleware, the effective default guard would leave view-only unenforced.
-      assert.equal(await readFile(join(host, 'config/auth.ts'), 'utf8'), starterAuthConfig)
-      assert.isFalse(existsSync(join(host, 'start/masquerade_routes.ts')))
-    } finally {
-      process.exitCode = previousProcessExitCode
-      await rm(host, { recursive: true, force: true })
-    }
-  })
-    .timeout(20_000)
-    .skip(process.env.TEST_BUILT_EXPORTS !== '1', 'requires the built package')
-  test('uses custom host directories for preflight, generation and kernel wiring', async ({
-    assert,
-  }) => {
+  test('uses custom host directories for preflight and generation', async ({ assert }) => {
     const previousProcessExitCode = process.exitCode
     const host = await starterHost()
     const directories = {
@@ -245,7 +198,7 @@ export default defineConfig({
       await rename(join(host, 'start'), join(host, directories.start))
       await mkdir(join(host, 'domain'))
       await rename(join(host, 'app/models'), join(host, directories.models))
-      const options = ['--banner', '--form-controller']
+      const options = ['--banner', '--form-controller', '--control-routes']
       assert.equal(await runConfigure(host, options, directories), 0)
       const files = [
         'settings/masquerade.ts',
@@ -254,17 +207,12 @@ export default defineConfig({
         'domain/middleware/share_masquerade_status_middleware.ts',
         'domain/controllers/masquerade_form_controller.ts',
         'templates/components/masquerade/banner.edge',
-        'bootstrap/masquerade_routes.ts',
+        'bootstrap/masquerade_form_routes.ts',
         'bootstrap/masquerade_limiter.ts',
       ]
       for (const file of files) assert.isTrue(existsSync(join(host, file)), file)
       const kernelPath = join(host, 'bootstrap/kernel.ts')
-      const kernelBefore = await readFile(kernelPath, 'utf8')
-      const kernel = kernelBefore.replace(
-        "  () => import('@kevinjohn/adonisjs-masquerade/masquerade_context_middleware'),",
-        "  () => import('@kevinjohn/adonisjs-masquerade/http'),"
-      )
-      await writeFile(kernelPath, kernel)
+      assert.equal(await readFile(kernelPath, 'utf8'), starterKernel)
       const saved = await Promise.all(files.map((file) => readFile(join(host, file), 'utf8')))
       const migrations = await readdir(join(host, 'schema'))
       assert.lengthOf(migrations, 1)
@@ -274,13 +222,10 @@ export default defineConfig({
         saved
       )
       assert.equal(await runConfigure(host, [...options, '--force'], directories), 0)
-      assert.equal(await readFile(kernelPath, 'utf8'), kernel)
+      assert.equal(await readFile(kernelPath, 'utf8'), starterKernel)
       assert.deepEqual(await readdir(join(host, 'schema')), migrations)
       assert.isFalse(existsSync(join(host, 'config/masquerade.ts')))
-      assert.include(
-        await readFile(join(host, 'settings/auth.ts'), 'utf8'),
-        "default: 'web_effective'"
-      )
+      assert.equal(await readFile(join(host, 'settings/auth.ts'), 'utf8'), starterAuthConfig)
       assert.deepEqual(await bootGeneratedRuntime(host, directories), {
         booted: true,
         guard: 'web_effective',
@@ -323,7 +268,11 @@ export default defineConfig({
 /** Boot the actual generated config and native provider against real Auth and Lucid.
  * The starter syntax fixture does not install the unrelated Shield/limiter/Vite providers.
  */
-async function bootGeneratedRuntime(root: string, custom: Record<string, string> = {}) {
+async function bootGeneratedRuntime(
+  root: string,
+  custom: Record<string, string> = {},
+  verifyContainerService = false
+) {
   const directories = {
     config: 'config',
     services: 'app/services',
@@ -344,6 +293,22 @@ async function bootGeneratedRuntime(root: string, custom: Record<string, string>
   await writeFile(
     join(root, directories.providers, 'host_provider.ts'),
     'export default class HostProvider {}\n'
+  )
+  // Apply the documented host guard setup before booting.
+  await writeFile(
+    join(root, directories.config, 'auth.ts'),
+    `
+import { defineConfig } from '@adonisjs/auth'
+import { sessionGuard } from '@adonisjs/auth/session'
+import { effectiveSessionGuard } from '@kevinjohn/adonisjs-masquerade/auth'
+import { userProvider } from '#services/masquerade_user_provider'
+
+const raw = sessionGuard({ provider: userProvider, useRememberMeTokens: false })
+export default defineConfig({
+  default: 'web_effective',
+  guards: { web: raw, web_effective: effectiveSessionGuard(raw) },
+})
+`
   )
   const auth = await import(pathToFileURL(join(root, directories.config, 'auth.ts')).href)
   const masquerade = await import(
@@ -383,6 +348,12 @@ async function bootGeneratedRuntime(root: string, custom: Record<string, string>
     await app.init()
     await app.boot()
     const runtime = await app.container.make('masquerade.runtime')
+    if (verifyContainerService) {
+      const servicePath = '@kevinjohn/adonisjs-masquerade/services/main'
+      const { default: service } = await import(servicePath)
+      if (service !== runtime)
+        throw new Error('The container service did not resolve the booted singleton')
+    }
     return { booted: app.isBooted, guard: runtime.effectiveGuardName }
   } finally {
     await app.terminate()

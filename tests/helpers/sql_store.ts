@@ -10,8 +10,8 @@ import {
   LucidControlStore,
   createMasqueradeSchema,
   dropMasqueradeSchema,
-} from '../../stores/lucid.js'
-import type { CompareAndSetInput, IdleModeRow } from '../../src/types.js'
+} from '../../src/stores/lucid.ts'
+import type { CompareAndSetInput, IdleModeRow } from '../../src/types.ts'
 
 export function transition(revision = 1): CompareAndSetInput {
   const owner = { namespace: 'sql', actorId: randomUUID(), actorIncarnation: 'original' }

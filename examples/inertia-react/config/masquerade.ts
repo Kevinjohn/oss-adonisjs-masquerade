@@ -19,7 +19,7 @@ const config = defineConfig({
   authority: native.authority,
   // The support form asks for a reason; the server enforces it.
   reason: 'required',
-  policy: {
+  permissions: {
     // Operators may support active customers, never another operator.
     canMasquerade: ({ actor, target }) =>
       Boolean(actor.user.masqueradeOperator) &&

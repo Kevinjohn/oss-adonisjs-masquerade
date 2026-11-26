@@ -3,8 +3,8 @@ import { existsSync } from 'node:fs'
 import { readFile } from 'node:fs/promises'
 import { dirname, join, posix } from 'node:path'
 import { test } from '@japa/runner'
-import { packedFiles } from './helpers/packed_files.js'
-import { repoRoot, trackedMarkdown } from './helpers/tracked_markdown.js'
+import { packedFiles } from './helpers/packed_files.ts'
+import { repoRoot, trackedMarkdown } from './helpers/tracked_markdown.ts'
 
 /** Tracked Markdown outside dependencies; ignored local notes are not published. */
 function trackedDocuments(): string[] {

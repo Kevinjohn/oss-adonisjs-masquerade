@@ -258,7 +258,7 @@ test.group('packed Account Kit credential stamps', (group) => {
     )
     assert.equal(started.status, 200)
 
-    // This public restriction operation leaves the fixture's `active` access policy true.
+    // This public restriction operation leaves the fixture's `active` access permissions true.
     await kit.authentication.changeRestriction({
       userId: target.id,
       change: async (_user, trx) => {

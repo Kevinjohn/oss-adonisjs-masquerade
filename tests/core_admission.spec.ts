@@ -1,5 +1,5 @@
 import { test } from '@japa/runner'
-import { fixture, errorCode } from './helpers/core.js'
+import { fixture, errorCode } from './helpers/core.ts'
 
 test('exact expiry clears durably without stamp access and rejects the triggering request', async ({
   assert,
@@ -76,7 +76,7 @@ for (const invalidation of [
       }
       // The configuration snapshot is immutable; construct a fresh service sharing authoritative state.
     }
-    if (invalidation === 'policy_denied') f.state.policy = false
+    if (invalidation === 'policy_denied') f.state.permissions = false
     if (invalidation === 'edit_denied') f.state.edit = false
     if (invalidation === 'target_incarnation') f.users.get('b')!.incarnation = 'new-b'
     const next = await f.create()
@@ -109,7 +109,7 @@ test('edit admission without canEdit invalidates; throwing canEdit preserves mod
   for (const failure of ['absent', 'throw'] as const) {
     const f = fixture()
     await f.start(await f.create(), {}, 'edit')
-    if (failure === 'absent') delete f.config.policy.canEdit
+    if (failure === 'absent') delete f.config.permissions.canEdit
     else f.state.editThrows = true
     const service = await f.create()
     assert.equal(
@@ -169,7 +169,7 @@ test('credential and local denial preserve mode; native rejection writes no pack
   assert.lengthOf(f.store.events, 1)
 })
 
-for (const failure of ['policy', 'inspect', 'read'] as const) {
+for (const failure of ['permissions', 'inspect', 'read'] as const) {
   test(`${failure} failure rejects admission as unavailable with mode unchanged`, async ({
     assert,
   }) => {
@@ -177,7 +177,7 @@ for (const failure of ['policy', 'inspect', 'read'] as const) {
     const service = await f.create()
     await f.start(service)
     const before = await f.store.read(f.owner)
-    if (failure === 'policy') f.state.policyThrows = true
+    if (failure === 'permissions') f.state.permissionsThrows = true
     if (failure === 'inspect') f.state.inspectThrows = true
     const read = f.store.read.bind(f.store)
     if (failure === 'read')
@@ -214,7 +214,7 @@ test('memoizes admission outcomes and freezes safe identity across later mode ch
   assert.equal(effectiveUserAfterDeniedAdmission.effectiveId, 'b')
 })
 
-for (const invalidation of ['expiry', 'stamp', 'policy'] as const) {
+for (const invalidation of ['expiry', 'stamp', 'permissions'] as const) {
   test(`repeated admission retains ${invalidation} rejection after durable clearing`, async ({
     assert,
   }) => {
@@ -224,7 +224,7 @@ for (const invalidation of ['expiry', 'stamp', 'policy'] as const) {
     if (!active.isMasquerading) throw new Error('Expected active')
     if (invalidation === 'expiry') f.state.now = Date.parse(active.expiresAt)
     if (invalidation === 'stamp') f.users.get('b')!.stamp = 'changed'
-    if (invalidation === 'policy') f.state.policy = false
+    if (invalidation === 'permissions') f.state.permissions = false
     const request = {}
     assert.equal(await errorCode(() => service.resolve(request)), 'E_MASQUERADE_CONTEXT_CHANGED')
     const count = f.state.authenticateCount
@@ -265,7 +265,7 @@ test('resolveView shares the admitted snapshot with resolve', async ({ assert })
   assert.isFalse(idle.isMasquerading)
 })
 
-for (const cause of ['expiry', 'policy'] as const) {
+for (const cause of ['expiry', 'permissions'] as const) {
   test(`resolveView presents committed idle after ${cause} without admitting business work`, async ({
     assert,
   }) => {
@@ -274,7 +274,7 @@ for (const cause of ['expiry', 'policy'] as const) {
     const active = await f.start(service)
     if (!active.isMasquerading) throw new Error('Expected an active mode')
     if (cause === 'expiry') f.state.now = Date.parse(active.expiresAt)
-    else f.state.policy = false
+    else f.state.permissions = false
     const request = {}
     const raw = await service.status({})
     assert.isTrue(raw.isMasquerading)
@@ -283,7 +283,7 @@ for (const cause of ['expiry', 'policy'] as const) {
     assert.notEqual(idle.contextToken, active.contextToken)
     assert.deepEqual(idle, await service.status({}))
     assert.equal(await errorCode(() => service.resolve(request)), 'E_MASQUERADE_CONTEXT_CHANGED')
-    f.state.policy = true
+    f.state.permissions = true
     const restarted = await f.start(service)
     assert.isTrue(restarted.isMasquerading)
     assert.deepEqual(await service.resolveView(request), idle)
@@ -291,7 +291,7 @@ for (const cause of ['expiry', 'policy'] as const) {
   })
 }
 
-test('resolveView does not turn local policy, credentials or store failures into a display view', async ({
+test('resolveView does not turn local permissions, credentials or store failures into a display view', async ({
   assert,
 }) => {
   const f = fixture()

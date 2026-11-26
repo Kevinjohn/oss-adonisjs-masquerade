@@ -5,13 +5,13 @@ import { mkdtemp, mkdir, readFile, readdir, rm, symlink, writeFile } from 'node:
 import os from 'node:os'
 import path from 'node:path'
 import { test } from '@japa/runner'
-import { isAlive, outputOf } from '../helpers/child_process.js'
+import { isAlive, outputOf } from '../helpers/child_process.ts'
 import { fileURLToPath } from 'node:url'
 import {
   ConsumerCommandError,
   ConsumerProcessRunner,
   consumerCommandTimeoutMs,
-} from '../../bin/helpers/consumer_process.js'
+} from '../../bin/helpers/consumer_process.ts'
 
 const repoRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../..')
 const consumerRunnerPath = path.join(repoRoot, 'bin/test_consumer.ts')

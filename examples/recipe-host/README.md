@@ -8,7 +8,7 @@ configuration, context middleware, or Masquerade routes.
 `pnpm test:recipe` checks that the code in the setup and usage guides still works:
 
 1. copies this folder into a temporary directory and installs the package built from this checkout;
-2. runs `node ace configure @kevinjohn/adonisjs-masquerade --banner --form-controller --no-wire`;
+2. runs `node ace configure @kevinjohn/adonisjs-masquerade --banner --form-controller`;
 3. writes the code blocks marked `<!-- host-recipe:... -->` in
    [setup](../../docs/guide/setup.md), [usage](../../docs/guide/usage.md) and
    [Edge forms](../../docs/guide/clients/edge.md) into the host, plus the files in `recipe-assets/`;

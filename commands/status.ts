@@ -4,8 +4,8 @@ import {
   DEFAULT_ACTIVE_MODE_LIMIT,
   MAX_ACTIVE_MODE_LIMIT,
   listActiveModes,
-} from '../src/active_modes.js'
-import type { MasqueradeConfig } from '../src/types.js'
+} from '../src/active_modes.ts'
+import { resolveMasqueradeConfig } from '../src/define_config.ts'
 
 /** List active modes so an operator can see who is viewing which account. */
 export default class StatusCommand extends BaseCommand {
@@ -22,9 +22,7 @@ export default class StatusCommand extends BaseCommand {
       throw new InvalidArgumentsException(
         `--limit must be an integer from 1 to ${MAX_ACTIVE_MODE_LIMIT}`
       )
-    const config = this.app.config.get('masquerade') as
-      MasqueradeConfig<unknown, object> | undefined
-    if (!config) throw new InvalidArgumentsException('Masquerade configuration is required')
+    const config = await resolveMasqueradeConfig<object>(this.app)
     const modes = await listActiveModes(
       config,
       { environment: this.app.nodeEnvironment },

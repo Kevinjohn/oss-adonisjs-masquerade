@@ -1,16 +1,19 @@
 import type { ApplicationService } from '@adonisjs/core/types'
 import { AuthManager } from '@adonisjs/auth'
-import { markEffectiveFactory } from '../../src/integration/guard_registration.js'
+import { guardRegistration } from '../../src/integration/guard_registration.ts'
 
 /** Minimal native auth-manager binding for the standalone Ace command fixture. */
 export default class AuthManagerProvider {
-  constructor(private app: ApplicationService) {}
+  #app: ApplicationService
+  constructor(app: ApplicationService) {
+    this.#app = app
+  }
 
   register(): void {
     const rawFactory = (() => ({})) as never
-    const effectiveFactory = markEffectiveFactory((() => ({})) as never)
-    const aliasFactory = markEffectiveFactory((() => ({})) as never)
-    this.app.container.bindValue(
+    const effectiveFactory = guardRegistration.markEffectiveFactory((() => ({})) as never)
+    const aliasFactory = guardRegistration.markEffectiveFactory((() => ({})) as never)
+    this.#app.container.bindValue(
       'auth.manager',
       new AuthManager({
         default: 'web_effective',

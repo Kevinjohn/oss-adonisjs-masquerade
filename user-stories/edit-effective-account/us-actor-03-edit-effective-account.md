@@ -6,7 +6,7 @@ As a support actor, I want to make a customer-owned mutation only when I start a
 **Access:** Active mode with `access: edit`, host `canEdit` returning literal `true`, an `allowMutation()` route marker, and the target account's normal permission.
 **Entry:** Unsafe business route marked with `allowMutation()` and authenticated through the effective guard.
 **Documentation:** [Use the effective customer identity](../../docs/guide/usage.md#use-the-effective-customer-identity), [view-only and edit policy](../../docs/guide/security.md#actor-target-and-scope).
-**Source:** [route marker](../../src/integration/route_markers.ts), [request middleware](../../http/context_middleware.ts), [service admission](../../src/service.ts).
+**Source:** [route marker](../../src/integration/route_markers.ts), [request middleware](../../src/http/context_middleware.ts), [service admission](../../src/service.ts).
 **Coverage:** [Context middleware tests](../../tests/http_context_middleware.spec.ts), [edit-mode tests](../../tests/core_authorization.spec.ts).
 
 ## Acceptance criteria
@@ -36,7 +36,7 @@ Scope: route policy middleware; the host handler performs its normal target auth
 
 ```mermaid
 flowchart TD
-    A["masqueradeContext(ctx, next)"] --> A2{"Effective route?"}
+    A["new MasqueradeContextMiddleware().handle(ctx, next)"] --> A2{"Effective route?"}
     A2 -->|No| H
     A2 -->|Yes| B["Mark context enforced; runtime.admit(ctx)"]
     B --> C{"Admission succeeds, including canEdit recheck for active edit?"}
@@ -54,4 +54,4 @@ flowchart TD
     I -->|Yes| H
 ```
 
-**Code references:** [allowMutation and routeMarkers](../../src/integration/route_markers.ts), [masqueradeContext](../../http/context_middleware.ts), [MasqueradeService.admit](../../src/service.ts), [security rules](../../docs/guide/security.md#actor-target-and-scope), [shared context flow](../submit-context-token/us-context-01-submit-context-token.md#code-flow).
+**Code references:** [allowMutation and routeMarkers](../../src/integration/route_markers.ts), [masqueradeContext](../../src/http/context_middleware.ts), [MasqueradeService.admit](../../src/service.ts), [security rules](../../docs/guide/security.md#actor-target-and-scope), [shared context flow](../submit-context-token/us-context-01-submit-context-token.md#code-flow).

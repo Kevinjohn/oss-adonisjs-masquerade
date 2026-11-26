@@ -4,7 +4,7 @@ import type {
   DiagnosticEvent,
   DiagnosticOperation,
   ServiceDependencies,
-} from './types.js'
+} from './types.ts'
 
 export type ObserverDependencies = Pick<
   ServiceDependencies<unknown, unknown>,

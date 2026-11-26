@@ -20,18 +20,26 @@ credential.
 
 ## Install
 
-Masquerade requires Node.js 24+ and AdonisJS 7. Install the scoped `0.7.1` release from GitHub:
+Masquerade is currently distributed as a GitHub release tarball. Use the
+[setup guide](docs/guide/setup.md) to install the released archive or pack the current checkout.
 
-```sh
-pnpm add https://github.com/Kevinjohn/oss-adonisjs-masquerade/releases/download/v0.7.1/kevinjohn-adonisjs-masquerade-0.7.1.tgz
-node ace configure @kevinjohn/adonisjs-masquerade --namespace=my_app --guard=web
-```
+Once the package is available in a registry, use `node ace add @kevinjohn/adonisjs-masquerade --package-manager=pnpm`.
+For a tarball install, run `node ace configure @kevinjohn/adonisjs-masquerade --namespace=my_app --guard=web`.
 
-The release asset is `kevinjohn-adonisjs-masquerade-0.7.1.tgz`; verify it against the SHA-256 in
-the [release notes](https://github.com/Kevinjohn/oss-adonisjs-masquerade/releases/tag/v0.7.1). See the
-[setup guide](docs/guide/setup.md) for peer dependencies and generated files.
+## What configure writes
 
-## Quick example
+Configure creates the Masquerade config, native provider, shared user provider and Lucid migration.
+It registers the two providers and Ace commands in `adonisrc.ts`. Use `--control-routes` to draft
+control routes and separate rate limiters, then review and import the drafts in the host.
+
+## Configuration
+
+Implement account incarnation, security stamp, account eligibility and `permissions` in the
+scaffold. Reuse the same user provider for the raw guard and native adapter. Add the effective guard
+and register the context middleware after Auth initialization and before silent authentication.
+Keep the controls on the raw guard with CSRF protection. See [setup](docs/guide/setup.md).
+
+## Usage
 
 Use the effective Auth guard for customer-facing routes. Mark routes that allow edits or must remain
 blocked during masquerade. Replace the lazily imported controllers below with your host application's controllers:
@@ -53,23 +61,24 @@ router.post('/account/password', [AccountController, 'update']).use(sensitive())
 
 ## Registering callbacks from a provider
 
-`config/masquerade.ts` may leave out `authority` and `policy`, so it does not import application
-services. An application provider registers them instead, through `masquerade.callbacks`, in its
+`config/masquerade.ts` may leave out `authority` and `permissions`, so it does not import application
+services. An application provider registers them instead, through `MasqueradeCallbackRegistration`, in its
 `boot()` method:
 
 ```ts
 // providers/package_callbacks_provider.ts
 import type { ApplicationService } from '@adonisjs/core/types'
+import { MasqueradeCallbackRegistration } from '@kevinjohn/adonisjs-masquerade'
 
 export default class PackageCallbacksProvider {
   constructor(protected app: ApplicationService) {}
 
   async boot() {
-    const callbacks = await this.app.container.make('masquerade.callbacks')
+    const callbacks = await this.app.container.make(MasqueradeCallbackRegistration)
     callbacks.register(async () => {
-      const { nativeAdapter, masqueradePolicy } =
+      const { nativeAdapter, masqueradePermissions } =
         await import('#services/auth/masquerade_authority')
-      return { native: nativeAdapter, policy: masqueradePolicy }
+      return { native: nativeAdapter, permissions: masqueradePermissions }
     })
   }
 }
@@ -77,12 +86,27 @@ export default class PackageCallbacksProvider {
 
 List this provider in `adonisrc.ts` before `@kevinjohn/adonisjs-masquerade/masquerade_provider`,
 which builds the runtime at boot. The factory runs once, when Masquerade first needs the callbacks.
-Masquerade binds the registered `native` as `masquerade.native`, and the runtime uses its
-`authority` when the config has none. An application that binds `masquerade.native` itself keeps
+Masquerade binds the registered `native` as `NativeAdapter`, and the runtime uses its
+`authority` when the config has none. An application that binds `NativeAdapter` itself keeps
 working. A value supplied in both places, a second registration, or a registration after the
 runtime was built throws.
 
-## Tested against
+### Account Kit middleware
+
+Register `AccountKitBlocker` from `/account-kit/middleware` in the router stack after Auth
+initialization and before silent authentication. Apply `AccountKitAccountBlocker` only to named
+host-owned account route groups behind the raw guard. Keep logout and CSRF routes outside that
+group. See [Account Kit setup](docs/guide/account-kit.md#install-the-provider-and-blocker).
+
+## Errors
+
+Import `errors` from `@kevinjohn/adonisjs-masquerade` and check a request or setup exception with
+`instanceof errors.E_MASQUERADE_…`. JSON clients can continue matching the same stable `code`.
+See [Recover from errors](docs/guide/errors.md) for the constructors and response contract.
+
+## Supported AdonisJS versions
+
+AdonisJS 7 and Node 24 are supported.
 
 |                         | Every pull request | Weekly and before each release          |
 | ----------------------- | ------------------ | --------------------------------------- |
@@ -91,12 +115,6 @@ runtime was built throws.
 | Lucid                   | locked version     | lowest supported and latest 22.x        |
 | SQLite (better-sqlite3) | yes                | yes                                     |
 | PostgreSQL 16           | yes                | yes                                     |
-
-## Errors
-
-Import `errors` from `@kevinjohn/adonisjs-masquerade` and check a request or setup exception with
-`instanceof errors.E_MASQUERADE_…`. JSON clients can continue matching the same stable `code`.
-See [Recover from errors](docs/guide/errors.md) for the constructors and response contract.
 
 ## Documentation
 

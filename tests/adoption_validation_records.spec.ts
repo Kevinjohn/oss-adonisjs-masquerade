@@ -2,7 +2,7 @@ import { createHash } from 'node:crypto'
 import { readFile } from 'node:fs/promises'
 import { join } from 'node:path'
 import { test } from '@japa/runner'
-import { repoRoot } from './helpers/tracked_markdown.js'
+import { repoRoot } from './helpers/tracked_markdown.ts'
 
 const records = join(repoRoot, 'docs/maintainers/adoption-validation')
 

@@ -6,7 +6,7 @@ As a signed-in actor, I want to read my current support mode and context token s
 **Access:** Actor authenticates with the configured raw control guard. Native access tokens also require the configured `masquerade` ability before the actor is resolved and the row read. Status does not grant target access or permission to start or stop a mode.
 **Entry:** Read `GET /masquerade`, mounted by `masqueradeRoutes()`; this is independent of starting or stopping a mode.
 **Documentation:** [Read status and start](../../docs/guide/usage.md#read-status-and-start).
-**Source:** [MasqueradeController.status](../../http/controllers.ts), [MasqueradeService.status](../../src/service.ts), [mode projection](../../src/mode_projection.ts).
+**Source:** [MasqueradeController.status](../../src/http/masquerade_controller.ts), [MasqueradeService.status](../../src/service.ts), [mode projection](../../src/mode_projection.ts).
 **Coverage:** [HTTP controller tests](../../tests/http_controllers.spec.ts), [service transition tests](../../tests/core_service.spec.ts).
 
 ## Acceptance criteria
@@ -41,4 +41,4 @@ flowchart TD
  E --> F["Return ModeView without a mode write or target admission policy check"]
 ```
 
-**Code references:** [route mount](../../http/control_routes.ts), [controller](../../http/controllers.ts), [service status](../../src/service.ts), [mode projection](../../src/mode_projection.ts)
+**Code references:** [route mount](../../src/http/control_routes.ts), [controller](../../src/http/masquerade_controller.ts), [service status](../../src/service.ts), [mode projection](../../src/mode_projection.ts)

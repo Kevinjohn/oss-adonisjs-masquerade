@@ -1,5 +1,5 @@
 import { test } from '@japa/runner'
-import { normalizeReason, requireStartReason } from '../src/reason.js'
+import { normalizeReason, requireStartReason } from '../src/reason.ts'
 
 test('normalizes reason in trim, CRLF then controls order', ({ assert }) => {
   assert.equal(normalizeReason(' \r\ncase\r\nnotes\t42\r\n '), 'case\nnotes\t42')

@@ -6,7 +6,7 @@ As a signed-in actor, I want to start a temporary support mode for an eligible t
 **Access:** Actor authenticated by the configured raw control guard; host `canMasquerade` callback must approve actor and target. For API access tokens, the token also needs the configured `masquerade` ability.
 **Entry:** Read `GET /masquerade`, then submit `POST /masquerade/start`, mounted by `masqueradeRoutes()`.
 **Documentation:** [Read status and start](../../docs/guide/usage.md#read-status-and-start).
-**Source:** [MasqueradeController.start](../../http/controllers.ts), [start input parser](../../http/control_input.ts), [service start](../../src/service.ts).
+**Source:** [MasqueradeController.start](../../src/http/masquerade_controller.ts), [start input parser](../../src/http/control_input.ts), [service start](../../src/service.ts).
 **Coverage:** [HTTP controller tests](../../tests/http_controllers.spec.ts), [core authorisation tests](../../tests/core_authorization.spec.ts).
 
 ## Acceptance criteria
@@ -32,7 +32,7 @@ The JSON controller requires a raw guard for both start and stop. It forwards in
 
 The generated form controller uses the shared transition path for an explicit HTML preference. It accepts URL-encoded forms, flashes the action on success or the stable Masquerade code on failure, then redirects to the host-selected path. Other exceptions propagate. Requests preferring JSON delegate to the package controller. Both response paths prevent caching.
 
-**Source:** [control parser](../../http/control_input.ts), [controller](../../http/controllers.ts), [example form controller](../../examples/native-session/app/controllers/masquerade_form_controller.ts). **Coverage:** [controller tests](../../tests/http_controllers.spec.ts), [form adapter tests](../../tests/form_controller_stub.spec.ts).
+**Source:** [control parser](../../src/http/control_input.ts), [controller](../../src/http/masquerade_controller.ts), [example form controller](../../examples/native-session/app/controllers/masquerade_form_controller.ts). **Coverage:** [controller tests](../../tests/http_controllers.spec.ts), [form adapter tests](../../tests/form_controller_stub.spec.ts).
 
 ## User flow
 
@@ -79,4 +79,4 @@ flowchart TD
     K -->|Unknown commit| U["Outcome uncertain; inspect status before a new action"]
 ```
 
-**Code references:** [route mount](../../http/control_routes.ts), [controller](../../http/controllers.ts), [parser](../../http/control_input.ts), [service start and active-row refusals](../../src/service.ts), [start guide](../../docs/guide/usage.md#read-status-and-start).
+**Code references:** [route mount](../../src/http/control_routes.ts), [controller](../../src/http/masquerade_controller.ts), [parser](../../src/http/control_input.ts), [service start and active-row refusals](../../src/service.ts), [start guide](../../docs/guide/usage.md#read-status-and-start).

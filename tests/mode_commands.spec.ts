@@ -1,15 +1,16 @@
-import { errors } from '../index.js'
+import { defineConfig } from '../src/define_config.ts'
+import { errors } from '../index.ts'
 import { test } from '@japa/runner'
 import { IgnitorFactory } from '@adonisjs/core/factories'
 import type { ApplicationService } from '@adonisjs/core/types'
-import { getCommand, getMetaData } from '../commands/main.js'
-import { OPERATOR_STOP_OUTCOME } from '../src/stop_modes.js'
-import { fixture } from './helpers/core.js'
+import { getCommand, getMetaData } from './helpers/commands.ts'
+import { OPERATOR_STOP_OUTCOME } from '../src/stop_modes.ts'
+import { fixture } from './helpers/core.ts'
 
 async function ace(
   config: unknown,
   argv: string[],
-  logger?: { info(...args: unknown[]): void; error(...args: unknown[]): void },
+  logger?: import('../src/types.ts').MasqueradeConfig<unknown, object>['logger'],
   answer?: boolean,
   output?: string[],
   nodeEnvironment = 'test',
@@ -24,9 +25,14 @@ async function ace(
     .withCoreProviders()
     .withCoreConfig()
     .merge({
-      config: { masquerade: config },
+      config: {
+        masquerade:
+          config === undefined
+            ? undefined
+            : defineConfig({ ...(config as ReturnType<typeof fixture>['config']), logger }),
+      },
       rcFileContents: {
-        commands: [() => import('../commands/main.js')],
+        commands: [() => import('./helpers/commands.js')],
         providers: [() => import('@adonisjs/core/providers/app_provider')],
       },
     })
@@ -44,7 +50,6 @@ async function ace(
       .configure(async (app) => {
         await app.boot()
         prepare?.(app)
-        if (logger) app.container.bindValue('logger', logger as never)
         if (onError) {
           const commands = await app.container.make('ace')
           commands.executed((command) => onError(command.error))
@@ -102,10 +107,8 @@ test.group('masquerade:status and masquerade:stop Ace commands', () => {
       error: (...args: unknown[]) => loggerCalls.push(args),
     }
     assert.notEqual(await ace(f.config, ['masquerade:stop', '--actor=a'], logger), 1)
-    assert.include(
-      loggerCalls.map((args) => args[1]),
-      'Masquerade transition'
-    )
+    assert.lengthOf(loggerCalls, 1)
+    assert.equal((loggerCalls[0][0] as { kind: string }).kind, 'invalidated')
     const row = await f.store.read(f.owner)
     assert.equal(row?.state, 'idle')
     assert.equal(f.store.events.at(-1)?.outcomeCode, OPERATOR_STOP_OUTCOME)

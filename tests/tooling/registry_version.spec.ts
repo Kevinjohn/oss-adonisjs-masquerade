@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict'
 import { test } from '@japa/runner'
-import { selectRegistryVersion } from '../../bin/helpers/registry_version.js'
+import { selectRegistryVersion } from '../../bin/helpers/registry_version.ts'
 
 test('accepts a scalar stable version', () => {
   assert.equal(selectRegistryVersion('@adonisjs/core', '7.10.0'), '7.10.0')

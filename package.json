@@ -36,7 +36,8 @@
     "./account-kit/middleware": "./build/account_kit/middleware.js",
     "./stores/lucid": "./build/stores/lucid.js",
     "./testing": "./build/testing/main.js",
-    "./plugins/api_client": "./build/plugins/api_client.js"
+    "./plugins/api_client": "./build/plugins/api_client.js",
+    "./services/main": "./build/services/main.js"
   },
   "scripts": {
     "typecheck": "tsc --noEmit",
@@ -55,12 +56,12 @@
     "bump:account-kit": "node --import=@poppinss/ts-exec --enable-source-maps bin/bump_account_kit.ts",
     "precompile": "pnpm lint",
     "compile": "tsdown && tsc --emitDeclarationOnly --declaration",
-    "postcompile": "pnpm copy:templates",
+    "postcompile": "adonis-kit index build/commands && pnpm copy:templates",
     "build": "pnpm compile",
     "docs:api": "typedoc",
     "docs:dev": "pnpm docs:api && vitepress dev docs",
     "docs:build": "pnpm docs:api && vitepress build docs",
-    "copy:templates": "node --import=@poppinss/ts-exec bin/copy_templates.ts",
+    "copy:templates": "copyfiles --up=1 \"stubs/**/*.stub\" build/stubs",
     "check": "node --import=@poppinss/ts-exec --enable-source-maps bin/check.ts",
     "test:account-kit": "node --import=@poppinss/ts-exec --enable-source-maps bin/test_account_kit.ts",
     "test:recipe": "node --import=@poppinss/ts-exec --enable-source-maps bin/test_recipe.ts",
@@ -69,7 +70,8 @@
     "pack:fixture": "pnpm pack --out tmp/native-session-package.tgz",
     "demo": "node --import=@poppinss/ts-exec --enable-source-maps bin/demo.ts",
     "demo:account-kit": "node --import=@poppinss/ts-exec --enable-source-maps bin/demo_account_kit.ts",
-    "test:account-kit-demo": "node --import=@poppinss/ts-exec --enable-source-maps bin/test_account_kit_demo.ts"
+    "test:account-kit-demo": "node --import=@poppinss/ts-exec --enable-source-maps bin/test_account_kit_demo.ts",
+    "release": "bash bin/release_check.sh"
   },
   "keywords": [
     "adonisjs",
@@ -100,6 +102,8 @@
     "@adonisjs/tsconfig": "^2.0.0",
     "@japa/api-client": "^3.2.1",
     "@japa/assert": "^4.2.0",
+    "@japa/expect-type": "^2.0.4",
+    "@japa/file-system": "^3.0.0",
     "@japa/runner": "^5.3.0",
     "@kevinjohn/adonisjs-account-kit": "https://github.com/Kevinjohn/oss-adonisjs-account-kit/releases/download/v0.8.0/kevinjohn-adonisjs-account-kit-0.8.0.tgz",
     "@poppinss/ts-exec": "^1.5.1",
@@ -110,6 +114,7 @@
     "@vinejs/vine": "^4.4.0",
     "better-sqlite3": "^13.0.0",
     "c8": "^12.0.0",
+    "copyfiles": "^2.4.1",
     "cross-env": "^10.1.0",
     "eslint": "^10.14.0",
     "luxon": "^3.0.0",
@@ -159,10 +164,12 @@
     "entry": [
       "./index.ts",
       "./configure.ts",
-      "./stubs/main.ts",
       "./src/types.ts",
       "./providers/masquerade_provider.ts",
-      "./commands/main.ts",
+      "./commands/prune.ts",
+      "./commands/routes.ts",
+      "./commands/status.ts",
+      "./commands/stop.ts",
       "./auth/main.ts",
       "./http/main.ts",
       "./masquerade_context_middleware/main.ts",
@@ -172,7 +179,8 @@
       "./account_kit/middleware.ts",
       "./stores/lucid.ts",
       "./testing/main.ts",
-      "./plugins/api_client.ts"
+      "./plugins/api_client.ts",
+      "./services/main.ts"
     ],
     "outDir": "./build",
     "clean": true,

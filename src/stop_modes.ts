@@ -2,13 +2,14 @@ import {
   E_MASQUERADE_INVALID_INPUT,
   E_MASQUERADE_STOP_PROGRESS,
   E_MASQUERADE_UNAVAILABLE,
-} from './errors.js'
+  E_MASQUERADE_UNKNOWN_ACTOR_ACCOUNT,
+} from './errors.ts'
 import { randomUUID } from 'node:crypto'
-import { isBoundedString } from './bounded_string.js'
-import { commitTransition, createIdleRowAfterTransition } from './mode_transition.js'
-import { requireValidModeRow } from './row_validation.js'
-import { requireActiveCandidate, openOperatorStore } from './active_modes.js'
-import type { ObserverDependencies } from './observers.js'
+import { isBoundedString } from './bounded_string.ts'
+import { commitTransition, createIdleRowAfterTransition } from './mode_transition.ts'
+import { requireValidModeRow } from './row_validation.ts'
+import { requireActiveCandidate, openOperatorStore } from './active_modes.ts'
+import type { ObserverDependencies } from './observers.ts'
 import type {
   ActiveModeRow,
   RequestControlStore,
@@ -17,7 +18,7 @@ import type {
   NativeAuthority,
   OwnerKey,
   TransitionEvent,
-} from './types.js'
+} from './types.ts'
 
 /** Outcome code of an invalidation requested through `masquerade:stop`. */
 export const OPERATOR_STOP_OUTCOME = 'operator_stopped'
@@ -99,14 +100,6 @@ async function read(store: RequestControlStore, owner: OwnerKey): Promise<ModeRo
   }
 }
 
-/** Errors thrown because the authority has no current account for the actor, not bad input. */
-const unknownAccounts = new WeakSet<InstanceType<typeof E_MASQUERADE_INVALID_INPUT>>()
-
-/** Whether `stopActiveModes` threw because the actor's account could not be found. */
-export function isUnknownAccount(error: unknown): boolean {
-  return error instanceof E_MASQUERADE_INVALID_INPUT && unknownAccounts.has(error)
-}
-
 async function resolveIncarnation<User, Request>(
   config: MasqueradeConfig<User, Request, RequestControlStore> & {
     authority: NativeAuthority<User>
@@ -123,11 +116,7 @@ async function resolveIncarnation<User, Request>(
     throw new E_MASQUERADE_UNAVAILABLE()
   }
   // A deleted or reused account has no current incarnation; the operator names the row's.
-  if (!snapshot || snapshot.subject.id !== actorId) {
-    const error = new E_MASQUERADE_INVALID_INPUT()
-    unknownAccounts.add(error)
-    throw error
-  }
+  if (!snapshot || snapshot.subject.id !== actorId) throw new E_MASQUERADE_UNKNOWN_ACTOR_ACCOUNT()
   return snapshot.subject.incarnation
 }
 

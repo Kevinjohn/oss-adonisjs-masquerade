@@ -1,6 +1,6 @@
 import { test } from '@japa/runner'
-import { listActiveModes, MAX_ACTIVE_MODE_LIMIT } from '../src/active_modes.js'
-import { errorCode, fixture } from './helpers/core.js'
+import { listActiveModes, MAX_ACTIVE_MODE_LIMIT } from '../src/active_modes.ts'
+import { errorCode, fixture } from './helpers/core.ts'
 
 test.group('active mode listing', () => {
   test('lists active modes without their reason', async ({ assert }) => {

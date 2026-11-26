@@ -1,7 +1,7 @@
 import { test } from '@japa/runner'
-import { assertValidTransition } from '../src/transition_validation.js'
-import { assertControlOutcome } from '../src/control_outcome_validation.js'
-import type { ActiveModeRow, CompareAndSetInput, ControlOutcomeEvent } from '../src/types.js'
+import { assertValidTransition } from '../src/transition_validation.ts'
+import { assertControlOutcome } from '../src/control_outcome_validation.ts'
+import type { ActiveModeRow, CompareAndSetInput, ControlOutcomeEvent } from '../src/types.ts'
 
 const owner = { namespace: 'test', actorId: 'a', actorIncarnation: 'a' }
 const at = '2026-01-01T00:00:00.000Z'

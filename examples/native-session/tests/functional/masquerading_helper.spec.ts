@@ -63,7 +63,7 @@ test.group('masquerading() API client helper', (group) => {
     })
   })
 
-  test('a policy denial fails the request setup instead of running it unmasked', async ({
+  test('a permissions denial fails the request setup instead of running it unmasked', async ({
     client,
     assert,
   }) => {

@@ -1,6 +1,6 @@
 import { test } from '@japa/runner'
-import { requireValidSubject } from '../src/subject_validation.js'
-import { fixture } from './helpers/core.js'
+import { requireValidSubject } from '../src/subject_validation.ts'
+import { fixture } from './helpers/core.ts'
 
 test('validates bounded canonical IDs and immutable incarnations against authority mapping', ({
   assert,
