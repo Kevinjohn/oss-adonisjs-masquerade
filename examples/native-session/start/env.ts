@@ -10,7 +10,7 @@
 */
 
 import { Env } from '@adonisjs/core/env'
-import { testPostgresTarget } from './test_database_target.js'
+import { testPostgresTarget } from '#start/test_database_target'
 
 export const ordinaryDatabaseFromLaunch = process.env.DB_DATABASE
 export const nativeTestSqliteFromLaunch = process.env.NATIVE_TEST_SQLITE === '1'
@@ -40,7 +40,7 @@ const env = await Env.create(new URL('../', import.meta.url), {
 
 export const postgresTestTarget =
   process.env.NODE_ENV === 'test' && process.env.DB_CLIENT === 'pg'
-    ? testPostgresTarget(ordinaryDatabaseFromLaunch)
+    ? testPostgresTarget(ordinaryDatabaseFromLaunch, process.env)
     : undefined
 
 if (nativeTestSqliteFromLaunch && process.env.DB_CLIENT === 'pg') {

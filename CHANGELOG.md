@@ -2,6 +2,9 @@
 
 ## Unreleased
 
+- Read example demo settings through configuration, protect production migrations from rollback,
+  and declare foreign-key targets and deletion behavior explicitly.
+
 - Releases reuse the successful `checks.yml` push or manual run for the exact commit on `main` before
   building and validating the release archive.
 

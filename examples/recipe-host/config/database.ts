@@ -1,8 +1,6 @@
 import app from '@adonisjs/core/services/app'
 import { defineConfig } from '@adonisjs/lucid'
 
-const migrations = { naturalSort: true, paths: ['database/migrations'] }
-
 export default defineConfig({
   connection: process.env.DB_CLIENT === 'pg' ? 'pg' : 'sqlite',
   connections: {
@@ -10,7 +8,11 @@ export default defineConfig({
       client: 'better-sqlite3',
       connection: { filename: app.tmpPath('db.sqlite3') },
       useNullAsDefault: true,
-      migrations,
+      migrations: {
+        naturalSort: true,
+        paths: ['database/migrations'],
+        disableRollbacksInProduction: true,
+      },
     },
     pg: {
       client: 'pg',
@@ -22,7 +24,11 @@ export default defineConfig({
         database: process.env.DB_DATABASE ?? 'package_test',
       },
       searchPath: [process.env.DB_SCHEMA ?? 'public'],
-      migrations,
+      migrations: {
+        naturalSort: true,
+        paths: ['database/migrations'],
+        disableRollbacksInProduction: true,
+      },
     },
   },
 })

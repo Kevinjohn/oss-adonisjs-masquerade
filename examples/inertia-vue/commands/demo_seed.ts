@@ -1,7 +1,7 @@
 import { BaseCommand } from '@adonisjs/core/ace'
 import { demoAccounts, seedDemoAccounts } from '#services/demo_accounts'
 
-export default class DemoSeedCommand extends BaseCommand {
+export default class DemoSeed extends BaseCommand {
   static commandName = 'demo:seed'
   static description = 'Create or refresh the fictional local demo accounts'
   static options = { startApp: true }

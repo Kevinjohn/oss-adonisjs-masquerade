@@ -2,9 +2,9 @@ import type { ObserverEvent } from '@kevinjohn/adonisjs-masquerade/types'
 import type {} from '@kevinjohn/adonisjs-masquerade/masquerade_provider'
 import emitter from '@adonisjs/core/services/emitter'
 import logger from '@adonisjs/core/services/logger'
-import env from '#start/env'
+import config from '@adonisjs/core/services/config'
 
-const webhookUrl = env.get('MASQUERADE_ALERT_WEBHOOK_URL')
+const webhookUrl = config.get<string | undefined>('demo.alertWebhookUrl')
 
 function alertText(event: ObserverEvent): string {
   const access = event.access ? ` (${event.access})` : ''

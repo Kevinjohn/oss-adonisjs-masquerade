@@ -54,8 +54,8 @@ export async function wireRoutes(
   )
   await replace(
     join(app, 'start/routes.ts'),
-    "import './token_control_routes.js'",
-    "if (process.env.ACCOUNT_KIT_AUTH_STRATEGY === 'access_tokens') {\n  await import('./token_control_routes.js')\n}"
+    "import '#start/token_control_routes'",
+    "if (process.env.ACCOUNT_KIT_AUTH_STRATEGY === 'access_tokens') {\n  await import('#start/token_control_routes')\n}"
   )
 }
 

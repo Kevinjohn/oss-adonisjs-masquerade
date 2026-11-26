@@ -1,3 +1,4 @@
+import config from '@adonisjs/core/services/config'
 import User from '#models/user'
 import db from '@adonisjs/lucid/services/db'
 
@@ -34,10 +35,7 @@ export const demoAccounts = [
 const demoEmails = demoAccounts.map(({ email }) => email)
 
 export async function seedDemoAccounts(
-  environment = {
-    nodeEnv: process.env.NODE_ENV,
-    dbClient: process.env.DB_CLIENT,
-  }
+  environment = config.get<{ nodeEnv?: string; dbClient?: string }>('demo.environment')
 ) {
   assertDemoEnvironmentAllowed(environment)
   await db.transaction(async (trx) => {
@@ -48,10 +46,7 @@ export async function seedDemoAccounts(
 }
 
 export async function resetDemoAccounts(
-  environment = {
-    nodeEnv: process.env.NODE_ENV,
-    dbClient: process.env.DB_CLIENT,
-  }
+  environment = config.get<{ nodeEnv?: string; dbClient?: string }>('demo.environment')
 ) {
   assertDemoEnvironmentAllowed(environment)
   await db.transaction(async (trx) => {

@@ -32,6 +32,16 @@ Add the webhook URL to `start/env.ts`:
 MASQUERADE_ALERT_WEBHOOK_URL: Env.schema.string.optional({ format: 'url', tld: false }),
 ```
 
+Expose it through `config/demo.ts` so listeners read the application configuration:
+
+```ts
+import env from '#start/env'
+
+export default {
+  alertWebhookUrl: env.get('MASQUERADE_ALERT_WEBHOOK_URL'),
+}
+```
+
 Save the module as `start/masquerade_alerts.ts` and add `() => import('#start/masquerade_alerts')`
 to `preloads` in `adonisrc.ts`. The same file type-checks in the native-session example.
 Since release 0.5.0 the package provider supplies the event augmentation. If using release
@@ -44,9 +54,9 @@ import type { ObserverEvent } from '@kevinjohn/adonisjs-masquerade/types'
 import type {} from '@kevinjohn/adonisjs-masquerade/masquerade_provider'
 import emitter from '@adonisjs/core/services/emitter'
 import logger from '@adonisjs/core/services/logger'
-import env from '#start/env'
+import config from '@adonisjs/core/services/config'
 
-const webhookUrl = env.get('MASQUERADE_ALERT_WEBHOOK_URL')
+const webhookUrl = config.get<string | undefined>('demo.alertWebhookUrl')
 
 function alertText(event: ObserverEvent): string {
   const access = event.access ? ` (${event.access})` : ''

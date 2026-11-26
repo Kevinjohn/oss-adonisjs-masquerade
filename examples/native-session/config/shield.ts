@@ -1,3 +1,4 @@
+import app from '@adonisjs/core/services/app'
 import { defineConfig } from '@adonisjs/shield'
 
 const bearerRouteNames = new Set([
@@ -64,7 +65,7 @@ const shieldConfig = defineConfig({
 
       return Boolean(
         (routeName && bearerRouteNames.has(routeName)) ||
-        (process.env.NODE_ENV === 'test' && routePath && testProbePaths.has(routePath))
+        (app.inTest && routePath && testProbePaths.has(routePath))
       )
     },
 
