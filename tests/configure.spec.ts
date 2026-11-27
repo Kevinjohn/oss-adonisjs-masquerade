@@ -203,11 +203,7 @@ test.group('Masquerade configure scaffold', (group) => {
       assert.notInclude(output.statusMiddleware!, 'ctx.auth.user')
       assert.notInclude(output.statusMiddleware!, 'fullName')
       assert.notInclude(output.statusMiddleware!, 'email')
-      assert.isTrue(
-        configured.messages.some((message) =>
-          message.includes('Register app/middleware/share_masquerade_status_middleware.ts')
-        )
-      )
+      assert.include(f.registered, 'router:after:#middleware/share_masquerade_status_middleware')
 
       const module = await import(
         pathToFileURL(join(f.root, 'app/middleware/share_masquerade_status_middleware.ts')).href
@@ -313,6 +309,27 @@ test.group('Masquerade configure scaffold', (group) => {
       assert.equal(await f.fs.contents('start/masquerade_limiter.ts'), 'tuned limiter')
     } finally {
       await f.dispose()
+    }
+  })
+
+  test('preloads the generated control routes', async ({ assert, fs }) => {
+    for (const [flags, preload] of [
+      [{ 'control-routes': true }, 'preload:#start/masquerade_routes'],
+      [
+        { 'control-routes': true, 'form-controller': true },
+        'preload:#start/masquerade_form_routes',
+      ],
+    ] as const) {
+      const f = await configureFixture(fs)
+      try {
+        await f.fs.create('config/limiter.ts', 'export default {}')
+        const configured = f.command({ namespace: 'support', guard: 'web', ...flags })
+        await configure(configured as never)
+        assert.equal(configured.exitCode, 0)
+        assert.include(f.registered, preload)
+      } finally {
+        await f.dispose()
+      }
     }
   })
 
@@ -958,6 +975,7 @@ async function configureFixture(fs: FileSystem, boot = true) {
         callback: (rcFile: {
           addProvider(value: string): unknown
           addCommand(value: string): unknown
+          addPreloadFile(value: string): unknown
         }) => void
       ) {
         callback({
@@ -967,8 +985,14 @@ async function configureFixture(fs: FileSystem, boot = true) {
           addCommand(value) {
             if (!registered.includes(value)) registered.push(value)
           },
+          addPreloadFile(value) {
+            if (!registered.includes(`preload:${value}`)) registered.push(`preload:${value}`)
+          },
         })
         if (failRegistration) onError?.(new Error('fixture registration failure'))
+      },
+      async registerMiddleware(stack: string, entries: { path: string; position: string }[]) {
+        for (const entry of entries) registered.push(`${stack}:${entry.position}:${entry.path}`)
       },
     }
     const configCommand = {

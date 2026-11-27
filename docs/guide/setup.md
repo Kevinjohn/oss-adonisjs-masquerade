@@ -66,11 +66,11 @@ migration. Keep any custom host directories and the corresponding import aliases
 
 - Add the effective guard and register the context middleware using the steps below.
 - Use `--control-routes` after configuring AdonisJS Limiter to draft `start/masquerade_routes.ts` (or `start/masquerade_form_routes.ts` with the form controller)
-  and `start/masquerade_limiter.ts`. Review both limiter budgets and CSRF protection, then import
-  the routes from the host's routes preload.
-- Use `--banner` to draft the host-owned status middleware and Edge banner. Register the middleware
-  after silent authentication and include `components/masquerade/banner` in an authenticated
-  layout. The middleware shares the safe `ModeView` with Edge and Inertia on authenticated
+  and `start/masquerade_limiter.ts`, and add the routes file to the `preloads` in `adonisrc.ts`.
+  Review both limiter budgets and CSRF protection.
+- Use `--banner` to draft the host-owned status middleware and Edge banner. Configure appends the
+  middleware to the router stack in `start/kernel.ts`, after silent authentication; include
+  `components/masquerade/banner` in an authenticated layout. The middleware shares the safe `ModeView` with Edge and Inertia on authenticated
   effective routes.
 - Use `--form-controller` to draft an HTML form adapter. With `--control-routes`, the route file
   uses that controller. Otherwise mount it explicitly behind the raw guard with separate rate

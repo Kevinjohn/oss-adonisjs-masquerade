@@ -2,6 +2,12 @@
 
 ## Unreleased
 
+- `node ace configure` now does what it used to print: `--control-routes` adds the generated routes
+  file to the `preloads` in `adonisrc.ts`, and `--banner` appends the status middleware to the router
+  stack in `start/kernel.ts`. Upgrade: an application configured earlier keeps its own import and
+  registration; when rerunning configure with `--force`, remove them so the routes and middleware
+  are not loaded twice.
+
 - **Breaking:** Replace the `/account-kit/middleware` subpath with one subpath per middleware, each a
   default export the application can lazy-import. Upgrade: in `start/kernel.ts`, import
   `@kevinjohn/adonisjs-masquerade/account-kit/managed_blocker_middleware` in `router.use([...])`,
