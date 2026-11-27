@@ -110,6 +110,7 @@ test.group('Masquerade configure scaffold', (group) => {
         '#providers/masquerade_native_provider',
         '@kevinjohn/adonisjs-masquerade/masquerade_provider',
         '@kevinjohn/adonisjs-masquerade/commands',
+        'named:masquerade:@kevinjohn/adonisjs-masquerade/route_marker_middleware',
       ])
       assert.isTrue(first.messages.some((message) => message.includes('effectiveSessionGuard')))
       assert.isTrue(
@@ -991,8 +992,12 @@ async function configureFixture(fs: FileSystem, boot = true) {
         })
         if (failRegistration) onError?.(new Error('fixture registration failure'))
       },
-      async registerMiddleware(stack: string, entries: { path: string; position: string }[]) {
-        for (const entry of entries) registered.push(`${stack}:${entry.position}:${entry.path}`)
+      async registerMiddleware(
+        stack: string,
+        entries: { path: string; position?: string; name?: string }[]
+      ) {
+        for (const entry of entries)
+          registered.push(`${stack}:${entry.name ?? entry.position}:${entry.path}`)
       },
     }
     const configCommand = {

@@ -28,7 +28,10 @@ test.group('masquerade:routes Ace command', () => {
     await app.boot()
     try {
       const router = await app.container.make('router')
-      const auth = router.named({ auth: async () => ({ default: AuthMiddleware }) })
+      const auth = router.named({
+        auth: async () => ({ default: AuthMiddleware }),
+        masquerade: () => import('../src/route_marker_middleware/main.ts'),
+      })
       const route = router
         .get('/admin/accounts', async () => {})
         .middleware([auth.auth({ guards: ['web'] }), sensitive()])
@@ -98,10 +101,16 @@ test.group('masquerade:routes Ace command', () => {
         .get('/mixed-effective-transports', async () => {})
         .middleware(auth.auth({ guards: ['web_effective', 'api_effective'] }))
         .toJSON()
+      const namedMarker = router
+        .post('/named/billing', async () => {})
+        .use(auth.auth({ guards: ['web_effective'] }))
+        .use(auth.masquerade({ marker: 'sensitive' }))
+        .toJSON()
       const sections = await inspectRouteCoverage(
         {
           root: [
             route,
+            namedMarker,
             packageControl,
             reexportDoesNotProveControl,
             misleadingHostName,
@@ -127,6 +136,8 @@ test.group('masquerade:routes Ace command', () => {
       assert.isBelow(report.indexOf('/admin/accounts'), report.indexOf('/masquerade/start'))
       assert.isBelow(report.indexOf('/masquerade/start'), report.indexOf('/business/start'))
       assert.include(report, 'sensitive')
+      const namedLine = report.split('\n').find((line) => line.includes('/named/billing'))
+      assert.include(namedLine, 'sensitive')
       assert.include(report, 'RAW-GUARD BUSINESS')
       assert.include(report, '/masquerade/start [CONTROL MUTATION]')
       assert.include(report, '/business/start [RAW-GUARD BUSINESS MUTATION]')

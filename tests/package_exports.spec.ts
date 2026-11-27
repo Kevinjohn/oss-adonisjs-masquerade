@@ -18,6 +18,8 @@ if (process.env.TEST_BUILT_EXPORTS === '1') {
     const http = await import('@kevinjohn/adonisjs-masquerade/http')
     const contextMiddlewarePath = '@kevinjohn/adonisjs-masquerade/masquerade_context_middleware'
     const contextMiddleware = await import(contextMiddlewarePath)
+    const routeMarkerMiddlewarePath = '@kevinjohn/adonisjs-masquerade/route_marker_middleware'
+    const routeMarkerMiddleware = await import(routeMarkerMiddlewarePath)
     const native = await import('@kevinjohn/adonisjs-masquerade/native')
     const accountKitPath = '@kevinjohn/adonisjs-masquerade/account-kit'
     const accountKitProviderPath = '@kevinjohn/adonisjs-masquerade/account-kit/provider'
@@ -93,6 +95,7 @@ if (process.env.TEST_BUILT_EXPORTS === '1') {
     assert.notStrictEqual(managedBlocker.default, accountBlocker.default)
     assert.equal(http.default, http.MasqueradeContextMiddleware)
     assert.equal(contextMiddleware.default, http.MasqueradeContextMiddleware)
+    assert.equal(routeMarkerMiddleware.default, http.MasqueradeRouteMarkerMiddleware)
     for (const name of [
       'MasqueradeController',
       'renderMasqueradeError',

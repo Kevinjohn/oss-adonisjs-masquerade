@@ -2,6 +2,11 @@
 
 ## Unreleased
 
+- Add `MasqueradeRouteMarkerMiddleware` (`/route_marker_middleware`, also exported from `/http`),
+  the named-middleware form of `sensitive()` and `allowMutation()`:
+  `.use(middleware.masquerade({ marker: 'sensitive' }))`. Configure registers it as `masquerade` in
+  `start/kernel.ts`. No upgrade step; the function markers keep working.
+
 - **Breaking:** `new LucidControlStore(client, options)` throws `E_MASQUERADE_INVALID_CONFIGURATION`
   (field `store`) instead of `E_MASQUERADE_UNAVAILABLE` for a transaction or read-only client, an
   unsupported dialect, an external connection pool or out-of-range retry options. Upgrade: code that
