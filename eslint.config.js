@@ -24,12 +24,7 @@ export default [
   {
     files: [
       'src/**/*.ts',
-      'http/**/*.ts',
-      'auth/**/*.ts',
-      'native/**/*.ts',
-      'account_kit/**/*.ts',
       'commands/**/*.ts',
-      'plugins/**/*.ts',
     ],
     rules: {
       'no-restricted-syntax': [
