@@ -315,7 +315,7 @@ test('rejects externally managed Knex pools before persistence', async ({ assert
           knexQuery: f.client.knexQuery.bind(f.client),
           getWriteClient: () => external,
         }),
-      'Masquerade is unavailable'
+      'Invalid masquerade configuration'
     )
     assert.lengthOf(await f.client.from('masquerade_modes'), 0)
   } finally {

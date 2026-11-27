@@ -2,6 +2,12 @@
 
 ## Unreleased
 
+- **Breaking:** `new LucidControlStore(client, options)` throws `E_MASQUERADE_INVALID_CONFIGURATION`
+  (field `store`) instead of `E_MASQUERADE_UNAVAILABLE` for a transaction or read-only client, an
+  unsupported dialect, an external connection pool or out-of-range retry options. Upgrade: code that
+  caught `E_MASQUERADE_UNAVAILABLE` around the constructor catches
+  `errors.E_MASQUERADE_INVALID_CONFIGURATION`.
+
 - **Breaking:** Replace `masqueradeRoutes(router, options)` from `/http` with
   `runtime.registerRoutes(router, options)`, a method on `MasqueradeRuntime`. The options and the
   returned route group are unchanged; registration errors now name `registerRoutes`. Upgrade: in

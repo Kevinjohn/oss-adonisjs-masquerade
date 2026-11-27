@@ -733,10 +733,13 @@ test.group('Lucid control store', () => {
         getWriteClient: () => f.client.getWriteClient(),
       })
       assert.doesNotThrow(() => new LucidControlStore(surface('write')))
-      assert.throws(() => new LucidControlStore(surface('read')), 'Masquerade is unavailable')
+      assert.throws(
+        () => new LucidControlStore(surface('read')),
+        'Invalid masquerade configuration'
+      )
       const tx = await f.client.transaction()
       try {
-        assert.throws(() => new LucidControlStore(tx))
+        assert.throws(() => new LucidControlStore(tx), 'Invalid masquerade configuration')
       } finally {
         await tx.rollback()
       }
@@ -746,7 +749,10 @@ test.group('Lucid control store', () => {
         { sqliteBusyDelayMs: 1001 },
         { sqliteBusyDelayMs: 0.5 },
       ])
-        assert.throws(() => new LucidControlStore(f.client, options))
+        assert.throws(
+          () => new LucidControlStore(f.client, options),
+          'Invalid masquerade configuration'
+        )
     } finally {
       await f.cleanup()
     }

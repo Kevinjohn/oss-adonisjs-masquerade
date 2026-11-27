@@ -1,7 +1,7 @@
 import { debug } from '../debug.ts'
 import type { LucidControlClient, LucidControlStoreOptions } from './types.ts'
 export type { LucidControlClient, LucidControlStoreOptions } from './types.ts'
-import { E_MASQUERADE_UNAVAILABLE } from '../errors.ts'
+import { E_MASQUERADE_INVALID_CONFIGURATION, E_MASQUERADE_UNAVAILABLE } from '../errors.ts'
 import { setTimeout } from 'node:timers/promises'
 import type { TransactionClientContract } from '@adonisjs/lucid/types/database'
 import { isValidInstant, requireValidModeRow } from '../row_validation.ts'
@@ -56,6 +56,9 @@ function assertBatchInput(input: { limit: number }, instant: Instant): void {
 /**
  * Inject db.connection() in write mode; transaction clients and read replicas are unsupported.
  *
+ * @throws `E_MASQUERADE_INVALID_CONFIGURATION` (field `store`) for an unsupported client or
+ * out-of-range retry options.
+ *
  * @example
  * ```ts
  * import { LucidControlStore } from '@kevinjohn/adonisjs-masquerade/stores/lucid'
@@ -97,7 +100,7 @@ export class LucidControlStore implements ControlStore {
       this.#delay > 1000 ||
       client.getWriteClient().client.config.connectionPool !== undefined
     )
-      throw new E_MASQUERADE_UNAVAILABLE()
+      throw new E_MASQUERADE_INVALID_CONFIGURATION('store')
   }
   /**
    * Read the latest mode row for one owner.
