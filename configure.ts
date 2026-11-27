@@ -225,6 +225,9 @@ export async function configure(command: Configure): Promise<void> {
         formController ? '#start/masquerade_form_routes' : '#start/masquerade_routes'
       )
   }) as RcFileUpdater)
+  await codemods.registerMiddleware('named', [
+    { name: 'masquerade', path: '@kevinjohn/adonisjs-masquerade/route_marker_middleware' },
+  ])
   // Appended to the router stack, so it runs after initialize_auth and silent_auth.
   if (banner)
     await codemods.registerMiddleware('router', [

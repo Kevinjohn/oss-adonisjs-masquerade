@@ -18,6 +18,7 @@ test.group('Masquerade configure scaffold', () => {
       await mkdir(join(root, 'app/models'), { recursive: true })
       await writeFile(join(root, 'app/models/user.ts'), 'export default class User {}\n')
       await writeFile(join(root, 'config/auth.ts'), 'export default {}')
+      await writeFile(join(root, 'start/kernel.ts'), starterKernel)
       await writeFile(join(root, 'tsconfig.json'), '{"compilerOptions":{"strict":true}}\n')
       await writeFile(
         join(root, 'adonisrc.ts'),
@@ -161,7 +162,12 @@ export default defineConfig({
         await readFile(join(host, 'start/kernel.ts'), 'utf8'),
         "() => import('#middleware/share_masquerade_status_middleware')"
       )
-      assert.equal(await readFile(join(json, 'start/kernel.ts'), 'utf8'), starterKernel)
+      const jsonKernel = await readFile(join(json, 'start/kernel.ts'), 'utf8')
+      assert.notInclude(jsonKernel, 'share_masquerade_status_middleware')
+      assert.include(
+        jsonKernel,
+        "masquerade: () => import('@kevinjohn/adonisjs-masquerade/route_marker_middleware')"
+      )
       assert.include(
         await readFile(join(host, 'app/middleware/share_masquerade_status_middleware.ts'), 'utf8'),
         'runtime.selectGuard(ctx).kind'

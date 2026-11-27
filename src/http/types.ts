@@ -27,3 +27,9 @@ export interface MasqueradeRoutesOptions<Guard extends string> {
   /** Route name prefix; defaults to `masquerade`, giving `masquerade.status|start|stop`. */
   as?: string
 }
+
+/** Options for the named `masquerade` route marker middleware. */
+export interface RouteMarkerOptions {
+  /** `sensitive` blocks the route during a masquerade; `allowMutation` permits unsafe methods in edit mode. */
+  marker: 'sensitive' | 'allowMutation'
+}

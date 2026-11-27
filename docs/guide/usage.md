@@ -197,6 +197,12 @@ router
   .use(middleware.auth({ guards: ['web_effective'] }))
 ```
 
+Configure also registers the markers as the named middleware `masquerade` in `start/kernel.ts`,
+so a route can use `.use(middleware.masquerade({ marker: 'sensitive' }))` or
+`.use(middleware.masquerade({ marker: 'allowMutation' }))` instead of the functions. Both forms
+behave the same and `masquerade:routes` reports both. Keep the name `masquerade`: under another
+name the context middleware cannot see the marker, so the marker middleware fails the request.
+
 The handler authorises the effective customer, never the raw actor. The complete controller recipe
 below includes the `Bouncer<User>` helper and a customer-owned reversible preference mutation. The
 customer's normal business ability still applies; edit access and `allowMutation()` are both

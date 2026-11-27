@@ -64,6 +64,11 @@ router.post('/orders/:id/notes', [OrdersController, 'note']).use(allowMutation()
 router.post('/account/password', [AccountController, 'update']).use(sensitive()).use(asCustomer)
 ```
 
+The markers also have a named-middleware form. Configure registers it in `start/kernel.ts` as
+`masquerade`; mark a route with `.use(middleware.masquerade({ marker: 'sensitive' }))` or
+`{ marker: 'allowMutation' }`. Keep the name `masquerade`: under another name the context middleware
+cannot see the marker, so the marker middleware fails the request instead of letting it through.
+
 ## Registering callbacks from a provider
 
 `config/masquerade.ts` may leave out `authority` and `permissions`, so it does not import application

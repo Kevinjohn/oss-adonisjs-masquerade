@@ -1,5 +1,6 @@
 export { default as MasqueradeController } from './masquerade_controller.ts'
 export { default, default as MasqueradeContextMiddleware } from './context_middleware.ts'
+export { default as MasqueradeRouteMarkerMiddleware } from './route_marker_middleware.ts'
 export { isMasqueradeRequestError, renderMasqueradeError } from './errors.ts'
 export { contextField, masqueradeEdge } from './edge.ts'
 export { masqueradeAudit } from './audit_fields.ts'

@@ -46,6 +46,28 @@ test.group('masquerade route metadata', () => {
     assert.deepEqual(routeMarkers(ctx([]) as never), { sensitive: false, allowMutation: false })
   })
 
+  test('reads the named masquerade marker middleware and ignores other names and options', ({
+    assert,
+  }) => {
+    assert.deepEqual(
+      routeMarkers(ctx([middleware('masquerade', [{ marker: 'sensitive' }])]) as never),
+      { sensitive: true, allowMutation: false }
+    )
+    assert.deepEqual(
+      routeMarkers(ctx([middleware('masquerade', [{ marker: 'allowMutation' }])]) as never),
+      { sensitive: false, allowMutation: true }
+    )
+    for (const entry of [
+      middleware('marker', [{ marker: 'sensitive' }]),
+      middleware('masquerade', [{ marker: 'other' }]),
+      middleware('masquerade'),
+    ])
+      assert.deepEqual(routeMarkers(ctx([entry]) as never), {
+        sensitive: false,
+        allowMutation: false,
+      })
+  })
+
   test('reads marker and guard options from a real AdonisJS router route', async ({ assert }) => {
     class AuthMiddleware {
       async handle(_ctx: unknown, next: () => Promise<unknown>, _options?: { guards: string[] }) {
@@ -61,7 +83,10 @@ test.group('masquerade route metadata', () => {
     await app.boot()
     try {
       const router = await app.container.make('router')
-      const named = router.named({ auth: async () => ({ default: AuthMiddleware }) })
+      const named = router.named({
+        auth: async () => ({ default: AuthMiddleware }),
+        masquerade: () => import('../src/route_marker_middleware/main.ts'),
+      })
       const route = router
         .get('/real-business-route', async () => {})
         .middleware([named.auth({ guards: ['web_effective'] }), sensitive(), allowMutation()])
@@ -70,6 +95,14 @@ test.group('masquerade route metadata', () => {
       const context = { route } as never
       assert.deepEqual(select(route), { kind: 'effective', raw: 'web' })
       assert.deepEqual(routeMarkers(context), { sensitive: true, allowMutation: true })
+      const namedRoute = router
+        .get('/named-marker-route', async () => {})
+        .use(named.masquerade({ marker: 'sensitive' }))
+        .toJSON()
+      assert.deepEqual(routeMarkers({ route: namedRoute } as never), {
+        sensitive: true,
+        allowMutation: false,
+      })
     } finally {
       await app.terminate()
     }

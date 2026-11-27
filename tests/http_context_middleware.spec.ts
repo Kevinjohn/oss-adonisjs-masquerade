@@ -8,6 +8,7 @@ import { fixture } from './helpers/core.ts'
 import { requestContext } from './helpers/http_context.ts'
 import { errors } from '@adonisjs/auth'
 import MasqueradeContextMiddleware from '../src/http/context_middleware.ts'
+import MasqueradeRouteMarkerMiddleware from '../src/http/route_marker_middleware.ts'
 import { EffectiveSessionGuard } from '../src/auth/effective_session_guard.ts'
 import { allowMutation, sensitive } from '../src/integration/route_metadata.ts'
 import { errors as masqueradeErrors } from '../index.ts'
@@ -387,6 +388,59 @@ test.group('masquerade HTTP boundary', () => {
         )
         assert.equal(responseBlockedBy(responseState.json), 'sensitive')
       }
+    }
+  })
+
+  test('the named masquerade marker blocks and allows exactly as the function markers', async ({
+    assert,
+  }) => {
+    for (const [marker, access, method, blockedBy] of [
+      ['sensitive', 'edit', 'GET', 'sensitive'],
+      ['sensitive', 'edit', 'POST', 'sensitive'],
+      ['allowMutation', 'edit', 'POST', undefined],
+      ['allowMutation', 'view', 'POST', 'view_only'],
+    ] as const) {
+      const f = fixture()
+      const service = await f.create()
+      await f.start(service, {}, access)
+      const mode = await service.status({})
+      const { ctx, responseState } = requestContext(f, {
+        method,
+        body: method === 'POST' ? { _masqueradeContext: mode.contextToken } : {},
+        routeMiddleware: [
+          { name: 'auth', args: [{ guards: ['web_effective'] }] },
+          { name: 'masquerade', args: [{ marker }] },
+        ],
+      })
+      let continued = false
+      await handleWithDefaultExceptionHandler(ctx, () =>
+        new MasqueradeContextMiddleware().handle(ctx, async () => {
+          continued = true
+        })
+      )
+      assert.equal(responseBlockedBy(responseState.json), blockedBy)
+      assert.equal(continued, blockedBy === undefined)
+    }
+  })
+
+  test('the marker middleware refuses a registration under another name', async ({ assert }) => {
+    const f = fixture()
+    for (const [name, refused] of [
+      ['masquerade', false],
+      ['marker', true],
+    ] as const) {
+      const { ctx } = requestContext(f, {
+        routeMiddleware: [{ name, args: [{ marker: 'sensitive' }] }],
+      })
+      const run = new MasqueradeRouteMarkerMiddleware().handle(ctx, async () => 'next', {
+        marker: 'sensitive',
+      })
+      if (refused)
+        await assert.rejects(
+          () => run,
+          'Register MasqueradeRouteMarkerMiddleware as the named middleware "masquerade"'
+        )
+      else assert.equal(await run, 'next')
     }
   })
 
