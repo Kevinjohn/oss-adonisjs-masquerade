@@ -4,10 +4,7 @@ on:
   pull_request:
     paths:
       - 'examples/**'
-      - 'http/**'
-      - 'auth/**'
-      - 'native/**'
-      - 'account_kit/**'
+      - 'src/**'
       - 'stubs/**'
       - 'docs/guide/**'
       - package.json
