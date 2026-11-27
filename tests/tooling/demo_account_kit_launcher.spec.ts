@@ -560,6 +560,17 @@ async function waitForFile(file: string, timeoutMs = 6000, run?: TrackedRun): Pr
   throw new Error(`Timed out waiting for ${file}${run ? `\n${run.text()}\n${log}` : ''}`)
 }
 
+/** A fixture writes its PID file with a plain write, so a read can land before the content. */
+async function waitForPid(file: string, timeoutMs = 6000, run?: TrackedRun): Promise<number> {
+  const deadline = Date.now() + timeoutMs
+  while (Date.now() < deadline) {
+    const pid = Number(await waitForFile(file, Math.max(deadline - Date.now(), 1), run))
+    if (Number.isInteger(pid) && pid > 1) return pid
+    await new Promise((resolve) => setTimeout(resolve, 20))
+  }
+  throw new Error(`Timed out waiting for a process ID in ${file}`)
+}
+
 async function waitForHttp(demo: Demo, run: TrackedRun): Promise<Response> {
   const deadline = Date.now() + 3000
   let lastError
@@ -735,6 +746,15 @@ async function bootstrapMarker(demo: Demo, schema = 1): Promise<void> {
   await mkdir(path.join(demo.app, 'tmp'), { recursive: true })
   await writeFile(path.join(demo.stateRoot, 'recipe.json'), JSON.stringify({ schema }))
 }
+
+test('waitForPid waits for a PID written after its file appears', async ({ cleanup }) => {
+  const directory = await mkdtemp(path.join(os.tmpdir(), 'masquerade-pid-'))
+  cleanup(() => rm(directory, { recursive: true, force: true }))
+  const file = path.join(directory, 'child.pid')
+  await writeFile(file, '')
+  setTimeout(() => void writeFile(file, '4242'), 60)
+  assert.equal(await waitForPid(file, 2000), 4242)
+})
 
 test.group('Account Kit demo launcher', (group) => {
   group.each.timeout(30_000)
@@ -1065,8 +1085,8 @@ test.group('Account Kit demo launcher', (group) => {
     const demo = await fixture({ failAt: 'install', orphan: true, holdFailure: true })
     cleanup(() => cleanupFixture(demo))
     const run = launch(demo, [], cleanup)
-    const orphanPid = Number(await waitForFile(path.join(demo.root, 'orphan.pid'), 6000, run))
-    const installPid = Number(await waitForFile(path.join(demo.root, 'child.pid'), 6000, run))
+    const orphanPid = await waitForPid(path.join(demo.root, 'orphan.pid'), 6000, run)
+    const installPid = await waitForPid(path.join(demo.root, 'child.pid'), 6000, run)
     assertAlive(orphanPid)
     assertAlive(installPid)
     assertAliveGroup(installPid)
@@ -1099,7 +1119,7 @@ test.group('Account Kit demo launcher', (group) => {
     cleanup(() => cleanupFixture(setup))
     const setupRun = launch(setup, [], cleanup)
     await waitForLog(setup, /"command":"build"/)
-    const setupPid = Number(await waitForFile(path.join(setup.root, 'child.pid'), 6000, setupRun))
+    const setupPid = await waitForPid(path.join(setup.root, 'child.pid'), 6000, setupRun)
     assertAlive(setupPid)
     assertAliveGroup(setupPid)
     setupRun.child.kill('SIGINT')
@@ -1171,7 +1191,7 @@ test.group('Account Kit demo launcher', (group) => {
     const demo = await fixture({ badPage: true })
     cleanup(() => cleanupFixture(demo))
     const run = launch(demo, [], cleanup)
-    const serverPid = Number(await waitForFile(path.join(demo.app, 'server.pid'), 6000, run))
+    const serverPid = await waitForPid(path.join(demo.app, 'server.pid'), 6000, run)
     const bodies = await waitForReadinessBodies(demo, 2, run)
     assert.equal(
       bodies.every(
@@ -1195,7 +1215,7 @@ test.group('Account Kit demo launcher', (group) => {
     cleanup(() => cleanupFixture(demo))
     const run = launch(demo, [], cleanup)
     await waitForText(run, 'Account Kit demo ready:')
-    const serverPid = Number(await waitForFile(path.join(demo.app, 'server.pid'), 6000, run))
+    const serverPid = await waitForPid(path.join(demo.app, 'server.pid'), 6000, run)
     assertAlive(serverPid)
     run.child.kill('SIGTERM')
     const result = await exitOf(run)
