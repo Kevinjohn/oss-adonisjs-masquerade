@@ -43,8 +43,6 @@ export interface NativeAuthority<User> {
   guard: string
   /** `'id'` reuses the ID; a function returns a value that changes when an ID is reused. */
   incarnation: 'id' | ((user: User) => string)
-  /** @deprecated Core uses the stamp returned by inspectAccount. */
-  securityStamp?(user: User): string | Promise<string>
   /**
    * Load an account by canonical ID: `null` when missing; reject on operational failure.
    *

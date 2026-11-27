@@ -267,7 +267,6 @@ test('session authority keeps frozen own metadata and detached methods', async (
     'namespace',
     'guard',
     'incarnation',
-    'securityStamp',
     'inspectAccount',
   ])
   assert.isTrue(Object.isFrozen(native))

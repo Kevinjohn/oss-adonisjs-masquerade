@@ -24,7 +24,6 @@ export type MasqueradeSetupErrorField =
   | 'authority.namespace'
   | 'authority.guard'
   | 'authority.incarnation'
-  | 'authority.securityStamp'
   | 'authority.inspectAccount'
   | 'permissions'
   | 'permissions.canMasquerade'

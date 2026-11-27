@@ -121,16 +121,11 @@ test('edit admission without canEdit invalidates; throwing canEdit preserves mod
   }
 })
 
-test('a legacy stamp callback is unused and a changed inspected stamp still invalidates the mode', async ({
-  assert,
-}) => {
+test('a changed inspected stamp invalidates the mode', async ({ assert }) => {
   const f = fixture()
   const service = await f.create()
   await f.start(service)
   const inspect = f.config.authority.inspectAccount
-  f.config.authority.securityStamp = () => {
-    throw new Error('Legacy callback must not run')
-  }
   f.config.authority.inspectAccount = async (id) => {
     const snapshot = await inspect(id)
     if (snapshot && id === 'b') snapshot.securityStamp = 'different-epoch'

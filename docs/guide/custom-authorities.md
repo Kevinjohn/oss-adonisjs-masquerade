@@ -7,8 +7,8 @@ shared package types such as `NativeAuthority` are available from `@kevinjohn/ad
 The built-in native-session authority is the recommended integration. A custom
 `NativeAuthority` returns the current security epoch in the snapshot from `inspectAccount(id)`.
 Masquerade hashes that value at start and compares both accounts’ inspected stamps on every active
-business admission. Existing custom configurations may keep the legacy `securityStamp(user)` method.
-Core no longer calls it. Native adapter options still use their `securityStamp` callback to build
+business admission. A custom authority has no `securityStamp(user)` method; `defineConfig` rejects
+one. Native adapter options still use their `securityStamp` callback to build
 the snapshot. Consumers of the Account Kit adapter can read the stamp from the awaited `inspectAccount(id)` snapshot.
 
 For example, if the host stores an incrementing

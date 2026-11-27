@@ -2,6 +2,11 @@
 
 ## Unreleased
 
+- **Breaking:** Remove the deprecated `NativeAuthority.securityStamp(user)` method. `defineConfig`
+  now rejects an authority that has it (field `authority`), and the `authority.securityStamp`
+  setup field is gone. Upgrade: delete `securityStamp` from a custom authority and return the stamp
+  from `inspectAccount(id)`; native adapter options keep their `securityStamp` callback.
+
 - Keep optional Lucid types under `/types/lucid`, use class instances for native adapters, and align public examples and setup with the package conventions. Rename logger diagnostics to `DiagnosticEntry`.
 
 - Keep distinct Account Kit integration (`account_kit`) and browser demo (`account_kit_demo`) overlays; remove the obsolete `with_account_kit` fixture.
