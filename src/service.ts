@@ -661,10 +661,8 @@ class CoreService<User, Request extends object> implements MasqueradeService<Req
       return this.#invalidateAdmission(owner, row, 'invalidated', 'target_ineligible')
     }
     let actorStampHash: string
-    let targetStampHash: string
     try {
       actorStampHash = hashSecurityStamp(currentActor.securityStamp)
-      targetStampHash = hashSecurityStamp(target.securityStamp)
     } catch {
       reportDiagnostic(
         this.#dependencies,
@@ -676,6 +674,18 @@ class CoreService<User, Request extends object> implements MasqueradeService<Req
     }
     if (actorStampHash !== row.actorStampHash) {
       return this.#invalidateAdmission(owner, row, 'invalidated', 'actor_stamp')
+    }
+    let targetStampHash: string
+    try {
+      targetStampHash = hashSecurityStamp(target.securityStamp)
+    } catch {
+      reportDiagnostic(
+        this.#dependencies,
+        'authority',
+        'security_stamp',
+        'E_MASQUERADE_UNAVAILABLE'
+      )
+      throw new E_MASQUERADE_UNAVAILABLE()
     }
     if (targetStampHash !== row.targetStampHash) {
       return this.#invalidateAdmission(owner, row, 'invalidated', 'target_stamp')
