@@ -540,14 +540,14 @@ test.group('Lucid control store', () => {
         const writeClient = f.second.getWriteClient()
         const onQueryError = (error: { code?: string }, query: { sql: string }) => {
           if (
-            error.code === 'SQLITE_BUSY' &&
-            /^\s*insert\b/i.test(query.sql) &&
-            /\bmasquerade_modes\b/i.test(query.sql)
-          ) {
-            const observation = { code: error.code, sql: query.sql }
-            busyObservations.push(observation)
-            signalBusy(observation)
-          }
+            error.code !== 'SQLITE_BUSY' ||
+            !/^\s*insert\b/i.test(query.sql) ||
+            !/\bmasquerade_modes\b/i.test(query.sql)
+          )
+            return
+          const observation = { code: error.code, sql: query.sql }
+          busyObservations.push(observation)
+          signalBusy(observation)
         }
         writeClient.on('query-error', onQueryError)
 
@@ -733,10 +733,13 @@ test.group('Lucid control store', () => {
         getWriteClient: () => f.client.getWriteClient(),
       })
       assert.doesNotThrow(() => new LucidControlStore(surface('write')))
-      assert.throws(() => new LucidControlStore(surface('read')), 'Masquerade is unavailable')
+      assert.throws(
+        () => new LucidControlStore(surface('read')),
+        'Invalid masquerade configuration'
+      )
       const tx = await f.client.transaction()
       try {
-        assert.throws(() => new LucidControlStore(tx))
+        assert.throws(() => new LucidControlStore(tx), 'Invalid masquerade configuration')
       } finally {
         await tx.rollback()
       }
@@ -746,7 +749,10 @@ test.group('Lucid control store', () => {
         { sqliteBusyDelayMs: 1001 },
         { sqliteBusyDelayMs: 0.5 },
       ])
-        assert.throws(() => new LucidControlStore(f.client, options))
+        assert.throws(
+          () => new LucidControlStore(f.client, options),
+          'Invalid masquerade configuration'
+        )
     } finally {
       await f.cleanup()
     }
