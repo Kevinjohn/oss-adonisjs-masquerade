@@ -19,7 +19,10 @@ test('the changelog and maintainer records name the declared Account Kit peer', 
   const version = peer.slice(1)
 
   const changelog = await read('CHANGELOG.md')
-  assert.include(changelog.replace(/\s+/g, ' '), `Require Account Kit \`${version}\` exactly.`)
+  assert.match(
+    changelog.replace(/\s+/g, ' '),
+    new RegExp(`(?:Account Kit|\`${peerName}\`)[^.]*\`\\^${version.replaceAll('.', '\\.')}\``)
+  )
 
   const conventions = await read('docs/maintainers/conventions.md')
   assert.include(
