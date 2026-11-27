@@ -12,7 +12,7 @@ export interface SessionAuthorityOptions<User> {
   provider: SessionUserProviderContract<User>
   /** `'id'` reuses the ID; a function returns a value that changes when an ID is reused. */
   incarnation: 'id' | ((user: User) => string)
-  /** Current account epoch; change it on password, privilege, suspension and revoking all sessions. */
+  /** Current account epoch; change it on password, privilege and suspension changes, and when all sessions are revoked. */
   securityStamp(user: User): string | Promise<string>
   /** Whether the account may act or be targeted; must return a boolean. */
   isActive(user: User): boolean | Promise<boolean>

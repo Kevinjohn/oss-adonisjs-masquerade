@@ -246,7 +246,7 @@ export async function configure(command: Configure): Promise<void> {
   const steps = [
     `Register () => import('@kevinjohn/adonisjs-masquerade/masquerade_context_middleware') as router middleware in ${kernelFile}, after initialize_auth and before any silent_auth middleware.`,
     `In ${authFile}, pass the generated userProvider from #services/masquerade_user_provider to your raw sessionGuard. Keep it named ${guard}, then make ${effectiveGuardKey} the default: guards: { ${rawGuardKey}: rawGuard, ${effectiveGuardKey}: effectiveSessionGuard(rawGuard) }. Import effectiveSessionGuard from @kevinjohn/adonisjs-masquerade/auth.`,
-    'Implement the generated account incarnation, security stamp, active-account checks, and deny-by-default permissions using your account model. Make stamps change on privilege, password, suspension, and revoking all sessions.',
+    'Implement the generated account incarnation, security stamp, active-account checks, and deny-by-default permissions using your account model. Make stamps change on privilege, password and suspension changes, and when all sessions are revoked.',
     `Review the migrations ${migrationDestinations.join(', ')}, back up the database, then run: node ace migration:run`,
     ...(controlRoutes
       ? [
