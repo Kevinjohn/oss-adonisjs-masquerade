@@ -22,10 +22,7 @@ export default [
     },
   },
   {
-    files: [
-      'src/**/*.ts',
-      'commands/**/*.ts',
-    ],
+    files: ['src/**/*.ts', 'commands/**/*.ts'],
     rules: {
       'no-restricted-syntax': [
         'error',
