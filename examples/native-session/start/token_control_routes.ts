@@ -32,7 +32,6 @@ router
     ctx.response.header('Cache-Control', 'private, no-store')
     ctx.response.vary(['Accept', 'X-Masquerade-Context'])
 
-    const runtime = await ctx.containerResolver.make('masquerade.runtime')
     const admitted = await runtime.admit(ctx)
     if (!admitted.view.isMasquerading) {
       throw new errors.E_MASQUERADE_CONTEXT_CHANGED()
