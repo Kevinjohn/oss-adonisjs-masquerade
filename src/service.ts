@@ -159,6 +159,19 @@ class CoreService<User, Request extends object> implements MasqueradeService<Req
       throw new E_MASQUERADE_UNAVAILABLE()
     }
   }
+  #hashStamp(stamp: unknown): string {
+    try {
+      return hashSecurityStamp(stamp)
+    } catch {
+      reportDiagnostic(
+        this.#dependencies,
+        'authority',
+        'security_stamp',
+        'E_MASQUERADE_UNAVAILABLE'
+      )
+      throw new E_MASQUERADE_UNAVAILABLE()
+    }
+  }
   async #authenticateActor(request: Request): Promise<Subject<User>> {
     // Native authentication errors retain their native rendering and never enter the audit boundary.
     const subject = await this.#dependencies.authenticateActor(request)
@@ -481,20 +494,8 @@ class CoreService<User, Request extends object> implements MasqueradeService<Req
       // §7.1 step 3: canUseRequest when configured.
       await this.#assertRequestPermission(currentActor.subject, target.subject, request)
       // §7.1 step 3, I11: only the stamp hashes are kept.
-      let actorHash: string
-      let targetHash: string
-      try {
-        actorHash = hashSecurityStamp(currentActor.securityStamp)
-        targetHash = hashSecurityStamp(target.securityStamp)
-      } catch {
-        reportDiagnostic(
-          this.#dependencies,
-          'authority',
-          'security_stamp',
-          'E_MASQUERADE_UNAVAILABLE'
-        )
-        throw new E_MASQUERADE_UNAVAILABLE()
-      }
+      const actorHash = this.#hashStamp(currentActor.securityStamp)
+      const targetHash = this.#hashStamp(target.securityStamp)
       const event = this.#createAuditEvent({
         owner,
         row,
@@ -660,34 +661,10 @@ class CoreService<User, Request extends object> implements MasqueradeService<Req
     ) {
       return this.#invalidateAdmission(owner, row, 'invalidated', 'target_ineligible')
     }
-    let actorStampHash: string
-    try {
-      actorStampHash = hashSecurityStamp(currentActor.securityStamp)
-    } catch {
-      reportDiagnostic(
-        this.#dependencies,
-        'authority',
-        'security_stamp',
-        'E_MASQUERADE_UNAVAILABLE'
-      )
-      throw new E_MASQUERADE_UNAVAILABLE()
-    }
-    if (actorStampHash !== row.actorStampHash) {
+    if (this.#hashStamp(currentActor.securityStamp) !== row.actorStampHash) {
       return this.#invalidateAdmission(owner, row, 'invalidated', 'actor_stamp')
     }
-    let targetStampHash: string
-    try {
-      targetStampHash = hashSecurityStamp(target.securityStamp)
-    } catch {
-      reportDiagnostic(
-        this.#dependencies,
-        'authority',
-        'security_stamp',
-        'E_MASQUERADE_UNAVAILABLE'
-      )
-      throw new E_MASQUERADE_UNAVAILABLE()
-    }
-    if (targetStampHash !== row.targetStampHash) {
+    if (this.#hashStamp(target.securityStamp) !== row.targetStampHash) {
       return this.#invalidateAdmission(owner, row, 'invalidated', 'target_stamp')
     }
     if (!(await this.#checkMasqueradePermission(currentActor.subject, target.subject))) {
