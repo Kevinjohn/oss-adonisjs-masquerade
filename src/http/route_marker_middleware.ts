@@ -11,12 +11,16 @@ import type { RouteMarkerOptions } from '../types.ts'
  *
  * @example
  * ```ts
- * // start/kernel.ts
+ * import type MasqueradeRouteMarkerMiddleware from '@kevinjohn/adonisjs-masquerade/route_marker_middleware'
+ * import router from '@adonisjs/core/services/router'
+ *
  * export const middleware = router.named({
- *   masquerade: () => import('@kevinjohn/adonisjs-masquerade/route_marker_middleware'),
+ *   masquerade: () =>
+ *     import('@kevinjohn/adonisjs-masquerade/route_marker_middleware') as Promise<{
+ *       default: typeof MasqueradeRouteMarkerMiddleware
+ *     }>,
  * })
  *
- * // start/routes.ts
  * router.post('/billing', [BillingController, 'update']).use(
  *   middleware.masquerade({ marker: 'sensitive' })
  * )

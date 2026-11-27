@@ -95,6 +95,7 @@ class InvalidInputException extends MasqueradeRequestException {
   static message = 'Invalid masquerade input'
 }
 
+// Shares E_MASQUERADE_INVALID_INPUT so responses do not distinguish unknown accounts from malformed input.
 class UnknownActorAccountException extends InvalidInputException {}
 
 class NativeUnauthorizedException extends authErrors.E_UNAUTHORIZED_ACCESS {
@@ -141,7 +142,7 @@ class InvalidStoreException extends RuntimeException {
   }
 }
 
-// These failures retain the unavailable response while carrying distinct recovery information.
+// Conceals store and commit-phase failure details behind E_MASQUERADE_UNAVAILABLE while retaining internal recovery state.
 class UnknownCommitException extends UnavailableException {}
 
 class StopProgressException extends UnavailableException {

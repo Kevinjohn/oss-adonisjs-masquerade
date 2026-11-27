@@ -468,9 +468,6 @@
 - The `dependency-issues` workflow now opens minor and major update issues monthly instead of
   weekly. Dependabot still opens patch pull requests weekly.
 - Shorten the README to the pitch, install, a route example and links to the guides.
-
-## 0.1.2-alpha - 2026-11-02
-
 - Pin the repository and examples to TypeScript 5.9.3.
 
 ## 0.1.1-alpha - 2026-10-27

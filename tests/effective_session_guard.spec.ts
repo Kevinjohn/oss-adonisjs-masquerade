@@ -3,7 +3,7 @@ import { defineConfig } from '../src/define_config.ts'
 import { test } from '@japa/runner'
 import { errors, symbols } from '@adonisjs/auth'
 import { SessionGuard } from '@adonisjs/auth/session'
-import type { GuardContract } from '@adonisjs/auth/types'
+import type { GuardConfigProvider, GuardContract } from '@adonisjs/auth/types'
 import type { HttpContext } from '@adonisjs/core/http'
 import { EffectiveSessionGuard } from '../src/auth/effective_session_guard.ts'
 import { selectRouteGuard } from '../src/integration/route_guard_selection.ts'
@@ -361,4 +361,20 @@ test('a guard built by Account Kit accountKitSessionGuard passes the effective d
   assert.equal(rawFactory(ctx).driverName, guardRegistration.getEffectiveGuardDriver(factory))
   // The effective guard's constructor refuses a raw guard whose driver is not 'session'.
   assert.equal(factory(ctx).driverName, 'session')
+})
+
+test('effectiveSessionGuard preserves the User type on the resolved effective guard', async ({
+  expectTypeOf,
+}) => {
+  const { effectiveSessionGuard } = await import('../src/auth/define_config.js')
+  type User = { id: string; role: string }
+  const raw: GuardConfigProvider<(ctx: HttpContext) => GuardContract<User>> = {
+    async resolver() {
+      return () => ({}) as GuardContract<User>
+    },
+  }
+  const effective = effectiveSessionGuard(raw)
+  expectTypeOf(effective).toEqualTypeOf<
+    GuardConfigProvider<(ctx: HttpContext) => EffectiveSessionGuard<User>>
+  >()
 })

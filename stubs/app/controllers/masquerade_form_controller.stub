@@ -13,7 +13,10 @@ export type MasqueradeFormFlash =
       code: MasqueradeErrorCode
     }
 
-/** Host-owned HTML form adapter. Edit redirect paths and flash handling for this application. */
+/**
+ * Host-owned HTML form controller. Extend this class and override redirectAfterStart,
+ * redirectAfterStop, successPath, or errorPath to customize redirect destinations.
+ */
 export default class MasqueradeFormController extends MasqueradeController {
   protected redirectAfterStart(_ctx: HttpContext): string {
     return '/'

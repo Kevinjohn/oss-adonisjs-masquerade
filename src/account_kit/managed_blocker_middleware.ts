@@ -9,11 +9,15 @@ import { readManagedRegistration } from './registration.ts'
  *
  * @example
  * ```ts
+ * import type AccountKitBlocker from '@kevinjohn/adonisjs-masquerade/account-kit/managed_blocker_middleware'
  * import router from '@adonisjs/core/services/router'
  *
  * router.use([
  *   () => import('@adonisjs/auth/initialize_auth_middleware'),
- *   () => import('@kevinjohn/adonisjs-masquerade/account-kit/managed_blocker_middleware'),
+ *   () =>
+ *     import('@kevinjohn/adonisjs-masquerade/account-kit/managed_blocker_middleware') as Promise<{
+ *       default: typeof AccountKitBlocker
+ *     }>,
  * ])
  * ```
  */
