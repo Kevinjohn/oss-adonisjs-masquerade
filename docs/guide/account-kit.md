@@ -304,8 +304,7 @@ Ace command it commits the router itself first, and it never commits in other en
 commit the routes as `<group>.accountKit.*`, which the blocker does not match, so startup fails with
 `is not mounted`.
 
-This prerelease interface works with Account Kit `0.8.0`, the only version the optional peer
-declares. Historical matrix results cover the unscoped release for both strategies, with session
+This prerelease interface is verified against Account Kit `0.8.0` (optional peer range `^0.8.0`). Historical matrix results cover the unscoped release for both strategies, with session
 management on and off, on SQLite and PostgreSQL at the declared floor and latest compatible peers.
 The scoped release is validated separately in the pull request that updates this dependency. Other Account Kit versions and MySQL are not tested; a second composed Masquerade transport is unsupported. The declared release resolves `configProvider` through
 `@adonisjs/core`, so Ace starts under Core `7.0.0`.

@@ -2,6 +2,10 @@
 
 ## Unreleased
 
+- Declare the optional `@kevinjohn/adonisjs-account-kit` peer as a `^0.8.0` caret range instead of
+  an exact pin, update the Account Kit bump tooling to match, and retire the `PKG-7` convention
+  departure.
+
 - Add `MasqueradeRouteMarkerMiddleware` (`/route_marker_middleware`, also exported from `/http`),
   the named-middleware form of `sensitive()` and `allowMutation()`:
   `.use(middleware.masquerade({ marker: 'sensitive' }))`. Configure registers it as `masquerade` in

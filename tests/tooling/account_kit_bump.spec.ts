@@ -72,13 +72,13 @@ test.group('Account Kit bump', () => {
     )
   })
 
-  test('rewrites the exact peer and release URL of a manifest only', ({ assert }) => {
+  test('rewrites the peer range and release URL of a manifest only', ({ assert }) => {
     const manifest = JSON.stringify(
       {
         version: '0.2.8',
         dependencies: { other: '0.3.3' },
         devDependencies: { '@kevinjohn/adonisjs-account-kit': from.url },
-        peerDependencies: { '@kevinjohn/adonisjs-account-kit': '0.3.3' },
+        peerDependencies: { '@kevinjohn/adonisjs-account-kit': '^0.3.3' },
       },
       null,
       2
@@ -88,7 +88,7 @@ test.group('Account Kit bump', () => {
       version: '0.2.8',
       dependencies: { other: '0.3.3' },
       devDependencies: { '@kevinjohn/adonisjs-account-kit': to.url },
-      peerDependencies: { '@kevinjohn/adonisjs-account-kit': '0.4.0' },
+      peerDependencies: { '@kevinjohn/adonisjs-account-kit': '^0.4.0' },
     })
   })
 

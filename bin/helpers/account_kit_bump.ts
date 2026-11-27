@@ -49,6 +49,11 @@ export function rewriteLockfile(text: string, from: KitRelease, to: KitRelease):
   result = replaceAll(result, from.integrity, to.integrity)
   result = replaceAll(
     result,
+    `'${kitPackage}': ^${from.version}\n`,
+    `'${kitPackage}': ^${to.version}\n`
+  )
+  result = replaceAll(
+    result,
     `'${kitPackage}': ${from.version}\n`,
     `'${kitPackage}': ${to.version}\n`
   )
@@ -59,10 +64,14 @@ export function rewriteLockfile(text: string, from: KitRelease, to: KitRelease):
   return result.replace(block, (_match, head: string) => `${head}    version: ${to.version}\n`)
 }
 
-/** Rewrites the Account Kit release URL and exact peer in a package manifest. */
+/** Rewrites the Account Kit release URL and peer range in a package manifest. */
 export function rewriteManifest(text: string, from: KitRelease, to: KitRelease): string {
   return replaceAll(
-    replaceAll(text, from.url, to.url),
+    replaceAll(
+      replaceAll(text, from.url, to.url),
+      `"${kitPackage}": "^${from.version}"`,
+      `"${kitPackage}": "^${to.version}"`
+    ),
     `"${kitPackage}": "${from.version}"`,
     `"${kitPackage}": "${to.version}"`
   )
