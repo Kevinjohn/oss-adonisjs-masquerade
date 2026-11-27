@@ -11,7 +11,7 @@ import MasqueradeContextMiddleware from '../src/http/context_middleware.ts'
 import { EffectiveSessionGuard } from '../src/auth/effective_session_guard.ts'
 import { allowMutation, sensitive } from '../src/integration/route_metadata.ts'
 import { errors as masqueradeErrors } from '../index.ts'
-import type { RequestAdmission } from '../src/request_admission.ts'
+import type { RequestAdmission } from '../src/types.ts'
 import type { MasqueradeBlockedBy } from '../index.ts'
 
 test.group('masquerade HTTP boundary', () => {

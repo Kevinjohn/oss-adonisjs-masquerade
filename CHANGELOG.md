@@ -2,6 +2,9 @@
 
 ## Unreleased
 
+- Export `RequestAdmission`, `RouteGuardSelection` and `EffectiveAccessTokensUser` from
+  `@kevinjohn/adonisjs-masquerade/types`; they appear in public signatures. No upgrade step.
+
 - **Breaking:** Remove the deprecated `NativeAuthority.securityStamp(user)` method. `defineConfig`
   now rejects an authority that has it (field `authority`), and the `authority.securityStamp`
   setup field is gone. Upgrade: delete `securityStamp` from a custom authority and return the stamp

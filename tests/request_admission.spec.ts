@@ -1,6 +1,6 @@
 import { test } from '@japa/runner'
 import { admitOnce } from '../src/request_admission.ts'
-import type { RequestAdmission } from '../src/request_admission.ts'
+import type { RequestAdmission } from '../src/types.ts'
 import { fixture } from './helpers/core.ts'
 import type { User } from './helpers/core.ts'
 

@@ -28,12 +28,10 @@
   "validation": { "notDocumented": true },
   "requiredToBeDocumented": ["Class", "Function", "Interface", "TypeAlias", "Variable"],
   "intentionallyNotExported": [
-    "RequestAdmission",
     "EffectiveSessionGuard",
     "EffectiveAccessTokensGuard",
     "SharedAuthorityOptions",
     "StandaloneAuthorityOptions",
-    "RouteGuardSelection",
     "MarkedMiddleware",
     "StopPhase",
     "PrunePhase",

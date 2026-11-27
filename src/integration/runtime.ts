@@ -1,7 +1,6 @@
 import type { HttpContext } from '@adonisjs/core/http'
 import type { MasqueradeConfig, MasqueradeService, OwnerKey } from '../types.ts'
-import type { RequestAdmission } from '../request_admission.ts'
-import type { RouteGuardSelection } from './route_guard_selection.ts'
+import type { RequestAdmission, RouteGuardSelection } from '../types.ts'
 
 /**
  * Resolve the registered runtime through the Masquerade container service.

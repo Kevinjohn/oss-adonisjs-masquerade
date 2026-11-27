@@ -421,3 +421,23 @@ export type * from './native/types.ts'
 export type * from './account_kit/types.ts'
 export type * from './http/types.ts'
 export type * from './plugins/types.ts'
+
+/** One request's admitted masquerade state: its context, view, actor and effective subject. */
+export interface RequestAdmission<User> {
+  readonly context: ResolvedContext
+  readonly view: ModeView
+  readonly actor: Readonly<Subject<User>>
+  readonly effective: Readonly<Subject<User>>
+}
+
+/** The credential transport a route resolves to. */
+export type RouteGuardSelection =
+  | { kind: 'none' | 'raw' | 'effective'; raw: string }
+  // Several native guards on a route Masquerade does not own: native auth keeps working, but no
+  // single adapter is selected, so any Masquerade operation on the route fails closed.
+  | { kind: 'ambiguous' }
+
+/** Effective user facade for a native opaque access-token guard. */
+export type EffectiveAccessTokensUser<User> = User extends { currentAccessToken: unknown }
+  ? Omit<User, 'currentAccessToken'>
+  : User
