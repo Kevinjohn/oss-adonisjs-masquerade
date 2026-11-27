@@ -13,13 +13,16 @@ export type MasqueradeFormFlash =
       code: MasqueradeErrorCode
     }
 
-/** Host-owned HTML form adapter. Edit redirect paths and flash handling for this application. */
+/**
+ * Host-owned HTML form controller. Extend this class and override `redirectAfterStart`,
+ * `redirectAfterStop`, `successPath`, or `errorPath` to customize redirect destinations.
+ */
 export default class MasqueradeFormController extends MasqueradeController {
-  #redirectAfterStart(_ctx: HttpContext): string {
+  protected redirectAfterStart(_ctx: HttpContext): string {
     return '/'
   }
 
-  #redirectAfterStop(_ctx: HttpContext): string {
+  protected redirectAfterStop(_ctx: HttpContext): string {
     return '/'
   }
 
@@ -40,19 +43,19 @@ export default class MasqueradeFormController extends MasqueradeController {
       await this.formTransition(ctx, action)
 
       flash(ctx, { type: 'success', action: action === 'start' ? 'started' : 'stopped' })
-      ctx.response.redirect().toPath(this.#successPath(ctx, action))
+      ctx.response.redirect().toPath(this.successPath(ctx, action))
     } catch (error) {
       if (!(isMasqueradeRequestError(error))) throw error
       flash(ctx, { type: 'error', code: error.code })
-      ctx.response.redirect().toPath(this.#errorPath(ctx, action))
+      ctx.response.redirect().toPath(this.errorPath(ctx, action))
     }
   }
 
-  #successPath(ctx: HttpContext, action: FormAction): string {
-    return action === 'start' ? this.#redirectAfterStart(ctx) : this.#redirectAfterStop(ctx)
+  protected successPath(ctx: HttpContext, action: FormAction): string {
+    return action === 'start' ? this.redirectAfterStart(ctx) : this.redirectAfterStop(ctx)
   }
 
-  #errorPath(_ctx: HttpContext, _action: FormAction): string {
+  protected errorPath(_ctx: HttpContext, _action: FormAction): string {
     return '/'
   }
 }
