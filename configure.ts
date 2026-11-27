@@ -254,7 +254,7 @@ export async function configure(command: Configure): Promise<void> {
             `Mount GET /masquerade on MasqueradeController and POST /masquerade/start|stop on #controllers/masquerade_form_controller, behind middleware.auth({ guards: [${rawGuardKey}] }) with separate start/stop limiters. Keep Shield CSRF enabled.`,
           ]
         : [
-            `Define separate start and stop limiters, then mount the controls with masqueradeRoutes(router, { auth: middleware.auth, guard: ${rawGuardKey}, startLimiter, stopLimiter }) from @kevinjohn/adonisjs-masquerade/http. Keep Shield CSRF enabled.`,
+            `Define separate start and stop limiters, then mount the controls with runtime.registerRoutes(router, { auth: middleware.auth, guard: ${rawGuardKey}, startLimiter, stopLimiter }), importing runtime from @kevinjohn/adonisjs-masquerade/services/main. Keep Shield CSRF enabled.`,
           ]),
     ...(formController
       ? [

@@ -181,7 +181,7 @@ export default defineConfig({
       const jsonRoutes = await readFile(join(json, 'start/masquerade_routes.ts'), 'utf8')
       assert.include(
         jsonRoutes,
-        "import { masqueradeRoutes } from '@kevinjohn/adonisjs-masquerade/http'"
+        "import runtime from '@kevinjohn/adonisjs-masquerade/services/main'"
       )
       assert.isFalse(existsSync(join(json, 'app/controllers/masquerade_form_controller.ts')))
       assert.match(

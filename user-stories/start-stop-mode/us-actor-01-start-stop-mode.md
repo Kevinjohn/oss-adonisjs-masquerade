@@ -4,7 +4,7 @@ As a signed-in actor, I want to start a temporary support mode for an eligible t
 
 **Status:** Current; source-reviewed HTTP control.
 **Access:** Actor authenticated by the configured raw control guard; host `canMasquerade` callback must approve actor and target. For API access tokens, the token also needs the configured `masquerade` ability.
-**Entry:** Read `GET /masquerade`, then submit `POST /masquerade/start`, mounted by `masqueradeRoutes()`.
+**Entry:** Read `GET /masquerade`, then submit `POST /masquerade/start`, mounted by `runtime.registerRoutes()`.
 **Documentation:** [Read status and start](../../docs/guide/usage.md#read-status-and-start).
 **Source:** [MasqueradeController.start](../../src/http/masquerade_controller.ts), [start input parser](../../src/http/control_input.ts), [service start](../../src/service.ts).
 **Coverage:** [HTTP controller tests](../../tests/http_controllers.spec.ts), [core authorisation tests](../../tests/core_authorization.spec.ts).
@@ -56,7 +56,7 @@ Scope: raw-guarded control handler through the service start transition and resp
 
 ```mermaid
 flowchart TD
-    A["masqueradeRoutes mounts POST /start"] --> B["MasqueradeController.start"]
+    A["runtime.registerRoutes mounts POST /start"] --> B["MasqueradeController.start"]
     B --> C["MasqueradeController.control"]
     C --> D["resolveRuntime and raw-guard check"]
     D --> E["parseStartControlOrInvalidMarker(ctx)"]

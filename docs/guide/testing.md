@@ -51,7 +51,7 @@ unchanged.
 
 `masquerading(target, options)` takes a target with an `id`, or the ID itself. The options are
 `access` (`view` or `edit`), `reason`, `durationSeconds` and `prefix`. The control routes default to
-`/masquerade`, as mounted by `masqueradeRoutes`; pass `masqueradeApiClient({ prefix })` or a
+`/masquerade`, as mounted by `runtime.registerRoutes`; pass `masqueradeApiClient({ prefix })` or a
 per-request `prefix` for another mount, such as `/api/masquerade` for access tokens.
 
 Status may report either mode. Start must report an active mode before the business request runs,

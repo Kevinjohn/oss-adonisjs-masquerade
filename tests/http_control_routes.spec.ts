@@ -3,7 +3,7 @@ import { IgnitorFactory } from '@adonisjs/core/factories'
 import type { Router } from '@adonisjs/core/http'
 import { inspectRouteCoverage } from '../commands/routes.ts'
 import PackageAccountKitAccountBlocker from '../src/account_kit/account_blocker_middleware.ts'
-import { masqueradeRoutes } from '../src/http/control_routes.ts'
+import { mountControlRoutes } from '../src/http/control_routes.ts'
 import MasqueradeController from '../src/http/masquerade_controller.ts'
 import { selectRouteGuard } from '../src/integration/route_guard_selection.ts'
 import { errors } from '../index.ts'
@@ -38,12 +38,17 @@ function namedAuth(router: Router) {
 const startLimiter = async (_ctx: unknown, next: () => Promise<unknown>) => next()
 const stopLimiter = async (_ctx: unknown, next: () => Promise<unknown>) => next()
 
-test.group('masqueradeRoutes', () => {
+test.group('mountControlRoutes', () => {
   test('mounts the package controls behind the raw guard and separate limiters', async ({
     assert,
   }) => {
     await withRouter(async (router) => {
-      masqueradeRoutes(router, { auth: namedAuth(router), guard: 'web', startLimiter, stopLimiter })
+      mountControlRoutes(router, {
+        auth: namedAuth(router),
+        guard: 'web',
+        startLimiter,
+        stopLimiter,
+      })
       router.commit()
       const routes = router.toJSON().root
       assert.deepEqual(
@@ -78,7 +83,7 @@ test.group('masqueradeRoutes', () => {
 
   test('takes a path and name prefix for another raw guard', async ({ assert }) => {
     await withRouter(async (router) => {
-      const group = masqueradeRoutes(router, {
+      const group = mountControlRoutes(router, {
         auth: namedAuth(router),
         guard: 'api',
         startLimiter,
@@ -105,7 +110,7 @@ test.group('masqueradeRoutes', () => {
     assert,
   }) => {
     await withRouter(async (router) => {
-      masqueradeRoutes(router, {
+      mountControlRoutes(router, {
         auth: namedAuth(router),
         guard: 'web_effective',
         startLimiter,
@@ -113,7 +118,12 @@ test.group('masqueradeRoutes', () => {
         prefix: '/effective/masquerade',
         as: 'effective.masquerade',
       })
-      masqueradeRoutes(router, { auth: namedAuth(router), guard: 'web', startLimiter, stopLimiter })
+      mountControlRoutes(router, {
+        auth: namedAuth(router),
+        guard: 'web',
+        startLimiter,
+        stopLimiter,
+      })
       router.commit()
 
       const routes = router.toJSON().root
@@ -198,7 +208,10 @@ test.group('masqueradeRoutes', () => {
       for (const [options, message] of cases)
         assert.throws(
           () =>
-            masqueradeRoutes(router, options as unknown as Parameters<typeof masqueradeRoutes>[1]),
+            mountControlRoutes(
+              router,
+              options as unknown as Parameters<typeof mountControlRoutes>[1]
+            ),
           message
         )
       router.commit()

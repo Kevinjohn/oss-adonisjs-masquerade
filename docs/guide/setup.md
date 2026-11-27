@@ -326,9 +326,9 @@ with the raw guard so an active effective identity cannot replace the actor used
 
 ```ts
 // Fragment; keep your existing router and kernel imports and define the two limiters.
-import { masqueradeRoutes } from '@kevinjohn/adonisjs-masquerade/http'
+import runtime from '@kevinjohn/adonisjs-masquerade/services/main'
 
-masqueradeRoutes(router, {
+runtime.registerRoutes(router, {
   auth: middleware.auth,
   guard: 'web',
   startLimiter: startMasqueradeLimiter,

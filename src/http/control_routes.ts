@@ -5,26 +5,12 @@ import type { MiddlewareFn, ParsedNamedMiddleware } from '@adonisjs/core/types/h
 import MasqueradeController from './masquerade_controller.ts'
 import { routeGuards } from '../integration/route_guards.ts'
 import { isBoundedString } from '../bounded_string.ts'
-import { controlRouteGuards } from '../integration/control_route_guards.ts'
 
 /**
  * Mount `GET /`, `POST /start` and `POST /stop` on the package controller behind the raw guard,
- * with separate start and stop limiters. Returns the group so the host can add middleware.
- *
- * @example
- * ```ts
- * import { masqueradeRoutes } from '@kevinjohn/adonisjs-masquerade/http'
- * import type { MasqueradeRoutesOptions } from '@kevinjohn/adonisjs-masquerade/types'
- * import router from '@adonisjs/core/services/router'
- *
- * export function mountSupportControls(
- *   middleware: Pick<MasqueradeRoutesOptions<'web'>, 'auth' | 'startLimiter' | 'stopLimiter'>
- * ) {
- *   return masqueradeRoutes(router, { ...middleware, guard: 'web', prefix: '/support/modes' })
- * }
- * ```
+ * with separate start and stop limiters. `MasqueradeRuntime.registerRoutes` calls it.
  */
-export function masqueradeRoutes<Guard extends string>(
+export function mountControlRoutes<Guard extends string>(
   router: Router,
   options: MasqueradeRoutesOptions<Guard>
 ) {
@@ -37,29 +23,24 @@ export function masqueradeRoutes<Guard extends string>(
     as = 'masquerade',
   } = options ?? ({} as MasqueradeRoutesOptions<Guard>)
   if (!isBoundedString(guard, 128))
-    throw new InvalidArgumentsException('masqueradeRoutes requires the raw guard name')
+    throw new InvalidArgumentsException('registerRoutes requires the raw guard name')
   if (typeof auth !== 'function')
-    throw new InvalidArgumentsException('masqueradeRoutes requires the host auth middleware')
+    throw new InvalidArgumentsException('registerRoutes requires the host auth middleware')
   if (!isMiddleware(startLimiter) || !isMiddleware(stopLimiter))
     throw new InvalidArgumentsException(
-      'masqueradeRoutes requires a start limiter and a stop limiter'
+      'registerRoutes requires a start limiter and a stop limiter'
     )
   if (startLimiter === stopLimiter)
-    throw new InvalidArgumentsException(
-      'masqueradeRoutes requires separate start and stop limiters'
-    )
+    throw new InvalidArgumentsException('registerRoutes requires separate start and stop limiters')
   if (typeof prefix !== 'string' || !prefix.startsWith('/'))
-    throw new InvalidArgumentsException('masqueradeRoutes prefix must start with /')
+    throw new InvalidArgumentsException('registerRoutes prefix must start with /')
   if (!isBoundedString(as, 128))
-    throw new InvalidArgumentsException('masqueradeRoutes route name prefix is invalid')
+    throw new InvalidArgumentsException('registerRoutes route name prefix is invalid')
 
   const authMiddleware = auth({ guards: [guard] })
   const guards = routeGuards({ middleware: { all: () => [authMiddleware] } }, '')
   if (guards.length !== 1 || guards[0] !== guard)
-    throw new InvalidArgumentsException('masqueradeRoutes auth must be the named auth middleware')
-  // Effective guards are known only once auth resolves; the provider checks this guard at ready.
-  controlRouteGuards.recordControlRouteGuard(router, guard)
-
+    throw new InvalidArgumentsException('registerRoutes auth must be the named auth middleware')
   return router
     .group(() => {
       router.get('/', [MasqueradeController, 'status']).as('status')

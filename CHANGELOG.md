@@ -2,6 +2,12 @@
 
 ## Unreleased
 
+- **Breaking:** Replace `masqueradeRoutes(router, options)` from `/http` with
+  `runtime.registerRoutes(router, options)`, a method on `MasqueradeRuntime`. The options and the
+  returned route group are unchanged; registration errors now name `registerRoutes`. Upgrade: in
+  `start/masquerade_routes.ts`, write `import runtime from '@kevinjohn/adonisjs-masquerade/services/main'`
+  and call `runtime.registerRoutes(router, { ... })`.
+
 - `node ace configure` now does what it used to print: `--control-routes` adds the generated routes
   file to the `preloads` in `adonisrc.ts`, and `--banner` appends the status middleware to the router
   stack in `start/kernel.ts`. Upgrade: an application configured earlier keeps its own import and

@@ -12,7 +12,7 @@ export interface MasqueradeAuditFields {
   readonly access: ModeAccess | null
 }
 
-/** Options for `masqueradeRoutes`. */
+/** Options for `MasqueradeRuntime.registerRoutes`. */
 export interface MasqueradeRoutesOptions<Guard extends string> {
   /** The host's named auth middleware, usually `middleware.auth` from `#start/kernel`. */
   auth: (options: { guards: Guard[] }) => MiddlewareFn | ParsedNamedMiddleware

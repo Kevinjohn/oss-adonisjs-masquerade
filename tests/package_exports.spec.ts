@@ -95,7 +95,6 @@ if (process.env.TEST_BUILT_EXPORTS === '1') {
     assert.equal(contextMiddleware.default, http.MasqueradeContextMiddleware)
     for (const name of [
       'MasqueradeController',
-      'masqueradeRoutes',
       'renderMasqueradeError',
       'contextField',
       'sensitive',

@@ -1,6 +1,6 @@
 import { Bouncer } from '@adonisjs/bouncer'
 import { errors } from '@kevinjohn/adonisjs-masquerade'
-import { masqueradeRoutes } from '@kevinjohn/adonisjs-masquerade/http'
+import runtime from '@kevinjohn/adonisjs-masquerade/services/main'
 import { middleware } from '#start/kernel'
 import {
   startTokenMasqueradeLimiter,
@@ -10,7 +10,7 @@ import db from '@adonisjs/lucid/services/db'
 import router from '@adonisjs/core/services/router'
 import type User from '#models/user'
 
-masqueradeRoutes(router, {
+runtime.registerRoutes(router, {
   auth: middleware.auth,
   guard: 'api',
   startLimiter: startTokenMasqueradeLimiter,

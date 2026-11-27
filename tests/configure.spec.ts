@@ -114,7 +114,7 @@ test.group('Masquerade configure scaffold', (group) => {
       assert.isTrue(first.messages.some((message) => message.includes('effectiveSessionGuard')))
       assert.isTrue(
         first.messages.some((message) =>
-          message.includes('masqueradeRoutes(router, { auth: middleware.auth, guard: "web"')
+          message.includes('runtime.registerRoutes(router, { auth: middleware.auth, guard: "web"')
         )
       )
       assert.isTrue(first.messages.some((message) => message.includes('node ace migration:run')))
