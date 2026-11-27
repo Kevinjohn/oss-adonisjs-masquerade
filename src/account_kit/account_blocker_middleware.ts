@@ -12,6 +12,7 @@ import type { GuardContract } from '@adonisjs/auth/types'
  *
  * @example
  * ```ts
+ * import type AccountKitAccountBlocker from '@kevinjohn/adonisjs-masquerade/account-kit/account_blocker_middleware'
  * import type { HttpContext, Router } from '@adonisjs/core/http'
  *
  * export function mountNativeAccountRoutes(
@@ -20,7 +21,9 @@ import type { GuardContract } from '@adonisjs/auth/types'
  * ) {
  *   const middleware = router.named({
  *     accountKitAccountBlocker: () =>
- *       import('@kevinjohn/adonisjs-masquerade/account-kit/account_blocker_middleware'),
+ *       import('@kevinjohn/adonisjs-masquerade/account-kit/account_blocker_middleware') as Promise<{
+ *         default: typeof AccountKitAccountBlocker
+ *       }>,
  *   })
  *   router
  *     .group(() => {

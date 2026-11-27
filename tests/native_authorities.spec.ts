@@ -99,7 +99,10 @@ test('native authorities preserve method receivers and reject nested composition
   )
 })
 
-test('native authorities preserve the primary authority and actor user types', ({ assert }) => {
+test('native authorities preserve the primary authority and actor user types', ({
+  assert,
+  expectTypeOf,
+}) => {
   type User = { id: string; tenant: string }
   const userAuthority: NativeAuthority<User> = {
     namespace: 'users',
@@ -114,13 +117,12 @@ test('native authorities preserve the primary authority and actor user types', (
     },
   }
   const composed = nativeAuthorities(primary)
-  function acceptsTypedComposition(value: typeof composed): void {
-    const authority: NativeAuthority<User> = value.authority
-    const authenticateActor: (ctx: HttpContext) => Promise<Subject<User>> = value.authenticateActor
-    assert.strictEqual(authority, userAuthority)
-    assert.isFunction(authenticateActor)
-  }
-  acceptsTypedComposition(composed)
+  expectTypeOf(composed.authority).toEqualTypeOf<NativeAuthority<User>>()
+  expectTypeOf(composed.authenticateActor).toEqualTypeOf<
+    (ctx: HttpContext) => Promise<Subject<User>>
+  >()
+  assert.strictEqual(composed.authority, userAuthority)
+  assert.isFunction(composed.authenticateActor)
 })
 
 test('composition preserves own metadata and detached authentication', async ({ assert }) => {

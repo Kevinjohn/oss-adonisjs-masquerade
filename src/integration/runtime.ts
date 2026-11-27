@@ -71,11 +71,6 @@ export abstract class MasqueradeRuntime<User = unknown> {
    *
    * @example
    * ```ts
-   * import router from '@adonisjs/core/services/router'
-   * import runtime from '@kevinjohn/adonisjs-masquerade/services/main'
-   * import { middleware } from '#start/kernel'
-   * import { startMasqueradeLimiter, stopMasqueradeLimiter } from '#start/masquerade_limiter'
-   *
    * runtime.registerRoutes(router, {
    *   auth: middleware.auth,
    *   guard: 'web',

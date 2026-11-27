@@ -16,7 +16,7 @@ function configureAccountIdentity(): never {
 }
 
 // The incarnation must change if an account ID can be deleted and reused.
-// The security stamp must change after privilege, password, suspension, and logout-all changes.
+// The security stamp must change after privilege, password, suspension, and revoking all sessions.
 // Replace these fail-closed callbacks with account-specific, stable implementations.
 const nativeAdapter = sessionAuthority<User>({
   namespace: {{{ namespaceLiteral }}},
