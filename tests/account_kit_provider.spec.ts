@@ -9,7 +9,7 @@ import type { Router } from '@adonisjs/core/http'
 import type { HttpContext } from '@adonisjs/core/http'
 import { test } from '@japa/runner'
 import AccountKitProvider from '../providers/account_kit_provider.ts'
-import AccountKitBlocker from '../src/account_kit/middleware.ts'
+import AccountKitBlocker from '../src/account_kit/managed_blocker_middleware.ts'
 import { inspectRouteCoverage } from '../commands/routes.ts'
 import { errors } from '../index.ts'
 import { accountKitBlockerStatus } from '../src/integration/account_kit_status.ts'
@@ -84,7 +84,7 @@ async function fixture(
     router.use([
       options.inlineBlocker
         ? async () => ({ default: AccountKitBlocker })
-        : () => import('../src/account_kit/middleware.ts'),
+        : () => import('../src/account_kit/managed_blocker_middleware.ts'),
     ])
   await register(router, 'web', 'session', options.group)
   const adapter = {

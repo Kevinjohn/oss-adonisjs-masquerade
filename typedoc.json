@@ -12,7 +12,8 @@
     "src/plugins/api_client.ts",
     "src/account_kit/main.ts",
     "src/account_kit/provider.ts",
-    "src/account_kit/middleware.ts",
+    "src/account_kit/managed_blocker_middleware.ts",
+    "src/account_kit/account_blocker_middleware.ts",
     "services/main.ts"
   ],
   "out": "docs/reference/api",

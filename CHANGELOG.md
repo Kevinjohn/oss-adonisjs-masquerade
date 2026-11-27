@@ -2,6 +2,12 @@
 
 ## Unreleased
 
+- **Breaking:** Replace the `/account-kit/middleware` subpath with one subpath per middleware, each a
+  default export the application can lazy-import. Upgrade: in `start/kernel.ts`, import
+  `@kevinjohn/adonisjs-masquerade/account-kit/managed_blocker_middleware` in `router.use([...])`,
+  and replace a named `AccountKitAccountBlocker` import with
+  `() => import('@kevinjohn/adonisjs-masquerade/account-kit/account_blocker_middleware')`.
+
 - Export `RequestAdmission`, `RouteGuardSelection` and `EffectiveAccessTokensUser` from
   `@kevinjohn/adonisjs-masquerade/types`; they appear in public signatures. No upgrade step.
 

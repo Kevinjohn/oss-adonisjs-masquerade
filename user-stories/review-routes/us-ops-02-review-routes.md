@@ -52,4 +52,4 @@ flowchart TD
     G --> H["logger.info report sections"]
 ```
 
-**Code references:** [RoutesCommand and report](../../commands/routes.ts), [shared route classification](../../src/integration/account_kit_route_classification.ts), [global blocker](../../src/account_kit/middleware.ts), [provider verification](../../providers/account_kit_provider.ts), [route marker resolver](../../src/integration/route_markers.ts).
+**Code references:** [RoutesCommand and report](../../commands/routes.ts), [shared route classification](../../src/integration/account_kit_route_classification.ts), [global blocker](../../src/account_kit/managed_blocker_middleware.ts), [provider verification](../../providers/account_kit_provider.ts), [route marker resolver](../../src/integration/route_markers.ts).

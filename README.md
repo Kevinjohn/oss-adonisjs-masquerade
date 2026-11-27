@@ -96,7 +96,7 @@ runtime was built throws.
 
 ### Account Kit middleware
 
-Register `AccountKitBlocker` from `/account-kit/middleware` in the router stack after Auth
+Register `AccountKitBlocker` from `/account-kit/managed_blocker_middleware` in the router stack after Auth
 initialization and before silent authentication. Apply `AccountKitAccountBlocker` only to named
 host-owned account route groups behind the raw guard. Keep logout and CSRF routes outside that
 group. See [Account Kit setup](docs/guide/account-kit.md#install-the-provider-and-blocker).
