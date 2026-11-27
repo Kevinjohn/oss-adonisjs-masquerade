@@ -1,8 +1,8 @@
 import { admitOnce } from '../../src/request_admission.ts'
 import { authenticateActorIdentity } from '../../src/actor_identity.ts'
-import type { RequestAdmission } from '../../src/request_admission.ts'
+import type { RequestAdmission } from '../../src/types.ts'
 import type { MasqueradeService } from '../../src/types.ts'
-import type { RouteGuardSelection } from '../../src/integration/route_guard_selection.ts'
+import type { RouteGuardSelection } from '../../src/types.ts'
 import { selectRouteGuard } from '../../src/integration/route_guard_selection.ts'
 import type { fixture } from './core.ts'
 

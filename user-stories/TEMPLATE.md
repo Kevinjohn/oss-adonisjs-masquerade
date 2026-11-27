@@ -22,7 +22,7 @@ As a signed-in actor, I want to read my current masquerade status so that I can 
 
 **Status:** Current; source-reviewed API, not runtime-tested.
 **Access:** Actor authenticated by the configured raw control guard; native access tokens also require the configured `masquerade` ability.
-**Entry:** `GET /masquerade` mounted by `masqueradeRoutes()`.
+**Entry:** `GET /masquerade` mounted by `runtime.registerRoutes()`.
 **Documentation:** [Control routes and status](../../docs/guide/usage.md#mount-the-json-controls).
 **Source:** [MasqueradeController.status](../../src/http/masquerade_controller.ts).
 **Coverage:** [Controller tests](../../tests/http_controllers.spec.ts).
@@ -46,7 +46,7 @@ Scope: raw-guarded control route through the service status response.
 
 ```mermaid
 flowchart TD
-    A["masqueradeRoutes mounts GET /"] --> B["MasqueradeController.status"]
+    A["runtime.registerRoutes mounts GET /"] --> B["MasqueradeController.status"]
     B --> C["MasqueradeController.control"]
     C --> D["resolveRuntime(ctx)"]
     D --> E["runtime.service.status(ctx) resolves actor and native token ability before row read"]

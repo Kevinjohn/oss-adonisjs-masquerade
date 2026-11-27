@@ -1,10 +1,10 @@
 import { NativeAdapter } from '../src/integration/native_adapter.ts'
 import { InvalidArgumentsException } from '@adonisjs/core/exceptions'
 import type { ApplicationService } from '@adonisjs/core/types'
-import { controlRouteGuards } from '../src/integration/control_route_guards.ts'
 import { createRuntime, resolveRuntimeConfiguration } from '../src/integration/runtime_builder.ts'
 import type { RuntimeConfiguration } from '../src/integration/runtime_builder.ts'
 import { MasqueradeCallbackRegistration, resolveCallbacks } from '../src/callback_registration.ts'
+import { controlRouteGuards } from '../src/integration/runtime.ts'
 import type { MasqueradeRuntime } from '../src/integration/runtime.ts'
 import type { ObserverEvent } from '../src/types.ts'
 
@@ -45,20 +45,18 @@ export default class MasqueradeProvider {
   /** Refuse control routes mounted on an effective guard: every control request would fail. */
   async ready(): Promise<void> {
     if (this.app.config.get('masquerade') === undefined) return
-    const guards = controlRouteGuards.listControlRouteGuards(
-      await this.app.container.make('router')
-    )
-    if (guards.length === 0) return
     const runtime = await this.app.container.make('masquerade.runtime')
+    const guards = runtime[controlRouteGuards]()
+    if (guards.length === 0) return
     const native = await this.app.container.make(NativeAdapter)
     const rawAdapters = native.adapters ?? { [native.guard ?? native.authority.guard]: native }
     for (const guard of guards)
       if (runtime.effectiveGuardNames.includes(guard))
         throw new InvalidArgumentsException(
-          `masqueradeRoutes guard ${guard} is an effective guard; use the raw guard it wraps`
+          `registerRoutes guard ${guard} is an effective guard; use the raw guard it wraps`
         )
       else if (!Object.hasOwn(rawAdapters, guard))
-        throw new InvalidArgumentsException(`masqueradeRoutes guard ${guard} has no native adapter`)
+        throw new InvalidArgumentsException(`registerRoutes guard ${guard} has no native adapter`)
   }
 }
 export { MasqueradeRuntime } from '../src/integration/runtime.ts'

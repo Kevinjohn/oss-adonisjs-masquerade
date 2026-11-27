@@ -25,10 +25,10 @@ export class AccountAuthority<User> implements NativeAuthority<User> {
   declare readonly namespace: string
   declare readonly guard: string
   declare readonly incarnation: 'id' | ((user: User) => string)
-  declare readonly securityStamp: SessionAuthorityOptions<User>['securityStamp']
   declare readonly inspectAccount: NativeAuthority<User>['inspectAccount']
   #provider: SessionAuthorityOptions<User>['provider']
   #isActive: SessionAuthorityOptions<User>['isActive']
+  #securityStamp: SessionAuthorityOptions<User>['securityStamp']
 
   constructor(
     options: SessionAuthorityOptions<User>,
@@ -38,7 +38,7 @@ export class AccountAuthority<User> implements NativeAuthority<User> {
     this.namespace = options.namespace
     this.guard = guard
     this.incarnation = options.incarnation === 'id' ? 'id' : options.incarnation.bind(options)
-    this.securityStamp = options.securityStamp.bind(options)
+    this.#securityStamp = options.securityStamp.bind(options)
     this.#provider = provider
     this.#isActive = options.isActive.bind(options)
     this.inspectAccount = this.#inspectAccount.bind(this)
@@ -54,7 +54,7 @@ export class AccountAuthority<User> implements NativeAuthority<User> {
     return {
       subject: buildSubject(user, account.getId(), this.incarnation),
       active,
-      securityStamp: await this.securityStamp(user),
+      securityStamp: await this.#securityStamp(user),
     }
   }
 }

@@ -22,6 +22,15 @@ test('accepts optional canEdit and rejects a non-function as permissions.canEdit
   assert.equal((error as Error).message, 'Invalid masquerade configuration: permissions.canEdit')
 })
 
+test('rejects an authority with a securityStamp method', ({ assert }) => {
+  const f = fixture()
+  const authority = { ...f.config.authority, securityStamp: () => 'stamp' }
+  assert.throws(
+    () => defineConfig({ ...f.config, authority } as never),
+    'Invalid masquerade configuration: authority'
+  )
+})
+
 test('validates config synchronously and freezes copied configuration', async ({ assert }) => {
   const f = fixture()
   const config = await defineConfig(f.config).resolver({} as never)

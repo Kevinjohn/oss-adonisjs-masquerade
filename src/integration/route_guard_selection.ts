@@ -1,12 +1,8 @@
 import { E_MASQUERADE_UNAVAILABLE } from '../errors.ts'
 import { hasAuthMiddleware, routeGuards } from './route_guards.ts'
+import type { RouteGuardSelection } from '../types.ts'
 
 type RouteMetadata = { middleware: { all(): Iterable<unknown> } }
-export type RouteGuardSelection =
-  | { kind: 'none' | 'raw' | 'effective'; raw: string }
-  // Several native guards on a route Masquerade does not own: native auth keeps working, but no
-  // single adapter is selected, so any Masquerade operation on the route fails closed.
-  | { kind: 'ambiguous' }
 
 type RouteGuardInput = {
   route: RouteMetadata | undefined

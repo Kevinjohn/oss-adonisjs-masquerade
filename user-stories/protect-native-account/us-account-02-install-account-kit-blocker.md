@@ -4,9 +4,9 @@ As an application developer integrating Account Kit, I want to register the Acco
 
 **Status:** Current when the host registers both; source-reviewed, not runtime-tested.
 **Access:** Application developer with permission to edit `adonisrc.ts` providers and `start/kernel.ts` router middleware.
-**Entry:** Register `@kevinjohn/adonisjs-masquerade/account-kit/provider` as a provider and the default export of `@kevinjohn/adonisjs-masquerade/account-kit/middleware` in `router.use([...])`, after `initialize_auth_middleware`.
+**Entry:** Register `@kevinjohn/adonisjs-masquerade/account-kit/provider` as a provider and the default export of `@kevinjohn/adonisjs-masquerade/account-kit/managed_blocker_middleware` in `router.use([...])`, after `initialize_auth_middleware`.
 **Documentation:** [Install the provider and blocker](../../docs/guide/account-kit.md#install-the-provider-and-blocker).
-**Source:** [AccountKitBlocker](../../src/account_kit/middleware.ts), [AccountKitProvider](../../providers/account_kit_provider.ts).
+**Source:** [AccountKitBlocker](../../src/account_kit/managed_blocker_middleware.ts), [AccountKitProvider](../../providers/account_kit_provider.ts).
 **Coverage:** [Blocker tests](../../tests/account_kit_blocker.spec.ts), [provider tests](../../tests/account_kit_provider.spec.ts).
 
 ## Acceptance criteria
@@ -60,4 +60,4 @@ flowchart TD
     O -->|No| L
 ```
 
-**Code references:** [provider](../../providers/account_kit_provider.ts), [global blocker](../../src/account_kit/middleware.ts), [installation guide](../../docs/guide/account-kit.md#install-the-provider-and-blocker), [route report classification](../../commands/routes.ts).
+**Code references:** [provider](../../providers/account_kit_provider.ts), [global blocker](../../src/account_kit/managed_blocker_middleware.ts), [installation guide](../../docs/guide/account-kit.md#install-the-provider-and-blocker), [route report classification](../../commands/routes.ts).

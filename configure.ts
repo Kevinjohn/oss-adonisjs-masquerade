@@ -215,11 +215,21 @@ export async function configure(command: Configure): Promise<void> {
   await codemods.updateRcFile(((rcFile: {
     addProvider(provider: string): unknown
     addCommand(command: string): unknown
+    addPreloadFile(modulePath: string): unknown
   }) => {
     rcFile.addProvider('#providers/masquerade_native_provider')
     rcFile.addProvider('@kevinjohn/adonisjs-masquerade/masquerade_provider')
     rcFile.addCommand('@kevinjohn/adonisjs-masquerade/commands')
+    if (controlRoutes)
+      rcFile.addPreloadFile(
+        formController ? '#start/masquerade_form_routes' : '#start/masquerade_routes'
+      )
   }) as RcFileUpdater)
+  // Appended to the router stack, so it runs after initialize_auth and silent_auth.
+  if (banner)
+    await codemods.registerMiddleware('router', [
+      { path: '#middleware/share_masquerade_status_middleware', position: 'after' },
+    ])
   if (codemodError || (typeof command.exitCode === 'number' && command.exitCode !== 0)) {
     command.logger.error(
       'Generated files are present, but AdonisJS registration failed. Resolve the reported codemod error before booting the package.'
@@ -237,14 +247,14 @@ export async function configure(command: Configure): Promise<void> {
     `Review the migrations ${migrationDestinations.join(', ')}, back up the database, then run: node ace migration:run`,
     ...(controlRoutes
       ? [
-          `Review the limiter budgets in ${routeDestinations[1]}, then import ${routeDestinations[0]} from your routes preload. Keep Shield CSRF enabled.`,
+          `Review the limiter budgets in ${routeDestinations[1]} and the routes in ${routeDestinations[0]}, which adonisrc.ts now preloads. Keep Shield CSRF enabled.`,
         ]
       : formController
         ? [
             `Mount GET /masquerade on MasqueradeController and POST /masquerade/start|stop on #controllers/masquerade_form_controller, behind middleware.auth({ guards: [${rawGuardKey}] }) with separate start/stop limiters. Keep Shield CSRF enabled.`,
           ]
         : [
-            `Define separate start and stop limiters, then mount the controls with masqueradeRoutes(router, { auth: middleware.auth, guard: ${rawGuardKey}, startLimiter, stopLimiter }) from @kevinjohn/adonisjs-masquerade/http. Keep Shield CSRF enabled.`,
+            `Define separate start and stop limiters, then mount the controls with runtime.registerRoutes(router, { auth: middleware.auth, guard: ${rawGuardKey}, startLimiter, stopLimiter }), importing runtime from @kevinjohn/adonisjs-masquerade/services/main. Keep Shield CSRF enabled.`,
           ]),
     ...(formController
       ? [
@@ -253,7 +263,7 @@ export async function configure(command: Configure): Promise<void> {
       : []),
     ...(banner
       ? [
-          `Register ${bannerDestinations[0]} in ${kernelFile} after silent_auth_middleware, then include components/masquerade/banner in an authenticated Edge layout.`,
+          `Include components/masquerade/banner in an authenticated Edge layout. ${bannerDestinations[0]} is registered at the end of the router middleware in ${kernelFile}.`,
         ]
       : []),
     'Keep context enforcement in report mode during form rollout; switch to enforce after clients submit the current context token. Host-managed retention never prunes idle rows.',

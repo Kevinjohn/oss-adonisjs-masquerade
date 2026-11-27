@@ -87,7 +87,7 @@ export async function wireKernel(app: string): Promise<void> {
   await replace(
     join(app, 'start/kernel.ts'),
     "  () => import('@adonisjs/auth/initialize_auth_middleware'),",
-    "  () => import('@adonisjs/auth/initialize_auth_middleware'),\n  () => import('@kevinjohn/adonisjs-masquerade/account-kit/middleware'),\n  () => import('#middleware/account_kit_admission_middleware'),"
+    "  () => import('@adonisjs/auth/initialize_auth_middleware'),\n  () => import('@kevinjohn/adonisjs-masquerade/account-kit/managed_blocker_middleware'),\n  () => import('#middleware/account_kit_admission_middleware'),"
   )
 }
 

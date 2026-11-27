@@ -3,7 +3,6 @@ import { test } from '@japa/runner'
 import { HttpContextFactory } from '@adonisjs/core/factories/http'
 import { errors, MasqueradeRuntime } from '../index.ts'
 import { nativeRuntimeFixture } from './helpers/native_runtime.ts'
-import { masqueradeRoutes } from '../src/http/control_routes.ts'
 import { sqlFixture } from './helpers/sql_store.ts'
 import { contextEnforcement } from '../src/integration/context_enforcement.ts'
 import { resolveRuntime } from '../src/integration/runtime.ts'
@@ -238,7 +237,13 @@ test.group('control route guard check', (group) => {
         },
       }),
     }).auth
-    masqueradeRoutes(router, { auth, guard, startLimiter: limiter, stopLimiter: otherLimiter })
+    const runtime = await f.app.container.make('masquerade.runtime')
+    runtime.registerRoutes(router, {
+      auth,
+      guard,
+      startLimiter: limiter,
+      stopLimiter: otherLimiter,
+    })
     return f.app
   }
 
@@ -247,7 +252,7 @@ test.group('control route guard check', (group) => {
     try {
       await assert.rejects(
         () => app.start(() => {}),
-        'masqueradeRoutes guard web_effective is an effective guard; use the raw guard it wraps'
+        'registerRoutes guard web_effective is an effective guard; use the raw guard it wraps'
       )
     } finally {
       await app.terminate()
@@ -259,6 +264,12 @@ test.group('control route guard check', (group) => {
     try {
       await app.start(() => {})
       assert.isTrue(app.isReady)
+      const runtime = await app.container.make('masquerade.runtime')
+      assert.notProperty(runtime, 'controlRouteGuards')
+      assert.notInclude(
+        Object.getOwnPropertyNames(Object.getPrototypeOf(runtime)),
+        'controlRouteGuards'
+      )
     } finally {
       await app.terminate()
     }
@@ -292,7 +303,8 @@ test.group('control route guard check', (group) => {
           },
         }),
       }).auth
-      masqueradeRoutes(router, {
+      const runtime = await f.app.container.make('masquerade.runtime')
+      runtime.registerRoutes(router, {
         auth,
         guard: 'legacy',
         startLimiter: limiter,
@@ -300,7 +312,7 @@ test.group('control route guard check', (group) => {
       })
       await assert.rejects(
         () => f.app.start(() => {}),
-        'masqueradeRoutes guard legacy has no native adapter'
+        'registerRoutes guard legacy has no native adapter'
       )
     } finally {
       await f.app.terminate()

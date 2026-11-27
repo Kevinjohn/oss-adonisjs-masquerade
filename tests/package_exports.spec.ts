@@ -21,10 +21,14 @@ if (process.env.TEST_BUILT_EXPORTS === '1') {
     const native = await import('@kevinjohn/adonisjs-masquerade/native')
     const accountKitPath = '@kevinjohn/adonisjs-masquerade/account-kit'
     const accountKitProviderPath = '@kevinjohn/adonisjs-masquerade/account-kit/provider'
-    const accountKitMiddlewarePath = '@kevinjohn/adonisjs-masquerade/account-kit/middleware'
+    const managedBlockerPath =
+      '@kevinjohn/adonisjs-masquerade/account-kit/managed_blocker_middleware'
+    const accountBlockerPath =
+      '@kevinjohn/adonisjs-masquerade/account-kit/account_blocker_middleware'
     const accountKit = await import(accountKitPath)
     const accountKitProvider = await import(accountKitProviderPath)
-    const accountKitMiddleware = await import(accountKitMiddlewarePath)
+    const managedBlocker = await import(managedBlockerPath)
+    const accountBlocker = await import(accountBlockerPath)
     const lucid = await import('@kevinjohn/adonisjs-masquerade/stores/lucid')
     const testing = await import('@kevinjohn/adonisjs-masquerade/testing')
     const apiClientPlugin = await import('@kevinjohn/adonisjs-masquerade/plugins/api_client')
@@ -84,13 +88,13 @@ if (process.env.TEST_BUILT_EXPORTS === '1') {
     }
     assert.isFunction(accountKit.accountKitAuthority)
     assert.isFunction(accountKitProvider.default)
-    assert.isFunction(accountKitMiddleware.default)
-    assert.isFunction(accountKitMiddleware.AccountKitAccountBlocker)
+    assert.isFunction(managedBlocker.default)
+    assert.isFunction(accountBlocker.default)
+    assert.notStrictEqual(managedBlocker.default, accountBlocker.default)
     assert.equal(http.default, http.MasqueradeContextMiddleware)
     assert.equal(contextMiddleware.default, http.MasqueradeContextMiddleware)
     for (const name of [
       'MasqueradeController',
-      'masqueradeRoutes',
       'renderMasqueradeError',
       'contextField',
       'sensitive',
@@ -157,10 +161,11 @@ if (process.env.TEST_BUILT_EXPORTS === '1') {
           })
           const integration = await import('@kevinjohn/adonisjs-masquerade/account-kit')
           const provider = await import('@kevinjohn/adonisjs-masquerade/account-kit/provider')
-          const middleware = await import('@kevinjohn/adonisjs-masquerade/account-kit/middleware')
+          const managedBlocker = await import('@kevinjohn/adonisjs-masquerade/account-kit/managed_blocker_middleware')
+          const accountBlocker = await import('@kevinjohn/adonisjs-masquerade/account-kit/account_blocker_middleware')
           if (typeof integration.accountKitAuthority !== 'function' ||
-              typeof provider.default !== 'function' || typeof middleware.default !== 'function' ||
-              typeof middleware.AccountKitAccountBlocker !== 'function') {
+              typeof provider.default !== 'function' || typeof managedBlocker.default !== 'function' ||
+              typeof accountBlocker.default !== 'function') {
             throw new Error('Account Kit integration export is missing')
           }
         `,

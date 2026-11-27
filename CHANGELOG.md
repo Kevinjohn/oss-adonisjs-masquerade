@@ -2,6 +2,32 @@
 
 ## Unreleased
 
+- **Breaking:** Replace `masqueradeRoutes(router, options)` from `/http` with
+  `runtime.registerRoutes(router, options)`, a method on `MasqueradeRuntime`. The options and the
+  returned route group are unchanged; registration errors now name `registerRoutes`. Upgrade: in
+  `start/masquerade_routes.ts`, write `import runtime from '@kevinjohn/adonisjs-masquerade/services/main'`
+  and call `runtime.registerRoutes(router, { ... })`.
+
+- `node ace configure` now does what it used to print: `--control-routes` adds the generated routes
+  file to the `preloads` in `adonisrc.ts`, and `--banner` appends the status middleware to the router
+  stack in `start/kernel.ts`. Upgrade: an application configured earlier keeps its own import and
+  registration; when rerunning configure with `--force`, remove them so the routes and middleware
+  are not loaded twice.
+
+- **Breaking:** Replace the `/account-kit/middleware` subpath with one subpath per middleware, each a
+  default export the application can lazy-import. Upgrade: in `start/kernel.ts`, import
+  `@kevinjohn/adonisjs-masquerade/account-kit/managed_blocker_middleware` in `router.use([...])`,
+  and replace a named `AccountKitAccountBlocker` import with
+  `() => import('@kevinjohn/adonisjs-masquerade/account-kit/account_blocker_middleware')`.
+
+- Export `RequestAdmission`, `RouteGuardSelection` and `EffectiveAccessTokensUser` from
+  `@kevinjohn/adonisjs-masquerade/types`; they appear in public signatures. No upgrade step.
+
+- **Breaking:** Remove the deprecated `NativeAuthority.securityStamp(user)` method. `defineConfig`
+  now rejects an authority that has it (field `authority`), and the `authority.securityStamp`
+  setup field is gone. Upgrade: delete `securityStamp` from a custom authority and return the stamp
+  from `inspectAccount(id)`; native adapter options keep their `securityStamp` callback.
+
 - Keep optional Lucid types under `/types/lucid`, use class instances for native adapters, and align public examples and setup with the package conventions. Rename logger diagnostics to `DiagnosticEntry`.
 
 - Keep distinct Account Kit integration (`account_kit`) and browser demo (`account_kit_demo`) overlays; remove the obsolete `with_account_kit` fixture.

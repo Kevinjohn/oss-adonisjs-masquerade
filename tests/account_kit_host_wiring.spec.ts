@@ -74,14 +74,14 @@ test('applies optional Account Kit host route imports and other wiring', async (
     assert.include(session, 'export default protectManagedSessionConfig(sessionConfig, {')
     const kernel = await readFile(join(patchedApp, 'start/kernel.ts'), 'utf8')
     assert.include(kernel, '@adonisjs/auth/initialize_auth_middleware')
-    assert.include(kernel, '@kevinjohn/adonisjs-masquerade/account-kit/middleware')
+    assert.include(kernel, '@kevinjohn/adonisjs-masquerade/account-kit/managed_blocker_middleware')
     assert.include(kernel, '#middleware/account_kit_admission_middleware')
     assert.isBelow(
       kernel.indexOf('@adonisjs/auth/initialize_auth_middleware'),
-      kernel.indexOf('@kevinjohn/adonisjs-masquerade/account-kit/middleware')
+      kernel.indexOf('@kevinjohn/adonisjs-masquerade/account-kit/managed_blocker_middleware')
     )
     assert.isBelow(
-      kernel.indexOf('@kevinjohn/adonisjs-masquerade/account-kit/middleware'),
+      kernel.indexOf('@kevinjohn/adonisjs-masquerade/account-kit/managed_blocker_middleware'),
       kernel.indexOf('#middleware/account_kit_admission_middleware')
     )
     assert.include(

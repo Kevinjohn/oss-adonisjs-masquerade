@@ -5,12 +5,7 @@ import type { GuardContract } from '@adonisjs/auth/types'
 import type { HttpContext } from '@adonisjs/core/http'
 import { resolveRuntime } from '../integration/runtime.ts'
 import { contextEnforcement } from '../integration/context_enforcement.ts'
-import type { ResolvedContext } from '../types.ts'
-
-/** Effective user facade for a native opaque access-token guard. */
-export type EffectiveAccessTokensUser<User> = User extends { currentAccessToken: unknown }
-  ? Omit<User, 'currentAccessToken'>
-  : User
+import type { EffectiveAccessTokensUser, ResolvedContext } from '../types.ts'
 
 /**
  * Wraps the native token guard with effective-user admission.

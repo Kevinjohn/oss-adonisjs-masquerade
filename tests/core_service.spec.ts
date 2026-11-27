@@ -12,7 +12,6 @@ test('starts, rejects nesting, stops and preserves idle revisions', async ({ ass
         namespace: 'test',
         guard: 'web',
         incarnation: 'id',
-        securityStamp: () => 'stamp',
         inspectAccount: async (id: string) => ({
           subject: { id, incarnation: id, user: { id } },
           active: true,

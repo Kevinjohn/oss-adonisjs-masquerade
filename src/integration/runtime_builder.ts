@@ -5,7 +5,7 @@ import { E_MASQUERADE_UNAVAILABLE } from '../errors.ts'
 import { InvalidArgumentsException } from '@adonisjs/core/exceptions'
 import type {} from '@adonisjs/auth/auth_provider'
 import type { GuardContract } from '@adonisjs/auth/types'
-import type { HttpContext } from '@adonisjs/core/http'
+import type { HttpContext, Router } from '@adonisjs/core/http'
 import type { ApplicationService } from '@adonisjs/core/types'
 import { completeConfig, resolveMasqueradeConfig, validateConfig } from '../define_config.ts'
 import type { CompleteMasqueradeConfig } from '../define_config.ts'
@@ -14,14 +14,15 @@ import { createMasqueradeService } from '../service.ts'
 import { admitOnce } from '../request_admission.ts'
 import { checkActiveMode } from '../active_mode.ts'
 import { authenticateActorIdentity } from '../actor_identity.ts'
-import type { RequestAdmission } from '../request_admission.ts'
+import type { RequestAdmission } from '../types.ts'
 import type { MasqueradePermissions, NativeAuthority, OwnerKey } from '../types.ts'
-import type { NativeRuntimeAdapter } from '../types.ts'
-import { MasqueradeRuntime } from './runtime.ts'
+import type { MasqueradeRoutesOptions, NativeRuntimeAdapter } from '../types.ts'
+import { MasqueradeRuntime, controlRouteGuards } from './runtime.ts'
 import { guardRegistration } from './guard_registration.ts'
 import type { NativeGuardDriver } from './guard_registration.ts'
 import { routeGuards } from './route_guards.ts'
 import { selectRouteGuard } from './route_guard_selection.ts'
+import { mountControlRoutes } from '../http/control_routes.ts'
 
 type TransitionName =
   'masquerade:started' | 'masquerade:stopped' | 'masquerade:expired' | 'masquerade:invalidated'
@@ -235,6 +236,7 @@ type InternalService = MasqueradeRuntime['service'] & {
 class BootedMasqueradeRuntime extends MasqueradeRuntime {
   #internal: InternalService
   #selectGuard: MasqueradeRuntime['selectGuard']
+  #controlRouteGuards = new Set<string>()
 
   declare readonly service: MasqueradeRuntime['service']
   declare readonly config: RuntimeConfiguration['config']
@@ -269,5 +271,16 @@ class BootedMasqueradeRuntime extends MasqueradeRuntime {
 
   actor(ctx: HttpContext) {
     return this.#internal[authenticateActorIdentity](ctx)
+  }
+
+  registerRoutes<Guard extends string>(router: Router, options: MasqueradeRoutesOptions<Guard>) {
+    const group = mountControlRoutes(router, options)
+    // Effective guards are known only once auth resolves; the provider checks this guard at ready.
+    this.#controlRouteGuards.add(options.guard)
+    return group
+  }
+
+  [controlRouteGuards](): readonly string[] {
+    return [...this.#controlRouteGuards]
   }
 }

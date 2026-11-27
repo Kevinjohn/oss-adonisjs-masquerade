@@ -29,7 +29,7 @@ import { admitOnce } from './request_admission.ts'
 import { checkActiveMode } from './active_mode.ts'
 import { authenticateActorIdentity } from './actor_identity.ts'
 import { reportDiagnostic } from './observers.ts'
-import type { RequestAdmission } from './request_admission.ts'
+import type { RequestAdmission } from './types.ts'
 import type {
   ActiveModeRow,
   AuditEvent,

@@ -701,7 +701,7 @@ routes may opt in to the same check as specified below; other raw routes retain 
 
 ### 15.6 Host-owned account routes (issue #311)
 
-The named `AccountKitAccountBlocker` export from `account-kit/middleware` lets a host apply the
+The `AccountKitAccountBlocker` default export of `account-kit/account_blocker_middleware` lets a host apply the
 managed blocker's exact raw-actor active-mode check to its own native account routes. The global
 managed blocker reuses this implementation; owner-row validation, clock and failure semantics remain
 those in §15.4. The named middleware requires neither a managed route name nor registration and does

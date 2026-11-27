@@ -144,7 +144,7 @@ export default defineConfig({
     // The generated app imports the compiled package; `pnpm test:built-exports` runs this after build.
     .skip(process.env.TEST_BUILT_EXPORTS !== '1', 'requires the built package')
 
-  test('generates route drafts and leaves the host to install auth, middleware and routes', async ({
+  test('generates route drafts, preloads them and registers the banner middleware', async ({
     assert,
   }) => {
     const previousProcessExitCode = process.exitCode
@@ -157,7 +157,11 @@ export default defineConfig({
       )
       assert.equal(await runConfigure(json, ['--control-routes']), 0)
       assert.equal(await readFile(join(host, 'config/auth.ts'), 'utf8'), starterAuthConfig)
-      assert.equal(await readFile(join(host, 'start/kernel.ts'), 'utf8'), starterKernel)
+      assert.include(
+        await readFile(join(host, 'start/kernel.ts'), 'utf8'),
+        "() => import('#middleware/share_masquerade_status_middleware')"
+      )
+      assert.equal(await readFile(join(json, 'start/kernel.ts'), 'utf8'), starterKernel)
       assert.include(
         await readFile(join(host, 'app/middleware/share_masquerade_status_middleware.ts'), 'utf8'),
         'runtime.selectGuard(ctx).kind'
@@ -177,14 +181,21 @@ export default defineConfig({
       const jsonRoutes = await readFile(join(json, 'start/masquerade_routes.ts'), 'utf8')
       assert.include(
         jsonRoutes,
-        "import { masqueradeRoutes } from '@kevinjohn/adonisjs-masquerade/http'"
+        "import runtime from '@kevinjohn/adonisjs-masquerade/services/main'"
       )
       assert.isFalse(existsSync(join(json, 'app/controllers/masquerade_form_controller.ts')))
       assert.match(
         await readFile(join(host, 'start/masquerade_limiter.ts'), 'utf8'),
         /ctx.auth.use\(["']web["']\).getUserOrFail\(\)/
       )
-      assert.notInclude(await readFile(join(host, 'adonisrc.ts'), 'utf8'), 'masquerade_form_routes')
+      assert.include(
+        await readFile(join(host, 'adonisrc.ts'), 'utf8'),
+        "import('#start/masquerade_form_routes')"
+      )
+      assert.include(
+        await readFile(join(json, 'adonisrc.ts'), 'utf8'),
+        "import('#start/masquerade_routes')"
+      )
       assert.deepEqual(await bootGeneratedRuntime(host, {}, true), {
         booted: true,
         guard: 'web_effective',
@@ -217,6 +228,18 @@ export default defineConfig({
       await rename(join(host, 'start'), join(host, directories.start))
       await mkdir(join(host, 'domain'))
       await rename(join(host, 'app/models'), join(host, directories.models))
+      // Source codemods read the directories from adonisrc.ts, as in a real application.
+      const rcFile = join(host, 'adonisrc.ts')
+      const rcSource = await readFile(rcFile, 'utf8')
+      await writeFile(
+        rcFile,
+        rcSource.replace(
+          'export default defineConfig({',
+          `export default defineConfig({\n  directories: { ${Object.entries(directories)
+            .map(([key, value]) => `${key}: '${value}'`)
+            .join(', ')} },`
+        )
+      )
       const options = ['--banner', '--form-controller', '--control-routes']
       assert.equal(await runConfigure(host, options, directories), 0)
       const files = [
@@ -231,7 +254,8 @@ export default defineConfig({
       ]
       for (const file of files) assert.isTrue(existsSync(join(host, file)), file)
       const kernelPath = join(host, 'bootstrap/kernel.ts')
-      assert.equal(await readFile(kernelPath, 'utf8'), starterKernel)
+      const kernel = await readFile(kernelPath, 'utf8')
+      assert.include(kernel, "() => import('#middleware/share_masquerade_status_middleware')")
       const saved = await Promise.all(files.map((file) => readFile(join(host, file), 'utf8')))
       const migrationRoot = join(host, 'schema')
       const migrations = await readdir(migrationRoot)
@@ -254,7 +278,7 @@ export default defineConfig({
         saved
       )
       assert.equal(await runConfigure(host, [...options, '--force'], directories), 0)
-      assert.equal(await readFile(kernelPath, 'utf8'), starterKernel)
+      assert.equal(await readFile(kernelPath, 'utf8'), kernel)
       assert.sameMembers(await readdir(migrationRoot), migrations)
       assert.deepEqual(
         await Promise.all(migrations.map((file) => readFile(join(migrationRoot, file), 'utf8'))),

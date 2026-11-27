@@ -4,7 +4,7 @@ As a signed-in actor, I want to read my current support mode and context token s
 
 **Status:** Current; source-reviewed HTTP control.
 **Access:** Actor authenticates with the configured raw control guard. Native access tokens also require the configured `masquerade` ability before the actor is resolved and the row read. Status does not grant target access or permission to start or stop a mode.
-**Entry:** Read `GET /masquerade`, mounted by `masqueradeRoutes()`; this is independent of starting or stopping a mode.
+**Entry:** Read `GET /masquerade`, mounted by `runtime.registerRoutes()`; this is independent of starting or stopping a mode.
 **Documentation:** [Read status and start](../../docs/guide/usage.md#read-status-and-start).
 **Source:** [MasqueradeController.status](../../src/http/masquerade_controller.ts), [MasqueradeService.status](../../src/service.ts), [mode projection](../../src/mode_projection.ts).
 **Coverage:** [HTTP controller tests](../../tests/http_controllers.spec.ts), [service transition tests](../../tests/core_service.spec.ts).
@@ -32,7 +32,7 @@ Scope: raw-guarded status read. It projects the stored row without expiring or r
 
 ```mermaid
 flowchart TD
- A["masqueradeRoutes mounts GET / with raw-auth route middleware"] --> B["MasqueradeController.status"]
+ A["runtime.registerRoutes mounts GET / with raw-auth route middleware"] --> B["MasqueradeController.status"]
  B --> C["MasqueradeController.control checks selected guard kind is raw"]
  C --> D["MasqueradeService.status resolves actor including native token ability, then reads stored row"]
  C -->|Non-raw selection| X["Propagate unavailable"]

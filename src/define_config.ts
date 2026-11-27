@@ -109,8 +109,7 @@ function validateConfigFields<User, Request, Store extends RequestControlStore>(
     if (!authority) fail('authority')
     if (
       Object.keys(authority).some(
-        (key) =>
-          !['namespace', 'guard', 'incarnation', 'securityStamp', 'inspectAccount'].includes(key)
+        (key) => !['namespace', 'guard', 'incarnation', 'inspectAccount'].includes(key)
       )
     )
       fail('authority')
@@ -122,8 +121,6 @@ function validateConfigFields<User, Request, Store extends RequestControlStore>(
     if (!isBoundedString(authority.guard, 128)) fail('authority.guard')
     if (!(authority.incarnation === 'id' || typeof authority.incarnation === 'function'))
       fail('authority.incarnation')
-    if (authority.securityStamp !== undefined && typeof authority.securityStamp !== 'function')
-      fail('authority.securityStamp')
     if (typeof authority.inspectAccount !== 'function') fail('authority.inspectAccount')
   }
   if (permissions !== undefined) {
@@ -177,9 +174,6 @@ function validateConfigFields<User, Request, Store extends RequestControlStore>(
           typeof authority.incarnation === 'function'
             ? authority.incarnation.bind(authority)
             : authority.incarnation,
-        ...(authority.securityStamp
-          ? { securityStamp: authority.securityStamp.bind(authority) }
-          : {}),
         inspectAccount: authority.inspectAccount.bind(authority),
       }),
     }),

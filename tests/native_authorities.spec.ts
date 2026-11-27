@@ -19,7 +19,6 @@ function makeAuthority(guard: string): NativeAuthority<{ id: string }> {
     namespace: 'users',
     guard,
     incarnation: 'id',
-    securityStamp: () => 'stamp',
     inspectAccount: async () => null,
   }
 }
@@ -106,7 +105,6 @@ test('native authorities preserve the primary authority and actor user types', (
     namespace: 'users',
     guard: 'web',
     incarnation: (user) => user.tenant,
-    securityStamp: (user) => user.tenant,
     inspectAccount: async () => null,
   }
   const primary = {

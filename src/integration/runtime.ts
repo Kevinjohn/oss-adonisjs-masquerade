@@ -1,7 +1,14 @@
-import type { HttpContext } from '@adonisjs/core/http'
-import type { MasqueradeConfig, MasqueradeService, OwnerKey } from '../types.ts'
-import type { RequestAdmission } from '../request_admission.ts'
-import type { RouteGuardSelection } from './route_guard_selection.ts'
+import type { HttpContext, RouteGroup, Router } from '@adonisjs/core/http'
+import type { MasqueradeConfig, MasqueradeService, MasqueradeRoutesOptions } from '../types.ts'
+import type { OwnerKey } from '../types.ts'
+import type { RequestAdmission, RouteGuardSelection } from '../types.ts'
+
+/**
+ * Internal key for the guards `registerRoutes` mounted control routes on; deliberately absent from
+ * the public API.
+ * @internal
+ */
+export const controlRouteGuards = Symbol('controlRouteGuards')
 
 /**
  * Resolve the registered runtime through the Masquerade container service.
@@ -57,6 +64,32 @@ export abstract class MasqueradeRuntime<User = unknown> {
    * ```
    */
   abstract actor(ctx: HttpContext): Promise<{ id: string; incarnation: string }>
+  /**
+   * Mount `GET /`, `POST /start` and `POST /stop` on the package controller behind the raw guard,
+   * with separate start and stop limiters. Returns the group so the host can add middleware. The
+   * provider checks at ready that the guard is a raw guard with a native adapter.
+   *
+   * @example
+   * ```ts
+   * import router from '@adonisjs/core/services/router'
+   * import runtime from '@kevinjohn/adonisjs-masquerade/services/main'
+   * import { middleware } from '#start/kernel'
+   * import { startMasqueradeLimiter, stopMasqueradeLimiter } from '#start/masquerade_limiter'
+   *
+   * runtime.registerRoutes(router, {
+   *   auth: middleware.auth,
+   *   guard: 'web',
+   *   startLimiter: startMasqueradeLimiter,
+   *   stopLimiter: stopMasqueradeLimiter,
+   * })
+   * ```
+   */
+  abstract registerRoutes<Guard extends string>(
+    router: Router,
+    options: MasqueradeRoutesOptions<Guard>
+  ): RouteGroup
+  /** @internal The guards `registerRoutes` mounted control routes on. */
+  abstract [controlRouteGuards](): readonly string[]
 }
 
 export function resolveRuntime(ctx: HttpContext): Promise<MasqueradeRuntime> {

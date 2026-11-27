@@ -15,7 +15,7 @@ actor guard. Keep customer business routes on the effective guard. See the
 
 `MasqueradeController` implements JSON status, start, and stop responses. The package controller
 does not render Edge or redirect. Its control responses are `no-store` and vary on `Accept` and
-`X-Masquerade-Context`. Use `--control-routes` to generate a draft of this mount in `start/masquerade_routes.ts`: `masqueradeRoutes`
+`X-Masquerade-Context`. Use `--control-routes` to generate a draft of this mount in `start/masquerade_routes.ts`: `runtime.registerRoutes`
 with raw session authentication and independent host-owned start and stop limiters. The
 native-session example mounts its bearer controls this way and its session controls by hand on a
 form controller. Keep Shield's CSRF middleware enabled for cookie-authenticated POST requests.
@@ -26,9 +26,9 @@ form controller. Keep Shield's CSRF middleware enabled for cookie-authenticated 
 import { middleware } from '#start/kernel'
 import { startMasqueradeLimiter, stopMasqueradeLimiter } from '#start/masquerade_limiter'
 import router from '@adonisjs/core/services/router'
-import { masqueradeRoutes } from '@kevinjohn/adonisjs-masquerade/http'
+import runtime from '@kevinjohn/adonisjs-masquerade/services/main'
 
-masqueradeRoutes(router, {
+runtime.registerRoutes(router, {
   auth: middleware.auth,
   guard: 'web',
   startLimiter: startMasqueradeLimiter,
@@ -36,7 +36,7 @@ masqueradeRoutes(router, {
 })
 ```
 
-`masqueradeRoutes` mounts `GET /masquerade`, `POST /masquerade/start` and `POST /masquerade/stop`
+`runtime.registerRoutes` mounts `GET /masquerade`, `POST /masquerade/start` and `POST /masquerade/stop`
 on `MasqueradeController`, named `masquerade.status`, `masquerade.start` and `masquerade.stop`. It
 applies `auth({ guards: [guard] })` to the group and each limiter to its own route. It throws at
 registration when the guard, the auth middleware or either limiter is missing, or when both

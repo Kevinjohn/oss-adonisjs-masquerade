@@ -285,14 +285,14 @@ import router from '@adonisjs/core/services/router'
 router.use([
   // Session and Shield middleware...
   () => import('@adonisjs/auth/initialize_auth_middleware'),
-  () => import('@kevinjohn/adonisjs-masquerade/account-kit/middleware'),
+  () => import('@kevinjohn/adonisjs-masquerade/account-kit/managed_blocker_middleware'),
   () => import('#middleware/account_kit_actor_admission_middleware'),
   () => import('@kevinjohn/adonisjs-masquerade/masquerade_context_middleware'),
   // silent_auth and other application middleware...
 ])
 ```
 
-The `account-kit/middleware` default export is the global blocker. Keep it in the router-wide
+The `account-kit/managed_blocker_middleware` default export is the global blocker. Keep it in the router-wide
 middleware stack so it covers every mounted route named `accountKit.*`. Account Kit's `except`
 option removes an endpoint from its route registration, so that omitted endpoint is not mounted by
 Account Kit. The remaining registered routes are still covered by the global blocker. A host-added
@@ -329,7 +329,8 @@ actor passes after the read. A store failure returns 503.
 
 The global blocker covers only Account Kit's registered `accountKit.*` routes. If your application
 serves account operations from its own controllers, opt those routes in with the named
-`AccountKitAccountBlocker` export from `@kevinjohn/adonisjs-masquerade/account-kit/middleware`.
+`AccountKitAccountBlocker`, the default export of
+`@kevinjohn/adonisjs-masquerade/account-kit/account_blocker_middleware`.
 It applies the same raw-actor active-mode check, regardless of route name or HTTP method:
 
 ```ts
@@ -337,9 +338,7 @@ It applies the same raw-actor active-mode check, regardless of route name or HTT
 export const middleware = router.named({
   // Existing named middleware, including auth...
   accountKitAccountBlocker: () =>
-    import('@kevinjohn/adonisjs-masquerade/account-kit/middleware').then((module) => ({
-      default: module.AccountKitAccountBlocker,
-    })),
+    import('@kevinjohn/adonisjs-masquerade/account-kit/account_blocker_middleware'),
 })
 ```
 

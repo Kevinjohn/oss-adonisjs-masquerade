@@ -114,6 +114,7 @@ class ContextRequiredException extends MasqueradeRequestException {
   static message = 'Masquerade context required'
 }
 
+// One 503 code for every unrecognised failure conceals which store, callback or setting failed.
 class UnavailableException extends MasqueradeRequestException {
   static code = 'E_MASQUERADE_UNAVAILABLE'
   static status = 503

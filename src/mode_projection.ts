@@ -1,5 +1,5 @@
 import { buildContextToken } from './context_token.ts'
-import type { RequestAdmission } from './request_admission.ts'
+import type { RequestAdmission } from './types.ts'
 import type { ModeRow, ModeView, OwnerKey, ResolvedContext, Subject } from './types.ts'
 
 export function buildModeView(owner: OwnerKey, row: ModeRow | null): ModeView {
