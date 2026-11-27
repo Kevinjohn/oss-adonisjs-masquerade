@@ -3,7 +3,8 @@
 This folder is not a standalone app. `pnpm test:account-kit` copies `examples/native-session`,
 installs Masquerade and the verified Account Kit release pinned by the harness, lays these files
 over the copy, and wires the Account Kit provider and active-mode blocker with
-`bin/helpers/account_kit_host_wiring.ts`.
+`bin/helpers/account_kit_host_wiring.ts`. The admission settings, the sessions migration and the
+HTTP test helper are copied from the demo, which owns them.
 The result runs Account Kit's session and access-token strategies, with and without session
 management, on SQLite and PostgreSQL.
 
@@ -14,7 +15,7 @@ To add Account Kit to your app, follow the
 | File                                                 | Shows                                                          |
 | ---------------------------------------------------- | -------------------------------------------------------------- |
 | `config/masquerade.ts`                               | `accountKitAuthority` with an admission check in the policy    |
-| `config/account_kit.ts`, `config/admission.ts`       | Account Kit and admission settings                             |
+| `config/account_kit.ts`                              | Account Kit settings                                           |
 | `app/services/account_kit_guard.ts`                  | The managed guard shared by Account Kit and Masquerade         |
 | `app/middleware/account_kit_admission_middleware.ts` | Admission gate placed before the Masquerade context middleware |
 | `start/account_kit_routes.ts`                        | Account Kit's managed routes mounted under `/kit`              |

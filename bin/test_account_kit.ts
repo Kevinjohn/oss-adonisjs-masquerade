@@ -2,7 +2,7 @@ import { execFileSync, spawn, type ChildProcess } from 'node:child_process'
 import { createHash, randomUUID } from 'node:crypto'
 import { cp, mkdir, mkdtemp, readdir, readFile, rm, writeFile } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
-import { join, relative, resolve } from 'node:path'
+import { dirname, join, relative, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { selectRegistryVersion } from './helpers/registry_version.ts'
 import {
@@ -30,6 +30,13 @@ import {
 const root = fileURLToPath(new URL('../', import.meta.url))
 const fixture = join(root, 'examples/account_kit')
 const template = join(root, 'examples/native-session')
+const demo = join(root, 'examples/account_kit_demo')
+// Files the fixture shares unchanged with the demo overlay, which owns them.
+const sharedWithDemo = [
+  'config/admission.ts',
+  'database/migrations/1792660000000_create_sessions_table.ts',
+  'tests/helpers/account_kit_http.ts',
+]
 const options = new Map(
   process.argv.slice(2).map((arg) => {
     const [key, value] = arg.replace(/^--/, '').split('=')
@@ -505,6 +512,10 @@ try {
                 env
               )
               await overlay(fixture, app)
+              for (const file of sharedWithDemo) {
+                await mkdir(dirname(join(app, file)), { recursive: true })
+                await cp(join(demo, file), join(app, file))
+              }
               await wireRoutes(app, {
                 anchor: "import '#start/demo_json_routes'",
                 imports: ['./account_kit_routes.js', './account_kit_fixture_routes.js'],

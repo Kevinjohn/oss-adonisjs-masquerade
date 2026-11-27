@@ -106,11 +106,6 @@
       {
         "entry": 3,
         "item": "IMP-5",
-        "path": "examples/account_kit/tests/helpers/account_kit_http.ts"
-      },
-      {
-        "entry": 3,
-        "item": "IMP-5",
         "path": "examples/account_kit_demo/adonisrc.ts"
       },
       {
