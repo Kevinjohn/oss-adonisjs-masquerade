@@ -38,8 +38,10 @@ control routes and separate rate limiters, then review and import the drafts in 
 ## Configuration
 
 Implement account incarnation, security stamp, account eligibility and `permissions` in the
-scaffold. Reuse the same user provider for the raw guard and native adapter. Add the effective guard
-and register the context middleware after Auth initialization and before silent authentication.
+scaffold. Reuse the same user provider for the raw guard and native adapter. Add the effective guard.
+Mount `@kevinjohn/adonisjs-masquerade/masquerade_context_middleware` in the `router.use([...])` stack
+of `start/kernel.ts`, after Auth initialization and before silent authentication: it reads
+`ctx.auth`, so the application mounts it.
 Keep the controls on the raw guard with CSRF protection. See [setup](docs/guide/setup.md).
 
 ## Usage
