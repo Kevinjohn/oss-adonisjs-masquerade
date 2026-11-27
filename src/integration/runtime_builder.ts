@@ -17,7 +17,7 @@ import { authenticateActorIdentity } from '../actor_identity.ts'
 import type { RequestAdmission } from '../types.ts'
 import type { MasqueradePermissions, NativeAuthority, OwnerKey } from '../types.ts'
 import type { MasqueradeRoutesOptions, NativeRuntimeAdapter } from '../types.ts'
-import { MasqueradeRuntime } from './runtime.ts'
+import { MasqueradeRuntime, controlRouteGuards } from './runtime.ts'
 import { guardRegistration } from './guard_registration.ts'
 import type { NativeGuardDriver } from './guard_registration.ts'
 import { routeGuards } from './route_guards.ts'
@@ -280,7 +280,7 @@ class BootedMasqueradeRuntime extends MasqueradeRuntime {
     return group
   }
 
-  get controlRouteGuards(): readonly string[] {
+  [controlRouteGuards](): readonly string[] {
     return [...this.#controlRouteGuards]
   }
 }

@@ -4,6 +4,7 @@ import type { ApplicationService } from '@adonisjs/core/types'
 import { createRuntime, resolveRuntimeConfiguration } from '../src/integration/runtime_builder.ts'
 import type { RuntimeConfiguration } from '../src/integration/runtime_builder.ts'
 import { MasqueradeCallbackRegistration, resolveCallbacks } from '../src/callback_registration.ts'
+import { controlRouteGuards } from '../src/integration/runtime.ts'
 import type { MasqueradeRuntime } from '../src/integration/runtime.ts'
 import type { ObserverEvent } from '../src/types.ts'
 
@@ -45,7 +46,7 @@ export default class MasqueradeProvider {
   async ready(): Promise<void> {
     if (this.app.config.get('masquerade') === undefined) return
     const runtime = await this.app.container.make('masquerade.runtime')
-    const guards = runtime.controlRouteGuards
+    const guards = runtime[controlRouteGuards]()
     if (guards.length === 0) return
     const native = await this.app.container.make(NativeAdapter)
     const rawAdapters = native.adapters ?? { [native.guard ?? native.authority.guard]: native }

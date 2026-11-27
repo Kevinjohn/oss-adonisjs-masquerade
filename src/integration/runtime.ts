@@ -4,6 +4,13 @@ import type { OwnerKey } from '../types.ts'
 import type { RequestAdmission, RouteGuardSelection } from '../types.ts'
 
 /**
+ * Internal key for the guards `registerRoutes` mounted control routes on; deliberately absent from
+ * the public API.
+ * @internal
+ */
+export const controlRouteGuards = Symbol('controlRouteGuards')
+
+/**
  * Resolve the registered runtime through the Masquerade container service.
  *
  * @example
@@ -82,7 +89,7 @@ export abstract class MasqueradeRuntime<User = unknown> {
     options: MasqueradeRoutesOptions<Guard>
   ): RouteGroup
   /** @internal The guards `registerRoutes` mounted control routes on. */
-  abstract get controlRouteGuards(): readonly string[]
+  abstract [controlRouteGuards](): readonly string[]
 }
 
 export function resolveRuntime(ctx: HttpContext): Promise<MasqueradeRuntime> {

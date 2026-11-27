@@ -264,6 +264,12 @@ test.group('control route guard check', (group) => {
     try {
       await app.start(() => {})
       assert.isTrue(app.isReady)
+      const runtime = await app.container.make('masquerade.runtime')
+      assert.notProperty(runtime, 'controlRouteGuards')
+      assert.notInclude(
+        Object.getOwnPropertyNames(Object.getPrototypeOf(runtime)),
+        'controlRouteGuards'
+      )
     } finally {
       await app.terminate()
     }
