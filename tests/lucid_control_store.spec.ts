@@ -540,14 +540,14 @@ test.group('Lucid control store', () => {
         const writeClient = f.second.getWriteClient()
         const onQueryError = (error: { code?: string }, query: { sql: string }) => {
           if (
-            error.code === 'SQLITE_BUSY' &&
-            /^\s*insert\b/i.test(query.sql) &&
-            /\bmasquerade_modes\b/i.test(query.sql)
-          ) {
-            const observation = { code: error.code, sql: query.sql }
-            busyObservations.push(observation)
-            signalBusy(observation)
-          }
+            error.code !== 'SQLITE_BUSY' ||
+            !/^\s*insert\b/i.test(query.sql) ||
+            !/\bmasquerade_modes\b/i.test(query.sql)
+          )
+            return
+          const observation = { code: error.code, sql: query.sql }
+          busyObservations.push(observation)
+          signalBusy(observation)
         }
         writeClient.on('query-error', onQueryError)
 
