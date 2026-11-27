@@ -2,7 +2,7 @@
  * Moves this repository to another Account Kit release: `pnpm bump:account-kit 0.3.5`.
  *
  * It downloads the current and target release tarballs, then rewrites every tracked reference:
- * release URLs and tarball names, the exact peer, lockfile integrity and versions, the release
+ * release URLs and tarball names, the caret peer, lockfile integrity and versions, the release
  * SHA-256 and source commit, and version mentions in code and docs. `CHANGELOG.md` and the
  * requirement ledger's pin history stay as written; the script lists the lines that still name the
  * old version so they can be updated by hand. It also lists guide and README lines that name any
@@ -78,11 +78,12 @@ async function otherKitReleases(version: string): Promise<string[]> {
 }
 
 const manifest = JSON.parse(await readFile(join(root, 'package.json'), 'utf8'))
-const current: unknown = manifest.peerDependencies?.[kitPackage]
-if (typeof current !== 'string' || !/^\d+\.\d+\.\d+$/.test(current)) {
-  console.error(`package.json does not pin ${kitPackage} to an exact version.`)
+const peer: unknown = manifest.peerDependencies?.[kitPackage]
+if (typeof peer !== 'string' || !/^\^\d+\.\d+\.\d+$/.test(peer)) {
+  console.error(`package.json does not declare ${kitPackage} as a caret peer range.`)
   process.exit(1)
 }
+const current = peer.slice(1)
 if (current === target) {
   console.log(`Already on Account Kit ${target}.`)
   process.exit(0)

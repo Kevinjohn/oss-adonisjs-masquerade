@@ -137,7 +137,7 @@
     "@adonisjs/lucid": "^22.4.2",
     "@adonisjs/session": "^8.1.0",
     "@japa/api-client": "^3.2.1",
-    "@kevinjohn/adonisjs-account-kit": "0.8.0",
+    "@kevinjohn/adonisjs-account-kit": "^0.8.0",
     "typescript": "^5.9.3 || ^6.0.3"
   },
   "peerDependenciesMeta": {
